@@ -78,7 +78,7 @@
     "pluginTarget": { "type": "object", "additionalProperties": false, "required": ["type", "plugin", "scope"], "properties": { "type": { "const": "plugin" }, "plugin": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" }, "scope": { "enum": ["application", "admin", "both"] } } },
     "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail", "phpTest", "vitestTest", "langMigration", "langZh", "langEn", "memberApiController", "customActions", "customActionsConfig"] },
     "customAction": {
-      "description": "设计器新建的列表自定义动作。正式生成（仅核心目标）产生 action/{Class}Actions.php 方法桩、config/actions.php 注册清单（键 generated.{entity}.{key}）与权限 generated:{entity}:action-{kebab(key)}。",
+      "description": "设计器新建的列表自定义动作。正式生成（仅核心目标）产生 action/{Class}Actions.php 方法桩、config/actions.php 注册清单（键 business.{entity}.{key}）与权限 business:{entity}:action-{kebab(key)}。",
       "type": "object", "additionalProperties": false,
       "required": ["key", "label", "locations", "batch", "requiresConfirmation", "effect", "parameters"],
       "properties": {

@@ -28,7 +28,7 @@ const generation: BusinessGeneration = {
   planDigest: 'a'.repeat(64),
   definitionHash: 'b'.repeat(64),
   schemaHash: 'c'.repeat(64),
-  routePath: '/generated/orders',
+  routePath: '/business/orders',
   availableActions: ['recover'],
   plan: { blocked: false, files: [{ path: 'app/Order.php', status: 'update' }] },
   recovery: { state: 'recovery_required', transactionId: 'tx-safe' },
@@ -67,12 +67,12 @@ describe('GenerationDetailDrawer', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const wrapper = render();
-    const path = wrapper.get('[data-copy="/generated/orders"]');
+    const path = wrapper.get('[data-copy="/business/orders"]');
     expect(path.attributes('tabindex')).toBe('0');
     await path.trigger('keydown', { key: 'Enter' });
     const hash = wrapper.get(`[data-copy="${'a'.repeat(64)}"]`);
     await hash.trigger('keydown', { key: ' ' });
-    expect(writeText).toHaveBeenNthCalledWith(1, '/generated/orders');
+    expect(writeText).toHaveBeenNthCalledWith(1, '/business/orders');
     expect(writeText).toHaveBeenNthCalledWith(2, 'a'.repeat(64));
   });
 

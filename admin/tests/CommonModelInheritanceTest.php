@@ -25,7 +25,7 @@ final class CommonModelInheritanceTest extends TestCase
         file_put_contents($file, $context['modelContent']);
         try {
             require $file;
-            $class = 'Tests\\GeneratedCommon\\generated\\CommonInheritance';
+            $class = 'Tests\\GeneratedCommon\\CommonInheritance';
             self::assertSame(BaseModel::class, (new \ReflectionClass($class))->getParentClass()->getName());
             Db::schema()->create('common_inheritance', static function (\Illuminate\Database\Schema\Blueprint $table): void {
                 $table->id(); $table->string('title'); $table->text('metadata')->nullable(); $table->timestamps(); $table->softDeletes();

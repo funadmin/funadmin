@@ -21,7 +21,7 @@
 
 <h2>Webman 插件开发与部署</h2>
 
-<p>核心 CRUD 生成的 PHP 源码位于 <code>app/admin/generated/{entity}/</code>，前端 API 与页面写入同级 <code>web/src/admin/api/generated/</code> 和 <code>web/src/admin/views/generated/</code>。可通过 <code>PLUGIN_ADMIN_WEB_PATH</code> 指定前端源码根目录；前后端源码须处于同一文件系统，保证文件提交及失败回滚。预览或恢复过程中变更该目录会阻断旧计划，须恢复原配置或重新预览。页面生成后重新构建前端。正式生成成功后后端会自动向 Webman 主进程发送 reload 信号以加载新增控制器的注解路由（读取 <code>config/server.php</code> 的 <code>pid_file</code>，需要 posix 扩展）；无法自动重载时生成结果返回 <code>reloadRequested: false</code> 与原因，请手动执行 <code>php start.php reload</code>。</p>
+<p>核心 CRUD 生成的 PHP 源码位于 <code>app/admin/business/{entity}/</code>，前端 API 与页面写入同级 <code>web/src/admin/api/business/</code> 和 <code>web/src/admin/views/business/</code>。可通过 <code>PLUGIN_ADMIN_WEB_PATH</code> 指定前端源码根目录；前后端源码须处于同一文件系统，保证文件提交及失败回滚。预览或恢复过程中变更该目录会阻断旧计划，须恢复原配置或重新预览。页面生成后重新构建前端。正式生成成功后后端会自动向 Webman 主进程发送 reload 信号以加载新增控制器的注解路由（读取 <code>config/server.php</code> 的 <code>pid_file</code>，需要 posix 扩展）；无法自动重载时生成结果返回 <code>reloadRequested: false</code> 与原因，请手动执行 <code>php start.php reload</code>。</p>
 
 <p>运行 <code>php webman plugin:make demo --title=示例</code> 生成 Manifest v2 插件。源包中的后台目录为 <code>plugins/demo/app/admin/plugins/demo/{layer}</code>，安装到 <code>app/admin/plugins/demo/{layer}</code>，目录与命名空间保持一致。前端源码为 <code>plugins/demo/web/src/admin/modules/demo</code>，静态资源为 <code>plugins/demo/public/plugin-assets/demo/public</code>。完整目录见仓库根目录的 <code>docs/plugins.md</code>。后台路由使用 <code>/admin/plugin/demo</code>，独立应用使用 <code>/demo</code>。</p>
 <p>后台插件控制器继承宿主后台控制器，权限码由控制器与方法自动推导，必须属于当前插件，并在 <code>plugin.json</code> 的 <code>adminWeb.permissions</code> 中声明并安装注册。自定义路由组使用 <code>PluginRoute::adminGroup()</code>，保留登录、权限、CSRF 和激活检查。禁用、忙碌或已卸载插件返回 404，激活清单损坏时返回 503。</p>
@@ -128,6 +128,7 @@ npm run dev
 
 - 后端：未运行时以前台模式启动 webman（`php start.php start`，监听 `http://127.0.0.1:8787`）；已在运行则直接复用，退出时不会停止它。
 - 前端：在 `web/` 运行 Vite（webman 模式，接口代理到后端），端口取 `web/.env.webman.local` 的 `VITE_APP_PORT`；该端口已有 Vite 在运行时直接复用。
+- 后端日志：跟随 `admin/runtime/logs/webman-<当天日期>.log` 新增内容（含复用已运行后端时），以 `[后端日志]` 前缀输出，跨天自动切换；设置 `DEV_BACKEND_LOGS=0` 关闭。
 - 打开 `http://localhost:<端口>/#/admin/login`，按 Ctrl+C 停止由本命令启动的进程。
 
 只启动其中一个：后端 `cd admin && php start.php start`，前端 `cd web && npm run dev`。

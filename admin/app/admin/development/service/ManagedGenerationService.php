@@ -576,9 +576,9 @@ final class ManagedGenerationService
         $data = $definition->toArray();
         if (($data['target']['type'] ?? 'core') === 'plugin') return $definition;
         $entity = (string) $data['entity'];
-        $data['generationTargets']['migration'] = "database/generated/{$entity}_{$nonce}.sql";
-        $data['generationTargets']['permissionMigration'] = "database/generated/{$entity}_permissions_{$nonce}.sql";
-        $data['generationTargets']['langMigration'] = "database/generated/{$entity}_lang_{$nonce}.sql";
+        $data['generationTargets']['migration'] = "database/business/{$entity}_{$nonce}.sql";
+        $data['generationTargets']['permissionMigration'] = "database/business/{$entity}_permissions_{$nonce}.sql";
+        $data['generationTargets']['langMigration'] = "database/business/{$entity}_lang_{$nonce}.sql";
         return CrudDefinition::fromArray($data);
     }
 

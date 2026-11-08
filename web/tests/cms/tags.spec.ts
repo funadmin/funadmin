@@ -77,6 +77,33 @@ describe.each([['源插件', SourceTagPanel], ['运行副本', PublishedTagPanel
     expect(details.text()).not.toContain('保存草稿');
   });
 
+  it('说明列显示内置标签用途与自定义标签备注，查看内置标签时列出参数含义', async () => {
+    api.tags.mockResolvedValue([builtin, { ...custom, remark: '首页新闻区块' }]);
+    const wrapper = await render();
+    const rows = wrapper.findAll('.el-table__row');
+    expect(wrapper.findAll('th').map(cell => cell.text())).toContain('说明');
+    expect(rows.find(item => item.text().includes('系统内置'))!.text()).toContain('按模型、栏目、关键词查询内容列表');
+    expect(rows.find(item => item.text().includes('company_news'))!.text()).toContain('首页新闻区块');
+    await rows.find(item => item.text().includes('系统内置'))!.findAll('button').find(button => button.text() === '查看')!.trigger('click');
+    const details = wrapper.get('[aria-label="系统内置标签"]');
+    expect(details.text()).toContain('按模型、栏目、关键词查询内容列表');
+    expect(details.text()).toContain('每次返回的条数');
+  });
+
+  it('自定义标签可以填写备注并随草稿保存，编辑时带出原备注', async () => {
+    contentProvider();
+    api.tags.mockResolvedValue([{ ...custom, remark: '首页新闻区块' }]);
+    const wrapper = await render();
+    const state = (wrapper.vm as any).$.setupState;
+    await wrapper.get('.el-table__row').findAll('button').find(button => button.text() === '编辑')!.trigger('click');await flushPromises();
+    const editor = wrapper.get('[aria-label="自定义模板标签"]');
+    expect(editor.text()).toContain('备注');
+    expect(state.form.remark).toBe('首页新闻区块');
+    state.form.remark = '页脚新闻区块';
+    await editor.findAll('button').find(button => button.text() === '保存草稿')!.trigger('click');await flushPromises();
+    expect(api.saveTag).toHaveBeenCalledWith(expect.objectContaining({ remark: '页脚新闻区块' }));
+  });
+
   it('没有标签查看权限时不读取列表或内置目录', async () => {
     const wrapper = await render(() => false);
     expect(api.tags).not.toHaveBeenCalled();

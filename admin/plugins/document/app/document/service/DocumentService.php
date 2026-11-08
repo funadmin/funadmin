@@ -40,9 +40,18 @@ final class DocumentService
             'summary' => $current->summary, 'pluginCode' => $current->plugin_code, 'appliesTo' => $current->applies_to,
         ]);
         if ($meta['slug'] !== $current->slug) $this->assertSlugFree($meta['slug']);
-        Db::transaction(function () use ($id, $meta, $payload): void {
-            Db::table('documents')->where('id', $id)->update($meta + ['updated_at' => Rules::now()]);
-            if (array_key_exists('categoryIds', $payload)) $this->syncCategories($id, Rules::ids($payload['categoryIds']), $meta['scope']);
+        Db::transaction(function () use ($id, $meta, $payload, $current): void {
+            $locked = Db::table('documents')->where('id', $id)->lockForUpdate()->first();
+            if (array_key_exists('metaVersion', $payload) && (int) $locked->meta_version !== Rules::id($payload['metaVersion'])) {
+                throw new InvalidArgumentException('文档信息已被他人修改，请刷新后再保存', 409);
+            }
+            Db::table('documents')->where('id', $id)->update($meta + ['meta_version' => (int) $locked->meta_version + 1, 'updated_at' => Rules::now()]);
+            if (array_key_exists('categoryIds', $payload)) {
+                $this->syncCategories($id, Rules::ids($payload['categoryIds']), $meta['scope']);
+            } elseif ($meta['scope'] !== $current->scope) {
+                // 换范围但没给新目录：去掉旧范围的目录关联，避免跨范围挂载。
+                Db::table('document_category_links')->where('document_id', $id)->delete();
+            }
             Events::record($id, 'update_meta');
         });
         return $this->find($id);
@@ -75,6 +84,9 @@ final class DocumentService
         if (!empty($query['status'])) {
             if (!in_array($query['status'], Rules::STATUSES, true)) throw new InvalidArgumentException('文档状态无效', 422);
             $builder->where('status', $query['status']);
+        } else {
+            // 默认列表不含归档文档；按状态筛选「已归档」时才显示。
+            $builder->where('status', '<>', 'archived');
         }
         if (!empty($query['categoryId'])) {
             $builder->whereIn('id', Db::table('document_category_links')->select('document_id')->where('category_id', Rules::id($query['categoryId'])));
@@ -138,6 +150,7 @@ final class DocumentService
             'type' => (string) $row->type, 'status' => (string) $row->status, 'appliesTo' => (string) $row->applies_to,
             'lockVersion' => (int) $row->lock_version, 'currentRevisionNo' => (int) $row->current_revision_no,
             'hasUnpublishedChanges' => (bool) $row->has_unpublished_changes,
+            'metaVersion' => (int) $row->meta_version,
             'categoryIds' => array_map('intval', Db::table('document_category_links')->where('document_id', $row->id)->orderBy('category_id')->pluck('category_id')->all()),
             'updatedAt' => (string) $row->updated_at,
         ];

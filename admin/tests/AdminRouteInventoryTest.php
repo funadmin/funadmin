@@ -44,7 +44,7 @@ final class AdminRouteInventoryTest extends TestCase
             'development' => '8efc4c7575589671b73fdc736cada3608997c997ffe9d55dd8751743197baf79',
             'form' => '23ea0ec53e96f9615e88a37182003273cabdf30f9cf83f4f2ca05008f72fecf4',
             'plugin' => '138eaae3a6ae87aa02e624f67c565065d0f986633238c3d51c697752e43c6fe7',
-            'ai' => 'd6ac600159e5c3a424253a3f0d60bf7a7e2ce1dbd9cb404e00b5edfe59d8b175',
+            'ai' => 'eddb7501191e6aabd7d7cbbd0242fcaf5b7e6e49706f1cda2fc79a874dc7ef15',
         ];
         $actual = [];
         $unique = [];

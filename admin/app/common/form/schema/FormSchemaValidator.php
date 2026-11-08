@@ -267,7 +267,7 @@ final class FormSchemaValidator
 
     /**
      * 设计器新建的列表自定义动作：只声明元数据，处理代码与权限在正式生成时产生。
-     * 注册键 generated.{entity}.{key}、权限码与方法名的换算见 CustomActions。
+     * 注册键 business.{entity}.{key}、权限码与方法名的换算见 CustomActions。
      */
     public function validateCustomActions(mixed $actions, ?string $formKey = null): void
     {
@@ -290,7 +290,7 @@ final class FormSchemaValidator
             $method = strtolower(CustomActions::method($key));
             if (isset($methods[$method])) $fail('动作标识生成的方法名与「' . $methods[$method] . '」重复', $at . '/key');
             if ($formKey !== null && strlen(CustomActions::registryKey(CustomActions::entity($formKey), $key)) > CustomActions::MAX_REGISTRY_KEY) {
-                $fail('注册键 generated.{业务}.{标识} 超过 ' . CustomActions::MAX_REGISTRY_KEY . ' 个字符，请缩短动作标识', $at . '/key');
+                $fail('注册键 business.{业务}.{标识} 超过 ' . CustomActions::MAX_REGISTRY_KEY . ' 个字符，请缩短动作标识', $at . '/key');
             }
             $keys[$key] = true;
             $methods[$method] = $key;

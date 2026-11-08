@@ -36,7 +36,7 @@
         <el-button type="success" plain v-perm="'system:member-group:import'" @click="fileInput?.click()">
           <i class="i-ep-upload" /> {{ t('systemMemberGroup.csvImport', 'CSV 导入') }}
         </el-button>
-        <el-button type="info" plain v-perm="'system:member-group:export'" @click="exportRows">
+        <el-button type="primary" plain v-perm="'system:member-group:export'" @click="exportRows">
           <i class="i-ep-download" /> {{ t('systemMemberGroup.csvExport', 'CSV 导出') }}
         </el-button>
         <input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />

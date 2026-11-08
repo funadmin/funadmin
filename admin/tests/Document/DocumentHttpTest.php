@@ -87,6 +87,9 @@ final class DocumentHttpTest extends DocumentTestCase
         self::assertSame(409, $this->call('saveDraft', [$id], put: ['content' => $this->doc(), 'lockVersion' => 7])[1]['code']);
         self::assertSame(422, $this->call('saveDraft', [$id], put: ['content' => ['type' => 'script'], 'lockVersion' => 1])[1]['code']);
         self::assertSame(422, $this->call('saveDraft', [$id], put: ['content' => $this->doc(), 'lockVersion' => 'x'])[1]['code']);
+        self::assertSame(422, $this->call('updateMeta', [$id], put: ['title' => '无版本'])[1]['code'], '修改文档信息必须携带 metaVersion');
+        self::assertSame(409, $this->call('updateMeta', [$id], put: ['title' => '旧版本', 'metaVersion' => 9])[1]['code']);
+        self::assertSame(200, $this->call('updateMeta', [$id], put: ['title' => '新标题', 'metaVersion' => 1])[1]['code']);
     }
 
     public function test_unexpected_failures_do_not_leak_internal_messages(): void

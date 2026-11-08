@@ -9,7 +9,7 @@ namespace app\admin\authorization\service;
  *
  * - 宿主 app\admin\{模块}\controller\{类}：模块为业务目录名，资源为类名去掉 System 前缀与 Controller 后缀。
  * - 插件 app\admin\plugins\{插件}\controller\{类}：模块为插件名，资源规则同上。
- * - 生成的业务模块 app\admin\generated\{业务模块}\controller\{类}（及旧布局 app\admin\controller\generated\{类}）：模块固定为 generated。
+ * - 代码生成的业务模块 app\admin\business\{业务模块}\controller\{类}：模块固定为 business（与宿主 development:business:* 不同前缀）。
  * - 控制器位于子目录时，子目录名并入资源名（用连字符连接）。
  * - 操作为方法名。
  *
@@ -28,8 +28,8 @@ final class PermissionCode
         if (preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\controller\\\\([A-Za-z0-9_\\\\]+)$/', $controller, $match) === 1) {
             $module = $match[1];
             $class = $match[2];
-        } elseif (preg_match('/^app\\\\admin\\\\(?:generated\\\\[a-z][a-z0-9_]*\\\\controller|controller\\\\generated)\\\\([A-Za-z0-9_]+)$/', $controller, $match) === 1) {
-            $module = 'generated';
+        } elseif (preg_match('/^app\\\\admin\\\\business\\\\[a-z][a-z0-9_]*\\\\controller\\\\([A-Za-z0-9_]+)$/', $controller, $match) === 1) {
+            $module = 'business';
             $class = $match[1];
         } elseif (preg_match('/^app\\\\admin\\\\([a-z][a-z0-9_]*)\\\\controller\\\\([A-Za-z0-9_\\\\]+)$/', $controller, $match) === 1
             && $match[1] !== 'plugins') {

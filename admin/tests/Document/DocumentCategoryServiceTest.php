@@ -61,4 +61,36 @@ final class DocumentCategoryServiceTest extends DocumentTestCase
         $service->delete($leaf['id']);
         self::assertNotContains('empty', array_column($service->tree(), 'slug'));
     }
+
+    public function test_moving_a_category_under_its_own_descendant_is_rejected(): void
+    {
+        $service = new DocumentCategoryService();
+        $a = $service->create(['scope' => 'framework', 'name' => 'A', 'slug' => 'a']);
+        $b = $service->create(['scope' => 'framework', 'name' => 'B', 'slug' => 'b', 'parentId' => $a['id']]);
+        $c = $service->create(['scope' => 'framework', 'name' => 'C', 'slug' => 'c', 'parentId' => $b['id']]);
+        try {
+            $service->update($a['id'], ['parentId' => $c['id']]);
+            self::fail('不能移动到自己的子孙目录下');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame(422, $e->getCode());
+        }
+        self::assertSame(['a'], array_column($service->tree(), 'slug'), '目录树仍然完整');
+    }
+
+    public function test_changing_scope_of_a_category_with_children_or_documents_is_rejected(): void
+    {
+        $service = new DocumentCategoryService();
+        $root = $service->create(['scope' => 'framework', 'name' => 'A', 'slug' => 'a']);
+        $service->create(['scope' => 'framework', 'name' => 'B', 'slug' => 'b', 'parentId' => $root['id']]);
+        try {
+            $service->update($root['id'], ['scope' => 'plugin_dev']);
+            self::fail('有子目录时不能改范围');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame(409, $e->getCode());
+        }
+        $leaf = $service->create(['scope' => 'framework', 'name' => 'L', 'slug' => 'l']);
+        (new \app\document\service\DocumentService())->create(['title' => 'x', 'slug' => 'x', 'scope' => 'framework', 'categoryIds' => [$leaf['id']]]);
+        $this->expectExceptionCode(409);
+        $service->update($leaf['id'], ['scope' => 'plugin_dev']);
+    }
 }

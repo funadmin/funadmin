@@ -85,6 +85,44 @@ final class AuthTest extends TestCase
         }
     }
 
+    public function test_successful_logins_are_not_counted_against_the_limit(): void
+    {
+        $service = new AuthService();
+        $service->createAdmin('operator', 'a-long-test-password');
+        for ($login = 0; $login < 8; $login++) {
+            self::assertNotEmpty($service->login('operator', 'a-long-test-password', '127.0.0.8')['access_token']);
+        }
+    }
+
+    public function test_successful_login_clears_earlier_failures(): void
+    {
+        $service = new AuthService();
+        $service->createAdmin('operator', 'a-long-test-password');
+        for ($attempt = 0; $attempt < 4; $attempt++) {
+            try { $service->login('operator', 'wrong', '127.0.0.9'); } catch (DomainException) {}
+        }
+        $service->login('operator', 'a-long-test-password', '127.0.0.9');
+        for ($attempt = 0; $attempt < 4; $attempt++) {
+            try { $service->login('operator', 'wrong', '127.0.0.9'); } catch (DomainException $error) { self::assertSame(401, $error->getCode()); }
+        }
+        self::assertNotEmpty($service->login('operator', 'a-long-test-password', '127.0.0.9')['access_token']);
+    }
+
+    public function test_correct_password_is_still_refused_once_locked(): void
+    {
+        $service = new AuthService();
+        $service->createAdmin('operator', 'a-long-test-password');
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            try { $service->login('operator', 'wrong', '127.0.0.10'); } catch (DomainException) {}
+        }
+        try {
+            $service->login('operator', 'a-long-test-password', '127.0.0.10');
+            self::fail('锁定期间正确密码也不能登录，否则可被用来验证猜中的密码');
+        } catch (DomainException $error) {
+            self::assertSame(429, $error->getCode());
+        }
+    }
+
     public function test_duplicate_admin_does_not_reset_password(): void
     {
         $service = new AuthService();

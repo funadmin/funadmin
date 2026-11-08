@@ -478,7 +478,7 @@ final class FormDataService
 
     /**
      * 来源模块某控制器方法的权限：动态运行时为 admin/form.data/{操作}（保持原资源路径），
-     * 正式生成模块为生成控制器方法的推导码 generated:{资源}:{方法}；插件来源与不可推导时拒绝。
+     * 正式生成模块为生成控制器方法的推导码 business:{资源}:{方法}；插件来源与不可推导时拒绝。
      */
     private function modulePermission(BusinessModule $module, string $method): string
     {
@@ -486,7 +486,7 @@ final class FormDataService
         if ((string) $module->lifecycle_status === 'dynamic_published') return $route . '/' . $method;
         $form = Form::where('id', (int) $module->form_id)->first();
         if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
-        return $this->generatedPermission((string) $form->form_key, $method);
+        return $this->businessPermission((string) $form->form_key, $method);
     }
 
     /** 旧控制器资源路径：动态运行时的权限前缀，以及正式生成宿主 productionBinding.route 的绑定校验标识。 */
@@ -500,7 +500,7 @@ final class FormDataService
         $form = Form::where('id', (int) $module->form_id)->first();
         if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
         $class = str_replace(' ', '', ucwords(str_replace('_', ' ', (string) $form->form_key)));
-        return 'admin/generated.' . strtolower($class) . 'controller';
+        return 'admin/business.' . strtolower($class) . 'controller';
     }
 
     /** 在行权限和软删除过滤之后读取；多取一条用于检测并发增加，绝不静默截断树。 */
@@ -1003,7 +1003,7 @@ final class FormDataService
         $button = array_values(array_filter($buttons, static fn (array $b): bool => ($b['id'] ?? '') === ($request['buttonId'] ?? null)))[0] ?? [];
         $factory = \app\common\form\registry\FormRegistryFactory::production();
         $executor ??= ($button['action']['type'] ?? '') === 'registered' ? $factory->listExecutor() : $factory->resourceExecutor();
-        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->generatedPermission($key, 'export') : 'admin/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->businessPermission($key, 'export') : 'admin/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
         $categoryLocation = in_array($request['location'] ?? '', ['categoryToolbar', 'categoryNode'], true);
         if ($categoryLocation || array_key_exists('category', $request)) {
@@ -1150,8 +1150,8 @@ final class FormDataService
             $this->assertPublishedSchemaHash((string) ($binding['schemaHash'] ?? ''), $runtime['schemaHash']);
             // 正式生成宿主按生成控制器方法推导的权限码准入（与其路由权限一致），不再使用旧控制器资源路径。
             $method = ['listactions' => 'listActions', 'listaction' => 'listAction'][$entry] ?? '';
-            if (!($this->permissionChecker)($this->generatedPermission($key, $method))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
-            $readPermission = $this->generatedPermission($key, 'index');
+            if (!($this->permissionChecker)($this->businessPermission($key, $method))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+            $readPermission = $this->businessPermission($key, 'index');
         } elseif ((string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
             throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
         }
@@ -1162,14 +1162,14 @@ final class FormDataService
     }
 
     /**
-     * 正式生成模块控制器方法的权限码（PermissionCode::derive，与 generated:{资源}:{方法} 路由权限一致）。
+     * 正式生成模块控制器方法的权限码（PermissionCode::derive，与 business:{资源}:{方法} 路由权限一致）。
      * 推导失败时拒绝，不回退到任何放宽的检查。
      */
-    private function generatedPermission(string $formKey, string $method): string
+    private function businessPermission(string $formKey, string $method): string
     {
         $class = str_replace(' ', '', ucwords(str_replace('_', ' ', $formKey))) . 'Controller';
         $code = $method === '' || preg_match('/^[a-z][a-z0-9_]*$/D', $formKey) !== 1 ? null
-            : \app\admin\authorization\service\PermissionCode::derive('app\\admin\\generated\\' . $formKey . '\\controller\\' . $class, $method);
+            : \app\admin\authorization\service\PermissionCode::derive('app\\admin\\business\\' . $formKey . '\\controller\\' . $class, $method);
         if ($code === null) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         return $code;
     }

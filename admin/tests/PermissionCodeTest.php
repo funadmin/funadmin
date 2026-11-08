@@ -22,8 +22,8 @@ final class PermissionCodeTest extends TestCase
             'acronym class' => ['app\\admin\\identity\\controller\\OAuthClient', 'revokeSecret', 'identity:o-auth-client:revoke-secret'],
             'plugin controller in a sub-namespace' => ['app\\admin\\plugins\\shop\\controller\\admin\\OrderItemController', 'close', 'shop:admin-order-item:close'],
             'host controller in a sub-namespace' => ['app\\admin\\system\\controller\\log\\SystemOperationLog', 'index', 'system:log-operation-log:index'],
-            'generated business module' => ['app\\admin\\generated\\shop\\controller\\OrderItemController', 'restoreMany', 'generated:order-item:restore-many'],
-            'legacy generated layout' => ['app\\admin\\controller\\generated\\LayoutExampleController', 'index', 'generated:layout-example:index'],
+            'business module' => ['app\\admin\\business\\shop\\controller\\OrderItemController', 'restoreMany', 'business:order-item:restore-many'],
+            'business module is not the development business controller' => ['app\\admin\\development\\controller\\Business', 'generate', 'development:business:generate'],
         ];
     }
 
@@ -37,6 +37,8 @@ final class PermissionCodeTest extends TestCase
     {
         self::assertNull(PermissionCode::derive('app\\api\\controller\\v2\\Member', 'show'));
         self::assertNull(PermissionCode::derive('app\\admin\\controller\\base\\Something', 'index'));
+        // 不再识别旧的扁平生成布局。
+        self::assertNull(PermissionCode::derive('app\\admin\\controller\\generated\\LayoutExampleController', 'index'));
         self::assertNull(PermissionCode::derive('', ''));
     }
 

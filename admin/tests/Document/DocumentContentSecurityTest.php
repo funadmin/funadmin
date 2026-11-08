@@ -96,4 +96,26 @@ final class DocumentContentSecurityTest extends TestCase
         for ($i = 0; $i < $depth; $i++) $node = ['type' => 'blockquote', 'content' => [$node]];
         return ['type' => 'doc', 'content' => [$node]];
     }
+
+    public function test_structurally_invalid_content_is_rejected(): void
+    {
+        $p = static fn (array $content) => ['type' => 'doc', 'content' => $content];
+        foreach ([
+            '空文本节点' => $p([['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => '']]]]),
+            '文本直接在根下' => $p([['type' => 'text', 'text' => 'x']]),
+            '段落里放块节点' => $p([['type' => 'paragraph', 'content' => [['type' => 'heading', 'attrs' => ['level' => 2]]]]]),
+            '列表里不是列表项' => $p([['type' => 'bulletList', 'content' => [['type' => 'paragraph']]]]),
+            '表格里不是行' => $p([['type' => 'table', 'content' => [['type' => 'paragraph']]]]),
+            '叶子节点带子内容' => $p([['type' => 'mermaid', 'attrs' => ['source' => 'a'], 'content' => [['type' => 'paragraph']]]]),
+        ] as $label => $bad) {
+            try {
+                ContentValidator::clean($bad);
+                self::fail('应拒绝：' . $label);
+            } catch (\InvalidArgumentException $e) {
+                self::assertSame(422, $e->getCode(), $label);
+            }
+        }
+        // 合法结构仍可通过
+        ContentValidator::clean($p([['type' => 'paragraph'], ['type' => 'bulletList', 'content' => [['type' => 'listItem', 'content' => [['type' => 'paragraph']]]]]]));
+    }
 }

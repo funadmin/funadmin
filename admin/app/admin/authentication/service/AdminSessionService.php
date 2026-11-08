@@ -29,11 +29,28 @@ final class AdminSessionService
         return $admin->toArray();
     }
 
+    /**
+     * 同一来源 15 分钟内失败 5 次后锁定（锁定期间正确密码也拒绝）。
+     * 只有失败计数；登录成功会清零，正常反复登录不会被锁。
+     */
     public function login(string $username, string $password, string $ip, string $purpose = 'api'): array
     {
-        $this->consumeAttempt($ip);
+        $this->assertNotLocked($ip);
         if (Blacklist::isBlocked($ip)) throw new DomainException('当前来源地址暂不可登录', 403);
         if (!in_array($purpose, ['api', 'browser'], true)) throw new DomainException('认证用途不正确', 422);
+        try {
+            $result = $this->authenticateCredentials($username, $password, $ip, $purpose);
+        } catch (DomainException $error) {
+            // 失败计数在事务外写入，不会随登录事务回滚。
+            if ($error->getCode() === 401) $this->recordFailure($ip);
+            throw $error;
+        }
+        Db::table('login_attempts')->where('key', hash('sha256', $ip))->delete();
+        return $result;
+    }
+
+    private function authenticateCredentials(string $username, string $password, string $ip, string $purpose): array
+    {
         if (!preg_match('/\A[a-zA-Z0-9_]{3,20}\z/', $username) || strlen($password) > 72 || str_contains($password, "\0")) {
             throw new DomainException('账号或密码错误', 401);
         }
@@ -82,25 +99,26 @@ final class AdminSessionService
         return hash('sha256', (string) $admin->password . "\0" . (string) $admin->token);
     }
 
-    private function consumeAttempt(string $ip): void
+    private function assertNotLocked(string $ip): void
+    {
+        $row = Db::table('login_attempts')->where('key', hash('sha256', $ip))->first();
+        if ($row && $row->window_start > time() - 900 && (int) $row->attempts >= 5) {
+            throw new DomainException('登录尝试过多，请稍后重试', 429);
+        }
+    }
+
+    private function recordFailure(string $ip): void
     {
         $key = hash('sha256', $ip);
         $now = time();
         Db::table('login_attempts')->insertOrIgnore(['key' => $key, 'attempts' => 0, 'window_start' => $now]);
-        $allowed = Db::transaction(static function () use ($key, $now): bool {
+        Db::transaction(static function () use ($key, $now): void {
             $row = Db::table('login_attempts')->where('key', $key)->lockForUpdate()->first();
-            $attempts = $row->window_start <= $now - 900 ? 0 : $row->attempts;
-            if ($attempts >= 5) {
-                return false;
-            }
+            $expired = $row->window_start <= $now - 900;
             Db::table('login_attempts')->where('key', $key)->update([
-                'attempts' => $attempts + 1,
-                'window_start' => $row->window_start <= $now - 900 ? $now : $row->window_start,
+                'attempts' => ($expired ? 0 : (int) $row->attempts) + 1,
+                'window_start' => $expired ? $now : $row->window_start,
             ]);
-            return true;
         });
-        if (!$allowed) {
-            throw new DomainException('登录尝试过多，请稍后重试', 429);
-        }
     }
 }

@@ -27,8 +27,8 @@ class PermissionResource
             $module = $matches[1];
             if (preg_match('/^plugins\\\\([a-z][a-z0-9]*)$/', $module, $plugin) === 1) {
                 $module = 'plugin\\' . $plugin[1];
-            } elseif (preg_match('/^generated\\\\[a-z][a-z0-9_]*$/', $module) === 1) {
-                $module = 'generated';
+            } elseif (preg_match('/^business\\\\[a-z][a-z0-9_]*$/', $module) === 1) {
+                $module = 'business';
             }
             $controller = ($module !== '' ? $module . '\\' : '') . $matches[2];
         }

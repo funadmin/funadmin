@@ -165,8 +165,8 @@ export function useGenerationEditor(moduleId: () => number, options: GenerationE
     if (module.value?.metadata?.target?.type !== 'plugin' && !MODULE_PATTERN.test(String(config.module ?? ''))) {
       return t('business.codegen.edit.moduleNameInvalid', '模块名须以小写字母开头，仅包含小写字母、数字和短横线');
     }
-    if (!PATH_PATTERN.test(config.apiPrefix)) return t('business.codegen.edit.apiPrefixInvalid', '请填写正确的接口前缀，如 /generated/shop-goods');
-    if (!PATH_PATTERN.test(config.routePath)) return t('business.codegen.edit.routePathInvalid', '请填写正确的前端路由，如 /generated/shop-goods');
+    if (!PATH_PATTERN.test(config.apiPrefix)) return t('business.codegen.edit.apiPrefixInvalid', '请填写正确的接口前缀，如 /business/shop-goods');
+    if (!PATH_PATTERN.test(config.routePath)) return t('business.codegen.edit.routePathInvalid', '请填写正确的前端路由，如 /business/shop-goods');
     if (!config.menuName.trim()) return t('business.codegen.edit.menuNameRequired', '请填写菜单名称');
     if (config.formWidth != null && (!Number.isInteger(config.formWidth) || config.formWidth < FORM_WIDTH_MIN || config.formWidth > FORM_WIDTH_MAX)) {
       return t('business.codegen.edit.formWidthInvalid', { min: FORM_WIDTH_MIN, max: FORM_WIDTH_MAX }, '表单宽度须为 {min}–{max} 之间的整数');

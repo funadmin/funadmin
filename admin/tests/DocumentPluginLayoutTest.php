@@ -22,7 +22,11 @@ final class DocumentPluginLayoutTest extends TestCase
         self::assertSame('document', $manifest['code']);
         self::assertSame('web/src/admin/modules/document', $manifest['adminWeb']['source']);
         self::assertSame('database/migrations', $manifest['migrations']['path']);
-        self::assertSame(['document:document:index', 'document:document:create', 'document:document:save-draft', 'document:document:publish', 'document:document:delete', 'document:category:tree'], array_column($manifest['adminWeb']['permissions'], 'code'));
+        // 每个路由动作的推导码都必须声明（完整性由 DocumentPermissionManifestTest 逐个校验）。
+        $codes = array_column($manifest['adminWeb']['permissions'], 'code');
+        foreach (['index', 'detail', 'create', 'update-meta', 'save-draft', 'delete', 'publish', 'archive', 'revisions', 'revision', 'restore'] as $action) self::assertContains('document:document:' . $action, $codes);
+        foreach (['tree', 'create', 'update', 'delete'] as $action) self::assertContains('document:category:' . $action, $codes);
+        self::assertSame($codes, array_values(array_unique($codes)));
         self::assertNotEmpty($manifest['adminWeb']['menu']);
         self::assertNotEmpty($manifest['adminWeb']['routes']);
     }

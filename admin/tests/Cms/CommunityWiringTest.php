@@ -23,7 +23,7 @@ final class CommunityWiringTest extends TestCase
     {
         $root=dirname(__DIR__,2).'/plugins/cms';
         $data=json_decode(file_get_contents($root.'/plugin.json'),true,flags:JSON_THROW_ON_ERROR);
-        self::assertSame('1.3.0',$data['version']);
+        self::assertSame('1.3.2',$data['version']);
         self::assertContains('cms:submission:review',array_column($data['adminWeb']['permissions'],'code'));
         $route=array_values(array_filter($data['adminWeb']['routes'],fn($r)=>$r['path']==='/plugin/cms/contributions'));
         self::assertCount(1,$route);self::assertSame('Contributions',$route[0]['component']);

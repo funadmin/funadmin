@@ -1,5 +1,5 @@
 <template>
-  <el-col v-if="!state.hidden" v-bind="columnProps">
+  <el-col v-if="!state.hidden" v-bind="columnProps" class="schema-form-column">
     <template v-if="node.kind === 'layout' && definition">
       <el-divider v-if="node.type === 'divider'" v-bind="layoutBindings">{{ node.title }}</el-divider>
       <el-text v-else-if="node.type === 'text'" v-bind="layoutBindings">{{ node.props?.content ?? node.title }}</el-text>
@@ -22,6 +22,7 @@
     </template>
     <el-form-item
       v-else
+      class="schema-form-item"
       :label="node.type === 'hidden' ? undefined : node.title"
       :for="controlId"
       :prop="node.field ?? undefined"
@@ -118,3 +119,42 @@ const updateValue = (value: unknown) => {
   if (props.node.field) emit('change', props.node.field, value);
 };
 </script>
+
+<style scoped>
+.schema-form-column {
+  container: schema-field / inline-size;
+}
+
+.schema-form-item :deep(.el-form-item__content) {
+  min-width: 0;
+}
+
+/* 窄列保留配置的栅格宽度，标签移到上方，避免占满控件空间。 */
+@container schema-field (max-width: 260px) {
+  .schema-form-item {
+    display: block;
+  }
+
+  .schema-form-item :deep(.el-form-item__label) {
+    display: block;
+    width: auto !important;
+    height: auto;
+    padding: 0 0 8px;
+    text-align: left;
+    line-height: 1.5;
+    white-space: normal;
+  }
+
+  .schema-form-item :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+  }
+}
+
+/* 按实际表单宽度适配弹窗、抽屉和嵌套表单，不依赖浏览器窗口宽度。 */
+@container schema-form (max-width: 480px) {
+  .schema-form-column {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+}
+</style>

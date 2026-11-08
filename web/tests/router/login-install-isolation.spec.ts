@@ -26,7 +26,9 @@ async function navigate(path: string, meta = {}) {
   } as unknown as Router;
   setupRouterGuard(router);
   const next = vi.fn();
-  await guard({ path, fullPath: path, name: '', meta } as RouteLocationNormalized, {}, next);
+  // 与真实 vue-router 一致：路由对象带 params / query；守卫按路由名识别登录页。
+  const name = path === '/admin/login' ? 'Login' : '';
+  await guard({ path, fullPath: path, name, meta, params: {}, query: {} } as unknown as RouteLocationNormalized, {}, next);
   return next;
 }
 

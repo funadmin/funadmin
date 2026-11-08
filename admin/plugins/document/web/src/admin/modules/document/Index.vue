@@ -13,6 +13,7 @@ import DocumentSidebar from './components/DocumentSidebar.vue';
 import DocumentList from './components/DocumentList.vue';
 import DocumentMetaDialog from './components/DocumentMetaDialog.vue';
 import DocumentVersionDrawer from './components/DocumentVersionDrawer.vue';
+import DocumentCategoryDialog from './components/DocumentCategoryDialog.vue';
 import DocumentEditor from './editor/DocumentEditor.vue';
 import DocumentPreview from './editor/DocumentPreview.vue';
 import DocumentOutline from './editor/DocumentOutline.vue';
@@ -32,13 +33,21 @@ const can = {
   publish: computed(() => hasPermission('document:document:publish')),
   archive: computed(() => hasPermission('document:document:archive')),
   restore: computed(() => hasPermission('document:document:restore')),
-  remove: computed(() => hasPermission('document:document:delete'))
+  remove: computed(() => hasPermission('document:document:delete')),
+  manageCategories: computed(() => hasPermission(['document:category:create', 'document:category:update', 'document:category:delete']))
 };
 
 const keyword = ref('');
 const metaOpen = ref(false);
 const metaRow = ref<typeof store.current>(null);
 const versionsOpen = ref(false);
+const categoriesOpen = ref(false);
+/** 空字符串表示默认：草稿与已发布（不含归档）。 */
+const statusFilter = ref<'' | 'draft' | 'published' | 'archived'>('');
+const filterStatus = () => store.loadList({ status: statusFilter.value, page: 1 });
+async function categoriesChanged() {
+  await store.loadTree();
+}
 const importInput = ref<HTMLInputElement>();
 const previewRef = ref<HTMLElement>();
 
@@ -102,7 +111,13 @@ async function remove() {
   if (ok) { await store.remove(); ElMessage.success(t('pluginDocument.removed')); }
 }
 async function restore(revisionNo: number) {
-  await store.restoreRevision(revisionNo).catch(() => undefined);
+  try {
+    await store.restoreRevision(revisionNo);
+    versionsOpen.value = false;
+    ElMessage.success(t('pluginDocument.restored'));
+  } catch {
+    ElMessage.error(store.error || t('pluginDocument.saveFailed'));
+  }
 }
 
 function openMeta(row: typeof store.current) {
@@ -113,7 +128,7 @@ async function submitMeta(data: DocumentMetaInput) {
   try {
     if (metaRow.value) {
       // 只合并元数据，保留本地正文、lockVersion 与冲突状态。
-      store.applyMeta(await documentApi.updateMeta(metaRow.value.id, data));
+      store.applyMeta(await documentApi.updateMeta(metaRow.value.id, { ...data, metaVersion: store.current?.metaVersion ?? metaRow.value.metaVersion }));
     } else {
       const created = await documentApi.create({ ...data, content: { type: 'doc', content: [{ type: 'paragraph' }] } });
       await store.loadList();
@@ -169,6 +184,15 @@ function jumpTo(index: number) {
       <div class="doc-list-head">
         <el-input v-model="keyword" :placeholder="t('pluginDocument.search')" clearable @keyup.enter="search" @clear="search" />
         <el-button v-if="can.create.value" type="primary" @click="openMeta(null)">{{ t('pluginDocument.newDoc') }}</el-button>
+      </div>
+      <div class="doc-list-tools">
+        <el-select v-model="statusFilter" size="small" class="doc-status-filter" :aria-label="t('pluginDocument.statusFilter.active')" @change="filterStatus">
+          <el-option value="" :label="t('pluginDocument.statusFilter.active')" />
+          <el-option value="draft" :label="t('pluginDocument.statusFilter.draft')" />
+          <el-option value="published" :label="t('pluginDocument.statusFilter.published')" />
+          <el-option value="archived" :label="t('pluginDocument.statusFilter.archived')" />
+        </el-select>
+        <el-button v-if="can.manageCategories.value" size="small" data-testid="manage-categories" @click="categoriesOpen = true">{{ t('pluginDocument.categories.manage') }}</el-button>
       </div>
       <div class="doc-list-count">{{ t('pluginDocument.count', { n: store.total }) }}</div>
       <DocumentList :documents="store.documents" :current-id="store.current?.id ?? null" :loading="store.loadingList" @open="open" />
@@ -243,6 +267,7 @@ function jumpTo(index: number) {
     </main>
 
     <DocumentMetaDialog v-model="metaOpen" :row="metaRow" :tree="store.tree" :default-scope="store.selectedScope" :default-category-id="store.selectedCategoryId" @submit="submitMeta" />
+    <DocumentCategoryDialog v-model="categoriesOpen" :tree="store.tree" @changed="categoriesChanged" />
     <DocumentVersionDrawer v-if="store.current" v-model="versionsOpen" :document-id="store.current.id" :can-restore="can.restore.value" @restore="restore" />
   </div>
 </template>
@@ -254,6 +279,8 @@ function jumpTo(index: number) {
 .doc-col--list { border-right: 1px solid var(--el-border-color-lighter); background: var(--el-fill-color-extra-light); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .doc-col--main { display: flex; flex-direction: column; }
 .doc-list-head { display: flex; gap: 8px; }
+.doc-list-tools { display: flex; gap: 8px; align-items: center; }
+.doc-status-filter { flex: 1; min-width: 0; }
 .doc-list-count { font-size: 12px; color: var(--el-text-color-secondary); padding: 0 2px; }
 .doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 16px 20px 12px; border-bottom: 1px solid var(--el-border-color-lighter); flex-wrap: wrap; }
 .doc-crumb { font-size: 12px; color: var(--el-text-color-secondary); }

@@ -107,6 +107,21 @@ final class TagsTest extends CmsTestCase
         self::assertSame($count,Db::table('cms_template_tag')->count(),'展示内置标签不创建数据库标签记录');
     }
 
+    public function test_custom_tag_remark_is_saved_listed_and_editable(): void
+    {
+        $site=$this->site();$service=new TemplateTagService();
+        $tag=$service->save($site['id'],'',['name'=>'company_notice','provider'=>'text','parameters'=>['value'=>'Notice'],'remark'=>'首页顶部公告条'],'1');
+        $byName=array_column($service->listing($site['id'],'zh-cn'),null,'name');
+        self::assertSame('首页顶部公告条',$byName['company_notice']['remark']);
+        $service->save($site['id'],'',['id'=>$tag['id'],'name'=>'company_notice','provider'=>'text','parameters'=>['value'=>'Notice'],'remark'=>'  改为页脚公告  '],'1');
+        $byName=array_column($service->listing($site['id'],'zh-cn'),null,'name');
+        self::assertSame('改为页脚公告',$byName['company_notice']['remark']);
+        $service->save($site['id'],'',['id'=>$tag['id'],'name'=>'company_notice','provider'=>'text','parameters'=>['value'=>'Notice']],'1');
+        self::assertSame('改为页脚公告',array_column($service->listing($site['id'],'zh-cn'),null,'name')['company_notice']['remark'],'未提交备注时保留原备注');
+        $this->expectException(\InvalidArgumentException::class);
+        $service->save($site['id'],'',['id'=>$tag['id'],'name'=>'company_notice','provider'=>'text','parameters'=>['value'=>'Notice'],'remark'=>str_repeat('长',256)],'1');
+    }
+
     public function test_displaying_system_tags_does_not_make_non_configurable_handlers_available_as_custom_providers(): void
     {
         $site=$this->site();(new TemplateTagService())->listing($site['id'],'zh-cn');

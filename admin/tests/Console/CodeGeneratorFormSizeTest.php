@@ -22,11 +22,11 @@ use support\Context;
 final class CodeGeneratorFormSizeTest extends TestCase
 {
     /** 未配置表单尺寸时与 CodeGeneratorRelationsTest::PLAIN_BASELINE 一致的 core 基准。 */
-    private const PLAIN_DEFINITION_HASH = '1a52037c165a1943e347097d7929b2c09f0261b3fb615c9801db00d3adebe960';
-    private const PLAIN_FORM_HASH = '91954cd16e49b4dd55bcdc1f07f18e357b536365cae8b1445402c1bb871cb3dc';
-    private const PLAIN_VIEW_HASH = '0de4d9ee3fe5f59d79d74caaee853208aed06deeb65fa31d8df2fa8a97332802';
-    private const FORM_PATH = 'web/src/admin/views/generated/shop-plain/components/ShopPlainForm.vue';
-    private const VIEW_PATH = 'web/src/admin/views/generated/shop-plain/index.vue';
+    private const PLAIN_DEFINITION_HASH = 'ca941664e4845b8d9555cc4848c41c6de150b95153aa8319e9f3ac8e9aa71316';
+    private const PLAIN_FORM_HASH = '6927aa1eb452d91eca895d75e84707287a706033eb768388b131fec09052f382';
+    private const PLAIN_VIEW_HASH = 'f1c0628836ba60c6d4c457d8d19078b92714dc3f7e1eab924b8b0a4e4ff861f6';
+    private const FORM_PATH = 'web/src/admin/views/business/shop-plain/components/ShopPlainForm.vue';
+    private const VIEW_PATH = 'web/src/admin/views/business/shop-plain/index.vue';
 
     private string $root = '';
 

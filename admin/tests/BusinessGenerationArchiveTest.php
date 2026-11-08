@@ -60,17 +60,17 @@ final class BusinessGenerationArchiveTest extends TestCase
     {
         $before = $this->temporaryArchives();
         $archive = BusinessDevelopmentService::buildGenerationArchive([
-            ['path' => 'app/admin/generated/a/A.php', 'status' => 'create', 'remoteContent' => "<?php\n// a\n"],
-            ['path' => 'web/src/admin/views/generated/a/index.vue', 'status' => 'update', 'remoteContent' => '<template />'],
-            ['path' => 'app/admin/generated/a/Old.php', 'status' => 'delete', 'remoteContent' => 'stale'],
+            ['path' => 'app/admin/business/a/A.php', 'status' => 'create', 'remoteContent' => "<?php\n// a\n"],
+            ['path' => 'web/src/admin/views/business/a/index.vue', 'status' => 'update', 'remoteContent' => '<template />'],
+            ['path' => 'app/admin/business/a/Old.php', 'status' => 'delete', 'remoteContent' => 'stale'],
             ['path' => 'web/public/generated/a/logo.png', 'status' => 'create', 'contentKind' => 'binary'],
             ['path' => '../outside.php', 'status' => 'create', 'remoteContent' => 'escape'],
             ['path' => '/etc/passwd', 'status' => 'create', 'remoteContent' => 'escape'],
         ]);
 
         self::assertSame([
-            'app/admin/generated/a/A.php' => "<?php\n// a\n",
-            'web/src/admin/views/generated/a/index.vue' => '<template />',
+            'app/admin/business/a/A.php' => "<?php\n// a\n",
+            'web/src/admin/views/business/a/index.vue' => '<template />',
         ], $this->entries($archive['content']));
         self::assertSame(['web/public/generated/a/logo.png', '../outside.php', '/etc/passwd'], $archive['skipped']);
         self::assertSame($before, $this->temporaryArchives());
@@ -110,7 +110,7 @@ final class BusinessGenerationArchiveTest extends TestCase
         self::assertSame('application/zip', $response->getHeader('Content-Type'));
         self::assertMatchesRegularExpression('/^attachment; filename="archive_http-\d{14}\.zip"$/', (string) $response->getHeader('Content-Disposition'));
         self::assertSame('0', $response->getHeader('X-Archive-Skipped'));
-        self::assertArrayHasKey('app/admin/generated/archive_http/model/ArchiveHttp.php', $this->entries($response->rawBody()));
+        self::assertArrayHasKey('app/admin/business/archive_http/model/ArchiveHttp.php', $this->entries($response->rawBody()));
         self::assertSame($before, $this->temporaryArchives());
     }
 
@@ -159,7 +159,7 @@ final class BusinessGenerationArchiveTest extends TestCase
             $result = $service->formalGeneration($moduleId, (int) $preview['generationId'], (string) $preview['sensitive']['confirmToken']);
             self::assertSame((int) $preview['generationId'], (int) $result['generationId']);
             self::assertSame('completed', Db::table('crud_generation')->where('id', $preview['generationId'])->value('status'));
-            self::assertFileExists($root . '/app/admin/generated/archive_flow/model/ArchiveFlow.php');
+            self::assertFileExists($root . '/app/admin/business/archive_flow/model/ArchiveFlow.php');
         } finally {
             $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
             foreach ($files as $file) $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());

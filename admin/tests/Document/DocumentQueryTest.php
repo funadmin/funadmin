@@ -82,4 +82,22 @@ final class DocumentQueryTest extends DocumentTestCase
         $this->make(['title' => '普通文档']);
         self::assertSame(0, $this->documents->list(['keyword' => '%'])['total']);
     }
+
+    public function test_changing_document_scope_drops_categories_of_the_old_scope(): void
+    {
+        $framework = (new DocumentCategoryService())->create(['scope' => 'framework', 'name' => '框架', 'slug' => 'fw']);
+        $doc = $this->make(['scope' => 'framework', 'categoryIds' => [$framework['id']]]);
+        $moved = $this->documents->updateMeta($doc['id'], ['scope' => 'plugin_dev']);
+        self::assertSame('plugin_dev', $moved['scope']);
+        self::assertSame([], $moved['categoryIds'], '跨范围的目录关联必须去掉');
+    }
+
+    public function test_archived_documents_are_hidden_from_the_default_list_but_can_be_filtered(): void
+    {
+        $doc = $this->make(['title' => '旧文档']);
+        $this->make(['title' => '新文档']);
+        (new \app\document\service\DocumentVersionService())->archive($doc['id'], 1);
+        self::assertSame(['新文档'], array_column($this->documents->list([])['list'], 'title'));
+        self::assertSame(['旧文档'], array_column($this->documents->list(['status' => 'archived'])['list'], 'title'));
+    }
 }

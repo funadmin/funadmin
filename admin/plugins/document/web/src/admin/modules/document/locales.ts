@@ -2,6 +2,12 @@ import { i18n } from '@/locales';
 
 const zhCN = {
   pluginDocument: {
+    toolbar: { h2: 'H2', h3: 'H3', bold: '粗体', italic: '斜体', code: '行内代码', link: '链接', bullet: '• 列表', ordered: '1. 列表', task: '☑ 任务', quote: '引用', codeBlock: '代码块', table: '表格', tip: '提示', warning: '警告', diagram: '图表', editDiagram: '编辑图表', image: '图片', attachment: '附件', undo: '撤销', redo: '重做', aria: '文档排版工具', body: '文档正文' },
+    editor: { linkPrompt: '链接地址（http(s)、mailto、站内路径或 #锚点，留空取消链接）', linkTitle: '设置链接', unsafeLink: '链接地址不安全，已拒绝', unsafeUpload: '上传返回的地址无效', uploadFailed: '上传失败，请重试', diagramPrompt: 'Mermaid 源码', diagramTitle: '插入图表', editDiagramTitle: '编辑图表' },
+    meta: { titleNew: '新建文档', titleEdit: '文档信息', title: '标题', slug: '标识', scope: '范围', type: '类型', category: '目录', optional: '可选', pluginCode: '插件标识', pluginCodePh: '如 mail、cms', appliesTo: '适用版本', appliesToPh: '如 v2.0', summary: '摘要', titleRequired: '请输入标题', titleMax: '不超过 200 个字符', slugRequired: '请输入标识', slugPattern: '小写字母、数字和连字符', pluginPattern: '插件标识为小写字母开头的字母数字', cancel: '取消', confirm: '确定' },
+    revisions: { title: '版本历史', empty: '还没有发布过的版本', revision: '第 {n} 版', noSummary: '无变更说明', restore: '恢复', restoreBody: '将第 {n} 版的内容恢复为当前草稿？历史版本不会被删除，当前编辑中的内容会被替换。', restoreTitle: '恢复版本' },
+    categories: { manage: '管理目录', title: '目录管理', addRoot: '新建顶级目录', add: '新建子目录', edit: '编辑', delete: '删除', name: '名称', slug: '标识', scope: '范围', sortOrder: '排序', save: '保存', cancel: '取消', deleteBody: '删除目录「{name}」？目录下不能有子目录或文档。', deleteTitle: '删除目录', saved: '已保存', deleted: '已删除', failed: '操作失败' },
+    statusFilter: { active: '草稿与已发布', draft: '草稿', published: '已发布', archived: '已归档' },
     all: '全部文档',
     scope: { framework: 'FunAdmin 主框架', plugin_dev: '插件开发', official_plugin: '官方插件', third_party: '第三方插件' },
     status: { draft: '草稿', published: '已发布', archived: '已归档' },
@@ -48,12 +54,19 @@ const zhCN = {
     saveFailed: '保存失败',
     tooLarge: '文件超过 2 MB',
     importBody: '用「{name}」的内容替换当前草稿？',
-    imported: '已导入，记得保存'
+    imported: '已导入，记得保存',
+    restored: '已恢复'
   }
 };
 
 const enUS: typeof zhCN = {
   pluginDocument: {
+    toolbar: { h2: 'H2', h3: 'H3', bold: 'Bold', italic: 'Italic', code: 'Inline code', link: 'Link', bullet: '• List', ordered: '1. List', task: '☑ Tasks', quote: 'Quote', codeBlock: 'Code block', table: 'Table', tip: 'Tip', warning: 'Warning', diagram: 'Diagram', editDiagram: 'Edit diagram', image: 'Image', attachment: 'Attachment', undo: 'Undo', redo: 'Redo', aria: 'Formatting', body: 'Document body' },
+    editor: { linkPrompt: 'Link address (http(s), mailto, site path or #anchor; empty removes the link)', linkTitle: 'Set link', unsafeLink: 'Unsafe link rejected', unsafeUpload: 'Upload returned an invalid address', uploadFailed: 'Upload failed, please retry', diagramPrompt: 'Mermaid source', diagramTitle: 'Insert diagram', editDiagramTitle: 'Edit diagram' },
+    meta: { titleNew: 'New document', titleEdit: 'Document info', title: 'Title', slug: 'Slug', scope: 'Scope', type: 'Type', category: 'Categories', optional: 'Optional', pluginCode: 'Plugin code', pluginCodePh: 'e.g. mail, cms', appliesTo: 'Applies to', appliesToPh: 'e.g. v2.0', summary: 'Summary', titleRequired: 'Enter a title', titleMax: 'At most 200 characters', slugRequired: 'Enter a slug', slugPattern: 'Lowercase letters, digits and hyphens', pluginPattern: 'Plugin code: lowercase letter followed by letters/digits', cancel: 'Cancel', confirm: 'OK' },
+    revisions: { title: 'Revision history', empty: 'Nothing published yet', revision: 'Revision {n}', noSummary: 'No change summary', restore: 'Restore', restoreBody: 'Restore revision {n} as the current draft? History is kept; the content you are editing will be replaced.', restoreTitle: 'Restore revision' },
+    categories: { manage: 'Manage categories', title: 'Categories', addRoot: 'New top-level category', add: 'New subcategory', edit: 'Edit', delete: 'Delete', name: 'Name', slug: 'Slug', scope: 'Scope', sortOrder: 'Order', save: 'Save', cancel: 'Cancel', deleteBody: 'Delete category “{name}”? It must have no subcategories or documents.', deleteTitle: 'Delete category', saved: 'Saved', deleted: 'Deleted', failed: 'Operation failed' },
+    statusFilter: { active: 'Draft & published', draft: 'Draft', published: 'Published', archived: 'Archived' },
     all: 'All documents',
     scope: { framework: 'FunAdmin framework', plugin_dev: 'Plugin development', official_plugin: 'Official plugins', third_party: 'Third-party plugins' },
     status: { draft: 'Draft', published: 'Published', archived: 'Archived' },
@@ -100,7 +113,8 @@ const enUS: typeof zhCN = {
     saveFailed: 'Save failed',
     tooLarge: 'File is larger than 2 MB',
     importBody: 'Replace the current draft with “{name}”?',
-    imported: 'Imported — remember to save'
+    imported: 'Imported — remember to save',
+    restored: 'Restored'
   }
 };
 

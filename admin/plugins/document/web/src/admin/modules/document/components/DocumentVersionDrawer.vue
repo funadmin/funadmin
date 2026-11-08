@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { documentApi } from '../api';
 import type { RevisionSummary } from '../types';
 import DocumentPreview from '../editor/DocumentPreview.vue';
 import type { JSONContent } from '@tiptap/core';
+
+const { t } = useI18n();
+const tt = (key: string, args?: Record<string, unknown>) => (args ? t(`pluginDocument.revisions.${key}`, args) : t(`pluginDocument.revisions.${key}`));
 
 const props = defineProps<{ documentId: number; canRestore: boolean }>();
 const emit = defineEmits<{ restore: [revisionNo: number] }>();
@@ -35,26 +39,25 @@ watch(visible, (open) => open && void load());
 onMounted(() => visible.value && void load());
 
 async function restore(revisionNo: number) {
-  const ok = await ElMessageBox.confirm(`将第 ${revisionNo} 版的内容恢复为当前草稿？历史版本不会被删除，当前编辑中的内容会被替换。`, '恢复版本', { type: 'warning' }).then(() => true, () => false);
+  const ok = await ElMessageBox.confirm(tt('restoreBody', { n: revisionNo }), tt('restoreTitle'), { type: 'warning' }).then(() => true, () => false);
   if (!ok) return;
+  // 是否成功由页面根据真实返回提示，并在成功后关闭抽屉。
   emit('restore', revisionNo);
-  ElMessage.success('已恢复');
-  visible.value = false;
 }
 </script>
 
 <template>
-  <el-drawer v-model="visible" title="版本历史" size="min(860px, 92vw)" append-to-body>
+  <el-drawer v-model="visible" :title="tt('title')" size="min(860px, 92vw)" append-to-body>
     <div v-loading="loading" class="rev-layout">
-      <el-empty v-if="!revisions.length && !loading" description="还没有发布过的版本" :image-size="64" />
+      <el-empty v-if="!revisions.length && !loading" :description="tt('empty')" :image-size="64" />
       <ul v-else class="rev-list">
         <li v-for="rev in revisions" :key="rev.revisionNo">
           <button type="button" class="rev-item" :class="{ active: selected === rev.revisionNo }" @click="selected = rev.revisionNo">
-            <strong>第 {{ rev.revisionNo }} 版</strong>
-            <span>{{ rev.changeSummary || '无变更说明' }}</span>
+            <strong>{{ tt('revision', { n: rev.revisionNo }) }}</strong>
+            <span>{{ rev.changeSummary || tt('noSummary') }}</span>
             <small>{{ rev.createdAt.slice(0, 16) }}</small>
           </button>
-          <el-button v-if="canRestore" size="small" link type="primary" @click="restore(rev.revisionNo)">恢复</el-button>
+          <el-button v-if="canRestore" size="small" link type="primary" @click="restore(rev.revisionNo)">{{ tt('restore') }}</el-button>
         </li>
       </ul>
       <div class="rev-preview"><DocumentPreview :content="preview" /></div>

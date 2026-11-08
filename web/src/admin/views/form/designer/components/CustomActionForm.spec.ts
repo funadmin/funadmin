@@ -20,8 +20,8 @@ describe('自定义动作表单', () => {
     const wrapper = render();
     await type(wrapper, '名称', 'Mark Paid');
     expect(input(wrapper, '标识').value).toBe('mark_paid');
-    expect(wrapper.text()).toContain('generated.fun-order.mark_paid');
-    expect(wrapper.text()).toContain('generated:fun-order:action-mark-paid');
+    expect(wrapper.text()).toContain('business.fun-order.mark_paid');
+    expect(wrapper.text()).toContain('business:fun-order:action-mark-paid');
     await type(wrapper, '标识', 'settle');
     await type(wrapper, '名称', 'Mark Paid Later');
     expect(input(wrapper, '标识').value).toBe('settle');

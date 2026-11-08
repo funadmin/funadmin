@@ -69,7 +69,7 @@ class AdminAuthorizationService
         if ($adminId === (int) config('auth.super_admin_id', 1)) {
             return true;
         }
-        // 注册动作以权限码声明（如生成的自定义动作 generated:{实体}:action-{名称}），与 can() 同一判断。
+        // 注册动作以权限码声明（如生成的自定义动作 business:{实体}:action-{名称}），与 can() 同一判断。
         if (preg_match('/^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/D', $url) === 1) {
             return $this->allowed($adminId, $url);
         }

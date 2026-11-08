@@ -27,43 +27,43 @@ final class CodeGeneratorRelationsTest extends TestCase
     /** 修改关联生成前记录的无关联模块基准（definitionHash 与全部生成文件 sha256）。 */
     private const PLAIN_BASELINE = [
         'core' => [
-            'definitionHash' => '1a52037c165a1943e347097d7929b2c09f0261b3fb615c9801db00d3adebe960',
+            'definitionHash' => 'ca941664e4845b8d9555cc4848c41c6de150b95153aa8319e9f3ac8e9aa71316',
             'files' => [
-                'app/admin/generated/shop_plain/controller/ShopPlainController.php' => '58182889c7153b8a8722faa2005802b62bb3a00f0ce13f1df774adb0d21b7f86',
-                'app/admin/generated/shop_plain/model/ShopPlain.php' => '654a1b3e3044030e6a75da0a36c32af6c009e6c5db6971504739a2dafef78d38',
-                'app/admin/generated/shop_plain/service/ShopPlainService.php' => 'd4bda4f9aada35510286bfa7a459c106742d10363a21e417da4f3f53e06d52ba',
-                'app/admin/generated/shop_plain/validate/ShopPlainValidate.php' => '2390a893376673471417222eed5311f2570f2bc2b7b7ff1f587661f3dc42a930',
-                'app/admin/lang/en-us/shop-plain.php' => '07c305897de2e88d331c40721d9b5bcbb8c13a00f55b0d9197e2ea63f2f2420a',
-                'app/admin/lang/zh-cn/shop-plain.php' => '637aae8c3f9339760f38a6060001d7c4c73a01187e38672c2fd7c9a7ab5ab46d',
-                'database/generated/shop-plain.sql' => '80a91eed629a3e12a9c4594c411b32872fb8da9de6d2fb84c67f8c646ac001d5',
-                'database/generated/shop-plain_lang.sql' => '32f285c297f8d88a99c4772b899e033e3141dafafae56254ab6e5b57f92d49a2',
-                'database/generated/shop-plain_permissions.sql' => 'f95ba41cf1d9fab2bcc2a3286c711cd983bab594c71de6f68a6c116c28eeca35',
-                'tests/generated/ShopPlainGeneratedTest.php' => '8157e6b6c00dba43285d5a74264888eddab4abc2309def9d63b3ec38049fc038',
-                'web/src/admin/api/generated/shop-plain.ts' => '4a998254eeda037b92e7c73217376c9c88369e7c31fc027453432010e0255009',
-                'web/src/admin/views/generated/shop-plain/components/ShopPlainDetail.vue' => '2c24076755c4acd09c69e3f61e4081e7f25e9a1762cebfa301d0a3ee090dc7f1',
-                'web/src/admin/views/generated/shop-plain/components/ShopPlainForm.vue' => '91954cd16e49b4dd55bcdc1f07f18e357b536365cae8b1445402c1bb871cb3dc',
-                'web/src/admin/views/generated/shop-plain/index.vue' => '0de4d9ee3fe5f59d79d74caaee853208aed06deeb65fa31d8df2fa8a97332802',
-                'web/tests/generated/shop-plain.spec.ts' => '6b033ab4a21bc3c67296a518a6342a59f946fa518aa73fff5bdc4ce8b0f55598',
+                'app/admin/business/shop_plain/controller/ShopPlainController.php' => '623f3831f1be57709610d178d71df6b3340beea44a8de36c9004a0559cd5ad3b',
+                'app/admin/business/shop_plain/lang/en-us.php' => 'cf6264058cd19ba878b3828997d7bd5f0a93e6307ad7e9a8790311790c9acee4',
+                'app/admin/business/shop_plain/lang/zh-cn.php' => 'a08ac305ea247e7492bd78090c40caa66e875223c91dbee3cbfafc74fb86a692',
+                'app/admin/business/shop_plain/model/ShopPlain.php' => '3501b9f3424727574ad0c8de8ca7d21313d0e53532ae0998170cddccd2a92f53',
+                'app/admin/business/shop_plain/service/ShopPlainService.php' => '2b6e8997d05a318f97d6f741981a4b604a772db263ebf69a20eda4655731b39e',
+                'app/admin/business/shop_plain/validate/ShopPlainValidate.php' => '18c8a08e79c4a9d675982e9935a0feec256547c4457d2fd76904d106c43c471d',
+                'database/business/shop-plain.sql' => '80a91eed629a3e12a9c4594c411b32872fb8da9de6d2fb84c67f8c646ac001d5',
+                'database/business/shop-plain_lang.sql' => '32f285c297f8d88a99c4772b899e033e3141dafafae56254ab6e5b57f92d49a2',
+                'database/business/shop-plain_permissions.sql' => '46f43f02acbe18020d387c8ee0b36a85a1181e12e735fdd39e1e38758dae1dcd',
+                'tests/business/ShopPlainGeneratedTest.php' => '6e65441cd0b2fc2b778732cd320c8808c8221821750b147e9dcbbf35d8c069e1',
+                'web/src/admin/api/business/shop-plain.ts' => 'be5314e795a3d07aa720bd9a7372c24d4bb0730653814caa231187e87efdf6d7',
+                'web/src/admin/views/business/shop-plain/components/ShopPlainDetail.vue' => 'beb70112a10ab27ccab812822e4807507515403cf2791946444fc8e964acee6c',
+                'web/src/admin/views/business/shop-plain/components/ShopPlainForm.vue' => '6927aa1eb452d91eca895d75e84707287a706033eb768388b131fec09052f382',
+                'web/src/admin/views/business/shop-plain/index.vue' => 'f1c0628836ba60c6d4c457d8d19078b92714dc3f7e1eab924b8b0a4e4ff861f6',
+                'web/tests/business/shop-plain.spec.ts' => '50089bc2daf01a7d382586b734cd5a2f86f8a95d35b31e62085c56ddd45b6486',
             ],
         ],
         'plugin' => [
             'definitionHash' => '7fe57c126b564cdf83c43335784bda980d0f79e6199a7735945c28f1661ed147',
             'files' => [
-                'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => '83af06f30679c721c90e5bd018f2717da17f78cddcf04c600ea9090942581342',
+                'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => '2858bc8f9cca9a40c763e73533186778bc7087514ab8735a1394961ab4a95b52',
                 'plugins/shopkit/app/admin/plugins/shopkit/model/ShopPlain.php' => '735cbf06dc88f65462099000fa3e0f4536f4f0550e04d89ac3be3867c044e193',
-                'plugins/shopkit/app/admin/plugins/shopkit/service/ShopPlainService.php' => '2ae1046859b097a30d8edaf1d32424a83a976c5205efae475900fbd775194c58',
+                'plugins/shopkit/app/admin/plugins/shopkit/service/ShopPlainService.php' => '943bbd4e32e383f35c3cc0661679aaf43e37827dd4378ef69621ecae89161e0e',
                 'plugins/shopkit/app/admin/plugins/shopkit/validate/ShopPlainValidate.php' => 'b981d6cb4d36860cfd2adecb15dd763d4cecb911b7a7ea85f0dc17aa943ef0cc',
                 'plugins/shopkit/database/migrations/001_create_shop_plain.sql' => '59b9f7bceea3862970fa8159613ab9a35c4ac2b3a59ecfd19f6aad96ffd6b49e',
                 'plugins/shopkit/plugin.json' => '3b2a1e03171d904802f497853d62bf3cb2bb47311e054e2a5b09200ba3250d09',
                 'plugins/shopkit/web/src/admin/modules/shopkit/shop-plain/api.ts' => '6eff49c53489a87a64af72b82373f20c4a11f914250586985c0f5c862a05a2f0',
                 'plugins/shopkit/web/src/admin/modules/shopkit/shop-plain/components/ShopPlainDetail.vue' => '7669711049fd28699c321cfb2bde96ecb2eb1100b017e4aab8931c7874654c76',
                 'plugins/shopkit/web/src/admin/modules/shopkit/shop-plain/components/ShopPlainForm.vue' => '3c197c0278b9865176180b5a22850ae88d07156374ca4b034a922b0dbaf4cddc',
-                'plugins/shopkit/web/src/admin/modules/shopkit/shop-plain/index.vue' => 'f7ab5a864779473165fe5f18356d1dce6be9b376b15bc0e99a96327c40ef6285',
+                'plugins/shopkit/web/src/admin/modules/shopkit/shop-plain/index.vue' => 'd705b454841835ee5f76132a32034f3074ecd41c779653dbb923ed68a285a680',
             ],
         ],
     ];
 
-    private const RELATION_NS = 'app\\admin\\generated\\shop_goods\\model\\relation';
+    private const RELATION_NS = 'app\\admin\\business\\shop_goods\\model\\relation';
 
     private string $root = '';
 
@@ -111,7 +111,7 @@ final class CodeGeneratorRelationsTest extends TestCase
         $definition = $this->goodsDefinition();
         $plan = $this->generator()->plan($definition);
         $files = array_column($plan['files'], 'content', 'path');
-        $base = 'app/admin/generated/shop_goods/model/relation/';
+        $base = 'app/admin/business/shop_goods/model/relation/';
 
         foreach (['ShopCategory' => 'shop_category', 'ShopGoodsSku' => 'shop_goods_sku', 'ShopGoodsDetail' => 'shop_goods_detail', 'ShopTag' => 'shop_tag'] as $class => $table) {
             self::assertArrayHasKey($base . $class . '.php', $files);
@@ -134,12 +134,12 @@ final class CodeGeneratorRelationsTest extends TestCase
         self::assertSame(['goods_id'], $visible($files[$base . 'ShopGoodsDetail.php']));
         self::assertSame(['id'], $visible($files[$base . 'ShopTag.php']));
         self::assertCount(4, array_filter(array_keys($files), static fn (string $path): bool => str_starts_with($path, $base)));
-        $service = $files['app/admin/generated/shop_goods/service/ShopGoodsService.php'];
+        $service = $files['app/admin/business/shop_goods/service/ShopGoodsService.php'];
         self::assertStringContainsString('\\' . self::RELATION_NS . "\\ShopCategory::orderBy('id', 'asc')", $service);
         // 纯模型关联不预加载、不进入输出。
         preg_match('/WITH_RELATIONS = (.*?);\n/s', $service, $with);
         self::assertSame(['category', 'skus'], eval('return ' . $with[1] . ';'));
-        $controller = $files['app/admin/generated/shop_goods/controller/ShopGoodsController.php'];
+        $controller = $files['app/admin/business/shop_goods/controller/ShopGoodsController.php'];
         self::assertStringContainsString("'category' => \$model->category?->toArray()", $controller);
         self::assertStringNotContainsString('$model->detail', $controller);
         self::assertStringNotContainsString('$model->tags', $controller);
@@ -176,7 +176,7 @@ final class CodeGeneratorRelationsTest extends TestCase
 
     public function test_core_relation_removed_plans_delete_of_relation_model(): void
     {
-        $path = 'app/admin/generated/shop_goods/model/relation/ShopCategory.php';
+        $path = 'app/admin/business/shop_goods/model/relation/ShopCategory.php';
         $type = 'relationModel:ShopCategory';
         $baselines = $this->localRelationBaseline($this->renderedRelation($this->categoryDefinition(true), $path), $path, $type);
         $files = array_column($this->generator()->planManaged($this->categoryDefinition(false), $baselines)['files'], null, 'path');
@@ -234,12 +234,12 @@ final class CodeGeneratorRelationsTest extends TestCase
                 'relation' => ['type' => 'belongs_to', 'table' => 'fun_shop_goods', 'labelField' => 'title', 'valueField' => 'id', 'multiple' => false, 'onDelete' => 'restrict']]]),
         ]);
         $relation = $definition->toArray()['relations'][0];
-        self::assertSame('app\\admin\\generated\\shop_goods\\model\\ShopGoods', $relation['modelClass']);
+        self::assertSame('app\\admin\\business\\shop_goods\\model\\ShopGoods', $relation['modelClass']);
         self::assertArrayNotHasKey('targetTable', $relation);
         $files = array_column($this->generator()->plan($definition)['files'], 'content', 'path');
         self::assertSame([], array_filter(array_keys($files), static fn (string $path): bool => str_contains($path, '/model/relation/')));
-        self::assertStringContainsString("->belongsTo(\\app\\admin\\generated\\shop_goods\\model\\ShopGoods::class, 'parent_id', 'id')", $files['app/admin/generated/shop_goods/model/ShopGoods.php']);
-        self::assertStringContainsString("\\app\\admin\\generated\\shop_goods\\model\\ShopGoods::orderBy('id', 'asc')", $files['app/admin/generated/shop_goods/service/ShopGoodsService.php']);
+        self::assertStringContainsString("->belongsTo(\\app\\admin\\business\\shop_goods\\model\\ShopGoods::class, 'parent_id', 'id')", $files['app/admin/business/shop_goods/model/ShopGoods.php']);
+        self::assertStringContainsString("\\app\\admin\\business\\shop_goods\\model\\ShopGoods::orderBy('id', 'asc')", $files['app/admin/business/shop_goods/service/ShopGoodsService.php']);
     }
 
     public function test_belongs_to_system_table_generates_relation_model(): void
@@ -258,7 +258,7 @@ final class CodeGeneratorRelationsTest extends TestCase
         self::assertSame(['Admin', 'ShopInvoice'], array_keys($context['relationModels']));
         self::assertStringContainsString("protected \$table = 'admin';", $context['relationModels']['Admin']);
         $files = array_column($this->generator()->plan($definition)['files'], 'path');
-        self::assertContains('app/admin/generated/shop_order/model/relation/Admin.php', $files);
+        self::assertContains('app/admin/business/shop_order/model/relation/Admin.php', $files);
 
         Db::schema()->create('admin', static function (Blueprint $table): void { $table->id(); $table->string('nickname'); $table->string('password'); $table->string('token'); });
         Db::schema()->create('shop_invoice', static function (Blueprint $table): void { $table->id(); $table->unsignedBigInteger('order_id'); $table->string('secret'); });
@@ -275,10 +275,10 @@ final class CodeGeneratorRelationsTest extends TestCase
             Db::table('shop_order')->insert(['title' => '订单一', 'admin_id' => 7, 'created_at' => '2026-11-07 00:00:00', 'updated_at' => '2026-11-07 00:00:00']);
             Db::table('shop_invoice')->insert(['order_id' => 1, 'secret' => 'invoice-secret']);
             Db::connection()->enableQueryLog();
-            $request = new Request("GET /admin/generated/shop-order HTTP/1.1\r\n\r\n");
+            $request = new Request("GET /admin/business/shop-order HTTP/1.1\r\n\r\n");
             $request->context['admin'] = ['id' => 1];
             Context::set(\Webman\Http\Request::class, $request);
-            $controller = new \app\admin\generated\shop_order\controller\ShopOrderController();
+            $controller = new \app\admin\business\shop_order\controller\ShopOrderController();
             $listing = json_decode($controller->index()->rawBody(), true);
             self::assertSame(200, $listing['code'], (string) ($listing['msg'] ?? ''));
             self::assertSame(1, $listing['data']['total']);
@@ -292,15 +292,15 @@ final class CodeGeneratorRelationsTest extends TestCase
             self::assertMatchesRegularExpression('/select "id", "nickname" from "fun_admin"/', $queries);
             self::assertStringNotContainsString('select * from "fun_admin"', $queries);
             // 预加载路径同样只取白名单列。
-            $eager = \app\admin\generated\shop_order\model\ShopOrder::with(\app\admin\generated\shop_order\service\ShopOrderService::WITH_RELATIONS)->first();
+            $eager = \app\admin\business\shop_order\model\ShopOrder::with(\app\admin\business\shop_order\service\ShopOrderService::WITH_RELATIONS)->first();
             self::assertSame(['id' => 7, 'nickname' => '超级管理员'], $eager->admin->getAttributes());
-            self::assertSame(['admin'], \app\admin\generated\shop_order\service\ShopOrderService::WITH_RELATIONS);
+            self::assertSame(['admin'], \app\admin\business\shop_order\service\ShopOrderService::WITH_RELATIONS);
             $detail = json_decode($controller->detail(1)->rawBody(), true);
             self::assertSame(['id' => 7, 'nickname' => '超级管理员'], $detail['data']['admin'] ?? null, (string) json_encode($detail, JSON_UNESCAPED_UNICODE));
             self::assertArrayNotHasKey('invoice', $detail['data']);
             // 模型方法仍然可用。
-            self::assertSame('invoice-secret', \app\admin\generated\shop_order\model\ShopOrder::query()->first()->invoice->getAttribute('secret'));
-            $service = new \app\admin\generated\shop_order\service\ShopOrderService();
+            self::assertSame('invoice-secret', \app\admin\business\shop_order\model\ShopOrder::query()->first()->invoice->getAttribute('secret'));
+            $service = new \app\admin\business\shop_order\service\ShopOrderService();
             self::assertSame([['label' => '超级管理员', 'value' => 7]], $service->options('admin_id_options'));
         } finally {
             foreach ($temporary as $file) unlink($file);

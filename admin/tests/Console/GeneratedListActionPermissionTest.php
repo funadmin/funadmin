@@ -24,7 +24,7 @@ use support\Db;
 use support\Request;
 
 /**
- * 生成模块的列表动作宿主按方法推导的权限码准入（generated:{资源}:index / list-actions / list-action / export），
+ * 生成模块的列表动作宿主按方法推导的权限码准入（business:{资源}:index / list-actions / list-action / export），
  * 注册动作再按自身 permission 判断；动态运行时表单保持 admin/form.data 资源路径检查。
  */
 #[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
@@ -61,8 +61,8 @@ final class GeneratedListActionPermissionTest extends TestCase
             'list' => [
                 'customActions' => [['key' => 'approve', 'label' => '审核', 'locations' => ['row'], 'batch' => false, 'requiresConfirmation' => true, 'effect' => 'write', 'parameters' => [['name' => 'id', 'type' => 'integer']]]],
                 'buttons' => [
-                    'row' => [['id' => 'approve-row', 'label' => '审核', 'permission' => 'generated:console-order:action-approve',
-                        'action' => ['type' => 'registered', 'key' => 'generated.console-order.approve', 'capabilityVersion' => '1'],
+                    'row' => [['id' => 'approve-row', 'label' => '审核', 'permission' => 'business:console-order:action-approve',
+                        'action' => ['type' => 'registered', 'key' => 'business.console-order.approve', 'capabilityVersion' => '1'],
                         'params' => ['id' => ['source' => 'row', 'field' => 'id']]]],
                     'toolbar' => [['id' => 'export-rows', 'label' => '导出', 'action' => ['type' => 'download', 'key' => 'export']]],
                 ],
@@ -87,7 +87,7 @@ final class GeneratedListActionPermissionTest extends TestCase
         Db::table('business_module')->insert(['form_id' => $formId, 'code' => 'console_order', 'lifecycle_status' => 'published', 'published_schema_hash' => $this->schema->hash(), 'published_schema_version' => 1, 'metadata' => '{}']);
         $this->record = (int) Db::table('console_order')->insertGetId(['title' => '待审核']);
         foreach (self::CODES as $act) {
-            Db::table('permission')->insert(['app_name' => 'admin', 'code' => 'generated:console-order:' . $act, 'obj' => 'generated/console-order', 'act' => $act,
+            Db::table('permission')->insert(['app_name' => 'admin', 'code' => 'business:console-order:' . $act, 'obj' => 'business/console-order', 'act' => $act,
                 'name' => $act, 'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'generated', 'source_name' => 'console-order']);
         }
         Db::table('admin')->insertOrIgnore(['id' => 2, 'username' => 'list_operator', 'password' => 'x', 'status' => 1]);
@@ -110,7 +110,7 @@ final class GeneratedListActionPermissionTest extends TestCase
         $this->grant(['index', 'list-actions', 'list-action', 'action-approve']);
         $this->actAs(2);
         $catalog = $this->service()->listActionCatalog('console_order', 'row', $this->registry());
-        self::assertArrayHasKey('generated.console-order.approve', (array) $catalog['actions']);
+        self::assertArrayHasKey('business.console-order.approve', (array) $catalog['actions']);
         $payload = $this->payload();
         $confirmation = $this->service()->executeListButton('console_order', $payload, $this->executor());
         self::assertSame('confirmation_required', $confirmation['status']);
@@ -130,13 +130,13 @@ final class GeneratedListActionPermissionTest extends TestCase
         $this->assertForbidden(fn () => $this->service()->listActionCatalog('console_order', 'row', $this->registry()));
         // 有入口权限但没有该动作权限：目录不列出，执行拒绝。
         $this->grant(['index', 'list-actions', 'list-action']);
-        self::assertArrayNotHasKey('generated.console-order.approve', (array) $this->service()->listActionCatalog('console_order', 'row', $this->registry())['actions']);
+        self::assertArrayNotHasKey('business.console-order.approve', (array) $this->service()->listActionCatalog('console_order', 'row', $this->registry())['actions']);
         $this->assertForbidden(fn () => $this->service()->executeListButton('console_order', $this->payload(), $this->executor()));
         // 有入口与动作权限但缺少列表读取（index）同样拒绝，不存在放宽回退。
         $this->grant(['list-actions', 'list-action', 'action-approve']);
         $this->assertForbidden(fn () => $this->service()->executeListButton('console_order', $this->payload(), $this->executor()));
         // 权限行缺失（未执行权限迁移）时拒绝。
-        Db::table('permission')->where('code', 'generated:console-order:list-action')->delete();
+        Db::table('permission')->where('code', 'business:console-order:list-action')->delete();
         $this->grant(['index', 'list-actions', 'action-approve']);
         $this->assertForbidden(fn () => $this->service()->executeListButton('console_order', $this->payload(), $this->executor()));
     }
@@ -144,7 +144,7 @@ final class GeneratedListActionPermissionTest extends TestCase
     public function test_super_admin_is_unchanged(): void
     {
         $this->actAs(1);
-        self::assertArrayHasKey('generated.console-order.approve', (array) $this->service()->listActionCatalog('console_order', 'row', $this->registry())['actions']);
+        self::assertArrayHasKey('business.console-order.approve', (array) $this->service()->listActionCatalog('console_order', 'row', $this->registry())['actions']);
         self::assertSame('confirmation_required', $this->service()->executeListButton('console_order', $this->payload(), $this->executor())['status']);
     }
 
@@ -155,10 +155,10 @@ final class GeneratedListActionPermissionTest extends TestCase
         $recording = static function (string $permission) use (&$checked): bool { $checked[] = $permission; return true; };
         $service = new FormDataService(permissionChecker: $recording, productionBinding: $this->binding());
         $service->listActionCatalog('console_order', 'row', $this->registry());
-        self::assertSame(['generated:console-order:list-actions', 'generated:console-order:index'], array_slice($checked, 0, 2));
+        self::assertSame(['business:console-order:list-actions', 'business:console-order:index'], array_slice($checked, 0, 2));
         $checked = [];
         $service->executeListButton('console_order', ['buttonId' => 'export-rows', 'location' => 'toolbar', 'schemaHash' => $this->schema->hash(), 'ids' => []], $this->executor());
-        self::assertSame(['generated:console-order:list-action', 'generated:console-order:index', 'generated:console-order:export'], $checked);
+        self::assertSame(['business:console-order:list-action', 'business:console-order:index', 'business:console-order:export'], $checked);
 
         // 动态运行时（未正式生成）仍按 admin/form.data 资源路径检查。
         Db::table('business_module')->update(['lifecycle_status' => 'dynamic_published']);
@@ -187,7 +187,7 @@ final class GeneratedListActionPermissionTest extends TestCase
         $this->actAs(1);
         $catalog = $this->service()->listActionCatalog('console_order', 'row', $this->registry());
         self::assertSame($hash, $catalog['schemaHash']);
-        self::assertArrayHasKey('generated.console-order.approve', (array) $catalog['actions']);
+        self::assertArrayHasKey('business.console-order.approve', (array) $catalog['actions']);
     }
 
     public function test_commit_generation_without_matching_version_row_keeps_same_hash_binding_or_clears(): void
@@ -217,20 +217,20 @@ final class GeneratedListActionPermissionTest extends TestCase
 
     private function grant(array $acts): void
     {
-        $codes = array_map(static fn (string $act): string => 'generated:console-order:' . $act, $acts);
+        $codes = array_map(static fn (string $act): string => 'business:console-order:' . $act, $acts);
         (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', $codes)->pluck('id')->all());
     }
 
     private function actAs(int $id): void
     {
-        $request = new Request("POST /admin/generated/console-order/list-action HTTP/1.1\r\n\r\n");
+        $request = new Request("POST /admin/business/console-order/list-action HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => $id];
         Context::set(\Webman\Http\Request::class, $request);
     }
 
     private function binding(): array
     {
-        return ['formKey' => 'console_order', 'schemaHash' => $this->schema->hash(), 'route' => 'admin/generated.consoleordercontroller',
+        return ['formKey' => 'console_order', 'schemaHash' => $this->schema->hash(), 'route' => 'admin/business.consoleordercontroller',
             'table' => Db::connection()->getTablePrefix() . 'console_order', 'connection' => (string) config('database.default')];
     }
 

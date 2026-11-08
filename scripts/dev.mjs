@@ -6,10 +6,13 @@
 // - 后端已经在运行时直接复用，不重复启动，退出时也不会停止它。
 // - 后端未运行时以前台模式启动 webman，Ctrl+C 时一并停止。
 // - 前端使用 web/package.json 的 dev 脚本（webman 模式，接口代理到后端）。
+// - 同时跟随 admin/runtime/logs/webman-<当天>.log（应用日志不在 stdout 上），以 [后端日志] 前缀输出；
+//   DEV_BACKEND_LOGS=0 关闭，DEV_BACKEND_LOG_DIR 可改日志目录。
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tailDailyLog } from './log-tail.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const backendUrl = process.env.DEV_BACKEND_URL || 'http://127.0.0.1:8787';
@@ -33,6 +36,7 @@ let stopping = false;
 const label = (name, color) => `\x1b[${color}m[${name}]\x1b[0m`;
 const BACKEND = label('后端', 36);
 const FRONTEND = label('前端', 35);
+const BACKEND_LOG = label('后端日志', 33);
 
 function pipe(child, prefix, onLine) {
   for (const stream of [child.stdout, child.stderr]) {
@@ -98,6 +102,12 @@ async function shutdown(code = 0) {
 
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
+
+// 后端日志从当前末尾开始跟随，不回放历史；复用已运行的后端时也能看到它的报错。
+if (process.env.DEV_BACKEND_LOGS !== '0') {
+  const dir = process.env.DEV_BACKEND_LOG_DIR || join(root, 'admin', 'runtime', 'logs');
+  await tailDailyLog({ dir, onLine: line => console.log(`${BACKEND_LOG} ${line}`) }).ready;
+}
 
 if (await backendUp()) {
   console.log(`${BACKEND} 检测到 ${backendUrl} 已在运行，直接复用（退出时不会停止它）`);

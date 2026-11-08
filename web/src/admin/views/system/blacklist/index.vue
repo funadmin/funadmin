@@ -25,7 +25,7 @@
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:blacklist:delete'" @click="moveToRecycle">
             <i class="i-ep-delete" /> {{ t('systemBlacklist.moveToRecycle', '移入回收站') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
-          <el-button type="info" plain v-perm="'system:blacklist:import'" @click="fileInput?.click()">
+          <el-button type="success" plain v-perm="'system:blacklist:import'" @click="fileInput?.click()">
             <i class="i-ep-upload" /> {{ t('systemBlacklist.csvImport', 'CSV 导入') }}
           </el-button>
         </template>
@@ -37,7 +37,7 @@
             <i class="i-ep-delete-filled" /> {{ t('systemBlacklist.destroy', '永久删除') }}{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
         </template>
-        <el-button type="info" plain v-perm="'system:blacklist:export'" @click="exportRows">
+        <el-button type="primary" plain v-perm="'system:blacklist:export'" @click="exportRows">
           <i class="i-ep-download" /> {{ t('systemBlacklist.csvExport', 'CSV 导出') }}
         </el-button>
         <input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />

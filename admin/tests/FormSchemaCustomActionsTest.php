@@ -110,7 +110,7 @@ final class FormSchemaCustomActionsTest extends TestCase
         self::assertSame([], $ready['diagnostics']);
 
         $mismatch = $schema;
-        $mismatch['list']['buttons']['row'][0]['permission'] = 'generated:shop-order:index';
+        $mismatch['list']['buttons']['row'][0]['permission'] = 'business:shop-order:index';
         self::assertSame(['FORM_ACTION_PERMISSION_MISMATCH'], array_column($this->checker(true)->check($mismatch, 'core-generated')['diagnostics'], 'code'));
 
         $undeclared = $schema;
@@ -119,7 +119,7 @@ final class FormSchemaCustomActionsTest extends TestCase
 
         // 不属于本 Schema 的 generated 键仍须在注册表中存在。
         $foreign = $schema;
-        $foreign['list']['buttons']['row'][0]['action']['key'] = 'generated.other.approve';
+        $foreign['list']['buttons']['row'][0]['action']['key'] = 'business.other.approve';
         self::assertContains('FORM_ACTION_NOT_REGISTERED', array_column($this->checker(true)->check($foreign, 'core-dynamic')['diagnostics'], 'code'));
 
         // 适配未就绪时与普通注册动作一样阻断正式生成。
@@ -148,8 +148,8 @@ final class FormSchemaCustomActionsTest extends TestCase
 
     private static function button(): array
     {
-        return ['id' => 'approve-row', 'label' => '审核', 'permission' => 'generated:shop-order:action-approve',
-            'action' => ['type' => 'registered', 'key' => 'generated.shop-order.approve', 'capabilityVersion' => '1'],
+        return ['id' => 'approve-row', 'label' => '审核', 'permission' => 'business:shop-order:action-approve',
+            'action' => ['type' => 'registered', 'key' => 'business.shop-order.approve', 'capabilityVersion' => '1'],
             'params' => ['id' => ['source' => 'row', 'field' => 'id'], 'note' => ['source' => 'literal', 'value' => '同意']]];
     }
 

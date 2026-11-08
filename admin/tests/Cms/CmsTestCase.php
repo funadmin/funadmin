@@ -13,6 +13,7 @@ abstract class CmsTestCase extends \PHPUnit\Framework\TestCase
         foreach(array_reverse(\app\cms\service\Schema::tables()) as $table) Db::schema()->dropIfExists($table);
         \app\cms\service\Schema::install();
         \app\cms\service\SiteRoleSchema::install();
+        \app\cms\service\TemplateTagRemarkSchema::install();
         \app\cms\service\ModelService::seed();
     }
     /**

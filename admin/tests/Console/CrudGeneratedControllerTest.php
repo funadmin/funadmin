@@ -27,15 +27,15 @@ final class CrudGeneratedControllerTest extends TestCase
                 $file = tempnam(sys_get_temp_dir(), 'funadmin-controller-');
                 $files[] = $file; file_put_contents($file, $context[$key]); require $file;
             }
-            $class = 'app\\admin\\controller\\generated\\ConsoleControllerController';
+            $class = 'app\\admin\\business\\console_controller\\controller\\ConsoleControllerController';
             $middleware = \Webman\Middleware::getMiddleware('', 'admin', [$class, 'index'], null, false);
             self::assertCount(3, $middleware);
             self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiRoleMiddleware::class));
             self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\CheckAdminApiCsrfMiddleware::class));
             self::assertCount(1, array_filter($middleware, static fn (array $item): bool => $item[0] === \app\admin\middleware\SystemLogMiddleware::class));
             $group = (new \ReflectionClass($class))->getAttributes(\support\annotation\route\RouteGroup::class)[0]->newInstance();
-            self::assertSame('/admin/generated/console-controller', $group->prefix);
-            $request = new Request("POST /admin/generated/console-controller HTTP/1.1\r\n\r\n");
+            self::assertSame('/admin/business/console-controller', $group->prefix);
+            $request = new Request("POST /admin/business/console-controller HTTP/1.1\r\n\r\n");
             $request->setPost(['title' => '新增测试', 'metadata' => ['valid' => true]]);
             Context::set(\Webman\Http\Request::class, $request);
             $controller = new $class();

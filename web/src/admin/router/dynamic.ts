@@ -13,6 +13,7 @@ const Blank: RouteComponent = () => import('@/layout/blank.vue');
  * - "Layout"           => 主布局
  * - "Blank"            => 空白布局（用于多级菜单）
  * - "system/user/index" => src/views/system/user/index.vue
+ * - "business/{entity}/index" => 生成业务页 src/views/business/{entity}/index.vue（与代码生成器所在的 views/development/business 是不同路径）
  * - 完整路径 "/views/system/user/index.vue" 也兼容
  */
 function resolveComponent(component?: string): RouteComponent {
@@ -30,7 +31,7 @@ function resolveComponent(component?: string): RouteComponent {
   const target = candidates.find((key) => key in modules);
   const loader = target ? modules[target as keyof typeof modules] : undefined;
   if (!loader) {
-    if (normalized.startsWith('generated/')) {
+    if (normalized.startsWith('business/')) {
       console.info(`[router] 生成源码尚未进入当前构建，使用运行时发布宿主: ${normalized}`);
       return () => import('@/views/form/published.vue');
     }

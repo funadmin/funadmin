@@ -42,10 +42,10 @@ final class MemberPageDefinition
             $action('recycled', $t('回收站', 'Recycle Bin'), 'warning', ['icon' => 'i-ep-folder-remove', 'activeWhen' => $recycled, 'inactiveColor' => 'primary']),
             $action('add', $t('新增', 'Add'), 'primary', ['icon' => 'i-ep-plus', 'permission' => 'system:member:add', 'visibleWhen' => $active]),
             $action('recycle', $t('移入回收站', 'Move to Recycle Bin'), 'danger', ['icon' => 'i-ep-delete', 'permission' => 'system:member:delete', 'visibleWhen' => $active, 'disabledWhen' => $empty, 'selectionCount' => true]),
-            $action('import', $t('CSV 导入', 'CSV Import'), 'info', ['icon' => 'i-ep-upload', 'permission' => 'system:member:import', 'visibleWhen' => $active]),
+            $action('import', $t('CSV 导入', 'CSV Import'), 'success', ['icon' => 'i-ep-upload', 'permission' => 'system:member:import', 'visibleWhen' => $active]),
             $action('restore', $t('恢复', 'Restore'), 'success', ['icon' => 'i-ep-refresh-left', 'permission' => 'system:member:restore', 'visibleWhen' => $recycled, 'disabledWhen' => $empty, 'selectionCount' => true]),
             $action('destroy', $t('永久删除', 'Delete Permanently'), 'danger', ['icon' => 'i-ep-delete-filled', 'permission' => 'system:member:destroy', 'visibleWhen' => $recycled, 'disabledWhen' => $empty, 'selectionCount' => true]),
-            $action('export', $t('CSV 导出', 'CSV Export'), 'info', ['icon' => 'i-ep-download', 'permission' => 'system:member:export']),
+            $action('export', $t('CSV 导出', 'CSV Export'), 'primary', ['icon' => 'i-ep-download', 'permission' => 'system:member:export']),
         ])->rowActions([
             $action('edit', $t('编辑', 'Edit'), 'primary', ['permission' => 'system:member:edit', 'visibleWhen' => $active]),
         ])->compile();

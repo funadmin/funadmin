@@ -11,6 +11,8 @@ const overview = ref<StorageOverview>({ profiles: [], current: null, managed: fa
 const loading = ref(false), busy = ref(false), dialog = ref(false);
 const error = ref(''), formError = ref(''), resultMessage = ref('');
 const testingId = ref('');
+// 放在脚本里：模板静态属性含 // 会让 vue-tsc 生成的代码出错。
+const placeholders = { endpoint: 'https://oss-cn-hangzhou.aliyuncs.com', domain: 'https://cdn.example.com' };
 const providerLabels: Record<StorageProvider, string> = { aliyun: '阿里云 OSS', tencent: '腾讯云 COS', qiniu: '七牛云 Kodo' };
 const current = computed(() => overview.value.profiles.find(profile => profile.id === overview.value.current));
 const editing = computed(() => !!form.id);
@@ -110,9 +112,9 @@ onMounted(load);
         <el-form-item label="配置名称" required data-field="name"><el-input v-model="form.name" maxlength="100" autocomplete="off" /></el-form-item>
         <el-form-item label="云厂商" required data-field="provider"><el-select v-model="form.provider" :disabled="editing" class="w-full"><el-option v-for="(label, provider) in providerLabels" :key="provider" :value="provider" :label="label" /></el-select></el-form-item>
         <el-form-item label="Bucket" required data-field="bucket"><el-input v-model="form.bucket" :disabled="editing" :placeholder="form.provider === 'tencent' ? 'bucket-1250000000' : 'bucket-name'" /></el-form-item>
-        <el-form-item v-if="form.provider === 'aliyun'" label="Endpoint" required data-field="endpoint"><el-input v-model="form.endpoint" :disabled="editing" placeholder="https://oss-cn-hangzhou.aliyuncs.com" /></el-form-item>
+        <el-form-item v-if="form.provider === 'aliyun'" label="Endpoint" required data-field="endpoint"><el-input v-model="form.endpoint" :disabled="editing" :placeholder="placeholders.endpoint" /></el-form-item>
         <el-form-item v-else :label="form.provider === 'qiniu' ? '上传区域' : 'Region'" required data-field="region"><el-input v-model="form.region" :disabled="editing" :placeholder="form.provider === 'qiniu' ? 'z0 / z1 / z2 / na0 / as0' : 'ap-guangzhou'" /></el-form-item>
-        <el-form-item label="公开访问域名" required data-field="domain"><el-input v-model="form.domain" :disabled="editing" placeholder="https://cdn.example.com" /></el-form-item>
+        <el-form-item label="公开访问域名" required data-field="domain"><el-input v-model="form.domain" :disabled="editing" :placeholder="placeholders.domain" /></el-form-item>
         <el-form-item label="目录前缀" data-field="prefix"><el-input v-model="form.prefix" :disabled="editing" placeholder="public；留空使用根目录" /></el-form-item>
         <el-form-item :label="accessLabel" :required="!editing" data-field="access_key"><el-input v-model="form.access_key" type="password" show-password autocomplete="new-password" :placeholder="editing ? '留空保留现有值' : '请输入访问密钥 ID'" /></el-form-item>
         <el-form-item :label="secretLabel" :required="!editing" data-field="secret_key"><el-input v-model="form.secret_key" type="password" show-password autocomplete="new-password" :placeholder="editing ? '留空保留现有值' : '请输入访问密钥'" /></el-form-item>

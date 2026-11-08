@@ -16,7 +16,7 @@ export interface ContentList { items: ContentRow[]; total: number; page: number;
 export interface Category extends FormData { id: Id; locale_id: Id; name: string; url: string }
 export interface Provider { name: string; parameters: Record<string, {type: string; default?: unknown; required?: boolean; min?: number; max?: number; enum?: unknown[]}> }
 export interface TagEditorOptions { models: Array<{value: string; label: string}>; categories: Array<{value: string; label: string; path: string}> }
-export interface TemplateTag { id: Id; builtin?: false; locale: string; name: string; current_version: number; draft_version: number; draft: { provider: string; parameters: FormData; template_fragment: string } }
+export interface TemplateTag { id: Id; builtin?: false; locale: string; name: string; remark?: string; current_version: number; draft_version: number; draft: { provider: string; parameters: FormData; template_fragment: string } }
 export interface BuiltinTemplateTag extends Provider { id: string; builtin: true }
 export type TemplateTagListItem = TemplateTag | BuiltinTemplateTag;
 

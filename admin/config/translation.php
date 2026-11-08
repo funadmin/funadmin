@@ -20,6 +20,6 @@ return [
     'locale' => 'zh-cn',
     // Fallback language
     'fallback_locale' => ['zh-cn', 'en-us'],
-    // Folder where language files are stored
-    'path' => [app_path('admin/lang'), app_path('common/lang')],
+    // 公共语言包目录；业务模块与插件的语言包放在各自目录的 lang/<语言>.php，由 GeneratedLanguagePacks 自动发现。
+    'path' => [app_path('common/lang')],
 ];

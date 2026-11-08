@@ -32,6 +32,7 @@ final class SeedService
         $now = Rules::now();
         foreach ($this->read($this->directory . '/categories.json') as $item) {
             $slug = Rules::slug($item['slug']);
+            if (!$this->claim('category', $slug)) continue;
             if (Db::table('document_categories')->where('slug', $slug)->exists()) continue;
             $parentId = $item['parent'] === null ? 0 : (int) Db::table('document_categories')->where('slug', $item['parent'])->value('id');
             Db::table('document_categories')->insert([
@@ -45,6 +46,7 @@ final class SeedService
     private function seedDocument(array $data, array $categories): void
     {
         $slug = Rules::slug($data['slug']);
+        if (!$this->claim('document', $slug)) return;
         if (Db::table('documents')->where('slug', $slug)->exists()) return;
         $content = ContentValidator::clean($data['content']);
         $json = json_encode($content, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -68,6 +70,12 @@ final class SeedService
             Db::table('document_category_links')->insert(['document_id' => $id, 'category_id' => $categories[$data['category']]]);
         }
         Events::record($id, 'seed', 1);
+    }
+
+    /** 首次见到该内置条目时登记并返回 true；之后永远返回 false（删除或改名后不再补回）。 */
+    private function claim(string $kind, string $slug): bool
+    {
+        return Db::table('document_seed_entries')->insertOrIgnore(['kind' => $kind, 'slug' => $slug, 'created_at' => Rules::now()]) > 0;
     }
 
     private function read(string $file): array

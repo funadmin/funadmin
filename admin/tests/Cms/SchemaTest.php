@@ -22,6 +22,8 @@ final class SchemaTest extends CmsTestCase
         self::assertFileExists(dirname(__DIR__,2).'/plugins/cms/database/migrations/001_cms.sql');
         // 唯一的 CMS 迁移由三段结构定义依次导出：主体、站点角色、会员投稿。
         self::assertSame($sql.\app\cms\service\SiteRoleSchema::mysql().\app\cms\service\ContributionSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/001_cms.sql'));
-        self::assertSame(['001_cms.sql'],array_map('basename',glob(dirname(__DIR__,2).'/plugins/cms/database/migrations/*.sql')));
+        // 1.3.1 新增：自定义标签备注列（独立迁移，已执行的 001 保持不变）。
+        self::assertSame(\app\cms\service\TemplateTagRemarkSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/002_template_tag_remark.sql'));
+        self::assertSame(['001_cms.sql','002_template_tag_remark.sql'],array_map('basename',glob(dirname(__DIR__,2).'/plugins/cms/database/migrations/*.sql')));
     }
 }

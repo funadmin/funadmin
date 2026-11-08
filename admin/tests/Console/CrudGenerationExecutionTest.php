@@ -45,7 +45,7 @@ final class CrudGenerationExecutionTest extends TestCase
         self::assertDirectoryDoesNotExist($this->root . '/app');
         chmod($this->root . '/token', 0600);
         self::assertSame(0, $generate->execute($arguments), $generate->getDisplay());
-        self::assertFileExists($this->root . '/app/admin/generated/console_cli/model/ConsoleCli.php');
+        self::assertFileExists($this->root . '/app/admin/business/console_cli/model/ConsoleCli.php');
         self::assertDirectoryDoesNotExist($this->root . '/app/admin/model');
         self::assertSame('written', json_decode($generate->getDisplay(), true)['write']['status']);
         self::assertSame(1, $generate->execute($arguments));
@@ -97,7 +97,7 @@ final class CrudGenerationExecutionTest extends TestCase
         $definition = CrudDefinitionFixture::make('console-drift');
         $generator = new CrudGenerator($this->root);
         $plan = $generator->plan($definition);
-        $path = $this->root . '/app/admin/model/generated/ConsoleDrift.php';
+        $path = $this->root . '/app/admin/business/console_drift/model/ConsoleDrift.php';
         mkdir(dirname($path), 0700, true);
         file_put_contents($path, 'manual');
         $rejected = false;

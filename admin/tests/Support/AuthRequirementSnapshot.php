@@ -27,7 +27,7 @@ final class AuthRequirementSnapshot
         foreach (Route::getRoutes() as $route) {
             $path = $route->getPath();
             $callback = $route->getCallback();
-            if (!is_array($callback) || !is_string($callback[0])) {
+            if (!is_array($callback) || !is_string($callback[0]) || self::isBusinessModule($callback[0])) {
                 continue;
             }
             [$controller, $action] = $callback;
@@ -41,6 +41,12 @@ final class AuthRequirementSnapshot
         }
         ksort($result);
         return $result;
+    }
+
+    /** 代码生成的业务模块（app\\admin\\business、app\\api\\controller\\business）属于用户内容，不进入核心快照。 */
+    public static function isBusinessModule(string $controller): bool
+    {
+        return str_starts_with($controller, 'app\\admin\\business\\') || str_starts_with($controller, 'app\\api\\controller\\business\\');
     }
 
     /** @param list<string> $chain */

@@ -439,7 +439,16 @@ export default {
     "listItemLimit": "{count} / 100 条，按当前顺序展示；停用条目不会出现在配置标签中。",
     "liveDraftVersions": "线上 V{live} / 草稿 V{draft}",
     "field": "字段",
-    "labelWithPath": "{label}（{path}）"
+    "labelWithPath": "{label}（{path}）",
+    "tagDescription": "说明",
+    "tagRemark": "备注",
+    "tagRemarkPlaceholder": "说明这个标签的用途，例如：首页新闻区块",
+    "tagParameterName": "参数",
+    "tagParameterType": "类型",
+    "tagParameterDefault": "默认值",
+    "tagParameterMeaning": "含义",
+    "tagRequired": "必填",
+    "tagNoParameters": "无参数"
   },
   "editor": {
     "confirm": "确定",
@@ -483,5 +492,90 @@ export default {
     "discardChanges": "放弃修改",
     "unsavedChanges": "未保存修改",
     "youHaveUnsavedChangesContinuingWillDiscardThem": "当前内容尚未保存，继续将丢弃这些修改。"
+  },
+  "tagDocs": {
+    "config": {
+      "description": "读取站点设置中的配置项，例如联系方式、Logo；列表型配置可循环输出",
+      "params": {
+        "name": "配置项名称（站点设置中的字段名）",
+        "limit": "列表型配置最多输出的条数",
+        "offset": "跳过前面的条数"
+      }
+    },
+    "theme": {
+      "description": "输出当前主题准备好的区块数据，例如产品、案例、轮播、合作伙伴",
+      "params": {
+        "name": "区块类型：products 产品、cases 案例、articles 文章、items 条目、related 相关内容、categories 栏目、pagination 分页、slides 轮播、partners 合作伙伴、contacts 联系方式、ads 广告位"
+      }
+    },
+    "text": {
+      "description": "格式化文本：可去掉 HTML、按长度截断并加后缀，为空时显示默认值",
+      "params": {
+        "value": "要输出的文本",
+        "default": "文本为空时显示的内容",
+        "strip_html": "是否去掉 HTML 标签",
+        "length": "截断长度，0 表示不截断",
+        "suffix": "截断后追加的后缀"
+      }
+    },
+    "date": {
+      "description": "按指定格式输出日期",
+      "params": {
+        "value": "日期值",
+        "format": "输出格式（PHP date 格式，默认 Y-m-d）",
+        "default": "日期为空时显示的内容"
+      }
+    },
+    "content": {
+      "description": "按模型、栏目、关键词查询内容列表，支持排序和分页",
+      "params": {
+        "model": "内容模型代码，留空为全部模型",
+        "category": "栏目 ID 或路径，留空为全部栏目",
+        "limit": "每次返回的条数",
+        "paginate": "是否按当前页码分页",
+        "q": "只显示标题包含该关键词的内容",
+        "order": "排序：published_desc 最新发布、published_asc 最早发布、title_asc/title_desc 按标题、id_asc/id_desc 按编号",
+        "offset": "跳过前面的条数"
+      }
+    },
+    "category": {
+      "description": "查询栏目列表，可只列出某个栏目的下级",
+      "params": {
+        "parent": "上级栏目 ID，0 表示顶级栏目"
+      }
+    },
+    "menu": {
+      "description": "循环输出导航组的菜单项，HTML 由模板自行编写",
+      "params": {
+        "code": "导航组标识，默认 header"
+      }
+    },
+    "navigation": {
+      "description": "直接输出整组导航的 HTML（含下拉子菜单）",
+      "params": {
+        "code": "导航组标识，默认 header",
+        "template": "自定义输出模板，留空使用默认样式"
+      }
+    },
+    "fields": {
+      "description": "输出当前内容的自定义字段",
+      "params": {}
+    },
+    "site": {
+      "description": "当前站点的信息，例如站点名称",
+      "params": {}
+    },
+    "languages": {
+      "description": "当前站点的语言列表，用于语言切换",
+      "params": {}
+    },
+    "breadcrumb": {
+      "description": "当前页面的面包屑路径",
+      "params": {}
+    },
+    "pagination": {
+      "description": "输出列表页的分页条",
+      "params": {}
+    }
   }
 };

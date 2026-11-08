@@ -233,8 +233,8 @@ final class BusinessModuleLayoutTest extends TestCase
     {
         $options = ['groups' => [['id' => 2, 'name' => 'G']], 'levels' => [['id' => 3, 'name' => 'L']], 'tags' => [['id' => 4, 'name' => 'T']]];
         foreach ([
-            'zh-cn' => ['MemberFormDefinition' => '9b380e66154489471c0d715d73077ad030fe80a67a8618e0ea539dc871598461', 'MemberPageDefinition' => '001fd5a08c0e1199bd53e6d7f3f28cf7067733fd897d19881052a96d215b266c'],
-            'en-us' => ['MemberFormDefinition' => '06e93976c5ee265d9c90229d5701543b5ded99f213e6a3652134446f2e811f69', 'MemberPageDefinition' => 'a3be6efe0458697e0e98d5d10cfbbaf8a1d2f9caa91bd42656fde61d897284d6'],
+            'zh-cn' => ['MemberFormDefinition' => '9b380e66154489471c0d715d73077ad030fe80a67a8618e0ea539dc871598461', 'MemberPageDefinition' => '86438ed90e766cb9b6a7d669f14a807ceb04b8ff4d9ca8a443e0a42fe42fd8cf'],
+            'en-us' => ['MemberFormDefinition' => '06e93976c5ee265d9c90229d5701543b5ded99f213e6a3652134446f2e811f69', 'MemberPageDefinition' => '9038f8b7e0b22f90fe5b3b46f2b10ea1a3f764b1bb0fe4777f35ec7c16221d7c'],
         ] as $locale => $definitions) {
             foreach ($definitions as $name => $hash) {
                 $class = 'app\\admin\\system\\service\\' . $name;
@@ -484,7 +484,6 @@ final class BusinessModuleLayoutTest extends TestCase
         $missing = [];
         foreach ($sources as $file => $source) {
             if (!str_starts_with($file, 'app/admin/') && !str_starts_with($file, 'app/common/crud/')) continue;
-            if (str_starts_with($file, 'app/admin/controller/generated/')) continue;
             preg_match_all('/^use (app\\\\[^;\\s]+)(?:\\s+as\\s+\\w+)?;/m', $source, $imports);
             foreach ($imports[1] as $class) {
                 if (!isset($declared[$class])) $missing[] = $file . ': ' . $class;
@@ -497,40 +496,35 @@ final class BusinessModuleLayoutTest extends TestCase
     {
         $data = [
             'schemaVersion' => '1.0', 'entity' => 'layout-example', 'table' => 'layout_example', 'title' => '目录契约',
-            'apiPrefix' => '/generated/layout-example', 'routePath' => '/generated/layout-example',
-            'permissionPrefix' => 'generated:layout-example', 'timestamps' => false, 'softDeletes' => false,
+            'apiPrefix' => '/business/layout-example', 'routePath' => '/business/layout-example',
+            'permissionPrefix' => 'business:layout-example', 'timestamps' => false, 'softDeletes' => false,
             'fields' => [['name' => 'id', 'label' => 'ID', 'dbType' => 'bigint', 'nullable' => false, 'primary' => true]],
             'relations' => [], 'optionsSource' => [],
             'features' => ['importLimit' => 100, 'exportLimit' => 100, 'formMode' => 'dialog'],
             'dataScope' => ['enabled' => false],
             'menu' => ['enabled' => false], 'permission' => ['enabled' => false],
             'generationTargets' => [
-                'model' => 'app/admin/generated/layout_example/model/LayoutExample.php',
-                'validate' => 'app/admin/generated/layout_example/validate/LayoutExampleValidate.php',
-                'service' => 'app/admin/generated/layout_example/service/LayoutExampleService.php',
-                'controller' => 'app/admin/generated/layout_example/controller/LayoutExampleController.php',
+                'model' => 'app/admin/business/layout_example/model/LayoutExample.php',
+                'validate' => 'app/admin/business/layout_example/validate/LayoutExampleValidate.php',
+                'service' => 'app/admin/business/layout_example/service/LayoutExampleService.php',
+                'controller' => 'app/admin/business/layout_example/controller/LayoutExampleController.php',
             ],
         ];
         $definition = \app\common\crud\CrudDefinition::fromArray($data);
         $hash = $definition->hash();
         $context = \app\common\crud\ProductionTemplateContext::build($definition);
         foreach (['model', 'validate', 'service', 'controller'] as $layer) {
-            self::assertStringContainsString('namespace app\\admin\\generated\\layout_example\\' . $layer . ';', $context[$layer . 'Content']);
+            self::assertStringContainsString('namespace app\\admin\\business\\layout_example\\' . $layer . ';', $context[$layer . 'Content']);
             token_get_all($context[$layer . 'Content'], TOKEN_PARSE);
         }
-        self::assertStringContainsString("#[Group('/admin/generated/layout-example')]", $context['controllerContent']);
-        self::assertSame('/generated/layout-example', $context['apiPrefix']);
-        self::assertSame('generated:layout-example', $context['permissionPrefix']);
-        self::assertStringContainsString('use app\\admin\\generated\\layout_example\\model\\LayoutExample;', $context['serviceContent']);
-        self::assertStringContainsString('use app\\admin\\generated\\layout_example\\service\\LayoutExampleService;', $context['controllerContent']);
+        self::assertStringContainsString("#[Group('/admin/business/layout-example')]", $context['controllerContent']);
+        self::assertSame('/business/layout-example', $context['apiPrefix']);
+        self::assertSame('business:layout-example', $context['permissionPrefix']);
+        self::assertStringContainsString('use app\\admin\\business\\layout_example\\model\\LayoutExample;', $context['serviceContent']);
+        self::assertStringContainsString('use app\\admin\\business\\layout_example\\service\\LayoutExampleService;', $context['controllerContent']);
         self::assertSame($hash, $definition->hash());
         $custom = \app\common\crud\ProductionTemplateContext::build($definition, ['modelNamespace' => 'app\\custom\\model']);
         self::assertStringContainsString('namespace app\\custom\\model;', $custom['modelContent']);
-        foreach (['model', 'validate', 'service', 'controller'] as $layer) {
-            $data['generationTargets'][$layer] = 'app/admin/' . $layer . '/generated/LayoutExample.php';
-        }
-        $legacy = \app\common\crud\ProductionTemplateContext::build(\app\common\crud\CrudDefinition::fromArray($data));
-        self::assertStringContainsString('namespace app\\admin\\model\\generated;', $legacy['modelContent']);
     }
 
     #[RunInSeparateProcess]
@@ -540,13 +534,13 @@ final class BusinessModuleLayoutTest extends TestCase
         $root = sys_get_temp_dir() . '/funadmin-layout-' . bin2hex(random_bytes(8));
         mkdir($root, 0700, true);
         $loader = new \Composer\Autoload\ClassLoader();
-        $loader->addPsr4('app\\admin\\generated\\layout_isolated\\', $root . '/app/admin/generated/layout_isolated');
+        $loader->addPsr4('app\\admin\\business\\layout_isolated\\', $root . '/app/admin/business/layout_isolated');
         $loader->register(true);
         try {
             $data = \Tests\Console\CrudDefinitionFixture::make('layout-isolated')->toArray();
             $classes = ['model' => 'LayoutIsolated', 'validate' => 'LayoutIsolatedValidate', 'service' => 'LayoutIsolatedService', 'controller' => 'LayoutIsolatedController'];
             foreach ($classes as $layer => $class) {
-                $data['generationTargets'][$layer] = 'app/admin/generated/layout_isolated/' . $layer . '/' . $class . '.php';
+                $data['generationTargets'][$layer] = 'app/admin/business/layout_isolated/' . $layer . '/' . $class . '.php';
             }
             $definition = \app\common\crud\CrudDefinition::fromArray($data);
             $generator = new \app\common\crud\CrudGenerator($root, tokens: new \app\common\crud\ConfirmationToken($root, 'isolated-layout-test-secret'));
@@ -556,12 +550,12 @@ final class BusinessModuleLayoutTest extends TestCase
             foreach ($classes as $layer => $class) {
                 $file = $root . '/' . $data['generationTargets'][$layer];
                 self::assertFileExists($file);
-                self::assertTrue(class_exists('app\\admin\\generated\\layout_isolated\\' . $layer . '\\' . $class));
+                self::assertTrue(class_exists('app\\admin\\business\\layout_isolated\\' . $layer . '\\' . $class));
                 self::assertDirectoryDoesNotExist($root . '/app/admin/' . $layer);
             }
-            $controller = 'app\\admin\\generated\\layout_isolated\\controller\\LayoutIsolatedController';
+            $controller = 'app\\admin\\business\\layout_isolated\\controller\\LayoutIsolatedController';
             $groups = (new ReflectionClass($controller))->getAttributes(RouteGroup::class);
-            self::assertSame('/admin/generated/layout-isolated', $groups[0]->newInstance()->prefix);
+            self::assertSame('/admin/business/layout-isolated', $groups[0]->newInstance()->prefix);
             try {
                 $generator->generate($definition, $plan['confirmToken']);
                 self::fail('已使用的确认 token 必须拒绝');
@@ -594,76 +588,18 @@ final class BusinessModuleLayoutTest extends TestCase
         $hash = $snapshot->hash();
         $input = \app\common\crud\CrudDefinition::fromInput($data);
         foreach (['model' => 'LayoutInput', 'validate' => 'LayoutInputValidate', 'service' => 'LayoutInputService', 'controller' => 'LayoutInputController'] as $layer => $class) {
-            self::assertSame('app/admin/generated/layout_input/' . $layer . '/' . $class . '.php', $input->get('generationTargets')[$layer]);
+            self::assertSame('app/admin/business/layout_input/' . $layer . '/' . $class . '.php', $input->get('generationTargets')[$layer]);
         }
         self::assertSame($data['apiPrefix'], $input->get('apiPrefix'));
         self::assertSame($data['permissionPrefix'], $input->get('permissionPrefix'));
         self::assertSame($hash, \app\common\crud\CrudDefinition::fromArray($snapshot->toArray())->hash());
         self::assertSame($data['generationTargets']['model'], $snapshot->get('generationTargets')['model']);
         unset($data['generationTargets']['model']);
-        self::assertSame('app/admin/generated/layout_input/model/LayoutInput.php', \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['model']);
+        self::assertSame('app/admin/business/layout_input/model/LayoutInput.php', \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['model']);
         $data['generationTargets']['model'] = 'app/custom/model/LayoutInput.php';
         self::assertSame('app/custom/model/LayoutInput.php', \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['model']);
         $data['formSchema'] = ['list' => []];
         self::assertSame($data['generationTargets']['controller'], \app\common\crud\CrudDefinition::fromInput($data)->get('generationTargets')['controller']);
-    }
-
-    public function test_new_entity_layout_rejects_existing_legacy_artifacts_before_preview_and_write(): void
-    {
-        $root = sys_get_temp_dir() . '/funadmin-layout-conflict-' . bin2hex(random_bytes(8));
-        mkdir($root, 0700, true);
-        try {
-            $data = \Tests\Console\CrudDefinitionFixture::make('layout-conflict')->toArray();
-            $definition = \app\common\crud\CrudDefinition::fromInput($data);
-            $generator = new \app\common\crud\CrudGenerator($root, tokens: new \app\common\crud\ConfirmationToken($root, 'layout-conflict-test-secret'));
-            foreach (['model', 'validate', 'service', 'controller'] as $layer) {
-                $legacy = $root . '/' . $data['generationTargets'][$layer];
-                mkdir(dirname($legacy), 0700, true);
-                file_put_contents($legacy, 'managed-original');
-                $rejected = false;
-                try { $generator->plan($definition); }
-                catch (\InvalidArgumentException $error) {
-                    $rejected = true;
-                    self::assertStringContainsString('GENERATION_LAYOUT_CONFLICT', $error->getMessage());
-                }
-                self::assertTrue($rejected, '旧生成制品存在时必须阻止新布局：' . $layer);
-                self::assertSame('managed-original', file_get_contents($legacy));
-                self::assertDirectoryDoesNotExist($root . '/app/admin/generated');
-                unlink($legacy);
-            }
-            $plan = $generator->plan($definition);
-            $legacy = $root . '/' . $data['generationTargets']['model'];
-            file_put_contents($legacy, 'created-after-preview');
-            $rejected = false;
-            try { $generator->generate($definition, $plan['confirmToken']); }
-            catch (\InvalidArgumentException $error) {
-                $rejected = true;
-                self::assertStringContainsString('GENERATION_LAYOUT_CONFLICT', $error->getMessage());
-            }
-            self::assertTrue($rejected, '预览后出现旧制品也必须阻止写入');
-            self::assertSame('created-after-preview', file_get_contents($legacy));
-            self::assertDirectoryDoesNotExist($root . '/app/admin/generated');
-            unlink($legacy);
-            foreach (['model', 'validate', 'service', 'controller'] as $layer) {
-                $baselines = [['path' => $data['generationTargets'][$layer], 'baseContent' => 'registered-original']];
-                foreach (['planManaged', 'renderManagedBundle'] as $method) {
-                    $rejected = false;
-                    try { $generator->$method($definition, $baselines); }
-                    catch (\InvalidArgumentException $error) {
-                        $rejected = true;
-                        self::assertStringContainsString('GENERATION_LAYOUT_CONFLICT', $error->getMessage());
-                    }
-                    self::assertTrue($rejected, '历史 baseline 不得被新布局绕过：' . $method . '/' . $layer);
-                    self::assertSame('registered-original', $baselines[0]['baseContent']);
-                }
-            }
-        } finally {
-            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
-            foreach ($files as $file) {
-                $file->isDir() && !$file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
-            }
-            rmdir($root);
-        }
     }
 
     public function test_form_crud_factory_uses_entity_layout_for_new_generated_targets(): void
@@ -671,13 +607,13 @@ final class BusinessModuleLayoutTest extends TestCase
         $factory = new \app\admin\development\service\FormCrudDefinitionFactory();
         $method = (new ReflectionClass($factory))->getMethod('targets');
         $targets = $method->invoke($factory, 'layout-factory', 'LayoutFactory', false);
-        self::assertSame('app/admin/generated/layout_factory/model/LayoutFactory.php', $targets['model']);
-        self::assertSame('app/admin/generated/layout_factory/validate/LayoutFactoryValidate.php', $targets['validate']);
-        self::assertSame('app/admin/generated/layout_factory/service/LayoutFactoryService.php', $targets['service']);
-        self::assertSame('app/admin/generated/layout_factory/controller/LayoutFactoryController.php', $targets['controller']);
+        self::assertSame('app/admin/business/layout_factory/model/LayoutFactory.php', $targets['model']);
+        self::assertSame('app/admin/business/layout_factory/validate/LayoutFactoryValidate.php', $targets['validate']);
+        self::assertSame('app/admin/business/layout_factory/service/LayoutFactoryService.php', $targets['service']);
+        self::assertSame('app/admin/business/layout_factory/controller/LayoutFactoryController.php', $targets['controller']);
         $memberTargets = $method->invoke($factory, 'layout-factory', 'LayoutFactory', true);
-        self::assertSame('app/api/controller/generated/LayoutFactoryController.php', $memberTargets['memberApiController']);
-        self::assertSame('app/admin/generated/layout_factory/controller/LayoutFactoryController.php', $memberTargets['controller']);
+        self::assertSame('app/api/controller/business/LayoutFactoryController.php', $memberTargets['memberApiController']);
+        self::assertSame('app/admin/business/layout_factory/controller/LayoutFactoryController.php', $memberTargets['controller']);
     }
 
     public function test_plugin_center_uses_webman_database_and_cache_facades(): void

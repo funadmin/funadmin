@@ -439,7 +439,16 @@ export default {
     "listItemLimit": "{count} / 100 items, displayed in this order. Disabled items are excluded from configuration tags.",
     "liveDraftVersions": "Live V{live} / Draft V{draft}",
     "field": "Field",
-    "labelWithPath": "{label} ({path})"
+    "labelWithPath": "{label} ({path})",
+    "tagDescription": "Description",
+    "tagRemark": "Remark",
+    "tagRemarkPlaceholder": "What this tag is for, e.g. homepage news block",
+    "tagParameterName": "Parameter",
+    "tagParameterType": "Type",
+    "tagParameterDefault": "Default",
+    "tagParameterMeaning": "Meaning",
+    "tagRequired": "Required",
+    "tagNoParameters": "No parameters"
   },
   "editor": {
     "confirm": "Confirm",
@@ -483,5 +492,90 @@ export default {
     "discardChanges": "Discard changes",
     "unsavedChanges": "Unsaved changes",
     "youHaveUnsavedChangesContinuingWillDiscardThem": "You have unsaved changes. Continuing will discard them."
+  },
+  "tagDocs": {
+    "config": {
+      "description": "Reads a site setting such as contact details or the logo; list settings can be looped",
+      "params": {
+        "name": "Setting name (field name in site settings)",
+        "limit": "Maximum items for a list setting",
+        "offset": "Number of items to skip"
+      }
+    },
+    "theme": {
+      "description": "Outputs block data prepared by the current theme, such as products, cases, slides or partners",
+      "params": {
+        "name": "Block type: products, cases, articles, items, related, categories, pagination, slides, partners, contacts, ads"
+      }
+    },
+    "text": {
+      "description": "Formats text: strip HTML, truncate with a suffix, or show a default when empty",
+      "params": {
+        "value": "Text to output",
+        "default": "Shown when the text is empty",
+        "strip_html": "Remove HTML tags",
+        "length": "Truncate length, 0 means no truncation",
+        "suffix": "Suffix appended after truncation"
+      }
+    },
+    "date": {
+      "description": "Outputs a date in the given format",
+      "params": {
+        "value": "Date value",
+        "format": "Output format (PHP date format, default Y-m-d)",
+        "default": "Shown when the date is empty"
+      }
+    },
+    "content": {
+      "description": "Queries content by model, category or keyword, with sorting and pagination",
+      "params": {
+        "model": "Content model code; empty means all models",
+        "category": "Category ID or path; empty means all categories",
+        "limit": "Number of items returned each time",
+        "paginate": "Paginate using the current page number",
+        "q": "Only content whose title contains this keyword",
+        "order": "Order: published_desc newest, published_asc oldest, title_asc/title_desc by title, id_asc/id_desc by ID",
+        "offset": "Number of items to skip"
+      }
+    },
+    "category": {
+      "description": "Queries categories, optionally only the children of one category",
+      "params": {
+        "parent": "Parent category ID, 0 for top-level categories"
+      }
+    },
+    "menu": {
+      "description": "Loops over the items of a navigation group; the template writes the HTML",
+      "params": {
+        "code": "Navigation group code, default header"
+      }
+    },
+    "navigation": {
+      "description": "Outputs the HTML of a whole navigation group, including dropdowns",
+      "params": {
+        "code": "Navigation group code, default header",
+        "template": "Custom output template; empty uses the default style"
+      }
+    },
+    "fields": {
+      "description": "Outputs the custom fields of the current content",
+      "params": {}
+    },
+    "site": {
+      "description": "Information about the current site, such as its name",
+      "params": {}
+    },
+    "languages": {
+      "description": "Languages of the current site, for a language switcher",
+      "params": {}
+    },
+    "breadcrumb": {
+      "description": "Breadcrumb path of the current page",
+      "params": {}
+    },
+    "pagination": {
+      "description": "Outputs the pagination bar of a list page",
+      "params": {}
+    }
   }
 };

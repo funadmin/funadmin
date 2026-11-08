@@ -7,9 +7,9 @@ namespace app\common\form\action;
 /**
  * 设计器声明的列表自定义动作（Schema list.customActions）与注册表定义之间的唯一换算规则。
  *
- * - 注册键：generated.{entity}.{key}，entity 为表单标识的 kebab 形式（与生成权限前缀一致）。
- * - 权限码：generated:{entity}:action-{key 的 kebab 形式}，权限行 obj/act 按 PermissionCode::resource 推导。
- * - 处理方法：{key 的 camel 形式}，位于 app\admin\generated\{dir}\action\{Class}Actions。
+ * - 注册键：business.{entity}.{key}，entity 为表单标识的 kebab 形式（与生成权限前缀一致）。
+ * - 权限码：business:{entity}:action-{key 的 kebab 形式}，权限行 obj/act 按 PermissionCode::resource 推导。
+ * - 处理方法：{key 的 camel 形式}，位于 app\admin\business\{dir}\action\{Class}Actions。
  */
 final class CustomActions
 {
@@ -29,7 +29,7 @@ final class CustomActions
 
     public static function registryKey(string $entity, string $key): string
     {
-        return 'generated.' . $entity . '.' . $key;
+        return 'business.' . $entity . '.' . $key;
     }
 
     public static function codeSuffix(string $key): string
@@ -39,7 +39,7 @@ final class CustomActions
 
     public static function permission(string $entity, string $key): string
     {
-        return 'generated:' . $entity . ':' . self::codeSuffix($key);
+        return 'business:' . $entity . ':' . self::codeSuffix($key);
     }
 
     public static function method(string $key): string

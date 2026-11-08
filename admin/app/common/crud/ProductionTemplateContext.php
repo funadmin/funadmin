@@ -15,6 +15,7 @@ final class ProductionTemplateContext
     {
         self::$i18nKeys = [];
         self::$backendLangKeys = [];
+        self::$backendLangEn = [];
         $data = $definition->toArray();
         $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\admin');
         $apiPrefix = '/' . ltrim((string) $data['apiPrefix'], '/');
@@ -24,7 +25,7 @@ final class ProductionTemplateContext
         $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim($controllerPrefix, '/'));
         // 管理前端的 HTTP 客户端已带 /admin，兼容显式包含该前缀的旧 Definition。
         $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? ($adminApi && $hasAdminPrefix ? (substr($apiPrefix, 6) ?: '/') : $apiPrefix));
-        $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/generated/{$data['entity']}");
+        $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/business/{$data['entity']}");
         $data['_frontendComponentApiImport'] = (string) ($target['frontendComponentApiImport'] ?? $data['_frontendApiImport']);
         $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? '');
         $data['_modelBaseClass'] = (string) ($target['modelBaseClass'] ?? '\\app\\common\\model\\BaseModel');
@@ -36,19 +37,15 @@ final class ProductionTemplateContext
         $data['_validateNamespace'] = (string) ($target['validateNamespace'] ?? $data['_namespace'] . '\\validate');
         $data['_serviceNamespace'] = (string) ($target['serviceNamespace'] ?? $data['_namespace'] . '\\service');
         $data['_controllerNamespace'] = (string) ($target['controllerNamespace'] ?? $data['_namespace'] . '\\controller');
-        $data['_memberControllerNamespace'] = (string) ($target['memberControllerNamespace'] ?? 'app\\api\\controller\\generated');
+        $data['_memberControllerNamespace'] = (string) ($target['memberControllerNamespace'] ?? 'app\\api\\controller\\business');
         $data['_memberControllerGroup'] = (string) ($target['memberControllerGroup'] ?? 'v2/' . $data['entity']);
         $data['_memberRoutePrefix'] = (string) ($target['memberRoutePrefix'] ?? '/api/' . $data['_memberControllerGroup']);
         if (($target['type'] ?? 'core') === 'core') {
             foreach (['model', 'validate', 'service', 'controller'] as $artifact) {
                 $path = (string) ($data['generationTargets'][$artifact] ?? '');
-                if (preg_match('~^app/admin/generated/([a-z][a-z0-9_]*)/' . $artifact . '/[A-Za-z][A-Za-z0-9]*\.php$~D', $path, $generated) === 1) {
-                    if (!isset($target[$artifact . 'Namespace'])) {
-                        $data['_' . $artifact . 'Namespace'] = 'app\\admin\\generated\\' . $generated[1] . '\\' . $artifact;
-                    }
-                } elseif (str_contains($path, "/{$artifact}/generated/")) {
-                    $namespaceKey = '_' . $artifact . 'Namespace';
-                    $data[$namespaceKey] .= '\\generated';
+                if (preg_match('~^app/admin/business/([a-z][a-z0-9_]*)/' . $artifact . '/[A-Za-z][A-Za-z0-9]*\.php$~D', $path, $business) === 1
+                    && !isset($target[$artifact . 'Namespace'])) {
+                    $data['_' . $artifact . 'Namespace'] = 'app\\admin\\business\\' . $business[1] . '\\' . $artifact;
                 }
             }
         }
@@ -110,7 +107,8 @@ final class ProductionTemplateContext
         $result['langZhContent'] = self::langFile((string) $data['entity'], self::$backendLangKeys);
         $backendEn = [];
         foreach (self::$backendLangKeys as $purpose => $zh) {
-            $backendEn[$purpose] = self::translationFor($translations, (string) $data['entity'] . '.' . $purpose);
+            $translated = $translations[(string) $data['entity'] . '.' . $purpose] ?? null;
+            $backendEn[$purpose] = is_string($translated) && trim($translated) !== '' ? trim($translated) : self::$backendLangEn[$purpose];
         }
         $result['langEnContent'] = self::langFile((string) $data['entity'], $backendEn);
         // 前端语言行结构化包：managed 生成路径据此派生语言资源确定性入库，与 lang.sql 内容一致。
@@ -280,7 +278,7 @@ final class ProductionTemplateContext
 
     private static function customActionsNamespace(array $data): string
     {
-        return 'app\\admin\\generated\\' . str_replace('-', '_', (string) $data['entity']) . '\\action';
+        return 'app\\admin\\business\\' . str_replace('-', '_', (string) $data['entity']) . '\\action';
     }
 
     /**
@@ -317,7 +315,7 @@ final class ProductionTemplateContext
             . "final class {$class}Actions\n{\n" . implode("\n\n", $methods) . "\n}\n";
     }
 
-    /** 注册清单：FormRegistryFactory 合并所有 app/admin/generated/{模块}/config/actions.php。 */
+    /** 注册清单：FormRegistryFactory 合并所有 app/admin/business/{模块}/config/actions.php。 */
     private static function customActionsConfig(array $data, string $class): string
     {
         $actions = self::declaredCustomActions($data);
@@ -463,6 +461,22 @@ final class ProductionTemplateContext
             static fn (array $field): string => $field['name'],
             array_filter($data['fields'], static fn (array $field): bool => !($field['primary'] ?? false) && ($field['writable'] ?? true))
         ));
+        $inputFields = [];
+        foreach ($data['fields'] as $field) {
+            if (!in_array($field['name'], $writable, true)) continue;
+            $inputFields[$field['name']] = [
+                'alias' => self::camel($field['name']),
+                'nullable' => (bool) $field['nullable'],
+                'stringSelection' => preg_match('/char|text|enum/', strtolower($field['dbType'])) === 1
+                    && in_array($field['component'] ?? '', ['select', 'selectV2', 'radio', 'treeSelect', 'cascader', 'dictionary', 'relation', 'department', 'user'], true),
+            ];
+        }
+        $normalizePayload = "    public function normalizePayload(array \$input): array\n    {\n        \$payload = [];\n        foreach (" . self::phpArray($inputFields) . " as \$field => \$definition) {\n"
+            . "            \$key = array_key_exists(\$field, \$input) ? \$field : \$definition['alias'];\n"
+            . "            if (!array_key_exists(\$key, \$input)) continue;\n            \$value = \$input[\$key];\n"
+            . "            if (\$value === '' && \$definition['nullable']) \$value = null;\n"
+            . "            if (\$definition['stringSelection'] && (is_int(\$value) || is_float(\$value))) \$value = (string) \$value;\n"
+            . "            \$payload[\$field] = \$value;\n        }\n        return \$payload;\n    }\n\n";
         $with = array_values(array_map(
             static fn (array $relation): string => $relation['name'],
             array_filter($data['relations'], static fn (array $relation): bool => ($relation['with'] ?? false) === true && ($relation['modelOnly'] ?? false) !== true)
@@ -512,10 +526,10 @@ final class ProductionTemplateContext
             ? "\n    private function dictionaryOptions(string \$code): array\n    {\n        \$type = \\app\\common\\model\\DictType::where('code', \$code)->where('status', 1)->first();\n        if (!\$type) return [];\n        return \\app\\common\\model\\DictItem::where('type_id', \$type->id)->where('status', 1)->orderBy('sort_order', 'asc')->select(['value', 'label'])->get()->toArray();\n    }\n"
             : '';
         if ($optionArms !== []) {
-            self::collectBackend('optionsParamsUndeclared', 'optionsSource 参数未声明');
-            self::collectBackend('optionsKeywordInvalid', 'keyword 必须为字符串');
-            self::collectBackend('optionsPageInvalid', '分页参数不合法');
-            self::collectBackend('optionsSourceUnknown', '未知 optionsSource');
+            self::collectBackend('optionsParamsUndeclared', 'optionsSource 参数未声明', 'The optionsSource parameter is not declared');
+            self::collectBackend('optionsKeywordInvalid', 'keyword 必须为字符串', 'The keyword must be a string');
+            self::collectBackend('optionsPageInvalid', '分页参数不合法', 'Invalid pagination parameters');
+            self::collectBackend('optionsSourceUnknown', '未知 optionsSource', 'Unknown optionsSource');
         }
         $optionsMethod = $optionArms === [] ? '' : "\n    public function options(string \$source, ?array \$departmentIds = null, array \$params = []): array\n    {\n        if (array_diff(array_keys(\$params), ['keyword', 'page', 'pageSize']) !== []) throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsParamsUndeclared'));\n        if (isset(\$params['keyword']) && !is_string(\$params['keyword'])) throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsKeywordInvalid'));\n        foreach (['page', 'pageSize'] as \$name) {\n            if (isset(\$params[\$name]) && filter_var(\$params[\$name], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) throw new \\InvalidArgumentException(trans('{$data['entity']}.optionsPageInvalid'));\n        }\n        \$options = match (\$source) {\n"
             . implode("\n", $optionArms)
@@ -524,11 +538,11 @@ final class ProductionTemplateContext
             . $dictionaryMethod;
         $referenceProtection = ($data['features']['referenceProtection'] ?? false) === true;
         if ($referenceProtection) {
-            self::collectBackend('referenceMetadataInvalid', '数据库引用元数据包含非法标识符');
-            self::collectBackend('referenced', '记录仍被 {:target} 引用，无法删除');
+            self::collectBackend('referenceMetadataInvalid', '数据库引用元数据包含非法标识符', 'Database reference metadata contains an invalid identifier');
+            self::collectBackend('referenced', '记录仍被 {target} 引用，无法删除', 'The record is still referenced by {target} and cannot be deleted');
         }
         $referenceMethod = $referenceProtection
-            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) \$ids[] = \$model->{$primary['name']};\n        if (\$ids === []) return null;\n        \$connection = (new {$class}())->getConnection();\n        \$references = \\app\\common\\service\\database\\ReferenceInspector::incoming(\$connection, '{$data['table']}', '{$primary['name']}');\n        foreach (\$references as \$reference) {\n            \$table = (string) \$reference->TABLE_NAME;\n            \$column = (string) \$reference->COLUMN_NAME;\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) throw new \\RuntimeException(trans('{$data['entity']}.referenceMetadataInvalid'));\n            \$prefix = \$connection->getTablePrefix();\n            \$logical = \$prefix !== '' && str_starts_with(\$table, \$prefix) ? substr(\$table, strlen(\$prefix)) : \$table;\n            if (\$connection->table(\$logical)->whereIn(\$column, \$ids)->exists()) return trans('{$data['entity']}.referenced', ['target' => \$table . '.' . \$column]);\n        }\n        return null;\n    }\n"
+            ? "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        \$ids = [];\n        foreach (\$models as \$model) \$ids[] = \$model->{$primary['name']};\n        if (\$ids === []) return null;\n        \$connection = (new {$class}())->getConnection();\n        \$references = \\app\\common\\service\\database\\ReferenceInspector::incoming(\$connection, '{$data['table']}', '{$primary['name']}');\n        foreach (\$references as \$reference) {\n            \$table = (string) \$reference->TABLE_NAME;\n            \$column = (string) \$reference->COLUMN_NAME;\n            if (!preg_match('/^[a-z_][a-z0-9_]*$/', \$table) || !preg_match('/^[a-z_][a-z0-9_]*$/', \$column)) throw new \\RuntimeException(trans('{$data['entity']}.referenceMetadataInvalid'));\n            \$prefix = \$connection->getTablePrefix();\n            \$logical = \$prefix !== '' && str_starts_with(\$table, \$prefix) ? substr(\$table, strlen(\$prefix)) : \$table;\n            if (\$connection->table(\$logical)->whereIn(\$column, \$ids)->exists()) return trans('{$data['entity']}.referenced', ['{target}' => \$table . '.' . \$column]);\n        }\n        return null;\n    }\n"
             : "    public function assertNotReferenced(iterable \$models, bool \$force): ?string\n    {\n        return null;\n    }\n";
         $querySource = $data['softDeletes']
             ? "        \$query = \$recycled ? {$class}::onlyTrashed()->with(self::WITH_RELATIONS) : {$class}::with(self::WITH_RELATIONS);\n"
@@ -538,6 +552,7 @@ final class ProductionTemplateContext
             . "final class {$class}Service\n{\n"
             . '    public const WRITABLE_FIELDS = ' . self::phpArray($writable) . ";\n"
             . '    public const WITH_RELATIONS = ' . self::phpArray($with) . ";\n\n"
+            . $normalizePayload
             . $prepareCreateMethod
             . "    public function query(?array \$departmentIds = null, bool \$recycled = false)\n    {\n"
             . $querySource
@@ -613,7 +628,7 @@ final class ProductionTemplateContext
         $methods = $leftMethods === '' ? [] : [$leftMethods];
         if ($data['_listActionHost']) {
             $key = $data['formSchema']['key'];
-            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'admin/generated.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
+            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'admin/business.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
             $methods[] = "    private function listButtonService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
                 . "    #[Get('/list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
                 . "    #[Post('/list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->setPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
@@ -621,17 +636,17 @@ final class ProductionTemplateContext
         }
         if ($enabled['list']) {
             if (($data['list']['tree']['enabled'] ?? false) === true) {
-                self::collectBackend('treeLimit', '树形列表超过 1000 条，请缩小筛选范围');
+                self::collectBackend('treeLimit', '树形列表超过 1000 条，请缩小筛选范围', 'The tree list exceeds 1000 records; please narrow the filters');
                 $treeLimitExpr = "trans('{$data['entity']}.treeLimit')";
                 $methods[] = "    #[Get('')]\n    public function index(): Response\n    {\n        \$query = \$this->crudOrderedQuery(\$this->crudRecycled());\n        if ((clone \$query)->count() > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        \$models = \$query->limit(1001)->get()->all();\n        if (count(\$models) > 1000) return \$this->fail(msg: {$treeLimitExpr}, code: 422);\n        return \$this->ok(data: \$this->paginationData(array_map(fn (Model \$model): array => \$this->transformData(\$model), \$models), count(\$models), 1, 1000));\n    }";
             } else {
                 $methods[] = "    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }";
             }
         }
-        if ($enabled['detail']) $methods[] = "    #[Get('/{id:[A-Za-z0-9_-]+}')]\n    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
+        if ($enabled['detail']) $methods[] = "    #[Get('/{id:[A-Za-z0-9_-]+}')]\n    public function detail(mixed \$id): Response { return \$this->crudDetail(\$id); }";
         if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
-        if ($enabled['update']) $methods[] = "    #[Put('/{id:[A-Za-z0-9_-]+}')]\n    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
-        if ($enabled['status']) $methods[] = "    #[Post('/{id:[A-Za-z0-9_-]+}/status')]\n    public function status(int|string \$id): Response { return \$this->crudStatus(\$id); }";
+        if ($enabled['update']) $methods[] = "    #[Put('/{id:[A-Za-z0-9_-]+}')]\n    public function update(mixed \$id): Response { return \$this->crudUpdate(\$id); }";
+        if ($enabled['status']) $methods[] = "    #[Post('/{id:[A-Za-z0-9_-]+}/status')]\n    public function status(mixed \$id): Response { return \$this->crudStatus(\$id); }";
         if ($enabled['serverOptions']) {
             $optionsArguments = "\$source";
             $optionsScope = '';
@@ -644,11 +659,11 @@ final class ProductionTemplateContext
             $methods[] = "    #[Get('/options/{source:[a-z][a-z0-9_]*}')]\n    public function options(string \$source): Response\n    {\n{$optionsScope}        return \$this->ok(data: (new {$class}Service())->options({$optionsArguments}));\n    }";
         }
         if ($enabled['delete']) {
-            $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}')]\n    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
+            $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}')]\n    public function remove(mixed \$id): Response { return \$this->crudRemove(\$id); }";
         }
         if ($enabled['softDelete']) {
-            $methods[] = "    #[Post('/{id:[A-Za-z0-9_-]+}/restore')]\n    public function restore(int|string \$id): Response { return \$this->crudRestoreOne(\$id); }";
-            $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}/destroy')]\n    public function destroy(int|string \$id): Response { return \$this->crudDestroyOne(\$id); }";
+            $methods[] = "    #[Post('/{id:[A-Za-z0-9_-]+}/restore')]\n    public function restore(mixed \$id): Response { return \$this->crudRestoreOne(\$id); }";
+            $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}/destroy')]\n    public function destroy(mixed \$id): Response { return \$this->crudDestroyOne(\$id); }";
         }
         if ($enabled['batchDelete']) {
             $methods[] = "    #[Delete('')]\n    public function recycle(): Response { return \$this->crudRecycle(); }";
@@ -673,8 +688,8 @@ final class ProductionTemplateContext
         // 会员接口继承 ApiController：统一经过 ApiMiddleware，默认需登录，可用 #[NoNeedLogin] 公开单个方法。
         $controllerTraits = $data['_consoleController'] ? '' : "    use AdminCrudRequest;\n    use AdminPagination;\n\n";
         if ($data['dataScope']['enabled']) {
-            self::collectBackend('dataScopeRequired', '数据范围字段 {:field} 必填');
-            self::collectBackend('dataScopeDenied', '无权写入指定数据范围');
+            self::collectBackend('dataScopeRequired', '数据范围字段 {field} 必填', 'The data scope field {field} is required');
+            self::collectBackend('dataScopeDenied', '无权写入指定数据范围', 'You are not allowed to write to the specified data scope');
         }
         return "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$data['_controllerNamespace']};\n\n"
             . $controllerImports
@@ -707,11 +722,11 @@ final class ProductionTemplateContext
             . "    protected function importLimit(): int { return {$features['importLimit']}; }\n"
             . "    protected function exportLimit(): int { return {$features['exportLimit']}; }\n"
             . "    protected function payload(?Model \$model = null): array\n    {\n"
-            . "        \$payload = array_intersect_key(\$this->request->post(), array_flip({$class}Service::WRITABLE_FIELDS));\n"
+            . "        \$payload = (new {$class}Service())->normalizePayload(\$this->request->post());\n"
             . "        return \$model === null ? (new {$class}Service())->prepareCreatePayload(\$payload) : \$payload;\n    }\n"
             . "    protected function validatePayload(array &\$data, ?Model \$model = null): ?string\n    {\n"
             . ($data['dataScope']['enabled']
-                ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return trans('{$data['entity']}.dataScopeRequired', ['field' => '{$data['dataScope']['field']}']);\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return trans('{$data['entity']}.dataScopeDenied');\n            }\n        }\n"
+                ? "        \$scope = (new DataScopeService())->resolve();\n        if (!\$scope['all']) {\n            if (\$model === null && !array_key_exists('{$data['dataScope']['field']}', \$data)) {\n                return trans('{$data['entity']}.dataScopeRequired', ['{field}' => '{$data['dataScope']['field']}']);\n            }\n            \$scopeValue = \$data['{$data['dataScope']['field']}'] ?? \$model?->{$data['dataScope']['field']};\n            if (!in_array((int) \$scopeValue, array_map('intval', \$scope['departmentIds']), true)) {\n                return trans('{$data['entity']}.dataScopeDenied');\n            }\n        }\n"
                 : '')
             . "        \$validate = new {$class}Validate();\n"
             . "        if (\$model !== null) \$validate->forUpdate(\$model->{$primary['name']}, \$data);\n"
@@ -735,10 +750,10 @@ final class ProductionTemplateContext
         $enabled = self::enabledCapabilities($data);
         $idRoute = '';
         $methods = ["    #[Get('')]\n    public function index(): Response { return \$this->crudIndex(); }"];
-        if ($enabled['detail']) $methods[] = "    #[Get('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function detail(int|string \$id): Response { return \$this->crudDetail(\$id); }";
+        if ($enabled['detail']) $methods[] = "    #[Get('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function detail(mixed \$id): Response { return \$this->crudDetail(\$id); }";
         if ($enabled['create']) $methods[] = "    #[Post('')]\n    public function create(): Response { return \$this->crudCreate(); }";
-        if ($enabled['update']) $methods[] = "    #[Put('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function update(int|string \$id): Response { return \$this->crudUpdate(\$id); }";
-        if ($enabled['delete']) $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
+        if ($enabled['update']) $methods[] = "    #[Put('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function update(mixed \$id): Response { return \$this->crudUpdate(\$id); }";
+        if ($enabled['delete']) $methods[] = "    #[Delete('/{id:[A-Za-z0-9_-]+}')]\n{$idRoute}    public function remove(mixed \$id): Response { return \$this->crudRemove(\$id); }";
         $hidden = '';
         foreach (['index' => 'crudIndex', 'detail' => 'crudDetail', 'create' => 'crudCreate', 'update' => 'crudUpdate', 'status' => 'crudStatus',
             'remove' => 'crudRemove', 'restoreOne' => 'crudRestoreOne', 'destroyOne' => 'crudDestroyOne', 'recycle' => 'crudRecycle',
@@ -772,7 +787,7 @@ final class ProductionTemplateContext
             . "        \$memberId = (int) (\$this->request->member_id ?? 0);\n"
             . "        return \$memberId > 0 ? \$memberId : -1;\n    }\n"
             . "    protected function payload(?Model \$model = null): array\n    {\n"
-            . "        \$payload = array_intersect_key(\$this->request->post(), array_flip({$class}Service::WRITABLE_FIELDS));\n"
+            . "        \$payload = (new {$class}Service())->normalizePayload(\$this->request->post());\n"
             . "        // 归属只由登录会员决定：丢弃客户端提交值并回填当前会员（修改时记录已限定为本人，回填值不变，无法转移归属）。\n"
             . "        unset(\$payload['{$owner}']);\n"
             . "        if (\$model === null) \$payload = (new {$class}Service())->prepareCreatePayload(\$payload);\n"
@@ -854,7 +869,7 @@ final class ProductionTemplateContext
     {
         $menu = $data['menu'];
         $listPermission = $data['permission']['enabled'] ? self::listPermissionCode($data) : '';
-        return 'component=generated/' . $data['entity'] . '/index&name=' . self::studly((string) $data['entity'])
+        return 'component=business/' . $data['entity'] . '/index&name=' . self::studly((string) $data['entity'])
             . '&type=C&formKey=' . str_replace('-', '_', (string) $data['entity'])
             . ($listPermission === '' ? '' : '&permission=' . $listPermission)
             . '&hidden=' . ($menu['hidden'] ? '1' : '0') . '&keepAlive=' . ($menu['keepAlive'] ? '1' : '0')
@@ -1069,7 +1084,7 @@ final class ProductionTemplateContext
         if ($enabled['create'] && $formEnabled) $append('toolbar', 'create', '新增', '() => onAdd()', ['color' => 'primary', 'plain' => true, 'icon' => 'plus', 'placement' => 'inline', 'order' => 30]);
         if ($enabled['batchDelete']) $append('toolbar', 'batchDelete', '移入回收站', "async () => { await {$camel}Api.removeMany(selectedIds()); await refreshAfterSave(); }", ['color' => 'danger', 'plain' => true, 'icon' => 'delete', 'selection' => ['min' => 1], 'placement' => 'inline', 'order' => 40]);
         if ($enabled['import']) $append('toolbar', 'import', 'CSV 导入', '() => fileInput.value?.click()', ['color' => 'success', 'plain' => true, 'icon' => 'upload', 'placement' => 'inline', 'order' => 50]);
-        if ($enabled['export']) $append('toolbar', 'export', 'CSV 导出', '() => exportRows()', ['color' => 'default', 'plain' => true, 'icon' => 'download', 'placement' => 'inline', 'order' => 60]);
+        if ($enabled['export']) $append('toolbar', 'export', 'CSV 导出', '() => exportRows()', ['color' => 'primary', 'plain' => true, 'icon' => 'download', 'placement' => 'inline', 'order' => 60]);
         if ($enabled['update'] && $formEnabled) $append('row', 'edit', '编辑', "row => onEdit(resolveButtonRow(row))");
         if ($enabled['detail']) $append('row', 'detail', '详情', "row => onOpenDrawer(resolveButtonRow(row))");
         if ($enabled['delete']) $append('row', 'delete', '删除', "row => removeRow(resolveButtonRow(row))");
@@ -1189,7 +1204,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $actionSlot = '<template #actions="scope"><ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="scope.row" :values="buttonValues(scope.row)" :fields="Object.keys(buttonFieldMap)" :lock="buttonLock" :refresh="refreshButtonHost" :context="buttonContext(\'row\', scope.row)" :context-version="buttonContextVersion" :permission-check="buttonPermission" :clear-selection="clearButtonSelection" :close="closeButtonHost" link /></template>';
         return "<template>\n  <PageWrapper :title=\"" . $pageTitleExpr . "\">\n"
             . (($category || $leftTree) ? '<div class="flex flex-col gap-4 md:flex-row">' . $categoryPanel : '')
-            . "<SchemaTablePage ref=\"buttonTable\" class=\"min-w-0 flex-1\" storage-key=\"generated-{$data['entity']}\" :schema=\"tableSchema\" :query=\"query\" :rows=\"list\" :total=\"total\" :loading=\"loading\" :lock=\"buttonLock\" :context=\"{ values: {}, permissions: buttonUser.permissions, handlers: {} }\" @refresh=\"refreshButtonHost\" @sort-change=\"({ prop, order }) => { query.sort = prop ?? ''; query.order = order === 'descending' ? 'desc' : 'asc'; loadData(); }\" @selection-change=\"handleSelectionChange\">"
+            . "<SchemaTablePage ref=\"buttonTable\" class=\"min-w-0 flex-1\" storage-key=\"business-{$data['entity']}\" :schema=\"tableSchema\" :query=\"query\" :rows=\"list\" :total=\"total\" :loading=\"loading\" :lock=\"buttonLock\" :context=\"{ values: {}, permissions: buttonUser.permissions, handlers: {} }\" @refresh=\"refreshButtonHost\" @sort-change=\"({ prop, order }) => { query.sort = prop ?? ''; query.order = order === 'descending' ? 'desc' : 'asc'; loadData(); }\" @selection-change=\"handleSelectionChange\">"
             . $searchSlot . '<template #toolbar>' . implode('', $toolbar) . '</template>' . $cellSlots . $actionSlot
             . '</SchemaTablePage>' . (($category || $leftTree) ? '</div>' : '') . "{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
@@ -1537,15 +1552,15 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         return "<?php\n\ndeclare(strict_types=1);\n\nuse {$data['_modelNamespace']}\\{$class};\n\n"
             . "if (!is_subclass_of({$class}::class, \\Illuminate\\Database\\Eloquent\\Model::class)) {\n"
             . "    throw new RuntimeException('生成模型必须继承 Eloquent Model');\n}\n"
-            . "echo 'generated {$data['entity']} PHP contract: PASS' . PHP_EOL;\n";
+            . "echo 'business {$data['entity']} PHP contract: PASS' . PHP_EOL;\n";
     }
 
     private static function vitestTest(array $data, string $class): string
     {
         $camel = self::camel($class);
         return "import { describe, expect, it } from 'vitest';\n"
-            . "import { {$camel}Api } from '@/api/generated/{$data['entity']}';\n\n"
-            . "describe('generated {$data['entity']} API contract', () => {\n"
+            . "import { {$camel}Api } from '@/api/business/{$data['entity']}';\n\n"
+            . "describe('business {$data['entity']} API contract', () => {\n"
             . "  it('exposes list API', () => { expect({$camel}Api.list).toBeTypeOf('function'); });\n"
             . "});\n";
     }
@@ -1601,6 +1616,8 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
 
     /** @var array<string,string> 构建期收集的后端消息 用途 => 中文。 */
     private static array $backendLangKeys = [];
+    /** @var array<string, string> 后端消息的内置英文（翻译服务未给出时使用）。 */
+    private static array $backendLangEn = [];
 
     private static function collectFrontend(array $data, string $purpose, string $zh): string
     {
@@ -1609,9 +1626,11 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         return $key;
     }
 
-    private static function collectBackend(string $purpose, string $zh): void
+    /** 后端消息：占位符用 {name}，调用 trans() 时以 ['{name}' => 值] 传参（Symfony 按键名字面替换）。 */
+    private static function collectBackend(string $purpose, string $zh, string $en): void
     {
         self::$backendLangKeys[$purpose] ??= $zh;
+        self::$backendLangEn[$purpose] ??= $en;
     }
 
     private static function fieldLabelKey(array $data, array $field): string
@@ -1658,7 +1677,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         return ucfirst(strtolower($words));
     }
 
-    /** 生成 ThinkPHP 分组语言文件：按 [entity => [key => message]] 嵌套返回，匹配 allow_group 的 group.key 查询结构。 */
+    /** 生成后端语言文件：按 [entity => [key => message]] 嵌套返回，GeneratedLanguagePacks 将其注册为默认域的 entity.key。 */
     private static function langFile(string $group, array $messages): string
     {
         ksort($messages);
@@ -1743,7 +1762,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
     {
         $type = strtolower($field['dbType']);
         if (str_contains($type, 'decimal') || ($field['valueType'] ?? '') === 'decimal') return "(string) {$expression}";
-        if (preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', $type)) return "(int) {$expression}";
+        if (preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', $type)) return ($field['nullable'] ? "{$expression} === null ? null : " : '') . "(int) {$expression}";
         if (str_contains($type, 'json')) return "(array) {$expression}";
         return "(string) ({$expression} ?? '')";
     }

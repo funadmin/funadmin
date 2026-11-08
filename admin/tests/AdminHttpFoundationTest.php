@@ -201,10 +201,10 @@ final class AdminHttpFoundationTest extends TestCase
     public function test_generated_entity_controller_keeps_legacy_permission_identity(): void
     {
         $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
-        $request->controller = 'app\\admin\\generated\\layout_example\\controller\\LayoutExampleController';
+        $request->controller = 'app\\admin\\business\\layout_example\\controller\\LayoutExampleController';
         $request->action = 'index';
         self::assertSame(
-            PermissionResource::fromParts('admin', 'generated.LayoutExampleController', 'index'),
+            PermissionResource::fromParts('admin', 'business.LayoutExampleController', 'index'),
             PermissionResource::fromRequest($request)
         );
     }

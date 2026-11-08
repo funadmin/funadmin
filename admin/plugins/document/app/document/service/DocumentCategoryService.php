@@ -34,8 +34,15 @@ final class DocumentCategoryService
     public function update(int $id, array $payload): array
     {
         $current = $this->find($id);
-        $data = $this->validate($payload + ['scope' => $current['scope'], 'slug' => $current['slug'], 'name' => $current['name']]);
-        if ($data['parent_id'] === $id) throw new InvalidArgumentException('目录不能以自身为上级', 422);
+        $data = $this->validate($payload + ['scope' => $current['scope'], 'slug' => $current['slug'], 'name' => $current['name'], 'parentId' => $current['parentId'], 'sortOrder' => $current['sortOrder']]);
+        if ($data['parent_id'] === $id || in_array($data['parent_id'], $this->descendantIds($id), true)) {
+            throw new InvalidArgumentException('不能把目录移动到它自己或它的子目录下', 422);
+        }
+        if ($data['scope'] !== $current['scope']
+            && (Db::table('document_categories')->where('parent_id', $id)->exists()
+                || Db::table('document_category_links')->where('category_id', $id)->exists())) {
+            throw new InvalidArgumentException('目录下还有子目录或文档，不能修改范围', 409);
+        }
         if ($data['slug'] !== $current['slug']) $this->assertSlugFree($data['slug']);
         Db::table('document_categories')->where('id', $id)->update($data + ['updated_at' => Rules::now()]);
         return $this->find($id);
@@ -56,6 +63,22 @@ final class DocumentCategoryService
         $row = Db::table('document_categories')->where('id', $id)->first();
         if (!$row) throw new InvalidArgumentException('目录不存在', 404);
         return $this->dto($row);
+    }
+
+    /** @return list<int> */
+    private function descendantIds(int $id): array
+    {
+        $children = [];
+        foreach (Db::table('document_categories')->get(['id', 'parent_id']) as $row) $children[(int) $row->parent_id][] = (int) $row->id;
+        $result = [];
+        $queue = $children[$id] ?? [];
+        while ($queue) {
+            $next = array_shift($queue);
+            if (in_array($next, $result, true)) continue;
+            $result[] = $next;
+            array_push($queue, ...($children[$next] ?? []));
+        }
+        return $result;
     }
 
     private function validate(array $payload): array

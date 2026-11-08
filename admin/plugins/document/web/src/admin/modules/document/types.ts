@@ -32,6 +32,8 @@ export interface DocumentSummary {
   currentRevisionNo: number;
   /** 已发布文档的草稿与最新修订不同 */
   hasUnpublishedChanges: boolean;
+  /** 元数据乐观锁，修改文档信息时回传 */
+  metaVersion: number;
   categoryIds: number[];
   updatedAt: string;
 }

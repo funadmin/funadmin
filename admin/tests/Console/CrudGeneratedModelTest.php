@@ -27,7 +27,7 @@ final class CrudGeneratedModelTest extends TestCase
         try {
             file_put_contents($file, $context['modelContent']);
             require $file;
-            $model = new \app\admin\model\generated\ConsoleModel();
+            $model = new \app\admin\business\console_model\model\ConsoleModel();
             self::assertSame('console_model', $model->getTable());
             $created = $model->newQuery()->create(['title' => '测试', 'metadata' => ['value' => 7]]);
             self::assertSame(['value' => 7], $created->fresh()->metadata);

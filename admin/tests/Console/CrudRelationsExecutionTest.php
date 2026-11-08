@@ -32,7 +32,7 @@ final class CrudRelationsExecutionTest extends TestCase
                 ['type_id' => 1, 'value' => '3', 'label' => '已删', 'status' => 1, 'sort_order' => 3, 'deleted_at' => '2000-01-01'],
             ]);
             file_put_contents($file, $context['serviceContent']); require $file;
-            $service = new \app\admin\service\generated\ConsoleDictionaryService();
+            $service = new \app\admin\business\console_dictionary\service\ConsoleDictionaryService();
             self::assertSame([['value' => '1', 'label' => '已启用']], $service->options('labels'));
             Db::table('dict_type')->where('id', 1)->update(['status' => 0]);
             self::assertSame([], $service->options('labels'));
@@ -57,10 +57,10 @@ final class CrudRelationsExecutionTest extends TestCase
             foreach (['modelContent', 'serviceContent'] as $key) {
                 $file = tempnam(sys_get_temp_dir(), 'funadmin-relation-'); $files[] = $file; file_put_contents($file, $context[$key]); require $file;
             }
-            $model = \app\admin\model\generated\ConsoleRelation::create(['title' => '父级']);
-            $child = \app\admin\model\generated\ConsoleRelation::create(['title' => '子级', 'parent_id' => $model->id]);
+            $model = \app\admin\business\console_relation\model\ConsoleRelation::create(['title' => '父级']);
+            $child = \app\admin\business\console_relation\model\ConsoleRelation::create(['title' => '子级', 'parent_id' => $model->id]);
             self::assertSame($model->id, $child->parent->id);
-            $service = new \app\admin\service\generated\ConsoleRelationService();
+            $service = new \app\admin\business\console_relation\service\ConsoleRelationService();
             self::assertSame([['label' => '父级', 'value' => 1], ['label' => '子级', 'value' => 2]], $service->options('parents'));
             self::assertSame([['label' => '父级', 'value' => 1]], $service->options('parents', null, ['keyword' => '父', 'page' => 1, 'pageSize' => 10]));
         } finally {

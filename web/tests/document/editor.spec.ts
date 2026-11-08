@@ -3,12 +3,14 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 
 vi.mock('@/api/common/upload', () => ({ uploadApi: { upload: vi.fn() } }));
+import { createI18n } from 'vue-i18n';
+import { documentMessages } from '../../../admin/plugins/document/web/src/admin/modules/document/locales';
 import DocumentEditor from '../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentEditor.vue';
 
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
 
 const mountEditor = (generation = 1, value = doc('hello world')) =>
-  mount(DocumentEditor, { props: { modelValue: value, generation }, attachTo: document.body });
+  mount(DocumentEditor, { props: { modelValue: value, generation }, attachTo: document.body, global: { plugins: [createI18n({ legacy: false, locale: 'zh-CN', messages: documentMessages })] } });
 
 describe('DocumentEditor', () => {
   it('同一份内容换了键顺序或对象引用时不替换编辑器内容，光标保持不动', async () => {

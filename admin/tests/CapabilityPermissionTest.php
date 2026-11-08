@@ -64,23 +64,23 @@ final class CapabilityPermissionTest extends TestCase
     public function test_node_access_accepts_permission_codes_like_can(): void
     {
         // 注册动作（如生成的自定义动作）以权限码声明；生成控制器的权限检查器是 nodeAccess，判断须与 can() 一致。
-        $code = 'generated:shop-order:action-approve';
-        Db::table('permission')->insert(['app_name' => 'admin', 'code' => $code, 'obj' => 'generated/shop-order', 'act' => 'action-approve', 'name' => '审核', 'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'generated', 'source_name' => 'shop-order']);
+        $code = 'business:shop-order:action-approve';
+        Db::table('permission')->insert(['app_name' => 'admin', 'code' => $code, 'obj' => 'business/shop-order', 'act' => 'action-approve', 'name' => '审核', 'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'generated', 'source_name' => 'shop-order']);
         Db::table('admin')->insertOrIgnore(['id' => 3, 'username' => 'cap_other', 'password' => 'x', 'status' => 1]);
         Db::table('auth_group')->insert(['id' => 3, 'name' => '无动作', 'code' => 'cap_other', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
         (new CasbinService())->syncAdminRoles(3, [3]);
         $authorization = new AdminAuthorizationService();
-        $before = [$authorization->nodeAccess('generated/shop-order/action-approve'), $authorization->nodeAccess('development/business/generate')];
+        $before = [$authorization->nodeAccess('business/shop-order/action-approve'), $authorization->nodeAccess('development/business/generate')];
         self::assertSame([false, false], [$authorization->nodeAccess($code), $authorization->can($code)]);
 
         (new CasbinService())->syncRolePermissions(2, Db::table('permission')->where('code', $code)->pluck('id')->all());
         self::assertSame([true, true], [$authorization->nodeAccess($code), $authorization->can($code)]);
         // 资源路径（obj/act）判断不受影响：同一资源仍按 obj/act 放行，未授予的能力仍拒绝。
         self::assertSame([false, false], $before);
-        self::assertTrue($authorization->nodeAccess('generated/shop-order/action-approve'));
+        self::assertTrue($authorization->nodeAccess('business/shop-order/action-approve'));
         self::assertFalse($authorization->nodeAccess('development/business/generate'));
         // 未建权限行的码、以及未授予该权限的角色一律拒绝。
-        self::assertFalse($authorization->nodeAccess('generated:shop-order:action-reject'));
+        self::assertFalse($authorization->nodeAccess('business:shop-order:action-reject'));
         $other = new Request("GET /admin/x HTTP/1.1\r\n\r\n");
         $other->context['admin'] = ['id' => 3];
         Context::set(\Webman\Http\Request::class, $other);

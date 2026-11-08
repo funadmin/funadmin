@@ -38,7 +38,11 @@ final class DocumentController extends DocumentApiController
     #[Put('/{id:\d+}')]
     public function updateMeta(int $id): Response
     {
-        return $this->action(fn () => (new DocumentService())->updateMeta($id, $this->input()), '保存成功');
+        return $this->action(function () use ($id): array {
+            $input = $this->input();
+            if (!array_key_exists('metaVersion', $input)) throw new \InvalidArgumentException('metaVersion 无效', 422);
+            return (new DocumentService())->updateMeta($id, $input);
+        }, '保存成功');
     }
 
     #[Put('/{id:\d+}/draft')]

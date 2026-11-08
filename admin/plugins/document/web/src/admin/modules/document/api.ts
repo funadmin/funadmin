@@ -18,14 +18,14 @@ const quiet = { requestOptions: { showErrorMsg: false } };
 
 export const documentApi = {
   tree: () => http.get<DocumentCategory[]>(categories),
-  createCategory: (data: Partial<DocumentCategory>) => http.post<DocumentCategory>(categories, data),
-  updateCategory: (id: number, data: Partial<DocumentCategory>) => http.put<DocumentCategory>(`${categories}/${id}`, data),
-  deleteCategory: (id: number) => http.delete(`${categories}/${id}`),
+  createCategory: (data: Partial<DocumentCategory>) => http.post<DocumentCategory>(categories, data, quiet),
+  updateCategory: (id: number, data: Partial<DocumentCategory>) => http.put<DocumentCategory>(`${categories}/${id}`, data, quiet),
+  deleteCategory: (id: number) => http.delete(`${categories}/${id}`, undefined, quiet),
 
   list: (query: DocumentQuery) => http.get<DocumentPage>(docs, query),
   detail: (id: number) => http.get<DocumentDetail>(`${docs}/${id}`),
   create: (data: DocumentMetaInput & { content?: JSONContent }) => http.post<DocumentDetail>(docs, data, quiet),
-  updateMeta: (id: number, data: Partial<DocumentMetaInput>) => http.put<DocumentDetail>(`${docs}/${id}`, data, quiet),
+  updateMeta: (id: number, data: Partial<DocumentMetaInput> & { metaVersion: number }) => http.put<DocumentDetail>(`${docs}/${id}`, data, quiet),
   saveDraft: (id: number, content: JSONContent, lockVersion: number) =>
     http.put<DocumentDetail>(`${docs}/${id}/draft`, { content, lockVersion }, quiet),
   remove: (id: number) => http.delete(`${docs}/${id}`),

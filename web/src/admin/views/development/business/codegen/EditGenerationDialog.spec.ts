@@ -439,10 +439,10 @@ describe('EditGenerationDialog', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
   });
 
-  it('模块名：默认 generated，可编辑并只提交改动键；不合法时拒绝保存', async () => {
+  it('模块名：默认 business，可编辑并只提交改动键；不合法时拒绝保存', async () => {
     const wrapper = await open();
     const input = () => configItem(wrapper, 'module').find('input');
-    expect((input().element as HTMLInputElement).value).toBe('generated');
+    expect((input().element as HTMLInputElement).value).toBe('business');
     await input().setValue('Shop_1');
     await action(wrapper, 'save').trigger('click');
     await flushPromises();
@@ -637,8 +637,8 @@ describe('EditGenerationDialog', () => {
     const menu = wrapper.find('[data-tab-pane="menu"]');
     for (const key of ['menuEnabled', 'menuParent', 'menuName', 'icon', 'sortOrder']) expect(menu.find(`[data-menu="${key}"]`).exists(), key).toBe(true);
     const codes = menu.findAll('[data-permission-code]').map((item) => item.text());
-    expect(codes).toContain('generated:shop-goods:index');
-    expect(codes).toContain('generated:shop-goods:export');
+    expect(codes).toContain('business:shop-goods:index');
+    expect(codes).toContain('business:shop-goods:export');
     expect(menu.text()).toContain('按方法自动推导');
   });
 

@@ -3,6 +3,7 @@
   <el-form
     v-else-if="registryReady"
     ref="formRef"
+    class="schema-form"
     :model="values"
     :rules="rules"
     :label-width="labelWidth"
@@ -218,3 +219,9 @@ const submit = async (handler?: () => unknown | Promise<unknown>) => {
 void dispatchFormEvent('mounted');
 defineExpose({ validate, submit, setFieldErrors, dispatchFormEvent });
 </script>
+
+<style scoped>
+.schema-form {
+  container: schema-form / inline-size;
+}
+</style>

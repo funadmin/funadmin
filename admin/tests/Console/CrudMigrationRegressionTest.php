@@ -39,7 +39,7 @@ final class CrudMigrationRegressionTest extends TestCase
 
     public static function adminPrefixes(): array
     {
-        return [[null, '/admin/generated/review-route'], ['/admin/generated/review-route', '/admin/generated/review-route'], ['/admin', '/admin']];
+        return [[null, '/admin/business/review-route'], ['/admin/business/review-route', '/admin/business/review-route'], ['/admin', '/admin']];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('adminPrefixes')]
@@ -58,7 +58,7 @@ final class CrudMigrationRegressionTest extends TestCase
                 file_put_contents($file, $files[$paths[$artifact]]);
                 require $file;
             }
-            $class = 'app\\admin\\generated\\review_route\\controller\\ReviewRouteController';
+            $class = 'app\\admin\\business\\review_route\\controller\\ReviewRouteController';
             $definitions = (new \ReflectionMethod(\Webman\Route::class, 'buildAnnotationRouteDefinitions'))->invoke(null, [
                 new \Webman\Finder\FileInfo(end($temporary), ['class' => $class]),
             ]);
@@ -66,7 +66,7 @@ final class CrudMigrationRegressionTest extends TestCase
                 foreach ($definitions as $route) $collector->addRoute($route['methods'], $route['path'], $route['callback']);
             });
             self::assertSame(\FastRoute\Dispatcher::FOUND, $dispatcher->dispatch('GET', $expected)[0]);
-            self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, $dispatcher->dispatch('GET', '/admin/admin/generated/review-route')[0]);
+            self::assertSame(\FastRoute\Dispatcher::NOT_FOUND, $dispatcher->dispatch('GET', '/admin/admin/business/review-route')[0]);
         } finally { foreach ($temporary as $file) unlink($file); }
     }
 
@@ -75,32 +75,32 @@ final class CrudMigrationRegressionTest extends TestCase
         self::assertSame(':memory:', Db::connection()->getDatabaseName());
         (new MigrationService())->run();
         $resources = [
-            ['resourceKey' => 'permission|review|generated:review:list', 'resourceType' => 'permission', 'sourceName' => 'review', 'code' => 'generated:review:list', 'obj' => 'admin/generated.reviewcontroller', 'act' => 'index', 'permissionType' => 'route', 'name' => 'Review'],
-            ['resourceKey' => 'menu|review|/generated/review', 'resourceType' => 'menu', 'sourceName' => 'review', 'name' => 'Review', 'href' => '/generated/review', 'permission' => 'generated:review:list'],
+            ['resourceKey' => 'permission|review|business:review:list', 'resourceType' => 'permission', 'sourceName' => 'review', 'code' => 'business:review:list', 'obj' => 'admin/business.reviewcontroller', 'act' => 'index', 'permissionType' => 'route', 'name' => 'Review'],
+            ['resourceKey' => 'menu|review|/business/review', 'resourceType' => 'menu', 'sourceName' => 'review', 'name' => 'Review', 'href' => '/business/review', 'permission' => 'business:review:list'],
         ];
         $transaction = new GenerationResourceTransaction();
         $transaction->begin(); $transaction->apply($resources); $transaction->commit();
-        $permissionId = (int) Db::table('permission')->where('code', 'generated:review:list')->value('id');
+        $permissionId = (int) Db::table('permission')->where('code', 'business:review:list')->value('id');
         $menuId = (int) Db::table('admin_menu')->where('source_name', 'review')->whereNull('deleted_at')->value('id');
-        Db::table('casbin_rule')->insert(['ptype' => 'p', 'v0' => 'role:2', 'v1' => 'admin', 'v2' => 'admin/generated.reviewcontroller', 'v3' => 'index', 'rule_hash' => hash('sha256', 'review-role-grant')]);
+        Db::table('casbin_rule')->insert(['ptype' => 'p', 'v0' => 'role:2', 'v1' => 'admin', 'v2' => 'admin/business.reviewcontroller', 'v3' => 'index', 'rule_hash' => hash('sha256', 'review-role-grant')]);
         $fieldId = Db::table('permission_field')->insertGetId(['permission_id' => $permissionId, 'resource' => 'review', 'field' => 'title', 'name' => 'Title']);
         Db::table('auth_group_field_permission')->insert(['role_id' => 2, 'field_id' => $fieldId]);
         $transaction->begin(); $transaction->apply($resources); $transaction->commit();
         self::assertSame(1, Db::table('casbin_rule')->where('v0', 'role:2')->count());
-        self::assertSame($permissionId, (int) Db::table('permission')->where('code', 'generated:review:list')->whereNull('deleted_at')->value('id'));
+        self::assertSame($permissionId, (int) Db::table('permission')->where('code', 'business:review:list')->whereNull('deleted_at')->value('id'));
         self::assertSame($menuId, (int) Db::table('admin_menu')->where('source_name', 'review')->whereNull('deleted_at')->value('id'));
         self::assertSame(1, Db::table('auth_group_field_permission')->where('field_id', $fieldId)->count());
         $transaction->begin(); $transaction->apply([$resources[0]]); $transaction->rollback();
         self::assertSame(1, Db::table('admin_menu')->where('id', $menuId)->whereNull('deleted_at')->count());
         $replacement = $resources[0];
-        $replacement['resourceKey'] = 'permission|review|generated:review:export';
-        $replacement['code'] = 'generated:review:export';
+        $replacement['resourceKey'] = 'permission|review|business:review:export';
+        $replacement['code'] = 'business:review:export';
         $replacement['act'] = 'export';
         $transaction->begin(); $transaction->apply([$replacement]); $transaction->commit();
         self::assertSame(0, Db::table('casbin_rule')->where('v0', 'role:2')->count());
         self::assertSame(0, Db::table('auth_group_field_permission')->where('field_id', $fieldId)->count());
         self::assertSame(0, Db::table('admin_menu')->where('id', $menuId)->whereNull('deleted_at')->count());
-        self::assertSame(1, Db::table('permission')->where('code', 'generated:review:export')->whereNull('deleted_at')->count());
+        self::assertSame(1, Db::table('permission')->where('code', 'business:review:export')->whereNull('deleted_at')->count());
     }
 
     public static function form(string $key): array

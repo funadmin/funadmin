@@ -20,7 +20,7 @@ import type { DocumentDetail } from '../../../admin/plugins/document/web/src/adm
 const doc = (text: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] });
 const detail = (over: Record<string, unknown> = {}): DocumentDetail => ({
   id: 7, title: '部署', slug: 'deploy', summary: '', scope: 'framework', pluginCode: '', type: 'guide',
-  status: 'draft', appliesTo: '', lockVersion: 1, currentRevisionNo: 0, hasUnpublishedChanges: false, categoryIds: [], updatedAt: '', plainText: '',
+  status: 'draft', appliesTo: '', lockVersion: 1, currentRevisionNo: 0, hasUnpublishedChanges: false, metaVersion: 1, categoryIds: [], updatedAt: '', plainText: '',
   content: doc('v1'), ...over
 }) as DocumentDetail;
 
@@ -94,8 +94,9 @@ describe('document store', () => {
     await store.openDocument(7);
     store.setContent(doc('我的修改'));
     await store.saveDraft();
-    store.applyMeta(detail({ lockVersion: 9, title: '新标题', content: doc('服务器正文') }));
+    store.applyMeta(detail({ lockVersion: 9, metaVersion: 5, title: '新标题', content: doc('服务器正文') }));
     expect(store.current?.title).toBe('新标题');
+    expect(store.current?.metaVersion).toBe(5);
     expect(store.current?.lockVersion).toBe(3);
     expect(store.conflict).toBe(true);
     expect(store.dirty).toBe(true);

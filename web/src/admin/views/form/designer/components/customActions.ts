@@ -2,7 +2,7 @@ import type { FormListActionMetadata, FormListButton, FormListButtonLocation, Fo
 
 /**
  * 列表自定义动作（list.customActions）的换算规则，与后端 app\common\form\action\CustomActions 保持一致：
- * 注册键 generated.{entity}.{key}；权限码 generated:{entity}:action-{key 的 kebab 形式}；entity 为表单标识的 kebab 形式。
+ * 注册键 business.{entity}.{key}；权限码 business:{entity}:action-{key 的 kebab 形式}；entity 为表单标识的 kebab 形式。
  */
 export const CUSTOM_ACTION_KEY_PATTERN = /^[a-z][a-z0-9_]{0,40}$/;
 export const CUSTOM_ACTION_PARAMETER_PATTERN = /^[a-z][a-z0-9_]{0,39}$/;
@@ -13,11 +13,11 @@ export const CUSTOM_ACTION_MAX_PARAMETERS = 5;
 export const CUSTOM_ACTION_MAX_REGISTRY_KEY = 64;
 export const CUSTOM_ACTION_CAPABILITY_VERSION = '1';
 /** 尚未生成的注册动作统一前缀：运行时目录缺少该前缀的键时提示「正式生成后可用」。 */
-export const GENERATED_ACTION_PREFIX = 'generated.';
+export const BUSINESS_ACTION_PREFIX = 'business.';
 
 export const customActionEntity = (formKey?: string): string => (formKey ?? '').replace(/_/g, '-');
-export const customActionRegistryKey = (entity: string, key: string): string => `${GENERATED_ACTION_PREFIX}${entity}.${key}`;
-export const customActionPermission = (entity: string, key: string): string => `generated:${entity}:action-${key.replace(/_/g, '-')}`;
+export const customActionRegistryKey = (entity: string, key: string): string => `${BUSINESS_ACTION_PREFIX}${entity}.${key}`;
+export const customActionPermission = (entity: string, key: string): string => `business:${entity}:action-${key.replace(/_/g, '-')}`;
 /** 生成的 PHP 方法名（PHP 方法名不区分大小写，判重时按小写比较）。 */
 export const customActionMethod = (key: string): string => key.replace(/_+([a-z0-9])/g, (_, char: string) => char.toUpperCase());
 export const customActionAppliesTo = (action: FormListCustomAction, location: FormListButtonLocation): boolean => (location === 'row' || location === 'toolbar') && action.locations.includes(location);

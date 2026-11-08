@@ -51,7 +51,7 @@
             <el-input v-model="form.provider" required pattern="[a-z0-9][a-z0-9._-]*" maxlength="64" :placeholder="t('aiDevelopment.profiles.providerIdPlaceholder', '例如 openai-compatible')" />
           </el-form-item>
           <p v-if="presetId === 'ollama'" class="profile-wide">{{ t('aiDevelopment.profiles.ollamaHint', 'Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。') }}</p>
-          <el-form-item class="profile-wide" label="Base URL"><el-input v-model="form.base_url" type="url" required placeholder="https://api.example.com/v1" /></el-form-item>
+          <el-form-item class="profile-wide" label="Base URL"><el-input v-model="form.base_url" type="url" required :placeholder="baseUrlPlaceholder" /></el-form-item>
           <el-form-item class="profile-wide" label="API key">
             <div class="key-control">
               <el-input v-model="apiKey" data-testid="provider-api-key" type="password" autocomplete="new-password" :placeholder="t('aiDevelopment.profiles.keyHint')" />
@@ -145,6 +145,8 @@ const hasKey = ref(false);
 const validationError = ref('');
 const defaults = (): AiProfileInput => ({ name: '', provider: 'openai-compatible', protocol: 'openai-chat', base_url: '', model: '', enabled: true, favorite_models: [], model_capabilities: [], fallback_enabled: false, fallback_models: [], reasoning_effort: null, context_window: null, max_input_tokens: null, max_output_tokens: null, max_iterations: 10, stream_usage: false, connect_timeout: 5, request_timeout: 60, max_retries: 2 });
 const form = reactive(defaults());
+// 放在脚本里：模板静态属性含 // 会让 vue-tsc 生成的代码出错（form 被误判为 Ref）。
+const baseUrlPlaceholder = 'https://api.example.com/v1';
 const presetId = ref('custom');
 const presets = computed<Array<{ id: string; label: string; url: string; protocol?: AiProfileInput['protocol'] }>>(() => [
   { id: 'openai', label: 'OpenAI', url: 'https://api.openai.com/v1' },

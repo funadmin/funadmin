@@ -50,19 +50,29 @@ describe('Element Plus 按钮主题契约', () => {
     expect(invalidButtons).toEqual([]);
   });
 
-  it('工具栏辅助操作统一使用 info plain', () => {
+  it('工具栏 CSV 导入导出与配置分组使用彩色 plain，不用灰色 default/info', () => {
     const files = [
-      'src/admin/views/system/member/index.vue',
       'src/admin/views/system/blacklist/index.vue',
       'src/admin/views/system/member-group/index.vue',
       'src/admin/views/system/member-level/index.vue',
-      'src/admin/views/system/config/index.vue',
-      'src/admin/views/system/attachment/index.vue'
+      'src/admin/views/system/config/index.vue'
     ];
     const toolbarSources = files.map((file) => readFileSync(resolve(process.cwd(), file), 'utf8')).join('\n');
-    ['CSV 导入', 'CSV 导出', '配置分组', '移动'].forEach((label) => {
-      expect(toolbarSources).toMatch(new RegExp(`<el-button[^>]*type="info"[^>]*plain[^>]*>[\\s\\S]{0,100}${label}`));
+    const expected: Record<string, string> = { 'CSV 导入': 'success', 'CSV 导出': 'primary', '配置分组': 'warning' };
+    Object.entries(expected).forEach(([label, type]) => {
+      expect(toolbarSources).toMatch(new RegExp(`<el-button[^>]*type="${type}"[^>]*plain[^>]*>[\\s\\S]{0,100}${label}`));
+      expect(toolbarSources).not.toMatch(new RegExp(`<el-button[^>]*type="(info|default)"[^>]*>[\\s\\S]{0,100}${label}`));
     });
+    const definition = readFileSync(resolve(process.cwd(), '../admin/app/admin/system/service/MemberPageDefinition.php'), 'utf8');
+    expect(definition).toContain("$action('import', $t('CSV 导入', 'CSV Import'), 'success'");
+    expect(definition).toContain("$action('export', $t('CSV 导出', 'CSV Export'), 'primary'");
+    const generator = readFileSync(resolve(process.cwd(), '../admin/app/common/crud/ProductionTemplateContext.php'), 'utf8');
+    expect(generator).toContain("'CSV 导出', '() => exportRows()', ['color' => 'primary'");
+  });
+
+  it('附件移动等辅助操作仍使用 info plain', () => {
+    const attachment = readFileSync(resolve(process.cwd(), 'src/admin/views/system/attachment/index.vue'), 'utf8');
+    expect(attachment).toMatch(/<el-button[^>]*type="info"[^>]*plain[^>]*>[\s\S]{0,100}移动/);
   });
 
   it('回收站入口当前时用 warning plain，非当前时跟随主题色而非灰色', () => {

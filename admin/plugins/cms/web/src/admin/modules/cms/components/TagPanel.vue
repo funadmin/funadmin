@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { cmsApi } from '../api';
 import type { Scope, TemplateTagListItem, BuiltinTemplateTag, Provider, TagEditorOptions, FormData } from '../types';
 import { useOperation } from './useOperation';
-const { t } = useCmsI18n();
+const { t, te } = useCmsI18n();
 const props=defineProps<{scope:Scope;can:(permission:string)=>boolean}>();const {busy,error,run}=useOperation();const rows=ref<TemplateTagListItem[]>([]),providers=ref<Provider[]>([]),dialog=ref(false),form=ref<FormData>({}),preview=ref(''),builtinDetails=ref<BuiltinTemplateTag>();
 const schema=computed(()=>providers.value.find(item=>item.name===form.value.provider)?.parameters||{});
 const options=ref<TagEditorOptions>({models:[],categories:[]}),optionsLoading=ref(false),optionsError=ref('');
@@ -48,10 +48,18 @@ async function loadOptions(){
   }finally{if(request===optionsRequest)optionsLoading.value=false;}
 }
 function defaults(){form.value.parameters={};for(const [name,rule]of Object.entries(schema.value))if(rule.default!==undefined)form.value.parameters[name]=rule.default;}
-function open(row?:TemplateTagListItem){ if(row?.builtin)return; if (!(props.can(row ? 'cms:tag:edit' : 'cms:tag:create'))) return;form.value=row?{id:row.id,name:row.name,provider:row.draft.provider,parameters:JSON.parse(JSON.stringify(row.draft.parameters)),template_fragment:row.draft.template_fragment,tag_locale:row.locale}:{name:'',provider:'content',parameters:{},template_fragment:'',tag_locale:''};if(!row)defaults();dialog.value=true;}
+function open(row?:TemplateTagListItem){ if(row?.builtin)return; if (!(props.can(row ? 'cms:tag:edit' : 'cms:tag:create'))) return;form.value=row?{id:row.id,name:row.name,provider:row.draft.provider,parameters:JSON.parse(JSON.stringify(row.draft.parameters)),template_fragment:row.draft.template_fragment,tag_locale:row.locale,remark:row.remark??''}:{name:'',provider:'content',parameters:{},template_fragment:'',tag_locale:'',remark:''};if(!row)defaults();dialog.value=true;}
 async function save(){ if (!(props.can(form.value.id ? 'cms:tag:edit' : 'cms:tag:create'))) return;await run(async()=>{await cmsApi.saveTag({...form.value,...props.scope});dialog.value=false;await load();});}
 async function publish(row:TemplateTagListItem){ if(row.builtin)return; if (!(props.can('cms:tag:publish'))) return;await run(async()=>{await cmsApi.publishTag({site_id:props.scope.site_id,id:row.id,version:row.draft_version});await load();});}
 async function showPreview(row:TemplateTagListItem){ if(row.builtin)return; if (!(props.can('cms:tag:preview'))) return;await run(async()=>{preview.value=(await cmsApi.previewTag({...props.scope,id:row.id,version:row.draft_version})).html;});}
+// 内置标签的用途与参数含义来自界面语言包；自定义标签显示站点维护的备注。
+function builtinText(name: string, key: string): string {
+  const path = `cms.tagDocs.${name}.${key}`;
+  return te(path) ? t(path) : '';
+}
+function describe(row: TemplateTagListItem): string {
+  return row.builtin ? builtinText(row.name, 'description') : (row.remark || '');
+}
 function inspectBuiltin(row: BuiltinTemplateTag) {
   if (!props.can('cms:tag:list')) return;
   builtinDetails.value = row;
@@ -88,6 +96,7 @@ onMounted(load);
     <el-table-column :label="t('cms.labels.tagName2')" min-width="170">
       <template #default="{ row }"><span>{{ row.name }}</span><el-tag v-if="row.builtin" class="builtin-label" size="small" type="info">{{ t('cms.labels.builtIn') }}</el-tag></template>
     </el-table-column>
+    <el-table-column :label="t('cms.labels.tagDescription')" min-width="240"><template #default="{ row }"><span class="tag-description">{{ describe(row as TemplateTagListItem) }}</span></template></el-table-column>
     <el-table-column :label="t('cms.labels.scope')"><template #default="{ row }">{{ row.builtin ? t('cms.labels.allSitesLanguages') : row.locale || t('cms.labels.allSiteLanguages') }}</template></el-table-column>
     <el-table-column :label="t('cms.labels.version')"><template #default="{ row }"><span v-if="row.builtin">{{ t('cms.labels.updatedWithSystem') }}</span><span v-else>{{ t('cms.labels.liveDraftVersions', { live: row.current_version, draft: row.draft_version }) }}</span></template></el-table-column>
     <el-table-column :label="t('cms.labels.usageCode')" min-width="270"><template #default="{ row }"><code>{{ usage(row as TemplateTagListItem) }}</code></template></el-table-column>
@@ -106,8 +115,20 @@ onMounted(load);
     <template v-if="builtinDetails">
       <p>{{ t('cms.labels.builtInTagsAreProvidedByCodeTheyCan') }}</p>
       <code>{{ usage(builtinDetails) }}</code>
+      <p class="tag-description">{{ describe(builtinDetails) }}</p>
       <h4>{{ t('cms.labels.parameterDefinitions') }}</h4>
-      <pre class="tag-parameters">{{ JSON.stringify(builtinDetails.parameters, null, 2) }}</pre>
+      <table v-if="Object.keys(builtinDetails.parameters).length" class="tag-parameters">
+        <thead><tr><th>{{ t('cms.labels.tagParameterName') }}</th><th>{{ t('cms.labels.tagParameterType') }}</th><th>{{ t('cms.labels.tagParameterDefault') }}</th><th>{{ t('cms.labels.tagParameterMeaning') }}</th></tr></thead>
+        <tbody>
+          <tr v-for="(rule, name) in builtinDetails.parameters" :key="name">
+            <td><code>{{ name }}</code><span v-if="rule.required" class="tag-required">{{ t('cms.labels.tagRequired') }}</span></td>
+            <td>{{ rule.type }}</td>
+            <td><code v-if="rule.default !== undefined">{{ String(rule.default) }}</code></td>
+            <td>{{ builtinText(builtinDetails.name, `params.${String(name)}`) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else>{{ t('cms.labels.tagNoParameters') }}</p>
     </template>
     <template #footer><el-button @click="builtinDetails=undefined">{{ t('cms.labels.close') }}</el-button></template>
   </el-dialog>
@@ -115,6 +136,7 @@ onMounted(load);
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <el-form label-position="top">
       <el-form-item :label="t('cms.labels.tagName')" required><el-input v-model="form.name" :disabled="!!form.id" :placeholder="t('cms.labels.eGCompanyNews')" /></el-form-item>
+      <el-form-item :label="t('cms.labels.tagRemark')"><el-input v-model="form.remark" maxlength="255" show-word-limit :placeholder="t('cms.labels.tagRemarkPlaceholder')" /></el-form-item>
       <el-form-item :label="t('cms.labels.applicableLanguage')"><el-select v-model="form.tag_locale" :disabled="!!form.id"><el-option :label="t('cms.labels.allSiteLanguages')" value="" /><el-option :label="scope.locale" :value="scope.locale" /></el-select></el-form-item>
       <el-form-item :label="t('cms.labels.tagType')">
         <el-select v-model="form.provider" @change="defaults"><el-option v-for="provider in providers" :key="provider.name" :label="providerLabels[provider.name] || provider.name" :value="provider.name" /></el-select>
@@ -148,4 +170,4 @@ onMounted(load);
     <template #footer><el-button @click="dialog=false">{{ t('cms.labels.cancel') }}</el-button><el-button v-if="can(form.id ? 'cms:tag:edit' : 'cms:tag:create')" type="primary" :loading="busy" @click="save">{{ t('cms.labels.saveDraft') }}</el-button></template>
   </el-dialog>
 <el-dialog :model-value="!!preview" :title="t('cms.labels.tagPreview')" width="min(900px, 94vw)" @close="preview=''"><iframe :title="t('cms.labels.cmsTagPreview')" sandbox="" :srcdoc="preview" style="width:100%;height:50vh;border:0" /></el-dialog></div></template>
-<style scoped>.toolbar{margin:16px 0}.parameter-help{width:100%;margin:6px 0 0;color:var(--el-text-color-secondary);font-size:12px;line-height:1.6}.options-error{margin-bottom:16px;color:var(--el-color-danger)}.builtin-label{margin-left:8px}.tag-parameters{white-space:pre-wrap;overflow-wrap:anywhere}.code-input :deep(textarea){font-family:monospace}</style>
+<style scoped>.toolbar{margin:16px 0}.parameter-help{width:100%;margin:6px 0 0;color:var(--el-text-color-secondary);font-size:12px;line-height:1.6}.options-error{margin-bottom:16px;color:var(--el-color-danger)}.builtin-label{margin-left:8px}.tag-parameters{width:100%;border-collapse:collapse;font-size:13px}.tag-parameters th,.tag-parameters td{padding:6px 8px;border-bottom:1px solid var(--el-border-color-lighter);text-align:left;vertical-align:top;overflow-wrap:anywhere}.tag-parameters th{color:var(--el-text-color-secondary);font-weight:500}.tag-required{margin-left:6px;color:var(--el-color-danger);font-size:12px}.tag-description{color:var(--el-text-color-regular);line-height:1.6}.code-input :deep(textarea){font-family:monospace}</style>

@@ -17,7 +17,7 @@ final class CrudGeneratedValidatorTest extends TestCase
         try {
             file_put_contents($file, $context['validateContent']);
             require $file;
-            $validator = new \app\admin\validate\generated\ConsoleValidatorValidate();
+            $validator = new \app\admin\business\console_validator\validate\ConsoleValidatorValidate();
             self::assertFalse($validator->check(['title' => '']));
             self::assertNotSame('', $validator->getError());
             self::assertTrue($validator->check(['title' => '合法标题']));
@@ -34,7 +34,7 @@ final class CrudGeneratedValidatorTest extends TestCase
         $file = tempnam(sys_get_temp_dir(), 'funadmin-rules-');
         try {
             file_put_contents($file, $context['validateContent']); require $file;
-            $validator = new \app\admin\validate\generated\ConsoleNativeRulesValidate();
+            $validator = new \app\admin\business\console_native_rules\validate\ConsoleNativeRulesValidate();
             self::assertTrue($validator->check(['title' => 'abc12']));
             self::assertTrue($validator->check(['title' => 'xyz9']));
             self::assertFalse($validator->check(['title' => 'abc123456789']));
@@ -52,7 +52,7 @@ final class CrudGeneratedValidatorTest extends TestCase
         $file = tempnam(sys_get_temp_dir(), 'funadmin-readonly-rules-');
         try {
             file_put_contents($file, $context['validateContent']); require $file;
-            self::assertTrue((new \app\admin\validate\generated\ConsoleReadonlyRulesValidate())->check([]));
+            self::assertTrue((new \app\admin\business\console_readonly_rules\validate\ConsoleReadonlyRulesValidate())->check([]));
         } finally { unlink($file); }
     }
 

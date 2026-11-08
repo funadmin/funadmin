@@ -92,7 +92,7 @@
     <el-select-v2
       v-else-if="field.type === 'selectV2'"
       v-bind="controlAttrs"
-      :model-value="modelValue"
+      :model-value="selectionValue"
       :options="options"
       :multiple="multiple"
       :placeholder="placeholder"
@@ -107,7 +107,7 @@
     <el-tree-select
       v-else-if="['treeSelect', 'department'].includes(field.type)"
       v-bind="controlAttrs"
-      :model-value="modelValue"
+      :model-value="selectionValue"
       :data="options"
       :multiple="multiple"
       :placeholder="placeholder"
@@ -122,7 +122,7 @@
     <el-cascader
       v-else
       v-bind="controlAttrs"
-      :model-value="modelValue"
+      :model-value="selectionValue"
       :options="options"
       :placeholder="placeholder"
       :disabled="disabled || readonly"

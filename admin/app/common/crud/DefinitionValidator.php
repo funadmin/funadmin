@@ -114,9 +114,10 @@ final class DefinitionValidator
             }
         } else {
             $this->paths($data['generationTargets'] ?? null, $projectRoot);
-            // 宿主生成控制器的权限码同样按方法推导（generated:{资源}:{方法}）。
+            $this->coreLayerPaths($data['generationTargets'], (string) $data['entity']);
+            // 宿主生成控制器的权限码同样按方法推导（business:{资源}:{方法}）。
             $class = implode('', array_map('ucfirst', preg_split('/[-_]/', (string) $data['entity']) ?: [])) . 'Controller';
-            $derived = \app\admin\authorization\service\PermissionCode::derive('app\\admin\\controller\\generated\\' . $class, 'index');
+            $derived = \app\admin\authorization\service\PermissionCode::derive('app\\admin\\business\\' . str_replace('-', '_', (string) $data['entity']) . '\\controller\\' . $class, 'index');
             $expected = $derived === null ? '' : substr($derived, 0, -strlen(':index'));
             if ((string) $data['permissionPrefix'] !== $expected) {
                 throw new InvalidArgumentException('权限前缀必须为 ' . $expected . '（与控制器方法推导的权限码一致）');
@@ -231,8 +232,8 @@ final class DefinitionValidator
         $directory = str_replace('-', '_', $entity);
         $class = implode('', array_map('ucfirst', preg_split('/[-_]/', $entity) ?: []));
         $expected = [
-            'customActions' => "app/admin/generated/{$directory}/action/{$class}Actions.php",
-            'customActionsConfig' => "app/admin/generated/{$directory}/config/actions.php",
+            'customActions' => "app/admin/business/{$directory}/action/{$class}Actions.php",
+            'customActionsConfig' => "app/admin/business/{$directory}/config/actions.php",
         ];
         foreach ($expected as $type => $path) {
             if (($data['generationTargets'][$type] ?? null) !== $path) {
@@ -285,16 +286,36 @@ final class DefinitionValidator
                 throw new InvalidArgumentException('generationTargets 包含非法目标');
             }
             ArtifactPaths::resolve($projectRoot, $path, '项目目录');
-            if (preg_match('~^app/admin/generated/[a-z][a-z0-9_]*/(model|validate|service|controller)/([A-Za-z][A-Za-z0-9]*\.php)$~D', $path, $generated) === 1) {
-                $legacy = PathGuard::resolve($projectRoot, 'app/admin/' . $generated[1] . '/generated/' . $generated[2], '项目目录');
-                if (file_exists($legacy) || is_link($legacy)) {
-                    throw new InvalidArgumentException('GENERATION_LAYOUT_CONFLICT：旧生成制品仍存在，必须先完成受管路径处理');
-                }
-            }
         }
         foreach (self::ARTIFACT_KEYS as $required) {
             if (!isset($paths[$required])) {
                 throw new InvalidArgumentException('generationTargets 缺少制品：' . $required);
+            }
+        }
+    }
+
+    /**
+     * 核心目标的后端分层文件由命名空间约定加载（PSR-4），路径必须与实体派生的标准布局一致；
+     * 手写或 CLI 定义若指向其他目录/类名，生成的类将无法按命名空间加载，因此直接拒绝。
+     * 插件目标禁止提供 generationTargets，其关联模型路径由 PluginCrudTarget 派生，不经过此处。
+     */
+    private function coreLayerPaths(array $paths, string $entity): void
+    {
+        $directory = str_replace('-', '_', $entity);
+        $class = implode('', array_map('ucfirst', preg_split('/[-_]/', $entity) ?: []));
+        $expected = ['memberApiController' => "app/api/controller/business/{$class}Controller.php"];
+        foreach (['model' => '', 'validate' => 'Validate', 'service' => 'Service', 'controller' => 'Controller'] as $layer => $suffix) {
+            $expected[$layer] = "app/admin/business/{$directory}/{$layer}/{$class}{$suffix}.php";
+        }
+        foreach (array_keys($paths) as $type) {
+            // 关联模型与主模型同目录：命名空间 app\admin\business\{dir}\model\relation。
+            if (preg_match(self::RELATION_MODEL_ARTIFACT, (string) $type, $match) === 1) {
+                $expected[$type] = "app/admin/business/{$directory}/model/relation/{$match[1]}.php";
+            }
+        }
+        foreach ($expected as $type => $path) {
+            if (array_key_exists($type, $paths) && $paths[$type] !== $path) {
+                throw new InvalidArgumentException("generationTargets.{$type} 必须为 {$path}");
             }
         }
     }

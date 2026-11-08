@@ -62,9 +62,9 @@ const pluginModule: BusinessModule = {
   metadata: { target: { type: 'plugin', pluginCode: 'demo', scope: 'admin' } }
 };
 
-const CONTROLLER = 'app/admin/generated/shop_goods/controller/ShopGoodsController.php';
-const SQL = 'database/generated/shop-goods.sql';
-const VIEW = 'web/src/admin/views/generated/shop-goods/index.vue';
+const CONTROLLER = 'app/admin/business/shop_goods/controller/ShopGoodsController.php';
+const SQL = 'database/business/shop-goods.sql';
+const VIEW = 'web/src/admin/views/business/shop-goods/index.vue';
 
 function preview(overrides: Partial<BusinessFormalGenerationPreview> = {}): BusinessFormalGenerationPreview {
   return {
@@ -251,7 +251,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('「生成到项目」使用 generationId 与 confirmToken 正式生成并刷新菜单', async () => {
-    const result = { generationId: 42, state: 'completed', resourceApplyStatus: 'applied', routePath: '/generated/shop-goods' };
+    const result = { generationId: 42, state: 'completed', resourceApplyStatus: 'applied', routePath: '/business/shop-goods' };
     mocks.formalGeneration.mockResolvedValue(result);
     const wrapper = render();
     await flushPromises();
@@ -339,7 +339,7 @@ describe('CodePreviewDialog', () => {
 
   it('提交时网络中断按 generationId 查询生成记录收敛结果，不重复提交', async () => {
     mocks.formalGeneration.mockRejectedValue(new Error('连接中断'));
-    mocks.generation.mockResolvedValue({ id: 42, status: 'completed', result: { state: 'completed', resourceApplyStatus: 'applied', routePath: '/generated/shop-goods' } });
+    mocks.generation.mockResolvedValue({ id: 42, status: 'completed', result: { state: 'completed', resourceApplyStatus: 'applied', routePath: '/business/shop-goods' } });
     const wrapper = render();
     await flushPromises();
     await button(wrapper, 'generate').trigger('click');

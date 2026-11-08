@@ -69,7 +69,7 @@ final class BusinessGenerationStateTest extends TestCase
         [$module, $generation] = BusinessGenerationFixture::seed();
         $state = new DatabaseGenerationStateRepository();
         $row = ['business_module_id' => $module, 'operation_key' => 'managed:' . bin2hex(random_bytes(32)), 'status' => 'planned',
-            'definition_hash' => str_repeat('a', 64), 'definition' => ['routePath' => '/generated/console-recovery']];
+            'definition_hash' => str_repeat('a', 64), 'definition' => ['routePath' => '/business/console-recovery']];
         $created = $state->createOrReuseGeneration($row, 'cli');
         self::assertSame($created['id'], $state->createOrReuseGeneration($row, 'cli')['id']);
         self::assertSame('superseded', Db::table('crud_generation')->where('id', $generation)->value('status'));

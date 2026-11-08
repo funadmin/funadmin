@@ -480,7 +480,7 @@ final class FormDesignerService
     {
         $key = trim((string) $payload['form_key']);
         $version = substr(hash('sha256', $sql), 0, 12);
-        return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR . 'form_' . $key . '_' . $version . '.sql';
+        return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'business' . DIRECTORY_SEPARATOR . 'form_' . $key . '_' . $version . '.sql';
     }
 
     private function createTableSql(string $table, array $fields): string

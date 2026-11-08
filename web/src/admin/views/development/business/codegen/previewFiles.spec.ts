@@ -7,22 +7,22 @@ const file = (path: string, status: BusinessGenerationFile['status'] = 'create')
 
 describe('previewFileGroup', () => {
   it.each([
-    ['app/admin/generated/shop_goods/controller/ShopGoodsController.php', 'backend'],
-    ['app/admin/generated/shop_goods/service/ShopGoodsService.php', 'backend'],
-    ['app/admin/generated/shop_goods/model/ShopGoods.php', 'backend'],
-    ['app/admin/generated/shop_goods/model/relation/Category.php', 'backend'],
-    ['app/admin/generated/shop_goods/validate/ShopGoodsValidate.php', 'backend'],
-    ['app/api/controller/generated/ShopGoodsController.php', 'backend'],
-    ['database/generated/shop-goods.sql', 'database'],
-    ['database/generated/shop-goods_permissions.sql', 'database'],
-    ['database/generated/shop-goods_lang.sql', 'database'],
-    ['web/src/admin/views/generated/shop-goods/index.vue', 'frontend'],
-    ['web/src/admin/views/generated/shop-goods/components/ShopGoodsForm.vue', 'frontend'],
-    ['web/src/admin/api/generated/shop-goods.ts', 'frontend'],
+    ['app/admin/business/shop_goods/controller/ShopGoodsController.php', 'backend'],
+    ['app/admin/business/shop_goods/service/ShopGoodsService.php', 'backend'],
+    ['app/admin/business/shop_goods/model/ShopGoods.php', 'backend'],
+    ['app/admin/business/shop_goods/model/relation/Category.php', 'backend'],
+    ['app/admin/business/shop_goods/validate/ShopGoodsValidate.php', 'backend'],
+    ['app/api/controller/business/ShopGoodsController.php', 'backend'],
+    ['database/business/shop-goods.sql', 'database'],
+    ['database/business/shop-goods_permissions.sql', 'database'],
+    ['database/business/shop-goods_lang.sql', 'database'],
+    ['web/src/admin/views/business/shop-goods/index.vue', 'frontend'],
+    ['web/src/admin/views/business/shop-goods/components/ShopGoodsForm.vue', 'frontend'],
+    ['web/src/admin/api/business/shop-goods.ts', 'frontend'],
     ['app/admin/lang/zh-cn/shop-goods.php', 'lang'],
     ['app/admin/lang/en-us/shop-goods.php', 'lang'],
-    ['tests/generated/ShopGoodsGeneratedTest.php', 'test'],
-    ['web/tests/generated/shop-goods.spec.ts', 'test'],
+    ['tests/business/ShopGoodsGeneratedTest.php', 'test'],
+    ['web/tests/business/shop-goods.spec.ts', 'test'],
     ['plugins/demo/app/admin/plugins/demo/controller/GoodsController.php', 'backend'],
     ['plugins/demo/web/src/admin/modules/demo/goods/index.vue', 'frontend'],
     ['plugins/demo/database/migrations/001_goods.sql', 'database'],
@@ -36,18 +36,18 @@ describe('previewFileGroup', () => {
 describe('groupPreviewFiles', () => {
   it('按固定类别顺序分组，组内保持服务端顺序，省略空分组', () => {
     const files = [
-      file('web/tests/generated/a.spec.ts'),
-      file('web/src/admin/views/generated/a/index.vue'),
-      file('app/admin/generated/a/service/AService.php'),
-      file('database/generated/a.sql'),
-      file('app/admin/generated/a/controller/AController.php'),
+      file('web/tests/business/a.spec.ts'),
+      file('web/src/admin/views/business/a/index.vue'),
+      file('app/admin/business/a/service/AService.php'),
+      file('database/business/a.sql'),
+      file('app/admin/business/a/controller/AController.php'),
       file('app/admin/lang/zh-cn/a.php')
     ];
     const groups = groupPreviewFiles(files);
     expect(groups.map((g) => g.group)).toEqual(['backend', 'database', 'frontend', 'lang', 'test']);
     expect(groups[0].files.map((f) => f.path)).toEqual([
-      'app/admin/generated/a/service/AService.php',
-      'app/admin/generated/a/controller/AController.php'
+      'app/admin/business/a/service/AService.php',
+      'app/admin/business/a/controller/AController.php'
     ]);
   });
 

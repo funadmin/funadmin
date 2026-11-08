@@ -27,8 +27,8 @@ use support\Request;
 #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class CodeGeneratorCustomActionsTest extends TestCase
 {
-    private const ACTIONS = 'app/admin/generated/shop_order/action/ShopOrderActions.php';
-    private const CONFIG = 'app/admin/generated/shop_order/config/actions.php';
+    private const ACTIONS = 'app/admin/business/shop_order/action/ShopOrderActions.php';
+    private const CONFIG = 'app/admin/business/shop_order/config/actions.php';
 
     private string $root = '';
     private array $temporary = [];
@@ -53,22 +53,22 @@ final class CodeGeneratorCustomActionsTest extends TestCase
         self::assertArrayHasKey(self::CONFIG, $files);
         token_get_all($files[self::ACTIONS], TOKEN_PARSE);
         token_get_all($files[self::CONFIG], TOKEN_PARSE);
-        self::assertStringContainsString('namespace app\\admin\\generated\\shop_order\\action;', $files[self::ACTIONS]);
+        self::assertStringContainsString('namespace app\\admin\\business\\shop_order\\action;', $files[self::ACTIONS]);
         self::assertStringContainsString('public function approve(array $parameters, array $context): array', $files[self::ACTIONS]);
         self::assertStringContainsString('public function markPaid(array $parameters, array $context): array', $files[self::ACTIONS]);
 
         $registry = $this->loadGenerated($files)['registry'];
-        self::assertSame(['generated.shop-order.approve', 'generated.shop-order.mark_paid'], array_keys($registry));
-        $approve = $registry['generated.shop-order.approve'];
+        self::assertSame(['business.shop-order.approve', 'business.shop-order.mark_paid'], array_keys($registry));
+        $approve = $registry['business.shop-order.approve'];
         self::assertSame([
-            'permission' => 'generated:shop-order:action-approve', 'capabilityVersion' => '1', 'locations' => ['row'], 'targets' => ['record'],
+            'permission' => 'business:shop-order:action-approve', 'capabilityVersion' => '1', 'locations' => ['row'], 'targets' => ['record'],
             'parameters' => ['id', 'note'], 'parameterTypes' => ['id' => 'integer', 'note' => 'string'],
             'effect' => 'write', 'batch' => false, 'requiresConfirmation' => true, 'resultContract' => 'json', 'timeoutMs' => 3000, 'receivesContext' => true,
         ], array_diff_key($approve, ['handler' => true]));
-        self::assertSame(['toolbar'], $registry['generated.shop-order.mark_paid']['locations']);
-        self::assertSame(['selection'], $registry['generated.shop-order.mark_paid']['targets']);
-        self::assertSame('generated:shop-order:action-mark-paid', $registry['generated.shop-order.mark_paid']['permission']);
-        self::assertSame('read', $registry['generated.shop-order.mark_paid']['effect']);
+        self::assertSame(['toolbar'], $registry['business.shop-order.mark_paid']['locations']);
+        self::assertSame(['selection'], $registry['business.shop-order.mark_paid']['targets']);
+        self::assertSame('business:shop-order:action-mark-paid', $registry['business.shop-order.mark_paid']['permission']);
+        self::assertSame('read', $registry['business.shop-order.mark_paid']['effect']);
         try {
             ($approve['handler'])(['id' => 1, 'note' => '同意'], ['location' => 'row', 'ids' => [1], 'id' => 1]);
             self::fail('方法桩必须提示未实现');
@@ -88,10 +88,10 @@ final class CodeGeneratorCustomActionsTest extends TestCase
         $actions = array_column($definition->toArray()['permission']['actions'], null, 'codeSuffix');
         self::assertSame(['action' => 'action-approve', 'codeSuffix' => 'action-approve', 'label' => '审核'], $actions['action-approve']);
         self::assertSame('标记已付', $actions['action-mark-paid']['label']);
-        $sql = array_column($this->generator()->plan($definition)['files'], 'content', 'path')['database/generated/shop-order_permissions.sql'];
-        self::assertStringContainsString("SELECT @permission_group_id, 'admin', 'generated:shop-order:action-approve', 'generated/shop-order', 'action-approve', '审核', 'route', 1, 0, 'generated', 'shop-order'", $sql);
-        self::assertStringContainsString("'generated:shop-order:action-mark-paid', 'generated/shop-order', 'action-mark-paid', '标记已付'", $sql);
-        self::assertMatchesRegularExpression("/`code` NOT IN \\([^)]*'generated:shop-order:action-approve'[^)]*\\)/", $sql);
+        $sql = array_column($this->generator()->plan($definition)['files'], 'content', 'path')['database/business/shop-order_permissions.sql'];
+        self::assertStringContainsString("SELECT @permission_group_id, 'admin', 'business:shop-order:action-approve', 'business/shop-order', 'action-approve', '审核', 'route', 1, 0, 'generated', 'shop-order'", $sql);
+        self::assertStringContainsString("'business:shop-order:action-mark-paid', 'business/shop-order', 'action-mark-paid', '标记已付'", $sql);
+        self::assertMatchesRegularExpression("/`code` NOT IN \\([^)]*'business:shop-order:action-approve'[^)]*\\)/", $sql);
     }
 
     public function test_empty_custom_actions_keep_definition_and_files_identical(): void
@@ -142,35 +142,35 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             file_put_contents($generated . '/' . $dir . '/config/actions.php', $content);
         };
         $definition = static fn (string $permission): string => "['handler' => static fn (array \$p): array => ['ok' => true], 'permission' => '{$permission}', 'locations' => ['row'], 'targets' => ['record'], 'effect' => 'read']";
-        $write('shop_order', "<?php\nreturn ['generated.shop-order.approve' => " . $definition('generated:shop-order:action-approve') . "];\n");
-        $write('shop_goods', "<?php\nreturn ['generated.shop-goods.publish' => " . $definition('generated:shop-goods:action-publish') . "];\n");
+        $write('shop_order', "<?php\nreturn ['business.shop-order.approve' => " . $definition('business:shop-order:action-approve') . "];\n");
+        $write('shop_goods', "<?php\nreturn ['business.shop-goods.publish' => " . $definition('business:shop-goods:action-publish') . "];\n");
         $config = ['actions' => ['system.ping' => ['handler' => static fn (): array => [], 'permission' => 'system:ping:run']]];
 
         $definitions = (new FormRegistryFactory($config, null, $generated))->actions()->definitions();
         $keys = array_keys($definitions);
         sort($keys);
-        self::assertSame(['generated.shop-goods.publish', 'generated.shop-order.approve', 'system.ping'], $keys);
-        self::assertSame('generated:shop-order:action-approve', $definitions['generated.shop-order.approve']['permission']);
+        self::assertSame(['business.shop-goods.publish', 'business.shop-order.approve', 'system.ping'], $keys);
+        self::assertSame('business:shop-order:action-approve', $definitions['business.shop-order.approve']['permission']);
         // 不存在的生成目录不影响核心配置。
         self::assertSame(['system.ping'], array_keys((new FormRegistryFactory($config, null, $generated . '/missing'))->actions()->definitions()));
 
-        $conflict = ['actions' => ['generated.shop-order.approve' => $config['actions']['system.ping']]];
+        $conflict = ['actions' => ['business.shop-order.approve' => $config['actions']['system.ping']]];
         try {
             (new FormRegistryFactory($conflict, null, $generated))->actions();
             self::fail('注册键冲突必须报错');
         } catch (\InvalidArgumentException $error) {
-            self::assertStringContainsString('generated.shop-order.approve', $error->getMessage());
+            self::assertStringContainsString('business.shop-order.approve', $error->getMessage());
             self::assertStringContainsString('config/form.php', $error->getMessage());
             self::assertStringContainsString('shop_order/config/actions.php', $error->getMessage());
         }
 
         // 生成清单只能登记本模块前缀的键，不能借名覆盖其他模块或核心动作。
-        $write('shop_goods', "<?php\nreturn ['generated.shop-order.reject' => " . $definition('generated:shop-order:action-reject') . "];\n");
+        $write('shop_goods', "<?php\nreturn ['business.shop-order.reject' => " . $definition('business:shop-order:action-reject') . "];\n");
         try {
             (new FormRegistryFactory([], null, $generated))->actions();
             self::fail('越界注册键必须报错');
         } catch (\InvalidArgumentException $error) {
-            self::assertStringContainsString('generated.shop-order.reject', $error->getMessage());
+            self::assertStringContainsString('business.shop-order.reject', $error->getMessage());
             self::assertStringContainsString('shop_goods/config/actions.php', $error->getMessage());
         }
     }
@@ -180,8 +180,8 @@ final class CodeGeneratorCustomActionsTest extends TestCase
         $prefix = Db::connection()->getTablePrefix();
         $connection = (string) config('database.default');
         self::assertSame(':memory:', Db::connection()->getDatabaseName());
-        $button = ['id' => 'approve-row', 'label' => '审核', 'permission' => 'generated:console-order:action-approve',
-            'action' => ['type' => 'registered', 'key' => 'generated.console-order.approve', 'capabilityVersion' => '1'],
+        $button = ['id' => 'approve-row', 'label' => '审核', 'permission' => 'business:console-order:action-approve',
+            'action' => ['type' => 'registered', 'key' => 'business.console-order.approve', 'capabilityVersion' => '1'],
             'params' => ['id' => ['source' => 'row', 'field' => 'id'], 'note' => ['source' => 'literal', 'value' => '同意']]];
         $schema = $this->schema('console_order', self::actions(), $connection, $prefix . 'console_order', ['row' => [$button]]);
         $definition = (new FormCrudDefinitionFactory())->createFromSchema($schema, []);
@@ -210,7 +210,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $generated = $this->root() . '/generated';
             foreach ($files as $path => $content) {
                 if (str_ends_with($path, '/config/actions.php')) {
-                    $target = $generated . '/' . substr($path, strlen('app/admin/generated/'));
+                    $target = $generated . '/' . substr($path, strlen('app/admin/business/'));
                     mkdir(dirname($target), 0700, true);
                     file_put_contents($target, $content);
                     continue;
@@ -219,7 +219,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
                 file_put_contents($file, $content); require $file;
             }
             $record = Db::table('console_order')->insertGetId(['title' => '待审核']);
-            $request = new Request("POST /admin/generated/console-order/list-action HTTP/1.1\r\n\r\n");
+            $request = new Request("POST /admin/business/console-order/list-action HTTP/1.1\r\n\r\n");
             $request->context['admin'] = ['id' => 7];
             Context::set(\Webman\Http\Request::class, $request);
 
@@ -227,18 +227,18 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $pdo = new \PDO('sqlite::memory:');
             $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
             $executor = new ListButtonExecutor($registry, bin2hex(random_bytes(32)), new ListActionStore($pdo, 'list_actions'));
-            $binding = ['formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/generated.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection];
+            $binding = ['formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/business.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection];
             $granted = [];
             $service = new \app\admin\form\service\FormDataService(permissionChecker: static function (string $permission) use (&$granted): bool {
                 $granted[] = $permission;
-                return $permission !== 'generated:console-order:action-approve' || in_array('action', $GLOBALS['customActionGrant'] ?? [], true);
+                return $permission !== 'business:console-order:action-approve' || in_array('action', $GLOBALS['customActionGrant'] ?? [], true);
             }, productionBinding: $binding);
             $payload = ['buttonId' => 'approve-row', 'location' => 'row', 'schemaHash' => $schema->hash(), 'ids' => [$record], 'idempotencyKey' => 'first'];
-            $controller = new \app\admin\generated\console_order\controller\ConsoleOrderController();
+            $controller = new \app\admin\business\console_order\controller\ConsoleOrderController();
             $failure = new \ReflectionMethod($controller, 'listActionFailure');
 
             // 无动作权限：目录不列出、执行被拒并映射为 403。
-            self::assertArrayNotHasKey('generated.console-order.approve', (array) $service->listActionCatalog('console_order', 'row', $registry)['actions']);
+            self::assertArrayNotHasKey('business.console-order.approve', (array) $service->listActionCatalog('console_order', 'row', $registry)['actions']);
             try {
                 $service->executeListButton('console_order', $payload, $executor);
                 self::fail('无动作权限必须拒绝');
@@ -246,11 +246,11 @@ final class CodeGeneratorCustomActionsTest extends TestCase
                 self::assertSame('FORM_ACTION_FORBIDDEN', $error->getMessage());
                 self::assertSame(403, json_decode($failure->invoke($controller, $error)->rawBody(), true)['code']);
             }
-            self::assertContains('generated:console-order:action-approve', $granted);
+            self::assertContains('business:console-order:action-approve', $granted);
 
             // 已授权：仍需二次确认，确认后调用到方法桩，入口返回「未实现：审核」而非服务器错误。
             $GLOBALS['customActionGrant'] = ['action'];
-            self::assertArrayHasKey('generated.console-order.approve', (array) $service->listActionCatalog('console_order', 'row', $registry)['actions']);
+            self::assertArrayHasKey('business.console-order.approve', (array) $service->listActionCatalog('console_order', 'row', $registry)['actions']);
             $confirmation = $service->executeListButton('console_order', $payload, $executor);
             self::assertSame('confirmation_required', $confirmation['status']);
             try {
@@ -263,7 +263,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
 
             // 用户实现方法后（以同一份注册定义替换处理器模拟），同一条注册链返回处理结果。
             $definitions = require $generated . '/console_order/config/actions.php';
-            $definitions['generated.console-order.approve']['handler'] = static fn (array $parameters): array => ['approved' => $parameters['id'], 'note' => $parameters['note']];
+            $definitions['business.console-order.approve']['handler'] = static fn (array $parameters): array => ['approved' => $parameters['id'], 'note' => $parameters['note']];
             $executor = new ListButtonExecutor(new \app\common\form\action\FormActionRegistry($definitions), bin2hex(random_bytes(32)), new ListActionStore($pdo, 'list_actions'));
             $payload['idempotencyKey'] = 'second';
             $confirmation = $service->executeListButton('console_order', $payload, $executor);
@@ -282,11 +282,11 @@ final class CodeGeneratorCustomActionsTest extends TestCase
         $prefix = Db::connection()->getTablePrefix();
         $connection = (string) config('database.default');
         $buttons = [
-            'row' => [['id' => 'approve-row', 'label' => '审核', 'permission' => 'generated:console-order:action-approve',
-                'action' => ['type' => 'registered', 'key' => 'generated.console-order.approve', 'capabilityVersion' => '1'],
+            'row' => [['id' => 'approve-row', 'label' => '审核', 'permission' => 'business:console-order:action-approve',
+                'action' => ['type' => 'registered', 'key' => 'business.console-order.approve', 'capabilityVersion' => '1'],
                 'params' => ['id' => ['source' => 'row', 'field' => 'id'], 'note' => ['source' => 'literal', 'value' => '同意']]]],
-            'toolbar' => [['id' => 'mark-paid', 'label' => '标记已付', 'permission' => 'generated:console-order:action-mark-paid',
-                'action' => ['type' => 'registered', 'key' => 'generated.console-order.mark_paid', 'capabilityVersion' => '1']]],
+            'toolbar' => [['id' => 'mark-paid', 'label' => '标记已付', 'permission' => 'business:console-order:action-mark-paid',
+                'action' => ['type' => 'registered', 'key' => 'business.console-order.mark_paid', 'capabilityVersion' => '1']]],
         ];
         $schema = $this->schema('console_order', self::actions(), $connection, $prefix . 'console_order', $buttons);
         $definition = (new FormCrudDefinitionFactory())->createFromSchema($schema, []);
@@ -309,24 +309,24 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             }
             $first = Db::table('console_order')->insertGetId(['title' => '一']);
             $second = Db::table('console_order')->insertGetId(['title' => '二']);
-            $request = new Request("POST /admin/generated/console-order/list-action HTTP/1.1\r\n\r\n");
+            $request = new Request("POST /admin/business/console-order/list-action HTTP/1.1\r\n\r\n");
             $request->context['admin'] = ['id' => 7];
             Context::set(\Webman\Http\Request::class, $request);
             $pdo = new \PDO('sqlite::memory:');
             $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
             $executor = new ListButtonExecutor((new FormRegistryFactory([], null, $generated))->actions(), bin2hex(random_bytes(32)), new ListActionStore($pdo, 'list_actions'));
             $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: [
-                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/generated.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection]);
+                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/business.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection]);
 
             $row = ['buttonId' => 'approve-row', 'location' => 'row', 'schemaHash' => $schema->hash(), 'ids' => [$second], 'idempotencyKey' => 'row-1'];
             $confirmation = $service->executeListButton('console_order', $row, $executor);
             $result = $service->executeListButton('console_order', $row + ['confirmation' => $confirmation['confirmation']], $executor)['result'];
-            self::assertSame(['key' => 'generated.console-order.approve', 'location' => 'row', 'ids' => [$second], 'id' => $second], $result['context']);
+            self::assertSame(['key' => 'business.console-order.approve', 'location' => 'row', 'ids' => [$second], 'id' => $second], $result['context']);
             self::assertSame(['id' => $second, 'note' => '同意'], $result['parameters']);
 
             $toolbar = ['buttonId' => 'mark-paid', 'location' => 'toolbar', 'schemaHash' => $schema->hash(), 'ids' => [$first, $second], 'idempotencyKey' => 'bar-1'];
             $result = $service->executeListButton('console_order', $toolbar, $executor)['result'];
-            self::assertSame(['key' => 'generated.console-order.mark_paid', 'location' => 'toolbar', 'ids' => [$first, $second]], $result['context']);
+            self::assertSame(['key' => 'business.console-order.mark_paid', 'location' => 'toolbar', 'ids' => [$first, $second]], $result['context']);
         } finally {
             $this->tearDownPublishedModule();
         }
@@ -337,8 +337,8 @@ final class CodeGeneratorCustomActionsTest extends TestCase
     {
         $prefix = Db::connection()->getTablePrefix();
         $connection = (string) config('database.default');
-        $button = ['id' => 'approve-row', 'label' => '审核', 'permission' => 'generated:console-order:action-approve',
-            'action' => ['type' => 'registered', 'key' => 'generated.console-order.approve', 'capabilityVersion' => '1'],
+        $button = ['id' => 'approve-row', 'label' => '审核', 'permission' => 'business:console-order:action-approve',
+            'action' => ['type' => 'registered', 'key' => 'business.console-order.approve', 'capabilityVersion' => '1'],
             'params' => ['id' => ['source' => 'row', 'field' => 'id'], 'note' => ['source' => 'literal', 'value' => '同意']]];
         $schema = $this->schema('console_order', self::actions(), $connection, $prefix . 'console_order', ['row' => [$button]]);
         $context = ProductionTemplateContext::build((new FormCrudDefinitionFactory())->createFromSchema($schema, []));
@@ -352,16 +352,16 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             file_put_contents($config, $context['customActionsConfigContent']);
             $definitions = require $config;
             $record = Db::table('console_order')->insertGetId(['title' => '待审核']);
-            $request = new Request("POST /admin/generated/console-order/list-action HTTP/1.1\r\n\r\n");
+            $request = new Request("POST /admin/business/console-order/list-action HTTP/1.1\r\n\r\n");
             $request->context['admin'] = ['id' => 7];
             Context::set(\Webman\Http\Request::class, $request);
             $pdo = new \PDO('sqlite::memory:');
             $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
             $secret = bin2hex(random_bytes(32));
             $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: [
-                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/generated.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection]);
+                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/business.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection]);
             $run = function (callable $handler, string $nonce) use ($definitions, $secret, $pdo, $service, $schema, $record): callable {
-                $definitions['generated.console-order.approve']['handler'] = $handler;
+                $definitions['business.console-order.approve']['handler'] = $handler;
                 $executor = new ListButtonExecutor(new \app\common\form\action\FormActionRegistry($definitions), $secret, new ListActionStore($pdo, 'list_actions'));
                 $payload = ['buttonId' => 'approve-row', 'location' => 'row', 'schemaHash' => $schema->hash(), 'ids' => [$record], 'idempotencyKey' => $nonce];
                 $payload['confirmation'] = $service->executeListButton('console_order', $payload, $executor)['confirmation'];
@@ -382,7 +382,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             self::assertSame(2, $calls);
 
             // 未实现的方法桩同样视为「未发生」：重试再次到达方法桩，而非 FORM_LIST_RESULT_UNKNOWN。
-            $stub = $definitions['generated.console-order.approve']['handler'];
+            $stub = $definitions['business.console-order.approve']['handler'];
             $send = $run($stub, 'stub-retry');
             foreach ([1, 2] as $_) {
                 try { $send(); self::fail('方法桩必须提示未实现'); } catch (FormActionNotImplementedException) {}
@@ -425,8 +425,8 @@ final class CodeGeneratorCustomActionsTest extends TestCase
 
     public function test_button_missing_a_bound_parameter_reports_the_button_and_parameter(): void
     {
-        $button = ['id' => 'approve-row', 'label' => '审核按钮', 'permission' => 'generated:shop-order:action-approve',
-            'action' => ['type' => 'registered', 'key' => 'generated.shop-order.approve', 'capabilityVersion' => '1'],
+        $button = ['id' => 'approve-row', 'label' => '审核按钮', 'permission' => 'business:shop-order:action-approve',
+            'action' => ['type' => 'registered', 'key' => 'business.shop-order.approve', 'capabilityVersion' => '1'],
             'params' => ['id' => ['source' => 'row', 'field' => 'id']]];
         $definition = (new FormCrudDefinitionFactory())->createFromSchema($this->schema('shop_order', self::actions(), buttons: ['row' => [$button]]), []);
         try {
@@ -441,16 +441,16 @@ final class CodeGeneratorCustomActionsTest extends TestCase
 
     public function test_registry_errors_are_not_hidden_behind_the_generic_adapter_message(): void
     {
-        $button = ['id' => 'approve-row', 'label' => '审核', 'permission' => 'generated:shop-order:action-approve',
-            'action' => ['type' => 'registered', 'key' => 'generated.shop-order.approve', 'capabilityVersion' => '1'],
+        $button = ['id' => 'approve-row', 'label' => '审核', 'permission' => 'business:shop-order:action-approve',
+            'action' => ['type' => 'registered', 'key' => 'business.shop-order.approve', 'capabilityVersion' => '1'],
             'params' => ['id' => ['source' => 'row', 'field' => 'id'], 'note' => ['source' => 'literal', 'value' => '同意']]];
         $definition = (new FormCrudDefinitionFactory())->createFromSchema($this->schema('shop_order', self::actions(), buttons: ['row' => [$button]]), []);
-        $conflict = static fn (): bool => throw new \InvalidArgumentException('表单动作注册键冲突：generated.shop-order.approve 同时声明于 config/form.php 与 app/admin/generated/shop_order/config/actions.php');
+        $conflict = static fn (): bool => throw new \InvalidArgumentException('表单动作注册键冲突：business.shop-order.approve 同时声明于 config/form.php 与 app/admin/business/shop_order/config/actions.php');
         try {
             (new \app\common\crud\DefinitionValidator($this->dependencyChecker($conflict)))->validate($definition, $this->root());
             self::fail('注册表错误必须阻断生成');
         } catch (\InvalidArgumentException $error) {
-            self::assertStringContainsString('表单动作注册键冲突：generated.shop-order.approve', $error->getMessage());
+            self::assertStringContainsString('表单动作注册键冲突：business.shop-order.approve', $error->getMessage());
         }
     }
 
@@ -470,7 +470,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
         $controller = new class extends \app\common\controller\AdminController {
             public function failure(\Throwable $error): array { return json_decode($this->listActionFailure($error)->rawBody(), true); }
         };
-        Context::set(\Webman\Http\Request::class, new Request("POST /admin/generated/shop-order/list-action HTTP/1.1\r\n\r\n"));
+        Context::set(\Webman\Http\Request::class, new Request("POST /admin/business/shop-order/list-action HTTP/1.1\r\n\r\n"));
         $reply = $controller->failure(new \app\common\form\action\FormActionUserException('订单已关闭，不能审核'));
         self::assertSame([422, '订单已关闭，不能审核', 'FORM_ACTION_USER_ERROR'], [$reply['code'], $reply['msg'], $reply['data']['code'] ?? null]);
         // 其他运行时异常仍不泄露文本。

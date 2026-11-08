@@ -248,4 +248,30 @@ describe('混合布局菜单全树路由', () => {
       expect(resolved.matched.length, `${path} 必须命中动态路由`).toBeGreaterThan(0);
     }
   });
+
+  it('生成业务组件只按 business/ 前缀解析到 views/business，未构建时落到发布宿主；generated/ 不再识别', () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const page = (id: number, component: string): API.MenuItem => ({ id, parentId: 0, routeName: `Biz${id}`, path: `/biz-${id}`, component, type: 'C', name: component, sort: id, hidden: false, keepAlive: false, affix: false });
+    const leaf = (route: RouteRecordRaw) => route.children![0]!.component;
+    try {
+      const [built, pending, legacy, codegen] = generateRoutes([
+        page(1, 'business/i18n-demo/index'),
+        page(2, 'business/not-built-yet/index'),
+        page(3, 'generated/not-built-yet/index'),
+        page(4, 'development/business/mine')
+      ]);
+      expect(leaf(built!)).toBeTypeOf('function');
+      expect(info).toHaveBeenCalledTimes(1);
+      expect(info.mock.calls[0]![0]).toContain('business/not-built-yet/index');
+      expect(leaf(pending!)).toBeTypeOf('function');
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0]![0]).toContain('/src/admin/views/generated/not-built-yet/index.vue');
+      expect(leaf(legacy!)).toBeTypeOf('function');
+      expect(leaf(codegen!)).toBeTypeOf('function');
+    } finally {
+      info.mockRestore();
+      warn.mockRestore();
+    }
+  });
 });

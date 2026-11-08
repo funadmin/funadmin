@@ -178,3 +178,20 @@ describe('extractPlainText', () => {
     expect(text).toContain('Webman-->MySQL');
   });
 });
+
+describe('代码高亮', () => {
+  it('预览与导出 HTML 中的代码块按语言高亮，且仍是转义后的纯文本', () => {
+    const host = document.createElement('div');
+    host.innerHTML = exportDocumentHtml({ type: 'doc', content: [
+      { type: 'codeBlock', attrs: { language: 'php' }, content: [{ type: 'text', text: '<?php echo "<b>x</b>"; $a = 1;' }] }
+    ] });
+    expect(host.querySelector('pre code [class^="hljs-"]')).not.toBeNull();
+    expect(host.querySelector('pre code')?.textContent).toBe('<?php echo "<b>x</b>"; $a = 1;');
+    expect(host.querySelector('pre b, pre script')).toBeNull();
+  });
+
+  it('未知语言保持原样，不报错', () => {
+    const html = exportDocumentHtml({ type: 'doc', content: [{ type: 'codeBlock', attrs: { language: 'not-a-language' }, content: [{ type: 'text', text: 'a < b' }] }] });
+    expect(html).toContain('a &lt; b');
+  });
+});

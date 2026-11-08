@@ -18,6 +18,27 @@ final class ContentValidator
         'image', 'callout', 'mermaid',
     ];
     private const MARKS = ['bold', 'italic', 'strike', 'underline', 'code', 'link'];
+
+    private const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'taskList', 'blockquote', 'codeBlock', 'horizontalRule', 'table', 'image', 'callout', 'mermaid'];
+    private const INLINE = ['text', 'hardBreak'];
+    /** 每种节点允许的子节点（与前端 Tiptap schema 一致）；未列出的是叶子节点，不允许有子内容。 */
+    private const CHILDREN = [
+        'doc' => self::BLOCKS,
+        'paragraph' => self::INLINE,
+        'heading' => self::INLINE,
+        'codeBlock' => ['text'],
+        'blockquote' => self::BLOCKS,
+        'callout' => self::BLOCKS,
+        'listItem' => self::BLOCKS,
+        'taskItem' => self::BLOCKS,
+        'tableCell' => self::BLOCKS,
+        'tableHeader' => self::BLOCKS,
+        'bulletList' => ['listItem'],
+        'orderedList' => ['listItem'],
+        'taskList' => ['taskItem'],
+        'table' => ['tableRow'],
+        'tableRow' => ['tableCell', 'tableHeader'],
+    ];
     private const MAX_BYTES = 2 * 1024 * 1024;
     private const MAX_DEPTH = 40;
 
@@ -66,7 +87,7 @@ final class ContentValidator
 
         $clean = ['type' => $type];
         if ($type === 'text') {
-            if (!is_string($node['text'] ?? null)) throw new InvalidArgumentException('文本节点无效', 422);
+            if (!is_string($node['text'] ?? null) || $node['text'] === '') throw new InvalidArgumentException('文本节点无效', 422);
             $clean['text'] = $node['text'];
             $marks = self::marks($node['marks'] ?? []);
             if ($marks) $clean['marks'] = $marks;
@@ -79,6 +100,13 @@ final class ContentValidator
         }
         if (isset($node['content'])) {
             if (!is_array($node['content'])) throw new InvalidArgumentException('正文子节点无效', 422);
+            $allowed = self::CHILDREN[$type] ?? [];
+            foreach ($node['content'] as $child) {
+                $childType = is_array($child) ? ($child['type'] ?? null) : null;
+                if (!in_array($childType, $allowed, true)) {
+                    throw new InvalidArgumentException('正文结构无效：' . $type . ' 中不能包含 ' . (is_string($childType) ? $childType : '未知节点'), 422);
+                }
+            }
             $clean['content'] = array_map(static fn ($child) => self::node($child, $depth + 1), array_values($node['content']));
         }
         return $clean;

@@ -56,6 +56,17 @@ final class SiteRoleTest extends CmsTestCase
         $grant=(require dirname(__DIR__,2).'/database/permission-maps/plugin-per-method.php')['cms:site:grant'];
         self::assertSame(['system:admin:list'],$map['scope'](array_merge(['system:admin:list'],$grant),['admin_id'=>91]));
     }
+    public function test_host_discovery_keeps_cms_codes_when_site_role_schema_is_missing_so_controllers_report_409(): void {
+        $map=require dirname(__DIR__,2).'/plugins/cms/hooks/permissions.php';
+        $this->site();$codes=['system:admin:list','cms:content:index','cms:sites:context'];
+        \support\Db::schema()->drop('cms_site_role_permission');
+        // 站点权限表缺失属于"CMS 尚未完成升级"：不能把宿主授予的 CMS 码全部移除（否则先被 403 掩盖），由控制器返回 409。
+        self::assertSame($codes,$map['scope']($codes,['admin_id'=>91]));
+    }
+    public function test_host_discovery_still_fails_closed_on_unexpected_errors(): void {
+        $map=require dirname(__DIR__,2).'/plugins/cms/hooks/permissions.php';
+        self::assertSame(['system:admin:list'],$map['scope'](['system:admin:list','cms:content:index'],['admin_id'=>'not-an-id']));
+    }
     public function test_legacy_grant_validates_accounts_and_records_audited_replacement(): void {
         $site=$this->site();$service=new \app\cms\service\SiteService();$before=Db::table('cms_site_auth_audit')->count();
         $service->grant($site['id'],'1',['91']);self::assertGreaterThan($before,Db::table('cms_site_auth_audit')->count());

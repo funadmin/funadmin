@@ -58,7 +58,7 @@ class CrudFormSchemaExecutionTest extends TestCase
         $data['formSchema'] = $compiled->document();
         $data['formSchemaHash'] = $this->hash;
         $context = ProductionTemplateContext::build(CrudDefinition::fromArray($data));
-        if (!class_exists('app\\admin\\model\\generated\\ConsoleFormTree', false)) {
+        if (!class_exists('app\\admin\\business\\console_form_tree\\model\\ConsoleFormTree', false)) {
             foreach (['modelContent', 'serviceContent', 'validateContent', 'controllerContent'] as $artifact) {
                 $file = tempnam(sys_get_temp_dir(), 'funadmin-form-tree-'); $this->files[] = $file;
                 file_put_contents($file, $context[$artifact]); require $file;
@@ -77,7 +77,7 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_generated_model_enforces_tree_guard_during_save_delete_and_restore(): void
     {
-        $class = \app\admin\model\generated\ConsoleFormTree::class;
+        $class = \app\admin\business\console_form_tree\model\ConsoleFormTree::class;
         $root = $class::create(['title' => '根节点']);
         $child = $class::create(['title' => '子节点', 'parent_id' => $root->id]);
         self::assertSame($root->id, $child->fresh()->parent_id);
@@ -99,23 +99,23 @@ class CrudFormSchemaExecutionTest extends TestCase
     {
         Db::table('form_schema_version')->update(['schema_document' => '{}']);
         try {
-            \app\admin\model\generated\ConsoleFormTree::create(['title' => '不可写入']);
+            \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '不可写入']);
             self::fail('损坏快照必须拒绝');
         } catch (\InvalidArgumentException) {
             self::assertSame(0, Db::table('console_form_tree')->count());
         }
         Db::table('form_schema_version')->delete();
-        $this->rejected(fn () => \app\admin\model\generated\ConsoleFormTree::create(['title' => '不可写入']), '快照不存在');
+        $this->rejected(fn () => \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '不可写入']), '快照不存在');
         self::assertSame(0, Db::table('console_form_tree')->count());
     }
 
     public function test_left_tree_reads_published_nodes_and_rejects_stale_filters_or_missing_permissions(): void
     {
-        $class = \app\admin\model\generated\ConsoleFormTree::class;
+        $class = \app\admin\business\console_form_tree\model\ConsoleFormTree::class;
         $root = $class::create(['title' => '根节点']);
         $child = $class::create(['title' => '子节点', 'parent_id' => $root->id]);
-        // 正式生成模块：左树端点检查 generated:{资源}:left-tree 与 index，列表左树筛选检查 index；无 mutate-left-tree/remove 等时写动作关闭。
-        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => in_array($permission, ['generated:console-form-tree:left-tree', 'generated:console-form-tree:index'], true));
+        // 正式生成模块：左树端点检查 business:{资源}:left-tree 与 index，列表左树筛选检查 index；无 mutate-left-tree/remove 等时写动作关闭。
+        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => in_array($permission, ['business:console-form-tree:left-tree', 'business:console-form-tree:index'], true));
         $tree = $service->leftTree('console_form_tree');
         self::assertSame([$root->id, $child->id], array_column($tree['nodes'], 'id'));
         self::assertSame($root->id, $tree['nodes'][1]['parent']);
@@ -131,7 +131,7 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_reference_guard_includes_soft_deleted_module_snapshots_and_business_rows(): void
     {
-        $root = \app\admin\model\generated\ConsoleFormTree::create(['title' => '被引用节点']);
+        $root = \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '被引用节点']);
         Db::schema()->create('console_form_reference', static function (Blueprint $table): void {
             $table->id(); $table->integer('node_id'); $table->softDeletes();
         });
@@ -151,11 +151,11 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_list_button_loads_authorized_records_from_native_request_identity(): void
     {
-        $root = \app\admin\model\generated\ConsoleFormTree::create(['title' => '仅服务端加载']);
-        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'admin/generated.consoleformtreecontroller', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
+        $root = \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '仅服务端加载']);
+        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'admin/business.consoleformtreecontroller', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
         $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: $binding);
         self::assertSame($this->hash, $service->listActionCatalog('console_form_tree', 'row', new \app\common\form\action\FormActionRegistry())['schemaHash']);
-        $request = new \support\Request("POST /admin/generated/console-form-tree/list-action HTTP/1.1\r\n\r\n");
+        $request = new \support\Request("POST /admin/business/console-form-tree/list-action HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => 7];
         \support\Context::set(\Webman\Http\Request::class, $request);
         $payload = ['buttonId' => 'copy-title', 'location' => 'row', 'schemaHash' => $this->hash, 'ids' => [$root->id]];
@@ -168,11 +168,11 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_generated_controller_executes_left_tree_listing_and_list_button_protocol(): void
     {
-        $root = \app\admin\model\generated\ConsoleFormTree::create(['title' => '控制器节点']);
-        $request = new \support\Request("GET /admin/generated/console-form-tree HTTP/1.1\r\n\r\n");
+        $root = \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '控制器节点']);
+        $request = new \support\Request("GET /admin/business/console-form-tree HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => 1];
         \support\Context::set(\Webman\Http\Request::class, $request);
-        $controller = new \app\admin\controller\generated\ConsoleFormTreeController();
+        $controller = new \app\admin\business\console_form_tree\controller\ConsoleFormTreeController();
         self::assertSame($root->id, json_decode($controller->leftTree()->rawBody(), true)['data']['nodes'][0]['id']);
         self::assertSame(1, json_decode($controller->index()->rawBody(), true)['data']['total']);
         self::assertSame($this->hash, json_decode($controller->listActions()->rawBody(), true)['data']['schemaHash']);
@@ -200,11 +200,11 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_registered_list_write_requires_confirmation_and_replays_without_duplicate_side_effects(): void
     {
-        $root = \app\admin\model\generated\ConsoleFormTree::create(['title' => '待标记']);
-        $request = new \support\Request("POST /admin/generated/console-form-tree/list-action HTTP/1.1\r\n\r\n");
+        $root = \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '待标记']);
+        $request = new \support\Request("POST /admin/business/console-form-tree/list-action HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => 7];
         \support\Context::set(\Webman\Http\Request::class, $request);
-        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'admin/generated.consoleformtreecontroller', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
+        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'admin/business.consoleformtreecontroller', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
         $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: $binding);
         $calls = 0;
         $actions = new \app\common\form\action\FormActionRegistry(['tree.mark' => [
@@ -239,7 +239,7 @@ class CrudFormSchemaExecutionTest extends TestCase
         $this->hash = $compiled->hash();
         Db::table('form_schema_version')->where('form_id', 1)->update(['schema_hash' => $this->hash, 'schema_document' => $compiled->canonicalJson()]);
         Db::table('business_module')->where('form_id', 1)->update(['published_schema_hash' => $this->hash]);
-        $class = \app\admin\model\generated\ConsoleFormTree::class;
+        $class = \app\admin\business\console_form_tree\model\ConsoleFormTree::class;
         $root = $class::create(['title' => '可见父级']);
         $child = $class::create(['title' => '可见子级', 'parent_id' => $root->id]);
         $deleted = $class::create(['title' => '已删除节点']);
@@ -273,7 +273,7 @@ class CrudFormSchemaExecutionTest extends TestCase
             $compiled = (new \app\admin\form\repository\FormSchemaRepository())->compile($schema);
             Db::table('form_schema_version')->where('form_id', 1)->update(['schema_hash' => $compiled->hash(), 'schema_document' => $compiled->canonicalJson()]);
             Db::table('business_module')->where('form_id', 1)->update(['published_schema_hash' => $compiled->hash()]);
-            $class = \app\admin\model\generated\ConsoleFormTree::class;
+            $class = \app\admin\business\console_form_tree\model\ConsoleFormTree::class;
             $root = $class::create(['title' => '关联节点']);
             $deleted = $class::create(['title' => '已删关联']);
             $deleted->delete();
@@ -387,7 +387,7 @@ class CrudFormSchemaExecutionTest extends TestCase
 
     public function test_source_metadata_candidates_are_published_and_permission_scoped(): void
     {
-        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => $permission === 'generated:console-form-tree:index');
+        $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (string $permission): bool => $permission === 'business:console-form-tree:index');
         $source = $service->sourceMeta('console_form_tree');
         self::assertSame('id', $source['primaryKey']['name']);
         self::assertSame('console_form_tree', $source['formKey']);

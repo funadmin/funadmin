@@ -31,7 +31,7 @@ final class PermissionTreeService
         'form' => '表单',
         'ai' => 'AI 助手',
         'plugin' => '插件管理',
-        'generated' => '生成模块',
+        'business' => '业务模块',
     ];
 
     /** 宿主资源分组名称（顺序即排序）；未列出的资源取绑定菜单名，再退回资源标识。 */

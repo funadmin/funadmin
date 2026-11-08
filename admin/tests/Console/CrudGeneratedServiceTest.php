@@ -25,7 +25,7 @@ final class CrudGeneratedServiceTest extends TestCase
                 $file = tempnam(sys_get_temp_dir(), 'funadmin-service-');
                 $files[] = $file; file_put_contents($file, $context[$key]); require $file;
             }
-            $service = new \app\admin\service\generated\ConsoleServiceService();
+            $service = new \app\admin\business\console_service\service\ConsoleServiceService();
             $model = $service->save(null, ['title' => '新增', 'metadata' => ['one' => 1], 'ignored' => 'not-column'], static fn () => null);
             self::assertSame('新增', $model->fresh()->title);
             $service->save($model, ['title' => '编辑'], static fn () => null);

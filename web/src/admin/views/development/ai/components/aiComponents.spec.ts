@@ -161,10 +161,15 @@ describe('AI Development components', () => {
     await wrapper.get('[data-testid="provider-clear-key"] input').setValue(true);
     await wrapper.get('form').trigger('submit');
     expect(wrapper.emitted('save')?.[0]?.[0]).toHaveProperty('api_key', '');
-    for (const [text, event] of [['复制', 'copy'], ['删除', 'remove'], ['设为默认', 'default'], ['获取模型', 'models']]) {
+    for (const [text, event] of [['复制', 'copy'], ['删除', 'remove'], ['设为默认', 'default']]) {
       await wrapper.findAll('button').find(button => button.text() === text)!.trigger('click');
       expect(wrapper.emitted(event)?.[0]).toEqual([3]);
     }
+    // 获取模型：已保存 ID + 当前表单里的连接参数（未保存的地址也能用于发现模型）。
+    await wrapper.findAll('button').find(button => button.text() === '获取模型')!.trigger('click');
+    const [modelsId, modelsPayload] = wrapper.emitted('models')![0] as [number, Record<string, unknown>];
+    expect(modelsId).toBe(3);
+    expect(modelsPayload).toMatchObject({ base_url: 'https://example.com/v1' });
     await wrapper.setProps({ busy: true } as never);
     expect(wrapper.get('[data-testid="profile-test"]').attributes('disabled')).toBeDefined();
     expect(wrapper.get('[data-testid="fallback-enabled"] input').attributes('disabled')).toBeDefined();

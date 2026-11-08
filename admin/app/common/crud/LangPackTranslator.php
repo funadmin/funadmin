@@ -54,7 +54,7 @@ final class LangPackTranslator
                     'proxy' => '',
                 ]), $config);
             $reply = $gateway->chat([
-                ['role' => 'system', 'content' => '你是软件界面翻译器。把用户给出的 JSON 对象（key => 中文文案）翻译为英文，原样返回 JSON 对象（key => English）。必须原样保留 {label}、{:target} 等占位符，只输出 JSON，不要解释。'],
+                ['role' => 'system', 'content' => '你是软件界面翻译器。把用户给出的 JSON 对象（key => 中文文案）翻译为英文，原样返回 JSON 对象（key => English）。必须原样保留 {label}、{target} 等占位符，只输出 JSON，不要解释。'],
                 ['role' => 'user', 'content' => json_encode($zhMap, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)],
             ]);
             $content = (string) ($reply['content'] ?? '');

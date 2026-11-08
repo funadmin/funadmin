@@ -32,10 +32,10 @@ final class MySqlCrudGeneratedExecutionTest extends TestCase
             Db::connection()->unprepared(file_get_contents($root . '/' . $data['generationTargets']['migration']));
             self::assertTrue(Db::schema()->hasColumns('crud_generated', ['id', 'title', 'metadata', 'created_at', 'updated_at', 'deleted_at']));
             foreach (['model', 'service', 'validate', 'controller'] as $artifact) require $root . '/' . $data['generationTargets'][$artifact];
-            $request = new Request("POST /admin/generated/mysql-generated HTTP/1.1\r\n\r\n");
+            $request = new Request("POST /admin/business/mysql-generated HTTP/1.1\r\n\r\n");
             $request->setPost(['title' => 'MySQL 新增', 'metadata' => ['safe' => true]]);
             Context::set(\Webman\Http\Request::class, $request);
-            $controller = new \app\admin\controller\generated\MysqlGeneratedController();
+            $controller = new \app\admin\business\mysql_generated\controller\MysqlGeneratedController();
             $created = json_decode($controller->create()->rawBody(), true, 512, JSON_THROW_ON_ERROR);
             self::assertSame(200, $created['code']);
             self::assertSame('MySQL 新增', Db::table('crud_generated')->value('title'));

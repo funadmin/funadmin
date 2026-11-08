@@ -270,13 +270,13 @@ describe('设计器外壳：预览代码与生成', () => {
     await start();
     state.openCodePreview();
     await nextTick();
-    child('[data-code-preview]').vm.$emit('generated', { generationId: 42, state: 'completed', resourceApplyStatus: 'applied', routePath: '/generated/orders' });
+    child('[data-code-preview]').vm.$emit('generated', { generationId: 42, state: 'completed', resourceApplyStatus: 'applied', routePath: '/business/orders' });
     await nextTick();
     expect(state.businessTarget.locked).toBe(true);
     await action('open-runtime').trigger('click');
     await flushPromises();
     expect(menu.refreshBusinessMenu).toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledWith('/generated/orders');
+    expect(router.push).toHaveBeenCalledWith('/business/orders');
   });
 });
 

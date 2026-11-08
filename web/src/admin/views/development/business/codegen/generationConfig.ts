@@ -2,7 +2,7 @@ import type { FormDefinition, FormPublishConfig } from '@/api/form';
 
 /** 与后端 FormCrudDefinitionFactory::config 的默认值一致。 */
 export const DEFAULT_PUBLISH_CONFIG: FormPublishConfig = {
-  module: 'generated', apiPrefix: '', routePath: '', menuEnabled: true, parentId: null,
+  module: 'business', apiPrefix: '', routePath: '', menuEnabled: true, parentId: null,
   parentSourceName: '', menuName: '', icon: 'i-ep-document', sortOrder: 999,
   softDeletes: true, batchDelete: true, import: true, export: true, formMode: 'dialog',
   dataScopeEnabled: false, dataScopeField: '', memberApiEnabled: false, memberApiOwnerField: 'member_id'
@@ -31,7 +31,7 @@ export const classNameOf = (formKey: string): string => studly(entityOf(formKey)
  */
 export const derivedPermissionCodes = (formKey: string, config: FormPublishConfig, pluginCode: string | null | undefined): string[] => {
   const resource = kebab(classNameOf(formKey));
-  const module = pluginCode || 'generated';
+  const module = pluginCode || 'business';
   const actions = ['index', 'detail', 'create', 'update', 'remove'];
   if (config.softDeletes) actions.push('restore', 'destroy');
   if (config.batchDelete) actions.push('recycle');
@@ -48,8 +48,8 @@ export const publishConfigOf = (form: Pick<FormDefinition, 'form_key' | 'name' |
   return {
     ...DEFAULT_PUBLISH_CONFIG,
     ...stored,
-    apiPrefix: stored.apiPrefix || `/generated/${entity}`,
-    routePath: stored.routePath || `/generated/${entity}`,
+    apiPrefix: stored.apiPrefix || `/business/${entity}`,
+    routePath: stored.routePath || `/business/${entity}`,
     menuName: stored.menuName || String(form.name || entity)
   };
 };

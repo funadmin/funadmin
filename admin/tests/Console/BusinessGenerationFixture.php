@@ -48,7 +48,7 @@ final class BusinessGenerationFixture
         $generation = Db::table('crud_generation')->insertGetId([
             'business_module_id' => $module, 'operation_key' => 'managed:' . bin2hex(random_bytes(32)),
             'status' => 'planned', 'definition_hash' => str_repeat('a', 64),
-            'definition' => json_encode(['routePath' => '/generated/console-recovery', 'formSchemaHash' => str_repeat('b', 64)], JSON_THROW_ON_ERROR),
+            'definition' => json_encode(['routePath' => '/business/console-recovery', 'formSchemaHash' => str_repeat('b', 64)], JSON_THROW_ON_ERROR),
         ]);
         return [$module, $generation];
     }

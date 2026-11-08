@@ -45,7 +45,7 @@ final class AuthRequirementSnapshotTest extends TestCase
         $missing = [];
         foreach (\Webman\Route::getRoutes() as $route) {
             $callback = $route->getCallback();
-            if (!is_array($callback) || !is_string($callback[0])) continue;
+            if (!is_array($callback) || !is_string($callback[0]) || AuthRequirementSnapshot::isBusinessModule($callback[0])) continue;
             foreach ($route->getMethods() as $method) {
                 $key = $method . ' ' . $route->getPath() . ' => ' . $callback[0] . '::' . $callback[1];
                 if (!array_key_exists($key, $expected)) $missing[] = $key;

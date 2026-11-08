@@ -54,7 +54,7 @@ final class GeneratedLeftTreePermissionTest extends TestCase
         $this->hostHash = $this->publish(2, 'console_host', ['type' => 'module', 'module' => 'console_tree'], 'tree_id', $actions);
         foreach (['console-tree', 'console-host'] as $resource) {
             foreach (self::ACTS as $act) {
-                Db::table('permission')->insert(['app_name' => 'admin', 'code' => 'generated:' . $resource . ':' . $act, 'obj' => 'generated/' . $resource, 'act' => $act,
+                Db::table('permission')->insert(['app_name' => 'admin', 'code' => 'business:' . $resource . ':' . $act, 'obj' => 'business/' . $resource, 'act' => $act,
                     'name' => $act, 'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'generated', 'source_name' => $resource]);
             }
         }
@@ -160,23 +160,23 @@ final class GeneratedLeftTreePermissionTest extends TestCase
         $service = new FormDataService(permissionChecker: $recording);
 
         $service->leftTree('console_tree');
-        $m = 'generated:console-tree:mutate-left-tree';
-        self::assertSame(['generated:console-tree:left-tree', 'generated:console-tree:index',
-            'generated:console-tree:create', $m, 'generated:console-tree:create', $m, 'generated:console-tree:update', $m, 'generated:console-tree:remove', $m], $checked);
+        $m = 'business:console-tree:mutate-left-tree';
+        self::assertSame(['business:console-tree:left-tree', 'business:console-tree:index',
+            'business:console-tree:create', $m, 'business:console-tree:create', $m, 'business:console-tree:update', $m, 'business:console-tree:remove', $m], $checked);
         $checked = [];
         $service->leftTree('console_host');
-        self::assertSame(['generated:console-tree:index', 'generated:console-tree:create', 'generated:console-tree:create', 'generated:console-tree:update', 'generated:console-tree:remove'], $checked);
+        self::assertSame(['business:console-tree:index', 'business:console-tree:create', 'business:console-tree:create', 'business:console-tree:update', 'business:console-tree:remove'], $checked);
         $checked = [];
         $service->sourceMeta('console_tree');
-        self::assertSame(['generated:console-tree:index'], $checked);
+        self::assertSame(['business:console-tree:index'], $checked);
         $checked = [];
         $service->detail('console_tree', $root, true, $this->treeHash);
-        self::assertSame(['generated:console-tree:detail', 'generated:console-tree:create'], $checked);
+        self::assertSame(['business:console-tree:detail', 'business:console-tree:create'], $checked);
         // 快捷分类（列表动作入口）：来源模块读取与写入同样使用推导码。
         $checked = [];
         (new FormDataService(permissionChecker: $recording, productionBinding: $this->binding()))->listActionCatalog('console_tree', 'categoryToolbar', new FormActionRegistry([]));
-        self::assertSame(['generated:console-tree:list-actions', 'generated:console-tree:index', 'generated:console-tree:index',
-            'generated:console-tree:create', 'generated:console-tree:create', 'generated:console-tree:update', 'generated:console-tree:remove'], array_slice($checked, 0, 7));
+        self::assertSame(['business:console-tree:list-actions', 'business:console-tree:index', 'business:console-tree:index',
+            'business:console-tree:create', 'business:console-tree:create', 'business:console-tree:update', 'business:console-tree:remove'], array_slice($checked, 0, 7));
 
         // 动态运行时（未正式生成）保持 admin/form.data 资源路径检查。
         Db::table('business_module')->update(['lifecycle_status' => 'dynamic_published']);
@@ -232,20 +232,20 @@ final class GeneratedLeftTreePermissionTest extends TestCase
     private function grant(array $grants): void
     {
         $codes = [];
-        foreach ($grants as $resource => $acts) foreach ($acts as $act) $codes[] = 'generated:' . $resource . ':' . $act;
+        foreach ($grants as $resource => $acts) foreach ($acts as $act) $codes[] = 'business:' . $resource . ':' . $act;
         (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', $codes)->pluck('id')->all());
     }
 
     private function actAs(int $id): void
     {
-        $request = new Request("GET /admin/generated/console-tree/left-tree HTTP/1.1\r\n\r\n");
+        $request = new Request("GET /admin/business/console-tree/left-tree HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => $id];
         Context::set(\Webman\Http\Request::class, $request);
     }
 
     private function binding(): array
     {
-        return ['formKey' => 'console_tree', 'schemaHash' => $this->treeHash, 'route' => 'admin/generated.consoletreecontroller',
+        return ['formKey' => 'console_tree', 'schemaHash' => $this->treeHash, 'route' => 'admin/business.consoletreecontroller',
             'table' => Db::connection()->getTablePrefix() . 'console_tree', 'connection' => (string) config('database.default')];
     }
 

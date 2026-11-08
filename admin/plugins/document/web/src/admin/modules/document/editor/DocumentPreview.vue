@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { JSONContent } from '@tiptap/core';
 import DOMPurify from 'dompurify';
 import { exportDocumentHtml } from './content';
+import { nextMermaidId } from './mermaidId';
 
 const props = defineProps<{ content: JSONContent | null }>();
 const root = ref<HTMLElement>();
@@ -18,11 +19,11 @@ async function renderMermaid() {
   const { default: mermaid } = await import('mermaid');
   // htmlLabels:false 让节点文字用 SVG <text> 绘制；HTML 标签在 <foreignObject> 里，会被 SVG 净化整体移除。
   mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', htmlLabels: false, flowchart: { htmlLabels: false } });
-  for (const [index, block] of Array.from(blocks).entries()) {
+  for (const block of Array.from(blocks)) {
     if (token !== renderToken) return;
     const source = block.querySelector('code')?.textContent ?? '';
     try {
-      const { svg } = await mermaid.render(`doc-mermaid-${token}-${index}`, source);
+      const { svg } = await mermaid.render(nextMermaidId(), source);
       if (token !== renderToken) return;
       block.innerHTML = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } });
     } catch {

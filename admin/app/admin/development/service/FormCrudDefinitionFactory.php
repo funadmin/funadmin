@@ -110,7 +110,7 @@ final class FormCrudDefinitionFactory
             'timestamps' => !$adopted || (isset($schemaColumns['created_at']) && isset($schemaColumns['updated_at'])),
             'softDeletes' => (bool) $config['softDeletes'] && (!$adopted || isset($schemaColumns['deleted_at'])),
             'generationTargets' => $this->targets($entity, $class, $memberApi, $relationModels, $customActions),
-            'permissionPrefix' => 'generated:' . $entity,
+            'permissionPrefix' => 'business:' . $entity,
             'fields' => $fields,
             'relations' => $relations,
             'optionsSource' => array_values($optionSources),
@@ -159,7 +159,7 @@ final class FormCrudDefinitionFactory
         $data['routePath'] = '/plugin/' . $plugin . '/' . $entity;
         $data['permissionPrefix'] = $plugin . ':' . $entity;
         // 关联模型随模型层迁入插件命名空间。
-        $coreModels = 'app\\admin\\generated\\' . str_replace('-', '_', $entity) . '\\model\\';
+        $coreModels = 'app\\admin\\business\\' . str_replace('-', '_', $entity) . '\\model\\';
         foreach ($data['relations'] as &$relation) {
             if (str_starts_with((string) ($relation['modelClass'] ?? ''), $coreModels)) {
                 $relation['modelClass'] = 'app\\admin\\plugins\\' . $plugin . '\\model\\' . substr($relation['modelClass'], strlen($coreModels));
@@ -284,7 +284,7 @@ final class FormCrudDefinitionFactory
      */
     private function relationModels(array $relations, string $table, string $entity, string $class, string $prefix): array
     {
-        $namespace = 'app\\admin\\generated\\' . str_replace('-', '_', $entity) . '\\model';
+        $namespace = 'app\\admin\\business\\' . str_replace('-', '_', $entity) . '\\model';
         $models = [];
         foreach ($relations as &$relation) {
             if ($this->logicalTable((string) $relation['targetTable'], $prefix) === $this->logicalTable($table, $prefix)) {
@@ -303,7 +303,7 @@ final class FormCrudDefinitionFactory
     {
         $stored = is_array($form['publish_config'] ?? null) ? $form['publish_config'] : [];
         $resolved = array_replace([
-            'module' => 'generated', 'apiPrefix' => '/generated/' . $entity, 'routePath' => '/generated/' . $entity,
+            'module' => 'business', 'apiPrefix' => '/business/' . $entity, 'routePath' => '/business/' . $entity,
             'menuEnabled' => true, 'parentId' => null, 'parentSourceName' => '',
             'menuName' => (string) ($form['name'] ?? $entity), 'icon' => 'i-ep-document', 'sortOrder' => 999,
             'softDeletes' => true, 'batchDelete' => true, 'import' => true, 'export' => true, 'formMode' => 'dialog',
@@ -311,7 +311,7 @@ final class FormCrudDefinitionFactory
             'memberApiEnabled' => false, 'memberApiOwnerField' => 'member_id',
         ], $stored, $config);
         // 动态发布允许保留空配置；正式生成须恢复派生默认值，不放宽非空值校验。
-        foreach (['apiPrefix' => '/generated/' . $entity, 'routePath' => '/generated/' . $entity, 'menuName' => (string) ($form['name'] ?? $entity)] as $key => $default) {
+        foreach (['apiPrefix' => '/business/' . $entity, 'routePath' => '/business/' . $entity, 'menuName' => (string) ($form['name'] ?? $entity)] as $key => $default) {
             if ($resolved[$key] === '') $resolved[$key] = $default;
         }
         return $resolved;
@@ -337,29 +337,29 @@ final class FormCrudDefinitionFactory
     {
         $relationTargets = [];
         foreach ($relationModels as $model) {
-            $relationTargets['relationModel:' . $model] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/model/relation/{$model}.php";
+            $relationTargets['relationModel:' . $model] = "app/admin/business/" . str_replace('-', '_', $entity) . "/model/relation/{$model}.php";
         }
         // 自定义动作：处理方法类与注册清单作为普通生成文件参与预览、三方合并与基线跟踪。
         if ($customActions) {
-            $relationTargets['customActions'] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/action/{$class}Actions.php";
-            $relationTargets['customActionsConfig'] = "app/admin/generated/" . str_replace('-', '_', $entity) . "/config/actions.php";
+            $relationTargets['customActions'] = "app/admin/business/" . str_replace('-', '_', $entity) . "/action/{$class}Actions.php";
+            $relationTargets['customActionsConfig'] = "app/admin/business/" . str_replace('-', '_', $entity) . "/config/actions.php";
         }
-        return ($memberApi ? ['memberApiController' => "app/api/controller/generated/{$class}Controller.php"] : []) + [
-            'migration' => "database/generated/{$entity}.sql",
-            'model' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/model/{$class}.php",
-            'validate' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/validate/{$class}Validate.php",
-            'service' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/service/{$class}Service.php",
-            'controller' => "app/admin/generated/" . str_replace('-', '_', $entity) . "/controller/{$class}Controller.php",
-            'permissionMigration' => "database/generated/{$entity}_permissions.sql",
-            'api' => "web/src/admin/api/generated/{$entity}.ts",
-            'view' => "web/src/admin/views/generated/{$entity}/index.vue",
-            'form' => "web/src/admin/views/generated/{$entity}/components/{$class}Form.vue",
-            'detail' => "web/src/admin/views/generated/{$entity}/components/{$class}Detail.vue",
-            'phpTest' => "tests/generated/{$class}GeneratedTest.php",
-            'vitestTest' => "web/tests/generated/{$entity}.spec.ts",
-            'langMigration' => "database/generated/{$entity}_lang.sql",
-            'langZh' => "app/admin/lang/zh-cn/{$entity}.php",
-            'langEn' => "app/admin/lang/en-us/{$entity}.php",
+        return ($memberApi ? ['memberApiController' => "app/api/controller/business/{$class}Controller.php"] : []) + [
+            'migration' => "database/business/{$entity}.sql",
+            'model' => "app/admin/business/" . str_replace('-', '_', $entity) . "/model/{$class}.php",
+            'validate' => "app/admin/business/" . str_replace('-', '_', $entity) . "/validate/{$class}Validate.php",
+            'service' => "app/admin/business/" . str_replace('-', '_', $entity) . "/service/{$class}Service.php",
+            'controller' => "app/admin/business/" . str_replace('-', '_', $entity) . "/controller/{$class}Controller.php",
+            'permissionMigration' => "database/business/{$entity}_permissions.sql",
+            'api' => "web/src/admin/api/business/{$entity}.ts",
+            'view' => "web/src/admin/views/business/{$entity}/index.vue",
+            'form' => "web/src/admin/views/business/{$entity}/components/{$class}Form.vue",
+            'detail' => "web/src/admin/views/business/{$entity}/components/{$class}Detail.vue",
+            'phpTest' => "tests/business/{$class}GeneratedTest.php",
+            'vitestTest' => "web/tests/business/{$entity}.spec.ts",
+            'langMigration' => "database/business/{$entity}_lang.sql",
+            'langZh' => "app/admin/business/" . str_replace('-', '_', $entity) . "/lang/zh-cn.php",
+            'langEn' => "app/admin/business/" . str_replace('-', '_', $entity) . "/lang/en-us.php",
         ] + $relationTargets;
     }
 

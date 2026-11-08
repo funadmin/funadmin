@@ -52,6 +52,42 @@
       {
         "code": "document:category:tree",
         "name": "查看文档目录"
+      },
+      {
+        "code": "document:document:detail",
+        "name": "查看技术文档详情"
+      },
+      {
+        "code": "document:document:update-meta",
+        "name": "修改技术文档信息"
+      },
+      {
+        "code": "document:document:archive",
+        "name": "归档技术文档"
+      },
+      {
+        "code": "document:document:revisions",
+        "name": "查看技术文档版本历史"
+      },
+      {
+        "code": "document:document:revision",
+        "name": "查看技术文档历史版本内容"
+      },
+      {
+        "code": "document:document:restore",
+        "name": "恢复技术文档历史版本"
+      },
+      {
+        "code": "document:category:create",
+        "name": "新建文档目录"
+      },
+      {
+        "code": "document:category:update",
+        "name": "修改文档目录"
+      },
+      {
+        "code": "document:category:delete",
+        "name": "删除文档目录"
       }
     ],
     "menu": [

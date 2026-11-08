@@ -14,22 +14,45 @@ final class BundledLanguageTest extends TestCase
         $expected = json_decode((string) file_get_contents(__DIR__.'/fixtures/legacy-language-messages.json'), true);
         $catalogues = [];
         foreach (['zh-cn', 'en-us'] as $locale) {
-            $catalogues[$locale] = array_replace(require app_path("admin/lang/$locale/messages.php"), require app_path("common/lang/$locale/messages.php"));
+            $catalogues[$locale] = require app_path("common/lang/$locale/messages.php");
         }
         ksort($expected);
         ksort($catalogues['zh-cn']);
         ksort($catalogues['en-us']);
         self::assertSame($expected, $catalogues['zh-cn']);
         self::assertSame(array_keys($catalogues['zh-cn']), array_keys($catalogues['en-us']));
-        $catalogues['zh-cn'] += (require app_path('admin/lang/zh-cn/i18n-demo.php'))['i18n-demo'];
-        $catalogues['en-us'] += (require app_path('admin/lang/en-us/i18n-demo.php'))['i18n-demo'];
+        // 模块语言包（业务模块、插件各自的 lang/<语言>.php）与公共包同样要求中英键与占位符一致。
+        $modules = array_merge(glob(app_path('admin/business/*/lang/zh-cn.php')) ?: [], glob(app_path('admin/plugins/*/lang/zh-cn.php')) ?: []);
+        self::assertNotEmpty($modules);
+        foreach ($modules as $zhFile) {
+            $enFile = dirname($zhFile) . '/en-us.php';
+            self::assertFileExists($enFile);
+            foreach ((require $zhFile) as $group => $messages) {
+                foreach ($messages as $key => $value) $catalogues['zh-cn']["$group.$key"] = $value;
+            }
+            foreach ((require $enFile) as $group => $messages) {
+                foreach ($messages as $key => $value) $catalogues['en-us']["$group.$key"] = $value;
+            }
+        }
+        self::assertSame(array_keys($catalogues['zh-cn']), array_keys($catalogues['en-us']));
         foreach ($catalogues['zh-cn'] as $key => $value) {
-            preg_match_all('/%[a-z]|\{:[^}]+\}/', $value, $zh);
-            preg_match_all('/%[a-z]|\{:[^}]+\}/', $catalogues['en-us'][$key], $en);
+            preg_match_all('/%[a-z]|\{[a-z_]+\}/', $value, $zh);
+            preg_match_all('/%[a-z]|\{[a-z_]+\}/', $catalogues['en-us'][$key], $en);
             self::assertSame($zh[0], $en[0], $key);
             self::assertDoesNotMatchRegularExpression('/[\x{4e00}-\x{9fff}]/u', $catalogues['en-us'][$key], $key);
         }
     }
+    public function test_module_language_packs_live_with_their_module_and_are_loaded_automatically(): void
+    {
+        self::assertDirectoryDoesNotExist(app_path('admin/lang'), '模块消息跟随模块，公共消息只在 common/lang');
+        $middleware = new LoadLangPackMiddleware();
+        foreach (['zh-cn' => '记录仍被 fun_x.order_id 引用，无法删除', 'en-us' => 'The record is still referenced by fun_x.order_id and cannot be deleted'] as $locale => $expected) {
+            $middleware->process(new Request("GET /?locale=$locale HTTP/1.1\r\n\r\n"), static fn () => new Response(204));
+            self::assertSame($expected, trans('order.referenced', ['{target}' => 'fun_x.order_id']), $locale);
+            self::assertNotSame('AuthName', trans('AuthName'), '公共包仍然可用');
+        }
+    }
+
     public function test_requests_do_not_accumulate_resources_and_nested_keys_translate(): void
     {
         $middleware = new LoadLangPackMiddleware();
@@ -59,7 +82,8 @@ final class BundledLanguageTest extends TestCase
                 \app\common\service\translation\GeneratedLanguagePacks::register($translator, [$path]);
                 self::assertSame('Custom label', $translator->trans('entity.label'));
                 $resources = (new \ReflectionProperty($translator, 'resources'))->getValue($translator);
-                self::assertCount(1, $resources['en-us']);
+                // 重复注册不累积；模块语言包另外注册，这里只统计自定义路径的资源。
+                self::assertCount(1, array_filter($resources['en-us'], static fn (array $resource): bool => str_starts_with((string) $resource[1], $path)));
             }
         } finally {
             unlink($path.'/en-us/entity.php');

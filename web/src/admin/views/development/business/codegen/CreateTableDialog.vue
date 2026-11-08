@@ -160,7 +160,7 @@ const tableType = ref<'normal' | 'tree'>('normal');
 const kind = ref<TargetKind>(selected.value ? 'plugin' : 'core');
 
 const targetCards = computed(() => [
-  { kind: 'core' as const, title: t('business.codegen.create.targetCore', '核心后台'), description: t('business.codegen.create.targetCoreHelp', '代码生成到 app/admin/generated，可动态发布') },
+  { kind: 'core' as const, title: t('business.codegen.create.targetCore', '核心后台'), description: t('business.codegen.create.targetCoreHelp', '代码生成到 app/admin/business，可动态发布') },
   { kind: 'plugin' as const, title: t('business.codegen.create.targetPlugin', '插件'), description: t('business.codegen.create.targetPluginHelp', '生成到插件目录，安装／更新后生效') }
 ]);
 const pluginCandidates = computed(() => candidates.value.filter((item) => item.type === 'plugin'));

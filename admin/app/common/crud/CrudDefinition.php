@@ -45,8 +45,8 @@ final class CrudDefinition implements JsonSerializable
             $class = self::studly($entity);
             foreach (['model' => '', 'validate' => 'Validate', 'service' => 'Service', 'controller' => 'Controller'] as $layer => $suffix) {
                 $file = $class . $suffix . '.php';
-                if (!isset($paths[$layer]) || $paths[$layer] === 'app/admin/' . $layer . '/generated/' . $file) {
-                    $paths[$layer] = 'app/admin/generated/' . str_replace('-', '_', $entity) . '/' . $layer . '/' . $file;
+                if (!isset($paths[$layer])) {
+                    $paths[$layer] = 'app/admin/business/' . str_replace('-', '_', $entity) . '/' . $layer . '/' . $file;
                 }
             }
             $data['generationTargets'] = $paths;
@@ -68,7 +68,7 @@ final class CrudDefinition implements JsonSerializable
             static fn (mixed $field): bool => is_array($field) && ($field['primary'] ?? false) === true
         ));
         $data['connection'] ??= (string) (($data['metadata']['connection'] ?? 'mysql'));
-        $data['module'] ??= 'generated';
+        $data['module'] ??= 'business';
         $data['entity'] ??= (string) ($data['name'] ?? '');
         $data['apiPrefix'] ??= (string) ($data['routePath'] ?? '');
         $data['routePath'] ??= (string) $data['apiPrefix'];
@@ -91,11 +91,12 @@ final class CrudDefinition implements JsonSerializable
         $entity = (string) $data['entity'];
         $class = self::studly($entity);
         if (!$isPlugin && is_array($data['generationTargets'])) {
-            $data['generationTargets']['phpTest'] ??= "tests/generated/{$class}GeneratedTest.php";
-            $data['generationTargets']['vitestTest'] ??= "web/tests/generated/{$entity}.spec.ts";
-            $data['generationTargets']['langMigration'] ??= "database/generated/{$entity}_lang.sql";
-            $data['generationTargets']['langZh'] ??= "app/admin/lang/zh-cn/{$entity}.php";
-            $data['generationTargets']['langEn'] ??= "app/admin/lang/en-us/{$entity}.php";
+            $data['generationTargets']['phpTest'] ??= "tests/business/{$class}GeneratedTest.php";
+            $data['generationTargets']['vitestTest'] ??= "web/tests/business/{$entity}.spec.ts";
+            $data['generationTargets']['langMigration'] ??= "database/business/{$entity}_lang.sql";
+            // 后端语言包跟随模块：app/admin/business/<模块>/lang/<语言>.php，由 GeneratedLanguagePacks 自动发现。
+            $data['generationTargets']['langZh'] ??= 'app/admin/business/' . str_replace('-', '_', $entity) . '/lang/zh-cn.php';
+            $data['generationTargets']['langEn'] ??= 'app/admin/business/' . str_replace('-', '_', $entity) . '/lang/en-us.php';
         }
         if (!$isPlugin && is_array($data['templates'] ?? null)) {
             $data['templates']['phpTest'] ??= 'tests/php-test.php.tpl';
@@ -200,7 +201,7 @@ final class CrudDefinition implements JsonSerializable
         $append($softDelete && ($features['batchDelete'] ?? false), 'destroyMany', 'batch-destroy', '批量永久删除');
         $append($enabled('import') && ($features['import'] ?? false), 'import', 'import', '导入');
         $append($enabled('export') && ($features['export'] ?? false), 'export', 'export', '导出');
-        // 设计器自定义动作：每个动作一条权限（generated:{实体}:action-{kebab}），经列表动作宿主执行。
+        // 设计器自定义动作：每个动作一条权限（business:{实体}:action-{kebab}），经列表动作宿主执行。
         $custom = is_array($data['list'] ?? null) && is_array($data['list']['customActions'] ?? null) ? $data['list']['customActions'] : [];
         foreach ($custom as $action) {
             if (!is_array($action) || !is_string($action['key'] ?? null)) continue;

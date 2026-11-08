@@ -45,14 +45,14 @@ final class LoadLangPackContractTest extends TestCase
     {
         \Webman\Middleware::load(require dirname(__DIR__) . '/config/middleware.php');
         (new \ReflectionProperty(\Webman\App::class, 'logger'))->setValue(null, new \Psr\Log\NullLogger());
-        $callback = \Webman\App::getCallback('', '', static fn ($request): Response => new Response(200, [], trans('i18n-demo.referenceMetadataInvalid')), [], true);
+        $callback = \Webman\App::getCallback('', '', static fn ($request): Response => new Response(200, [], trans('order.referenceMetadataInvalid')), [], true);
         foreach (['zh-cn', 'en-us', 'zh-cn'] as $locale) {
             $request = new Request("GET /translation-probe HTTP/1.1\r\nX-Locale: $locale\r\n\r\n");
             \support\Context::set(\Webman\Http\Request::class, $request);
             $response = $callback($request);
             self::assertSame(200, $response->getStatusCode());
             self::assertContains('locale=' . $locale . '; Max-Age=31536000; Path=/; SameSite=Lax', $response->getHeaders()['Set-Cookie'] ?? []);
-            self::assertSame($locale === 'zh-cn' ? '数据库引用元数据包含非法标识符' : 'Reference metadata invalid', $response->rawBody());
+            self::assertSame($locale === 'zh-cn' ? '数据库引用元数据包含非法标识符' : 'Database reference metadata contains an invalid identifier', $response->rawBody());
         }
         \support\Context::destroy();
     }
@@ -61,8 +61,7 @@ final class LoadLangPackContractTest extends TestCase
     {
         $config = require dirname(__DIR__) . '/config/translation.php';
         self::assertSame('zh-cn', $config['locale']);
-        self::assertContains(app_path('admin/lang'), (array) $config['path']);
-        self::assertContains(app_path('common/lang'), (array) $config['path']);
+        self::assertSame([app_path('common/lang')], (array) $config['path'], '公共语言包只有一处；模块语言包由 GeneratedLanguagePacks 按模块目录发现');
         self::assertNotContains(base_path() . '/resource/translations', (array) $config['path']);
     }
 
@@ -89,7 +88,7 @@ final class LoadLangPackContractTest extends TestCase
         $request = new Request("GET /health?locale=zh_CN HTTP/1.1\r\n\r\n");
         (new LoadLangPackMiddleware())->process($request, static fn (): Response => new Response(204));
 
-        self::assertSame('数据库引用元数据包含非法标识符', trans('i18n-demo.referenceMetadataInvalid'));
+        self::assertSame('数据库引用元数据包含非法标识符', trans('order.referenceMetadataInvalid'));
     }
 
     public function test_middleware_selects_locale_and_writes_a_javascript_readable_cookie(): void

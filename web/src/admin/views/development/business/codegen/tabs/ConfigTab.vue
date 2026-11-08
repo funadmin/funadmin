@@ -168,7 +168,7 @@ const target = computed(() => props.module?.metadata?.target);
 const pluginTarget = computed(() => target.value?.type === 'plugin');
 const targetLabel = computed(() => target.value?.type === 'plugin'
   ? t('business.codegen.edit.targetPlugin', { code: target.value.pluginCode ?? '' }, '插件 {code}')
-  : t('business.codegen.edit.targetCore', '核心（app/admin/generated）'));
+  : t('business.codegen.edit.targetCore', '核心（app/admin/business）'));
 const memberApiPath = computed(() => {
   const entity = entityOf(formKey.value);
   return target.value?.type === 'plugin' && target.value.pluginCode ? `/${target.value.pluginCode}/${entity}` : `/api/v2/${entity}`;

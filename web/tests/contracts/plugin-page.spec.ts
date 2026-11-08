@@ -92,8 +92,11 @@ describe('插件中心页面契约', () => {
 
   it('生命周期动作后立即同步动态插件路由', () => {
     expect(page).toContain("import { loadPluginModulesSafely } from '@/router/pluginStartup'");
+    // 生命周期动作可直接调用 syncPluginRoutes()，或经由先同步路由再刷新列表的 refreshPluginRoutesAndList。
+    expect(page).toMatch(/async function refreshPluginRoutesAndList\(\)\s*\{\s*await syncPluginRoutes\(\);/);
     for (const operation of ['operate', 'updatePlugin', 'uninstall']) {
-      expect(page.match(new RegExp(`async function ${operation}\\([\\s\\S]*?syncPluginRoutes\\(\\)`))?.[0]).toBeTruthy();
+      const body = page.match(new RegExp(`async function ${operation}\\([^\\n]*`))?.[0] ?? '';
+      expect(body, operation).toMatch(/syncPluginRoutes\(\)|refreshPluginRoutesAndList\b/);
     }
   });
 

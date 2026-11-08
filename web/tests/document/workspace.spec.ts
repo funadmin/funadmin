@@ -6,9 +6,9 @@ const api = vi.hoisted(() => ({
   tree: vi.fn(), list: vi.fn(), detail: vi.fn(), saveDraft: vi.fn(), publish: vi.fn(),
   archive: vi.fn(), restore: vi.fn(), remove: vi.fn(), create: vi.fn(), revisions: vi.fn(), revision: vi.fn(), updateMeta: vi.fn()
 }));
-const perms = vi.hoisted(() => ({ granted: ['document:doc:view', 'document:doc:edit', 'document:doc:publish'] as string[] }));
+const perms = vi.hoisted(() => ({ granted: ['document:document:index', 'document:document:detail', 'document:document:create', 'document:document:update-meta', 'document:document:save-draft', 'document:document:publish', 'document:document:archive', 'document:document:restore'] as string[] }));
 vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/api', () => ({ documentApi: api }));
-vi.mock('@/utils/permission', () => ({ hasPermission: (code: string) => perms.granted.includes(code) }));
+vi.mock('@/utils/permission', () => ({ hasPermission: (code: string | string[]) => (Array.isArray(code) ? code : [code]).some((c) => perms.granted.includes(c)) }));
 // 编辑器/预览依赖真实 DOM 排版，在组件测试里用占位替代，单独由内容测试覆盖。
 vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentEditor.vue', () => ({ default: { name: 'DocumentEditor', props: ['modelValue', 'editable'], template: '<div class="stub-editor" />' } }));
 vi.mock('../../../admin/plugins/document/web/src/admin/modules/document/editor/DocumentPreview.vue', () => ({ default: { name: 'DocumentPreview', props: ['content'], template: '<div class="stub-preview" />' } }));
@@ -32,7 +32,9 @@ const stubs = {
   'el-radio-button': { props: ['value'], template: '<button class="mode" :data-mode="value" @click="$parent.$emit(\'update:modelValue\', value)"><slot /></button>' },
   'el-empty': { props: ['description'], template: '<div class="empty">{{ description }}</div>' },
   'el-alert': { props: ['title'], template: '<div class="alert">{{ title }}<slot /></div>' },
-  'el-pagination': true, 'el-drawer': true, 'el-dialog': true, 'el-select': true, 'el-option': true, 'el-form': true, 'el-form-item': true
+  'el-select': { props: ['modelValue'], emits: ['update:modelValue', 'change'], template: '<select class="status-filter" :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value); $emit(\'change\', $event.target.value)"><slot /></select>' },
+  'el-option': { props: ['value', 'label'], template: '<option :value="value">{{ label }}</option>' },
+  'el-pagination': true, 'el-drawer': true, 'el-dialog': true, 'el-form': true, 'el-form-item': true
 };
 
 const mountPage = async () => {
@@ -48,7 +50,7 @@ describe('文档工作台', () => {
     api.tree.mockResolvedValue(tree);
     api.list.mockResolvedValue({ list: [row(), row({ id: 2, title: '权限模型', scope: 'framework', status: 'draft' })], total: 2, page: 1, pageSize: 20 });
     api.detail.mockResolvedValue({ ...row(), content: doc, plainText: '正文' });
-    perms.granted = ['document:doc:view', 'document:doc:edit', 'document:doc:publish'];
+    perms.granted = ['document:document:index', 'document:document:detail', 'document:document:create', 'document:document:update-meta', 'document:document:save-draft', 'document:document:publish', 'document:document:archive', 'document:document:restore'];
   });
 
   it('左栏显示四类范围和目录树，中栏显示文档列表', async () => {
@@ -101,7 +103,7 @@ describe('文档工作台', () => {
   });
 
   it('只有查看权限时不显示新建、保存和发布，并且编辑器只读', async () => {
-    perms.granted = ['document:doc:view'];
+    perms.granted = ['document:document:index', 'document:document:detail'];
     const wrapper = await mountPage();
     await wrapper.find('[data-doc-id="1"]').trigger('click');
     await flushPromises();
@@ -118,5 +120,21 @@ describe('文档工作台', () => {
     api.list.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
     const wrapper = await mountPage();
     expect(wrapper.find('.empty').text()).toContain('暂无文档');
+  });
+
+  it('默认不含归档文档，可通过状态筛选查看已归档', async () => {
+    const wrapper = await mountPage();
+    await wrapper.find('select.status-filter').setValue('archived');
+    await flushPromises();
+    expect(api.list).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'archived', page: 1 }));
+  });
+
+  it('有目录管理权限时显示管理目录入口', async () => {
+    perms.granted = ['document:document:index', 'document:category:create'];
+    const wrapper = await mountPage();
+    expect(wrapper.find('[data-testid="manage-categories"]').exists()).toBe(true);
+    perms.granted = ['document:document:index'];
+    const viewer = await mountPage();
+    expect(viewer.find('[data-testid="manage-categories"]').exists()).toBe(false);
   });
 });

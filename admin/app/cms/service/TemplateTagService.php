@@ -45,10 +45,13 @@ final class TemplateTagService
         $registry=(new BuiltinTags())->registry(new RenderContext($siteId,$locale?:'zh-cn'));
         $registry->alias($name,$provider,$input['parameters']??[],(string)($input['template_fragment']??''));
         $fragment=Input::text($input['template_fragment']??'',60000);if(str_contains($fragment,'<?'))throw new InvalidArgumentException('标签片段不允许 PHP');
-        return Db::transaction(function()use($siteId,$locale,$input,$adminId,$name,$provider,$fragment): array {
+        // 备注说明标签用途，属于标签本身而非某个版本；未提交时保留原备注。
+        $remark=array_key_exists('remark',$input)?Input::text($input['remark'],255):null;
+        return Db::transaction(function()use($siteId,$locale,$input,$adminId,$name,$provider,$fragment,$remark): array {
             $old=empty($input['id'])?Db::table('cms_template_tag')->where('site_id',$siteId)->where('locale',$locale)->where('name',$name)->whereNull('deleted_at')->lockForUpdate()->first():Db::table('cms_template_tag')->where('site_id',$siteId)->where('locale',$locale)->where('id',Input::id($input['id']))->whereNull('deleted_at')->lockForUpdate()->first();
             if(!empty($input['id'])&&!$old)throw new InvalidArgumentException('标签不存在',404);if($old&&$old->name!==$name)throw new InvalidArgumentException('标签名不可修改');$now=Input::now();
-            if($old)$id=(string)$old->id;else $id=(string)Db::table('cms_template_tag')->insertGetId(['site_id'=>$siteId,'locale'=>$locale,'name'=>$name,'current_version'=>0,'status'=>1,'created_at'=>$now,'updated_at'=>$now]);
+            if($old){$id=(string)$old->id;if($remark!==null)Db::table('cms_template_tag')->where('id',$id)->update(['remark'=>$remark,'updated_at'=>$now]);}
+            else $id=(string)Db::table('cms_template_tag')->insertGetId(['site_id'=>$siteId,'locale'=>$locale,'name'=>$name,'remark'=>$remark??'','current_version'=>0,'status'=>1,'created_at'=>$now,'updated_at'=>$now]);
             $version=(int)Db::table('cms_template_tag_version')->where('tag_id',$id)->max('version')+1;
             Db::table('cms_template_tag_version')->insert(['tag_id'=>$id,'version'=>$version,'provider'=>$provider,'parameters'=>Input::json($input['parameters']??[]),'template_fragment'=>$fragment,'created_by'=>Input::id($adminId),'created_at'=>$now]);
             return Input::row(Db::table('cms_template_tag')->where('id',$id)->first())+['draft_version'=>$version];

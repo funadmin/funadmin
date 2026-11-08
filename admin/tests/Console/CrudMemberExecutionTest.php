@@ -100,7 +100,7 @@ final class CrudMemberExecutionTest extends TestCase
             $file = tempnam(sys_get_temp_dir(), 'funadmin-member-'); $this->files[] = $file;
             file_put_contents($file, $context[$key]); require $file;
         }
-        $class = 'app\\api\\controller\\generated\\ConsoleMemberController';
+        $class = 'app\\api\\controller\\business\\ConsoleMemberController';
         $reflection = new \ReflectionClass($class);
         self::assertTrue($reflection->isSubclassOf(\app\common\controller\ApiController::class), '生成的会员控制器继承 ApiController');
         self::assertSame([], $reflection->getAttributes(\support\annotation\Middleware::class), '不再直接挂中间件');
@@ -119,7 +119,7 @@ final class CrudMemberExecutionTest extends TestCase
         self::assertSame(200, $created['code'], $response->rawBody());
         $id = $created['data']['id'];
         self::assertSame(1, Db::table('console_member')->where('id', $id)->value('member_id'));
-        $other = \app\admin\model\generated\ConsoleMember::create(['title' => '其他会员', 'member_id' => 2]);
+        $other = \app\admin\business\console_member\model\ConsoleMember::create(['title' => '其他会员', 'member_id' => 2]);
         $controller = new $class();
         self::assertSame(1, json_decode($controller->index()->rawBody(), true)['data']['total']);
         $request->setPost(['title' => '企图越权', 'member_id' => 1]);
@@ -133,8 +133,8 @@ final class CrudMemberExecutionTest extends TestCase
         foreach (['restore', 'destroy', 'export', 'import', 'status'] as $method) self::assertFalse($reflection->getMethod($method)->isPublic());
 
         // 生成的会员接口可用 #[NoNeedLogin] 公开，但游客仍看不到任何会员数据（memberId() 返回 -1）。
-        $guestClass = 'app\\api\\controller\\generated\\GuestProbeController';
-        eval('namespace app\\api\\controller\\generated; final class GuestProbeController extends \\app\\common\\controller\\ApiController {
+        $guestClass = 'app\\api\\controller\\business\\GuestProbeController';
+        eval('namespace app\\api\\controller\\business; final class GuestProbeController extends \\app\\common\\controller\\ApiController {
             #[\\app\\common\\annotation\\NoNeedLogin] public function index(): \\support\\Response {
                 $memberId = (int) (request()->member_id ?? 0);
                 return $this->ok(data: ["total" => \\support\\Db::table("console_member")->where("member_id", $memberId > 0 ? $memberId : -1)->count()]);

@@ -21,7 +21,7 @@ final class AdminRouteInventory
         foreach ($files as $file) {
             $relative = str_replace('\\', '/', substr($file->getPathname(), strlen(app_path('admin')) + 1));
             if ($file->getExtension() !== 'php' || !str_contains('/' . $relative, '/controller/')
-                || preg_match('~^(?:controller/(?:generated|plugin/)|plugins/)~', $relative)) {
+                || preg_match('~^(?:controller/plugin/|plugins/|business/)~', $relative)) {
                 continue;
             }
             $nodes = $parser->parse(file_get_contents($file->getPathname())) ?? [];

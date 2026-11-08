@@ -72,4 +72,20 @@ final class DocumentConcurrencyTest extends DocumentTestCase
         $documents->updateMeta($doc['id'], ['title' => '新标题']);
         self::assertSame(2, $versions->saveDraft($doc['id'], $this->doc('正文'), 1)['lockVersion']);
     }
+
+    public function test_metadata_update_with_a_stale_meta_version_is_409(): void
+    {
+        $documents = new DocumentService();
+        $doc = $documents->create(['title' => '原标题', 'slug' => 'meta', 'scope' => 'framework']);
+        self::assertSame(1, $doc['metaVersion']);
+        $first = $documents->updateMeta($doc['id'], ['title' => '甲改的标题', 'metaVersion' => 1]);
+        self::assertSame(2, $first['metaVersion']);
+        try {
+            $documents->updateMeta($doc['id'], ['title' => '乙基于旧数据改的', 'metaVersion' => 1]);
+            self::fail('旧 metaVersion 必须冲突');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame(409, $e->getCode());
+        }
+        self::assertSame('甲改的标题', $documents->find($doc['id'])['title']);
+    }
 }

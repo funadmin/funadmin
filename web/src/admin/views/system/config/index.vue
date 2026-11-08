@@ -23,7 +23,7 @@
       </template>
       <template #toolbar-left>
         <el-button type="primary" plain v-perm="'system:config:create'" @click="openAdd"><i class="i-ep-plus" /> {{ t('systemConfig.addConfig', '新增配置') }}</el-button>
-        <el-button type="info" plain v-perm="'system:config:groups'" @click="groupDrawer = true"><i class="i-ep-folder" /> {{ t('systemConfig.configGroups', '配置分组') }}</el-button>
+        <el-button type="warning" plain v-perm="'system:config:groups'" @click="groupDrawer = true"><i class="i-ep-folder" /> {{ t('systemConfig.configGroups', '配置分组') }}</el-button>
         <el-button type="danger" plain :disabled="!deletableSelection.length" v-perm="'system:config:delete'" @click="removeSelected"><i class="i-ep-delete" /> {{ t('common.remove', '删除') }}{{ deletableSelection.length ? `(${deletableSelection.length})` : '' }}</el-button>
       </template>
       <template #default="{ size, stripe, border, headerCellStyle }">

@@ -6,9 +6,9 @@ describe('generationConfig', () => {
     expect(classNameOf('shop_goods')).toBe('ShopGoods');
     const base = publishConfigOf({ form_key: 'shop_goods', name: '商品', publish_config: null });
     expect(derivedPermissionCodes('shop_goods', base, null)).toEqual([
-      'generated:shop-goods:index', 'generated:shop-goods:detail', 'generated:shop-goods:create', 'generated:shop-goods:update',
-      'generated:shop-goods:remove', 'generated:shop-goods:restore', 'generated:shop-goods:destroy', 'generated:shop-goods:recycle',
-      'generated:shop-goods:restore-many', 'generated:shop-goods:destroy-many', 'generated:shop-goods:import', 'generated:shop-goods:export'
+      'business:shop-goods:index', 'business:shop-goods:detail', 'business:shop-goods:create', 'business:shop-goods:update',
+      'business:shop-goods:remove', 'business:shop-goods:restore', 'business:shop-goods:destroy', 'business:shop-goods:recycle',
+      'business:shop-goods:restore-many', 'business:shop-goods:destroy-many', 'business:shop-goods:import', 'business:shop-goods:export'
     ]);
     const minimal = { ...base, softDeletes: false, batchDelete: false, import: false, export: false };
     expect(derivedPermissionCodes('shop_goods', minimal, 'demo')).toEqual([
@@ -18,8 +18,8 @@ describe('generationConfig', () => {
 
   it('发布设置补齐与后端一致的派生默认值', () => {
     const config = publishConfigOf({ form_key: 'shop_goods', name: '商品', publish_config: { apiPrefix: '', sortOrder: 10 } });
-    expect(config.apiPrefix).toBe('/generated/shop-goods');
-    expect(config.routePath).toBe('/generated/shop-goods');
+    expect(config.apiPrefix).toBe('/business/shop-goods');
+    expect(config.routePath).toBe('/business/shop-goods');
     expect(config.menuName).toBe('商品');
     expect(config.sortOrder).toBe(10);
     expect(config.softDeletes).toBe(true);

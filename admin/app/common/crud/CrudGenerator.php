@@ -55,7 +55,6 @@ final class CrudGenerator
      */
     public function planManaged(CrudDefinition $definition, array $baselines): array
     {
-        $this->assertLayoutBaselines($definition, $baselines);
         $this->validator->validate($definition, $this->projectRoot);
         $target = (array) $definition->get('target', ['type' => 'core']);
         if (($target['type'] ?? 'core') === 'plugin') {
@@ -91,7 +90,6 @@ final class CrudGenerator
      */
     public function renderManagedBundle(CrudDefinition $definition, array $baselines = []): array
     {
-        $this->assertLayoutBaselines($definition, $baselines);
         $this->validator->validate($definition, $this->projectRoot);
         $target = (array) $definition->get('target', ['type' => 'core']);
         if (($target['type'] ?? 'core') === 'plugin' && ($target['scope'] ?? '') !== 'admin') {
@@ -148,22 +146,6 @@ final class CrudGenerator
                 ['message' => $exception->getMessage()]
             )->toArray();
             throw new GenerationFailedException($exception->getMessage(), $manifest, $exception);
-        }
-    }
-
-    private function assertLayoutBaselines(CrudDefinition $definition, array $baselines): void
-    {
-        if (($definition->get('target')['type'] ?? 'core') !== 'core') return;
-        $legacyPaths = [];
-        foreach ((array) $definition->get('generationTargets', []) as $path) {
-            if (is_string($path) && preg_match('~^app/admin/generated/[a-z][a-z0-9_]*/(model|validate|service|controller)/([A-Za-z][A-Za-z0-9]*\.php)$~D', $path, $generated) === 1) {
-                $legacyPaths['app/admin/' . $generated[1] . '/generated/' . $generated[2]] = true;
-            }
-        }
-        foreach ($baselines as $baseline) {
-            if (is_array($baseline) && isset($legacyPaths[(string) ($baseline['path'] ?? '')])) {
-                throw new InvalidArgumentException('GENERATION_LAYOUT_CONFLICT：历史 baseline 仍指向旧生成目录');
-            }
         }
     }
 

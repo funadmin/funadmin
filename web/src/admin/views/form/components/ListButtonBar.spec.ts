@@ -186,13 +186,13 @@ describe('真实共享按钮组件', () => {
       expect((await run(() => Promise.resolve({ status: 'success', result: { message: 3 } }))).success).toEqual([]);
     });
   });
-  it('动态发布时尚未生成的自定义动作（generated.* 不在运行时目录）显示为禁用并提示「正式生成后可用」，不隐藏、不执行', async () => {
-    vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: {}, pendingKeys: ['generated.orders.approve'] });
+  it('动态发布时尚未生成的自定义动作（business.* 不在运行时目录）显示为禁用并提示「正式生成后可用」，不隐藏、不执行', async () => {
+    vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: {}, pendingKeys: ['business.orders.approve'] });
     const invoke = vi.spyOn(formDataApi, 'listAction');
-    const pending: FormListButton = { id: 'approve', label: '审批', permission: 'generated:orders:action-approve', action: { type: 'registered', key: 'generated.orders.approve', capabilityVersion: '1' } };
+    const pending: FormListButton = { id: 'approve', label: '审批', permission: 'business:orders:action-approve', action: { type: 'registered', key: 'business.orders.approve', capabilityVersion: '1' } };
     const missing: FormListButton = { id: 'other', label: '其他', permission: 'other', action: { type: 'registered', key: 'other', capabilityVersion: '1' } };
     // 权限码在生成前并不存在：宿主权限判断为 false 时待生成按钮仍应可见（禁用）。
-    const wrapper = mount(Bar, { props: { buttons: [pending, missing], handlers: {}, allowed: button => button.id !== 'other' && !button.permission?.startsWith('generated:'), permissionCheck: code => code.startsWith('form:'), context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
+    const wrapper = mount(Bar, { props: { buttons: [pending, missing], handlers: {}, allowed: button => button.id !== 'other' && !button.permission?.startsWith('business:'), permissionCheck: code => code.startsWith('form:'), context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
     await flushPromises();
     const button = wrapper.findAll('button').find(item => item.text() === '审批')!;
     expect(button.attributes('disabled')).toBeDefined();
@@ -203,10 +203,10 @@ describe('真实共享按钮组件', () => {
     wrapper.unmount(); vi.restoreAllMocks();
   });
   it('已正式生成但当前用户无权限的自定义动作（不在 pendingKeys）仍按原规则隐藏，不提示「正式生成后可用」', async () => {
-    // 运行时目录按权限过滤：已生成的 generated.* 键缺席只代表无权限。
+    // 运行时目录按权限过滤：已生成的 business.* 键缺席只代表无权限。
     vi.spyOn(formDataApi, 'listActions').mockResolvedValue({ schemaHash: 'hash', actions: {}, pendingKeys: [] });
-    const generated: FormListButton = { id: 'approve', label: '审批', permission: 'generated:orders:action-approve', action: { type: 'registered', key: 'generated.orders.approve', capabilityVersion: '1' } };
-    const wrapper = mount(Bar, { props: { buttons: [generated], handlers: {}, allowed: button => !button.permission?.startsWith('generated:'), permissionCheck: code => code.startsWith('form:'), context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
+    const generated: FormListButton = { id: 'approve', label: '审批', permission: 'business:orders:action-approve', action: { type: 'registered', key: 'business.orders.approve', capabilityVersion: '1' } };
+    const wrapper = mount(Bar, { props: { buttons: [generated], handlers: {}, allowed: button => !button.permission?.startsWith('business:'), permissionCheck: code => code.startsWith('form:'), context: { formKey: 'orders', schemaHash: 'hash', location: 'row', ids: [1] } }, global: { plugins: [ElementPlus], provide } });
     await flushPromises();
     expect(wrapper.findAll('button').some(item => item.text() === '审批')).toBe(false);
     expect(wrapper.html()).not.toContain('正式生成后可用');

@@ -110,6 +110,22 @@ describe('真实选择控件标签与值语义', () => {
     } finally { wrapper.unmount(); }
   });
 
+  it.each(['selectV2', 'treeSelect', 'cascader'])('%s 回显数据库字符串值对应的选项标签，保留原始值', async (type) => {
+    const wrapper = mount(FormControlRenderer, {
+      props: { field: field(type), modelValue: '1', options: [{ label: '选项一', value: 1 }] },
+      global: { plugins: [ElementPlus] }
+    });
+    try {
+      await flushPromises();
+      if (type === 'cascader') {
+        expect(wrapper.get('input').element.value).toBe('选项一');
+      } else {
+        expect(wrapper.text()).toContain('选项一');
+      }
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    } finally { wrapper.unmount(); }
+  });
+
   it('嵌套分组保留 disabled，主动点击提交选项的原始值', async () => {
     const wrapper = mount(FormControlRenderer, {
       props: { field: field('select'), modelValue: '1', options },

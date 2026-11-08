@@ -59,4 +59,23 @@ final class DocumentSeedTest extends DocumentTestCase
             self::assertSame($data['content'], \app\document\service\ContentValidator::clean($data['content']), basename($file));
         }
     }
+
+    public function test_reseeding_does_not_bring_back_built_ins_an_admin_deleted_or_renamed(): void
+    {
+        $this->seed();
+        $doc = (int) Db::table('documents')->where('slug', 'plugin-development-quick-start')->value('id');
+        (new DocumentService())->delete($doc);
+        Db::table('documents')->where('id', $doc)->delete(); // 连同软删除记录一并清掉
+        $category = (int) Db::table('document_categories')->where('slug', 'third-party-plugins')->value('id');
+        (new \app\document\service\DocumentCategoryService())->delete($category);
+        $renamed = (int) Db::table('document_categories')->where('slug', 'framework-deployment')->value('id');
+        (new \app\document\service\DocumentCategoryService())->update($renamed, ['slug' => 'deploy-guide']);
+
+        $this->seed();
+
+        self::assertSame(0, Db::table('documents')->where('slug', 'plugin-development-quick-start')->count());
+        self::assertSame(0, Db::table('document_categories')->where('slug', 'third-party-plugins')->count());
+        self::assertSame(0, Db::table('document_categories')->where('slug', 'framework-deployment')->count());
+        self::assertSame(1, Db::table('document_categories')->where('slug', 'deploy-guide')->count());
+    }
 }

@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { runInNewContext } from 'node:vm';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
@@ -59,8 +60,8 @@ function render(empty: boolean | 'defaults' = false, batch = true, soft = true) 
   const api = evaluate(generated.apiContent, { '@/utils/http': { default: http } });
   const { descriptor } = parse(generated.viewContent);
   const script = compileScript(descriptor, { id: 'generated-test', inlineTemplate: true });
-  const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, 'element-plus': { ElMessageBox }, '@/api/generated/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {}, '@/utils/permission': { hasPermission: (required: string | readonly string[], mode: 'any' | 'all' = 'any') => checkPermission(permission.permissions, required, mode) } }).default;
-  permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'generated:host-demo:left-tree'];
+  const page = evaluate(script.content, { vue: Vue, 'vue-i18n': VueI18n, 'element-plus': { ElMessageBox }, '@/api/business/host-demo': api, '@/components/DataTable/SchemaTablePage.vue': { default: SchemaTablePage }, '@/composables/useCrud': { useCrud }, '@/views/form/components/ListButtonBar.vue': { default: Bar }, '@/views/form/components/ListSourceTree.vue': { default: Tree }, '@/views/form/runtime/listButtonHost': host, '@/views/form/schema/listButtons': buttons, '@/views/form/runtime/fieldPresentation': fieldPresentation, '@/store/modules/user': { useUserStore: () => permission }, '@/utils/csv': {}, '@/utils/permission': { hasPermission: (required: string | readonly string[], mode: 'any' | 'all' = 'any') => checkPermission(permission.permissions, required, mode) } }).default;
+  permission.permissions = ['business:approve', declaration.catalogPermission, declaration.executePermission, 'business:host-demo:left-tree'];
   const wrapper = mount(page, { global: { plugins: [ElementPlus, VueI18n.createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': {} } })], components: { PageWrapper: box, DataTableShell: shell }, stubs: { SearchForm: true, DataTableShell: shell } } });
   return { wrapper, http, declaration };
 }
@@ -128,7 +129,14 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     expect(defaults[2]).toMatchObject({ color: 'primary', plain: true, icon: 'plus' });
     expect(defaults[3]).toMatchObject({ color: 'danger', plain: true, icon: 'delete', selection: { min: 1 } });
     expect(defaults[4]).toMatchObject({ color: 'success', plain: true, icon: 'upload' });
-    expect(defaults[5]).toMatchObject({ color: 'default', plain: true, icon: 'download' });
+    expect(defaults[5]).toMatchObject({ color: 'primary', plain: true, icon: 'download' });
+  });
+  it('已生成的业务列表页 CSV 导出按钮与模板一致使用彩色 primary', () => {
+    for (const file of ['src/admin/views/business/order/index.vue', 'src/admin/views/business/i18n-demo/index.vue', 'src/admin/modules/example/test/index.vue']) {
+      const source = readFileSync(resolve(process.cwd(), file), 'utf8');
+      expect(source, file).toContain('{"id":"export","label":"CSV 导出","action":{"type":"builtin","key":"export"},"color":"primary","plain":true');
+      expect(source, file).not.toContain('"color":"default"');
+    }
   });
   it('后端 schema 接受 normal 和布尔 plain，拒绝错误类型和错误位置', () => {
     const result = execFileSync(php, ['-r', `require 'vendor/autoload.php';
@@ -147,8 +155,8 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
       const generated = generate(false, batch, soft, plugin, search);
       const { descriptor } = parse(generated.viewContent);
       const script = compileScript(descriptor, { id: 'typecheck' }).content;
-      const pagePath = resolve(process.cwd(), 'src/admin/views/generated/host-demo/index.ts');
-      const apiPath = resolve(process.cwd(), 'src/admin/api/generated/host-demo.ts');
+      const pagePath = resolve(process.cwd(), 'src/admin/views/business/host-demo/index.ts');
+      const apiPath = resolve(process.cwd(), 'src/admin/api/business/host-demo.ts');
       const files: Record<string, string> = { [pagePath]: script, [apiPath]: generated.apiContent };
       const options: ts.CompilerOptions = { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true, skipLibCheck: true, noEmit: true, paths: { '@/utils/*': [resolve(process.cwd(), 'src/shared/utils/*')], '@/composables/*': [resolve(process.cwd(), 'src/shared/composables/*')], '@/components/*': [resolve(process.cwd(), 'src/shared/components/*')], '@/*': [resolve(process.cwd(), 'src/admin/*')] } };
       const compilerHost = ts.createCompilerHost(options);
@@ -180,7 +188,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     expect(remove.attributes('disabled')).toBeDefined();
     for (const label of ['回收站', '回收站', '正常列表', '正常列表']) {
       await bar.findAll('button').find(item => item.text() === label)!.trigger('click'); await flushPromises();
-      expect(http.get).toHaveBeenLastCalledWith('/generated/host-demo', expect.objectContaining({ recycled: label === '回收站' ? 1 : 0 }));
+      expect(http.get).toHaveBeenLastCalledWith('/business/host-demo', expect.objectContaining({ recycled: label === '回收站' ? 1 : 0 }));
       expect(bar.findAll('button').find(item => item.text() === '正常列表')!.classes()).toContain('el-button--primary');
       expect(bar.findAll('button').find(item => item.text() === '回收站')!.classes()).toContain(label === '回收站' ? 'el-button--warning' : 'el-button--primary');
     }
@@ -201,7 +209,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     const approve = wrapper.findAll('button').find(button => button.text() === '批准');
     expect(approve).toBeDefined(); expect(approve!.attributes('disabled')).toBeUndefined();
     await approve!.trigger('click'); await flushPromises();
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], schemaHash: declaration.schemaHash, location: 'row' }), expect.anything());
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], schemaHash: declaration.schemaHash, location: 'row' }), expect.anything());
     expect(http.get.mock.calls.some(([url]) => url.includes('/form/data'))).toBe(false);
     permission.permissions = ['business:approve', 'form:data:list-actions', 'form:data:list-action']; await flushPromises();
     const revoked = wrapper.findAll('button').find(button => button.text() === '批准');
@@ -217,7 +225,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     const approve = wrapper.findAll('button').find(button => button.text() === '批准分类');
     expect(approve).toBeDefined(); expect(approve!.attributes('disabled')).toBeUndefined();
     await approve!.trigger('click'); await flushPromises();
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ ids: [], category: { id: 'cat-7' }, sourceSchemaHash: 'source-hash' }), expect.anything());
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/list-action', expect.objectContaining({ ids: [], category: { id: 'cat-7' }, sourceSchemaHash: 'source-hash' }), expect.anything());
     wrapper.unmount();
   });
   it('无批删能力仍可选择注册批动作，切换筛选后清空', async () => {
@@ -226,7 +234,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     table.vm.$emit('selection-change', [{ orderId: 'order-42', orderTitle: '可批准' }]); await flushPromises();
     const action = wrapper.findAll('button').find(button => button.text() === '批量批准')!;
     expect(action.attributes('disabled')).toBeUndefined(); await action.trigger('click'); await flushPromises();
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], location: 'toolbar' }), expect.anything()); wrapper.unmount();
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/list-action', expect.objectContaining({ ids: ['order-42'], location: 'toolbar' }), expect.anything()); wrapper.unmount();
   });
   it('回收站仅在能力启用时出现，恢复命中生成 API，显式空不补默认', async () => {
     const { wrapper, http } = render('defaults'); permission.permissions = ['*']; await flushPromises();
@@ -236,32 +244,32 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     const restore = rowBar.findAll('button').find(button => button.text() === '恢复')!;
     expect(restore).toBeDefined(); expect(restore.attributes('disabled')).toBeUndefined(); await restore.trigger('click'); await flushPromises();
     expect(wrapper.findAllComponents(Bar).flatMap(bar => bar.emitted('error') ?? [])).toEqual([]);
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/order-42/restore');
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/order-42/restore');
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const batchRestore = wrapper.findAll('button').find(button => button.text() === '批量恢复');
     expect(batchRestore).toBeDefined(); await batchRestore!.trigger('click'); await flushPromises();
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/restore', { ids: ['order-42'] }); wrapper.unmount();
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/restore', { ids: ['order-42'] }); wrapper.unmount();
     const disabled = render('defaults', false, false); permission.permissions = ['*']; await flushPromises();
     expect(disabled.wrapper.findAll('button').some(button => ['回收站', '恢复', '永久删除'].includes(button.text()))).toBe(false); disabled.wrapper.unmount();
   });
   it('批量回收站按钮使用独立批量权限而非单条权限', async () => {
     const { wrapper, http } = render('defaults');
-    permission.permissions = ['generated:host-demo:index', 'generated:host-demo:restore-many', 'generated:host-demo:destroy-many']; await flushPromises();
+    permission.permissions = ['business:host-demo:index', 'business:host-demo:restore-many', 'business:host-demo:destroy-many']; await flushPromises();
     await wrapper.findAll('button').find(button => button.text() === '回收站')!.trigger('click'); await flushPromises();
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const restore = wrapper.findAll('button').find(button => button.text() === '批量恢复');
     expect(restore).toBeDefined(); expect(restore!.attributes('disabled')).toBeUndefined();
     expect(wrapper.findAll('button').some(button => button.text() === '恢复')).toBe(false);
     await restore!.trigger('click'); await flushPromises();
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/restore', { ids: ['order-42'] });
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/restore', { ids: ['order-42'] });
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     const destroy = wrapper.findAll('button').find(button => button.text() === '批量永久删除');
     expect(destroy).toBeDefined(); expect(destroy!.attributes('disabled')).toBeUndefined();
     await destroy!.trigger('click'); await flushPromises();
     const confirmation = [...document.querySelectorAll('.el-dialog button')].find(button => button.textContent?.trim() === '确定') as HTMLButtonElement;
     expect(confirmation).toBeDefined(); confirmation.click(); await flushPromises();
-    expect(http.delete).toHaveBeenCalledWith('/generated/host-demo/destroy', { ids: ['order-42'] });
-    permission.permissions = ['generated:host-demo:index', 'generated:host-demo:restore', 'generated:host-demo:destroy'];
+    expect(http.delete).toHaveBeenCalledWith('/business/host-demo/destroy', { ids: ['order-42'] });
+    permission.permissions = ['business:host-demo:index', 'business:host-demo:restore', 'business:host-demo:destroy'];
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     for (const label of ['批量恢复', '批量永久删除']) {
       const button = wrapper.findAll('button').find(item => item.text() === label);
@@ -275,7 +283,7 @@ echo $count;`], { cwd: root, encoding: 'utf8' });
     const query = (search.vm.$attrs as any).model;
     query.orderTitle = '筛选'; await flushPromises();
     await wrapper.findAll('button').find(button => button.text() === '批准')!.trigger('click'); await flushPromises();
-    expect(http.post).toHaveBeenCalledWith('/generated/host-demo/list-action', expect.objectContaining({ filter: { order_title: '筛选' } }), expect.anything());
+    expect(http.post).toHaveBeenCalledWith('/business/host-demo/list-action', expect.objectContaining({ filter: { order_title: '筛选' } }), expect.anything());
     wrapper.findComponent({ name: 'ElTable' }).vm.$emit('selection-change', [{ orderId: 'order-42' }]); await flushPromises();
     query.orderTitle = '改变'; await flushPromises();
     expect(wrapper.findAll('button').find(button => button.text() === '批量批准')!.attributes('disabled')).toBeDefined(); wrapper.unmount();

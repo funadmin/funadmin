@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="tests/bootstrap.php" colors="true" cacheDirectory=".phpunit.cache">
     <testsuites>
-        <testsuite name="admin"><directory>tests</directory></testsuite>
+        <testsuite name="admin">
+            <directory>tests</directory>
+            <!-- 生成模块的 PHP 契约文件是独立脚本（非 PHPUnit 类），需单独用 php 运行，不由 PHPUnit 收集。 -->
+            <exclude>tests/business</exclude>
+            <exclude>tests/generated</exclude>
+        </testsuite>
     </testsuites>
     <!-- 第一方代码范围：第三方 SDK（含插件自带 vendor）内部触发的弃用不计入。 -->
     <source ignoreIndirectDeprecations="true">

@@ -23,23 +23,23 @@ final class BusinessGenerationResourceTest extends TestCase
             });
         }
         $resources = [
-            ['resourceKey' => 'permission|console-recovery|generated:console-recovery:list', 'resourceType' => 'permission', 'sourceName' => 'console-recovery', 'code' => 'generated:console-recovery:list', 'obj' => 'generated/console-recovery', 'act' => 'list', 'permissionType' => 'capability', 'name' => '测试权限'],
-            ['resourceKey' => 'menu|console-recovery|/generated/console-recovery', 'resourceType' => 'menu', 'sourceName' => 'console-recovery', 'name' => '测试菜单', 'href' => '/generated/console-recovery', 'permission' => 'generated:console-recovery:list'],
+            ['resourceKey' => 'permission|console-recovery|business:console-recovery:list', 'resourceType' => 'permission', 'sourceName' => 'console-recovery', 'code' => 'business:console-recovery:list', 'obj' => 'business/console-recovery', 'act' => 'list', 'permissionType' => 'capability', 'name' => '测试权限'],
+            ['resourceKey' => 'menu|console-recovery|/business/console-recovery', 'resourceType' => 'menu', 'sourceName' => 'console-recovery', 'name' => '测试菜单', 'href' => '/business/console-recovery', 'permission' => 'business:console-recovery:list'],
             ['resourceKey' => 'language|console-recovery|console.recovery.title', 'resourceType' => 'language', 'sourceName' => 'console-recovery', 'locale' => 'zh-cn', 'langKey' => 'console.recovery.title', 'value' => '测试标题'],
         ];
         $transaction = new GenerationResourceTransaction();
         $transaction->begin();
         self::assertSame(['inserted' => 1, 'skipped' => 0], $transaction->apply($resources));
-        self::assertSame(1, Db::table('permission')->where('code', 'generated:console-recovery:list')->count());
+        self::assertSame(1, Db::table('permission')->where('code', 'business:console-recovery:list')->count());
         self::assertSame(1, Db::table('admin_menu')->where('source_name', 'console-recovery')->count());
         $transaction->rollback();
-        self::assertSame(0, Db::table('permission')->where('code', 'generated:console-recovery:list')->count());
+        self::assertSame(0, Db::table('permission')->where('code', 'business:console-recovery:list')->count());
         self::assertSame(0, Db::table('admin_menu')->where('source_name', 'console-recovery')->count());
         self::assertSame(0, Db::table('language_line')->where('key', 'console.recovery.title')->count());
         $transaction->begin();
         $transaction->apply($resources);
         $transaction->commit();
-        self::assertSame(1, Db::table('permission')->where('code', 'generated:console-recovery:list')->count());
+        self::assertSame(1, Db::table('permission')->where('code', 'business:console-recovery:list')->count());
         self::assertSame(1, Db::table('language_line')->where('key', 'console.recovery.title')->count());
         $transaction->begin();
         self::assertSame(['inserted' => 0, 'skipped' => 1], $transaction->apply($resources));

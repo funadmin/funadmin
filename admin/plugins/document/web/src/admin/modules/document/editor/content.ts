@@ -2,7 +2,7 @@ import type { JSONContent } from '@tiptap/core';
 import { generateHTML } from '@tiptap/core';
 import { MarkdownManager } from '@tiptap/markdown';
 import DOMPurify from 'dompurify';
-import { documentExtensions } from './extensions';
+import { documentExtensions, documentLowlight } from './extensions';
 import { sanitizeDocumentUrl } from './url';
 
 export { sanitizeDocumentUrl };
@@ -63,7 +63,39 @@ export function exportDocumentHtml(content: JSONContent): string {
     // 自定义节点的标记属性；Mermaid 源码以转义后的 <code> 文本携带，不放进属性。
     ADD_ATTR: ['data-tone', 'data-callout', 'data-mermaid', 'data-type', 'data-checked']
   });
-  return restoreTaskCheckboxes(clean);
+  return highlightCodeBlocks(restoreTaskCheckboxes(clean));
+}
+
+type HastNode = { type: string; value?: string; tagName?: string; properties?: { className?: string[] }; children?: HastNode[] };
+
+/** 把 lowlight 的语法树转成 DOM：只生成文本与带 hljs-* 类名的 span，不解析任何 HTML。 */
+function hastToDom(node: HastNode, parent: Node): void {
+  if (node.type === 'text') { parent.appendChild(document.createTextNode(node.value ?? '')); return; }
+  let target = parent;
+  if (node.type === 'element') {
+    const span = document.createElement('span');
+    const classes = (node.properties?.className ?? []).filter((c) => /^hljs-[\w-]+$/.test(c));
+    if (classes.length) span.className = classes.join(' ');
+    parent.appendChild(span);
+    target = span;
+  }
+  node.children?.forEach((child) => hastToDom(child, target));
+}
+
+/** 已净化 HTML 中的代码块按 language-* 高亮；未知语言保持原样。 */
+function highlightCodeBlocks(html: string): string {
+  if (!html.includes('<pre') || typeof document === 'undefined') return html;
+  const host = document.createElement('div');
+  host.innerHTML = html;
+  host.querySelectorAll<HTMLElement>('pre > code[class*="language-"]').forEach((code) => {
+    const language = /language-([\w+#.-]+)/.exec(code.className)?.[1];
+    if (!language || !documentLowlight.registered(language)) return;
+    const tree = documentLowlight.highlight(language, code.textContent ?? '');
+    code.replaceChildren();
+    hastToDom(tree as unknown as HastNode, code);
+    code.classList.add('hljs');
+  });
+  return host.innerHTML;
 }
 
 /**

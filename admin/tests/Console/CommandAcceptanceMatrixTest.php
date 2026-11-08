@@ -42,7 +42,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
                 'services' => ['app/admin/development/service/DevCrudService.php', 'app/admin/development/service/GenerationTransactionService.php', 'app/admin/development/service/GenerationResourceTransaction.php', 'app/common/crud/CrudGenerator.php', 'app/common/crud/ProductionTemplateContext.php', 'app/common/crud/CrudResourceInstaller.php', 'app/common/crud/LangPackTranslator.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php', 'app/common/service/database/MigrationService.php'],
                 'configuration' => ['crud.connections', 'crud.confirm_secret', 'database.connections', 'config/bootstrap.php', 'config/autoload.php'],
                 'storage' => ['business_module', 'crud_generation', 'generated_file_baseline', 'form', 'form_schema_version', 'system_migration'],
-                'paths' => ['runtime/private/business-development', 'runtime/cache/crud-confirm-nonces', 'app/admin/generated', 'database/generated'],
+                'paths' => ['runtime/private/business-development', 'runtime/cache/crud-confirm-nonces', 'app/admin/business', 'database/business'],
                 'external' => ['mysql'],
             ],
             'plugin' => [

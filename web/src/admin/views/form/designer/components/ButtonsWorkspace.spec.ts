@@ -197,8 +197,8 @@ describe('自定义动作', () => {
   afterEach(() => vi.restoreAllMocks());
   const approve: FormListCustomAction = { key: 'approve', label: '审批', locations: ['row'], batch: false, requiresConfirmation: true, effect: 'write', parameters: [{ name: 'reason', type: 'string' }] };
   const settle: FormListCustomAction = { key: 'settle', label: '结算', locations: ['toolbar'], batch: true, requiresConfirmation: false, effect: 'write', parameters: [] };
-  const generated: FormListActionMetadata = { permission: 'generated:fun-order:action-settle', capabilityVersion: '1', parameters: [], parameterTypes: {}, locations: ['toolbar'], targets: ['selection'], batch: true, effect: 'write', resultContract: 'json', requiresConfirmation: false };
-  const withCatalog = locations.map(item => item.key === 'toolbar' ? { ...item, actions: { 'generated.fun-order.settle': generated } } : item);
+  const generated: FormListActionMetadata = { permission: 'business:fun-order:action-settle', capabilityVersion: '1', parameters: [], parameterTypes: {}, locations: ['toolbar'], targets: ['selection'], batch: true, effect: 'write', resultContract: 'json', requiresConfirmation: false };
+  const withCatalog = locations.map(item => item.key === 'toolbar' ? { ...item, actions: { 'business.fun-order.settle': generated } } : item);
   const mountCustom = (modelValue: FormListConfiguration, extra: Record<string, unknown> = {}) => mount(Workspace, { attachTo: document.body, props: { modelValue, locations: withCatalog, tools, filterFields: [], categoryFields: [], resources: {}, columns, customActionEntity: 'fun-order', ...extra } as never, global: { plugins: [ElementPlus] } });
   const section = (wrapper: ReturnType<typeof mountCustom>) => wrapper.get('[data-custom-actions]');
   async function openSelect(label: string) {
@@ -232,11 +232,11 @@ describe('自定义动作', () => {
     expect(options).toEqual(['审批待生成', '＋ 新建自定义动作']);
     ([...group.querySelectorAll('.el-select-dropdown__item')][0] as HTMLElement).click(); await flushPromises();
     const inspector = document.querySelector('.button-inspector')!;
-    expect(inspector.textContent).toContain('generated.fun-order.approve');
+    expect(inspector.textContent).toContain('business.fun-order.approve');
     expect(inspector.textContent).toContain('参数绑定');
     expect(inspector.textContent).toContain('reason');
     inspectorButton('应用').click(); await flushPromises();
-    expect(lastButtons(wrapper)[1]!.find(item => item.id === 'edit')).toMatchObject({ action: { type: 'registered', key: 'generated.fun-order.approve', capabilityVersion: '1' }, permission: 'generated:fun-order:action-approve', params: { reason: { source: 'form', field: 'reason' } }, interaction: { type: 'form' } });
+    expect(lastButtons(wrapper)[1]!.find(item => item.id === 'edit')).toMatchObject({ action: { type: 'registered', key: 'business.fun-order.approve', capabilityVersion: '1' }, permission: 'business:fun-order:action-approve', params: { reason: { source: 'form', field: 'reason' } }, interaction: { type: 'form' } });
     wrapper.unmount();
   });
   it('顶部操作只列出含顶部位置的自定义动作，已生成的不标待生成', async () => {
@@ -245,7 +245,7 @@ describe('自定义动作', () => {
     const list = await openSelect('动作');
     const group = [...list.querySelectorAll('.el-select-group__wrap')].find(item => item.textContent?.includes('自定义动作'))!;
     expect([...group.querySelectorAll('.el-select-dropdown__item')].map(item => item.textContent?.trim())).toEqual(['结算', '＋ 新建自定义动作']);
-    expect(list.textContent).not.toContain('注册动作 · generated.fun-order.settle');
+    expect(list.textContent).not.toContain('注册动作 · business.fun-order.settle');
     wrapper.unmount();
   });
   it('从下拉「＋ 新建自定义动作」创建后自动绑定当前按钮', async () => {
@@ -260,11 +260,11 @@ describe('自定义动作', () => {
     expect(actions.map(item => item.key)).toEqual(['ship']);
     await wrapper.setProps({ modelValue: { customActions: actions } }); await flushPromises();
     const draft = (wrapper.findComponent({ name: 'ButtonInspector' }).vm as any).draft;
-    expect(draft.action).toEqual({ type: 'registered', key: 'generated.fun-order.ship', capabilityVersion: '1' });
+    expect(draft.action).toEqual({ type: 'registered', key: 'business.fun-order.ship', capabilityVersion: '1' });
     wrapper.unmount();
   });
   it('删除自定义动作需确认，并一并移除绑定它的按钮', async () => {
-    const bound: FormListButton = { id: 'b1', label: '审批', action: { type: 'registered', key: 'generated.fun-order.approve', capabilityVersion: '1' }, permission: 'generated:fun-order:action-approve', params: { reason: { source: 'literal', value: '' } } };
+    const bound: FormListButton = { id: 'b1', label: '审批', action: { type: 'registered', key: 'business.fun-order.approve', capabilityVersion: '1' }, permission: 'business:fun-order:action-approve', params: { reason: { source: 'literal', value: '' } } };
     const keep: FormListButton = { id: 'k', label: '刷新', action: { type: 'refresh' } };
     const wrapper = mountCustom({ customActions: [approve], buttons: { row: [bound, keep] } });
     const confirm = vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel').mockResolvedValueOnce('confirm' as never);
@@ -278,7 +278,7 @@ describe('自定义动作', () => {
     wrapper.unmount();
   });
   it('编辑动作参数后同步绑定按钮：新参数绑定默认常量并提示，删除的参数移除绑定', async () => {
-    const bound: FormListButton = { id: 'b1', label: '审批', action: { type: 'registered', key: 'generated.fun-order.approve', capabilityVersion: '1' }, permission: 'generated:fun-order:action-approve', params: { reason: { source: 'literal', value: '同意' } } };
+    const bound: FormListButton = { id: 'b1', label: '审批', action: { type: 'registered', key: 'business.fun-order.approve', capabilityVersion: '1' }, permission: 'business:fun-order:action-approve', params: { reason: { source: 'literal', value: '同意' } } };
     const wrapper = mountCustom({ customActions: [approve], buttons: { row: [bound] } });
     const notice = vi.spyOn(ElMessage, 'warning').mockImplementation((() => undefined) as never);
     await section(wrapper).get('[data-custom-action="approve"]').findAll('button').find(item => item.text().includes('编辑'))!.trigger('click'); await flushPromises();

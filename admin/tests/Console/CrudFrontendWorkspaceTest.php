@@ -23,7 +23,7 @@ final class CrudFrontendWorkspaceTest extends TestCase
         $this->backend = $this->workspace . '/backend';
         $this->frontend = $this->workspace . '/web';
         mkdir($this->backend, 0700, true);
-        mkdir($this->frontend . '/src/admin/views/generated', 0700, true);
+        mkdir($this->frontend . '/src/admin/views/business', 0700, true);
     }
 
     protected function tearDown(): void
@@ -42,24 +42,24 @@ final class CrudFrontendWorkspaceTest extends TestCase
         $generator = new CrudGenerator($this->backend);
         $plan = $generator->plan($definition);
         $generator->generate($definition, $plan['confirmToken']);
-        self::assertFileExists($this->frontend . '/src/admin/api/generated/workspace-product.ts');
-        self::assertFileExists($this->frontend . '/src/admin/views/generated/workspace-product/index.vue');
-        self::assertFileExists($this->backend . '/app/admin/generated/workspace_product/controller/WorkspaceProductController.php');
+        self::assertFileExists($this->frontend . '/src/admin/api/business/workspace-product.ts');
+        self::assertFileExists($this->frontend . '/src/admin/views/business/workspace-product/index.vue');
+        self::assertFileExists($this->backend . '/app/admin/business/workspace_product/controller/WorkspaceProductController.php');
         self::assertDirectoryDoesNotExist($this->backend . '/web');
-        file_put_contents($this->frontend . '/src/admin/views/generated/workspace-product/index.vue', 'local edit');
+        file_put_contents($this->frontend . '/src/admin/views/business/workspace-product/index.vue', 'local edit');
         $next = $generator->plan($definition);
-        $view = array_column($next['files'], null, 'path')['web/src/admin/views/generated/workspace-product/index.vue'];
+        $view = array_column($next['files'], null, 'path')['web/src/admin/views/business/workspace-product/index.vue'];
         self::assertSame('conflict', $view['status']);
         self::assertSame(hash('sha256', 'local edit'), $view['previousHash']);
     }
 
     public function test_atomic_failure_restores_existing_frontend_and_backend_files(): void
     {
-        mkdir($this->frontend . '/src/admin/api/generated', 0700, true);
-        file_put_contents($this->frontend . '/src/admin/api/generated/product.ts', 'old api');
+        mkdir($this->frontend . '/src/admin/api/business', 0700, true);
+        file_put_contents($this->frontend . '/src/admin/api/business/product.ts', 'old api');
         file_put_contents($this->backend . '/backend.txt', 'old backend');
         $tokens = new ConfirmationToken($this->backend, 'workspace-test');
-        $files = ['web/src/admin/api/generated/product.ts' => 'new api', 'backend.txt' => 'new backend'];
+        $files = ['web/src/admin/api/business/product.ts' => 'new api', 'backend.txt' => 'new backend'];
         $plan = (new GenerationPlanner($this->backend, $tokens))->plan(CrudDefinitionFixture::make(), $files);
         $writer = new AtomicWriter($this->backend, static function (array $file): void {
             if ($file['path'] === 'backend.txt') throw new \RuntimeException('injected after both writes');
@@ -70,17 +70,17 @@ final class CrudFrontendWorkspaceTest extends TestCase
         } catch (\RuntimeException $error) {
             self::assertStringContainsString('injected after both writes', $error->getMessage());
         }
-        self::assertSame('old api', file_get_contents($this->frontend . '/src/admin/api/generated/product.ts'));
+        self::assertSame('old api', file_get_contents($this->frontend . '/src/admin/api/business/product.ts'));
         self::assertSame('old backend', file_get_contents($this->backend . '/backend.txt'));
     }
 
     public function test_frontend_symlink_cannot_redirect_generated_files(): void
     {
         mkdir($this->workspace . '/outside', 0700);
-        symlink($this->workspace . '/outside', $this->frontend . '/src/admin/views/generated/product');
+        symlink($this->workspace . '/outside', $this->frontend . '/src/admin/views/business/product');
         $this->expectException(\InvalidArgumentException::class);
         (new GenerationPlanner($this->backend))->plan(CrudDefinitionFixture::make(), [
-            'web/src/admin/views/generated/product/index.vue' => 'unsafe',
+            'web/src/admin/views/business/product/index.vue' => 'unsafe',
         ]);
     }
 
@@ -88,7 +88,7 @@ final class CrudFrontendWorkspaceTest extends TestCase
     {
         $tokens = new ConfirmationToken($this->backend, 'workspace-root-binding');
         $plan = (new GenerationPlanner($this->backend, $tokens))->plan(CrudDefinitionFixture::make(), [
-            'web/src/admin/api/generated/product.ts' => 'api',
+            'web/src/admin/api/business/product.ts' => 'api',
         ]);
         rename($this->frontend, $this->workspace . '/previous-frontend');
         mkdir($this->backend . '/web', 0700, true);
@@ -98,7 +98,7 @@ final class CrudFrontendWorkspaceTest extends TestCase
         } catch (\RuntimeException $error) {
             self::assertStringContainsString('生成源码目录已变化', $error->getMessage());
         }
-        self::assertFileDoesNotExist($this->backend . '/web/src/admin/api/generated/product.ts');
+        self::assertFileDoesNotExist($this->backend . '/web/src/admin/api/business/product.ts');
     }
 
     public function test_managed_recovery_restores_backend_and_sibling_frontend_after_interruption(): void
@@ -107,9 +107,9 @@ final class CrudFrontendWorkspaceTest extends TestCase
         BusinessGenerationFixture::create();
         try {
             $ids = BusinessGenerationFixture::seed();
-            mkdir($this->frontend . '/src/admin/api/generated', 0700, true);
-            $frontendPath = 'web/src/admin/api/generated/product.ts';
-            file_put_contents($this->frontend . '/src/admin/api/generated/product.ts', 'old api');
+            mkdir($this->frontend . '/src/admin/api/business', 0700, true);
+            $frontendPath = 'web/src/admin/api/business/product.ts';
+            file_put_contents($this->frontend . '/src/admin/api/business/product.ts', 'old api');
             file_put_contents($this->backend . '/example.php', 'old backend');
             $contents = [$frontendPath => 'new api', 'example.php' => 'new backend'];
             $plan = (new \app\common\crud\ThreeWayMergePlanner($this->backend))->plan([
@@ -134,13 +134,13 @@ final class CrudFrontendWorkspaceTest extends TestCase
                 $service->execute(...[...$ids, $bundle, $tokens->issue($service::bundleDigest($bundle)), fn (): bool => $state->claimGeneration(...[...$ids, 'test'])]);
                 self::fail('Generation must interrupt');
             } catch (\app\admin\development\exception\GenerationInterruptionException) { $resources->rollback(); }
-            self::assertSame('new api', file_get_contents($this->frontend . '/src/admin/api/generated/product.ts'));
+            self::assertSame('new api', file_get_contents($this->frontend . '/src/admin/api/business/product.ts'));
             self::assertSame('new backend', file_get_contents($this->backend . '/example.php'));
             $journal = glob($this->backend . '/runtime/private/business-development/wal/*.json')[0];
             $recovery = \app\admin\development\service\GenerationTransactionService::production($this->backend);
             rename($this->frontend, $this->workspace . '/previous-frontend');
-            mkdir($this->backend . '/web/src/admin/api/generated', 0700, true);
-            file_put_contents($this->backend . '/web/src/admin/api/generated/product.ts', 'new api');
+            mkdir($this->backend . '/web/src/admin/api/business', 0700, true);
+            file_put_contents($this->backend . '/web/src/admin/api/business/product.ts', 'new api');
             try {
                 $recovery->recover(basename($journal, '.json'));
                 self::fail('A changed frontend root must block recovery');
@@ -148,10 +148,10 @@ final class CrudFrontendWorkspaceTest extends TestCase
                 self::assertStringContainsString('生成源码目录已变化', $error->getMessage());
             }
             self::assertSame('new backend', file_get_contents($this->backend . '/example.php'));
-            self::assertSame('new api', file_get_contents($this->backend . '/web/src/admin/api/generated/product.ts'));
+            self::assertSame('new api', file_get_contents($this->backend . '/web/src/admin/api/business/product.ts'));
             rename($this->workspace . '/previous-frontend', $this->frontend);
             self::assertSame('rolled_back', $recovery->recover(basename($journal, '.json'))['state']);
-            self::assertSame('old api', file_get_contents($this->frontend . '/src/admin/api/generated/product.ts'));
+            self::assertSame('old api', file_get_contents($this->frontend . '/src/admin/api/business/product.ts'));
             self::assertSame('old backend', file_get_contents($this->backend . '/example.php'));
         } finally { BusinessGenerationFixture::drop(); }
     }

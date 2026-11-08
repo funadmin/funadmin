@@ -17,22 +17,23 @@ final class CrudDefinitionFixture
             'permissionMigration' => 'database/permissions.sql.tpl', 'api' => 'frontend/api.ts.tpl', 'view' => 'frontend/index.vue.tpl',
             'form' => 'frontend/form.vue.tpl', 'detail' => 'frontend/detail.vue.tpl',
         ];
+        $directory = str_replace('-', '_', $entity);
         $paths = [
-            'migration' => 'database/generated/' . $entity . '.sql',
-            'model' => 'app/admin/model/generated/' . $class . '.php',
-            'validate' => 'app/admin/validate/generated/' . $class . 'Validate.php',
-            'service' => 'app/admin/service/generated/' . $class . 'Service.php',
-            'controller' => 'app/admin/controller/generated/' . $class . 'Controller.php',
-            'permissionMigration' => 'database/generated/' . $entity . '_permissions.sql',
-            'api' => 'web/src/admin/api/generated/' . $entity . '.ts',
-            'view' => 'web/src/admin/views/generated/' . $entity . '/index.vue',
-            'form' => 'web/src/admin/views/generated/' . $entity . '/Form.vue',
-            'detail' => 'web/src/admin/views/generated/' . $entity . '/Detail.vue',
+            'migration' => 'database/business/' . $entity . '.sql',
+            'model' => 'app/admin/business/' . $directory . '/model/' . $class . '.php',
+            'validate' => 'app/admin/business/' . $directory . '/validate/' . $class . 'Validate.php',
+            'service' => 'app/admin/business/' . $directory . '/service/' . $class . 'Service.php',
+            'controller' => 'app/admin/business/' . $directory . '/controller/' . $class . 'Controller.php',
+            'permissionMigration' => 'database/business/' . $entity . '_permissions.sql',
+            'api' => 'web/src/admin/api/business/' . $entity . '.ts',
+            'view' => 'web/src/admin/views/business/' . $entity . '/index.vue',
+            'form' => 'web/src/admin/views/business/' . $entity . '/Form.vue',
+            'detail' => 'web/src/admin/views/business/' . $entity . '/Detail.vue',
         ];
         return CrudDefinition::fromArray([
             'schemaVersion' => '1.0', 'connection' => $connection, 'entity' => $entity, 'table' => str_replace('-', '_', $entity),
-            'title' => '测试数据', 'apiPrefix' => '/admin/generated/' . $entity, 'routePath' => '/generated/' . $entity,
-            'permissionPrefix' => 'generated:' . $entity, 'timestamps' => true, 'softDeletes' => true,
+            'title' => '测试数据', 'apiPrefix' => '/admin/business/' . $entity, 'routePath' => '/business/' . $entity,
+            'permissionPrefix' => 'business:' . $entity, 'timestamps' => true, 'softDeletes' => true,
             'fields' => [
                 ['name' => 'id', 'label' => 'ID', 'dbType' => 'bigint', 'nullable' => false, 'primary' => true, 'component' => 'input', 'writable' => false],
                 ['name' => 'title', 'label' => '标题', 'dbType' => 'varchar(80)', 'nullable' => false, 'component' => 'input', 'required' => true, 'maxLength' => 80, 'search' => true, 'searchOperator' => 'like', 'sortable' => true],

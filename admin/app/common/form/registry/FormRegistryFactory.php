@@ -13,12 +13,12 @@ use app\common\form\validation\FormAsyncValidatorRegistry;
 final class FormRegistryFactory
 {
     /**
-     * @param string|null $generatedRoot 生成业务模块根目录（含 {模块}/config/actions.php）；null 为 app/admin/generated。
+     * @param string|null $businessRoot 生成业务模块根目录（含 {模块}/config/actions.php）；null 为 app/admin/business。
      */
     public function __construct(
         private readonly array $config,
         private readonly mixed $enabledPluginManifests = null,
-        private readonly ?string $generatedRoot = null
+        private readonly ?string $businessRoot = null
     ) {
     }
 
@@ -37,11 +37,11 @@ final class FormRegistryFactory
     {
         $actions = $this->section('actions');
         $sources = array_fill_keys(array_map('strval', array_keys($actions)), 'config/form.php');
-        foreach ($this->generatedActionFiles() as $directory => $file) {
-            $source = 'app/admin/generated/' . $directory . '/config/actions.php';
+        foreach ($this->businessActionFiles() as $directory => $file) {
+            $source = 'app/admin/business/' . $directory . '/config/actions.php';
             $declared = require $file;
             if (!is_array($declared)) throw new \InvalidArgumentException('生成动作注册清单必须返回数组：' . $source);
-            $prefix = 'generated.' . \app\common\form\action\CustomActions::entity($directory) . '.';
+            $prefix = 'business.' . \app\common\form\action\CustomActions::entity($directory) . '.';
             foreach ($declared as $key => $definition) {
                 $key = (string) $key;
                 if (!str_starts_with($key, $prefix)) {
@@ -58,9 +58,9 @@ final class FormRegistryFactory
     }
 
     /** @return array<string, string> 模块目录名 → 注册清单绝对路径（按目录名排序，目录缺失时为空）。 */
-    private function generatedActionFiles(): array
+    private function businessActionFiles(): array
     {
-        $root = $this->generatedRoot ?? (function_exists('app_path') ? app_path() . '/admin/generated' : '');
+        $root = $this->businessRoot ?? (function_exists('app_path') ? app_path() . '/admin/business' : '');
         if ($root === '' || !is_dir($root)) return [];
         $files = [];
         foreach (scandir($root) ?: [] as $directory) {

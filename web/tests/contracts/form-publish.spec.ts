@@ -28,7 +28,7 @@ describe('统一表单发布引擎契约', () => {
     expect(factory).toContain("managedField('id', 'bigint unsigned', true)");
     expect(factory).toContain("foreach (['created_at', 'updated_at', 'deleted_at'] as $managed)");
     for (const layer of ['model', 'validate', 'service', 'controller']) expect(factory).toContain(`/${layer}/{$class}`);
-    expect(factory).toContain('app/admin/generated/');
+    expect(factory).toContain('app/admin/business/');
     expect(factory).toContain("'enabled' => (bool) $config['dataScopeEnabled']");
   });
 
@@ -152,7 +152,7 @@ describe('统一表单发布引擎契约', () => {
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
     const router = read('web/src/admin/router/dynamic.ts');
-    expect(router).toContain("normalized.startsWith('generated/')");
+    expect(router).toContain("normalized.startsWith('business/')");
     expect(router).toContain("import('@/views/form/published.vue')");
     expect(router).toContain("import { resolveMenuPath, adminRoutePath } from '@/utils/route'");
     expect(existsSync(resolve(root, 'web/src/admin/views/form/published.vue'))).toBe(true);

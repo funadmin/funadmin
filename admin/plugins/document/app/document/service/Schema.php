@@ -14,7 +14,7 @@ final class Schema
 {
     public static function tables(): array
     {
-        return ['document_categories', 'documents', 'document_category_links', 'document_revisions', 'document_events'];
+        return ['document_categories', 'documents', 'document_category_links', 'document_revisions', 'document_events', 'document_seed_entries'];
     }
 
     public static function install(): void
@@ -67,6 +67,8 @@ final class Schema
             $t->unsignedInteger('current_revision_no')->default(0);
             // 草稿与最新发布修订不同（发布状态本身不因编辑改变）。
             $t->boolean('has_unpublished_changes')->default(false);
+            // 元数据（标题、标识、范围、目录…）的乐观锁，与正文 lock_version 互不影响。
+            $t->unsignedInteger('meta_version')->default(1);
             $t->unsignedBigInteger('owner_id')->default(0);
             $t->string('source', 32)->default('manual');
             $t->timestamps();
@@ -91,6 +93,14 @@ final class Schema
             $t->unsignedBigInteger('created_by')->default(0);
             $t->dateTime('created_at')->nullable();
             $t->unique(['document_id', 'revision_no']);
+        });
+        // 已写入过的内置条目：即使管理员删除或改了标识，也不会在升级/重新启用时补回。
+        $s->create('document_seed_entries', static function (Blueprint $t): void {
+            $t->id();
+            $t->string('kind', 16);
+            $t->string('slug', 160);
+            $t->dateTime('created_at')->nullable();
+            $t->unique(['kind', 'slug']);
         });
         $s->create('document_events', static function (Blueprint $t): void {
             $t->id();
