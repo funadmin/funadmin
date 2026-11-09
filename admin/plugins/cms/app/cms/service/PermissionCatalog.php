@@ -67,9 +67,9 @@ final class PermissionCatalog
         'cms:model:template' => ['cms:sites:configuration-save', 'cms:sites:domain-save', 'cms:sites:locale-save', 'cms:sites:model-save', 'cms:sites:options', 'cms:sites:save'],
         'cms:submission:list' => ['cms:contributions:index', 'cms:sites:context'],
         'cms:submission:review' => ['cms:contributions:review'],
-        'cms:access:list' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context', 'cms:sites:grant'],
-        'cms:access:members' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context', 'cms:sites:grant'],
-        'cms:access:roles' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context', 'cms:sites:grant'],
+        'cms:access:list' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
+        'cms:access:members' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
+        'cms:access:roles' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
     ];
     /** 站点操作码升级前同时用作接口权限的那些路由（冻结）：站点操作生效时这些接口随之可见。 */
     private const ROUTES = [
@@ -124,6 +124,6 @@ final class PermissionCatalog
     {
         $read=['cms:category:list','cms:content:list','cms:menu:list','cms:tag:list','cms:model:list'];
         $edit=array_merge($read,['cms:content:create','cms:content:edit','cms:content:preview']);
-        return ['viewer'=>['只读',$read],'editor'=>['编辑',$edit],'publisher'=>['发布',array_merge($edit,['cms:content:publish','cms:content:offline'])],'administrator'=>['站点管理员',self::operations()],'legacy'=>['兼容旧成员',array_values(array_filter(self::operations(),fn($c)=>!str_starts_with($c,'cms:access:')))]];
+        return ['viewer'=>['只读',$read],'editor'=>['编辑',$edit],'publisher'=>['发布',array_merge($edit,['cms:content:publish','cms:content:offline'])],'administrator'=>['站点管理员',self::operations()]];
     }
 }

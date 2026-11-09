@@ -27,24 +27,22 @@ final class SiteRoleSchema
         ];
         foreach($definitions as $table=>$definition)if(!$skipExisting||!$s->hasTable($table))$s->create($table,$definition);
     }
-    /** Compatibility assignment happens exactly once per site, never on later re-enables. */
+    /** 启用时为每个站点补齐标准预设角色；成员只通过角色分配获得权限。 */
     public static function bootstrap(): void
     {
         if(!self::ready())throw new \InvalidArgumentException('请完成 CMS 升级后再使用站点权限',409);
-        foreach(Db::table('cms_site')->whereNull('deleted_at')->pluck('id') as $id)self::seedSite((string)$id,true);
+        foreach(Db::table('cms_site')->whereNull('deleted_at')->pluck('id') as $id)self::seedSite((string)$id);
     }
-    public static function seedSite(string $siteId,bool $migrateLegacy=false): void
+    public static function seedSite(string $siteId): void
     {
         if(!self::ready())return;
-        Db::transaction(function()use($siteId,$migrateLegacy): void {
+        Db::transaction(function()use($siteId): void {
             (new SiteService())->lock($siteId);
-            $first=!Db::table('cms_site_role')->where('site_id',$siteId)->where('code','legacy')->exists();
             foreach(PermissionCatalog::presets() as $code=>[$name,$permissions]){
                 if(Db::table('cms_site_role')->where('site_id',$siteId)->where('code',$code)->exists())continue;
                 $role=Db::table('cms_site_role')->insertGetId(['site_id'=>$siteId,'code'=>$code,'name'=>$name,'status'=>1,'created_at'=>Input::now(),'updated_at'=>Input::now()]);
                 foreach($permissions as $p)Db::table('cms_site_role_permission')->insert(['site_id'=>$siteId,'role_id'=>$role,'permission_code'=>$p]);
             }
-            if($migrateLegacy&&$first){$role=Db::table('cms_site_role')->where('site_id',$siteId)->where('code','legacy')->value('id');foreach(Db::table('cms_site_admin')->where('site_id',$siteId)->pluck('admin_id') as $admin)Db::table('cms_site_role_member')->insertOrIgnore(['site_id'=>$siteId,'role_id'=>$role,'admin_id'=>$admin]);}
         });
     }
 }

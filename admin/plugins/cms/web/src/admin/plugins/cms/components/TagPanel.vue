@@ -65,16 +65,22 @@ function inspectBuiltin(row: BuiltinTemplateTag) {
   builtinDetails.value = row;
 }
 function usage(row: TemplateTagListItem): string {
-  if (!row.builtin) return `{cms:${row.name} /}`;
+  const literal = (value: unknown): string => {
+    if (typeof value === 'boolean' || typeof value === 'number') return String(value);
+    return "'" + String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'") + "'";
+  };
+  if (!row.builtin) return `{{ $cms->tag(${literal(row.name)}) }}`;
   const attributes = Object.entries(row.parameters).filter(([,rule]) => rule.required).map(([name,rule]) => {
     const value = rule.default ?? rule.enum?.[0] ?? (rule.type === 'integer' ? 1 : rule.type === 'boolean' ? false : t('cms.labels.fieldName2'));
-    return ` ${name}="${String(value).replaceAll('"', '&quot;')}"`;
-  }).join('');
-  const fields: Record<string, string> = { content: 'title', category: 'name', menu: 'title', site: 'name', languages: 'name', breadcrumb: 'name', theme: 'title', fields: 'title' };
+    return `${literal(name)} => ${literal(value)}`;
+  });
+  const parameters = attributes.length ? `, [${attributes.join(', ')}]` : '';
+  const fields: Record<string, string> = { content: 'title', category: 'name', menu: 'title', site: 'name', languages: 'name', breadcrumb: 'name', theme: 'title', fields: 'label' };
   return fields[row.name]
-    ? `{cms:${row.name}${attributes} as="item"}{$item.${fields[row.name]}}{/cms:${row.name}}`
-    : `{cms:${row.name}${attributes} /}`;
+    ? `@foreach($cms->items(${literal(row.name)}${parameters}) as $item){{ $item['${fields[row.name]}'] }}@endforeach`
+    : `{{ $cms->tag(${literal(row.name)}${parameters}) }}`;
 }
+
 watch([dialog,()=>form.value.provider],([visible,provider])=>{
   if(visible&&provider==='content')void loadOptions();
   else{++optionsRequest;optionsLoading.value=false;}
@@ -90,6 +96,7 @@ onMounted(load);
 </script>
 <template>
 <div>
+  <el-alert :title="t('cms.labels.bladeTemplateUsage')" type="info" :closable="false" />
   <el-alert v-if="error" :title="error" type="error" :closable="false" />
   <div class="toolbar"><el-button v-if="can('cms:tag:create')" type="primary" @click="open()">{{ t('cms.labels.customTag') }}</el-button></div>
   <el-table :data="rows" row-key="id">
@@ -164,6 +171,7 @@ onMounted(load);
         <el-input v-else v-model="form.parameters[name]" />
         <p v-if="form.provider==='content' && parameterHelp[String(name)]" class="parameter-help">{{ parameterHelp[String(name)] }}</p>
       </el-form-item>
+      <p class="tag-description">{{ t('cms.labels.restrictedFragmentHelp') }}</p>
       <el-form-item :label="t('cms.labels.displayFragment')"><el-input v-model="form.template_fragment" type="textarea" :rows="12" placeholder="<a href=&quot;{$item.url}&quot;>{$item.title}</a>" class="code-input" /></el-form-item>
       <el-alert :title="t('cms.labels.savingCreatesADraftPublishingMakesItPublicCall')" :closable="false" />
     </el-form>

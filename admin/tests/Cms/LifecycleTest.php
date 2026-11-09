@@ -23,7 +23,7 @@ final class LifecycleTest extends CmsTestCase
         try {
             $publisher=new PluginAppPublicationService($root.'/app',$root.'/runtime/plugins',$repository);
             $publisher->publish(Manifest::fromDirectory($source),'cms-publication');$publisher->complete('cms-publication');
-            self::assertFileExists($root.'/app/cms/controller/Index.php');self::assertFileExists($root.'/app/admin/plugins/cms/controller/Content.php');self::assertFileExists($root.'/app/cms/view/default/detail.html');
+            self::assertFileExists($root.'/app/cms/controller/Index.php');self::assertFileExists($root.'/app/admin/plugins/cms/controller/Content.php');self::assertFileExists($root.'/app/cms/view/default/detail.blade.php');
             $compiler=new PluginActivationCompiler($root.'/activation',dirname($source));$compiler->compile(['cms'=>['code'=>'cms','version'=>'1.0.0','status'=>0,'lifecycle_state'=>'disabled']],[]);
             $guard=new PluginApplicationGuardMiddleware(new PluginActivationReader($root.'/activation'),dirname($source));
             foreach(['/cms/about.html','/admin/plugins/cms/content'] as $path)self::assertSame(404,$guard->process(new \support\Request("GET $path HTTP/1.1\r\nHost: cms.test\r\n\r\n"),static fn()=>response('should not run'))->getStatusCode());

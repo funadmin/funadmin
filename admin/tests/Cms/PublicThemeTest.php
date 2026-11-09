@@ -51,6 +51,17 @@ final class PublicThemeTest extends CmsTestCase
             $r=$this->get('/archive/page/3/');self::assertSame(200,$r->getStatusCode());self::assertStringContainsString('Custom archive',$r->rawBody());self::assertStringContainsString('Archive item 0',$r->rawBody());self::assertSame(404,$this->get('/archive/page/4/')->getStatusCode());
         }finally{unlink($file);}
     }
+    public function test_custom_blade_list_uses_scoped_tags_and_native_pagination(): void {
+        $site=$this->site();$name='custom_blade_fixture_'.bin2hex(random_bytes(4));$file=dirname(__DIR__,2).'/plugins/cms/app/cms/view/default/'.$name.'.blade.php';
+        file_put_contents($file, '<h1>{{ $category["name"] }}</h1>@foreach($cms->items("content", ["limit"=>6,"paginate"=>true]) as $row)<a href="{{ $row["url"] }}">{{ $row["title"] }}</a>@endforeach{{ $cms->tag("pagination") }}');
+        try{
+            $category=(new \app\cms\service\CategoryService())->save($site['id'],'zh-cn',['name'=>'Blade archive','desired_path'=>'/blade-archive/','list_template'=>$name]);
+            for($i=0;$i<13;$i++)$this->publish($site,'article','Blade item '.$i,'/blade-item-'.$i,'zh-cn',['category_id'=>$category['id']]);
+            $response=$this->get('/blade-archive/page/3/');self::assertSame(200,$response->getStatusCode());
+            self::assertStringContainsString('<h1>Blade archive</h1>',$response->rawBody());self::assertStringContainsString('Blade item 0',$response->rawBody());
+            self::assertSame(404,$this->get('/blade-archive/page/4/')->getStatusCode());
+        }finally{unlink($file);}
+    }
     public function test_search_language_links_preserve_query_and_use_each_canonical_home(): void {
         $site=$this->site();(new SiteService())->saveLocale($site['id'],['locale'=>'en-us','url_prefix'=>'en','home_path'=>'/english/']);
         $html=$this->get('/search/?q=Needle%20%26%20Space')->rawBody();self::assertStringContainsString('href="/english/search/?q=Needle%20%26%20Space"',$html);

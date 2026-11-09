@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="760" viewBox="0 0 900 760" fill="none">
+<defs><pattern id="paper" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".55" fill="#777" opacity=".12"/></pattern><pattern id="lines" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 0L8 8" stroke="#686258" stroke-width=".6" opacity=".28"/></pattern><linearGradient id="page" x1="160" y1="90" x2="680" y2="700" gradientUnits="userSpaceOnUse"><stop stop-color="#faf8f1"/><stop offset="1" stop-color="#e8e1d3"/></linearGradient></defs>
+<path fill="#e3daca" d="M0 0h900v760H0z"/><path fill="url(#paper)" d="M0 0h900v760H0z"/>
+<g transform="rotate(-8 450 380)"><path d="M170 130h565v530H170z" fill="#c7bfb0"/><path d="M145 102h565v530H145z" fill="url(#page)" stroke="#bcb2a1"/>
+<path d="M180 145h495M180 165h495" stroke="#28261f" stroke-width="2"/><text x="180" y="222" font-family="Georgia,serif" font-size="54" font-weight="bold" fill="#28261f">PERSPECTIVES</text><path d="M180 244h495" stroke="#28261f"/>
+<path d="M180 275h240v205H180z" fill="#777e76"/><circle cx="300" cy="378" r="74" fill="#b3b9a5"/><path d="M180 480l101-157 139 157" fill="#363f36"/><path d="M180 275h240v205H180z" fill="url(#lines)"/>
+<g stroke="#8c8578" stroke-width="3"><path d="M450 286h208M450 307h208M450 328h208M450 349h180M450 387h208M450 408h208M450 429h208M450 450h158M180 520h240M180 541h240M180 562h205M450 520h208M450 541h208M450 562h180"/></g>
+<text x="180" y="605" font-family="Arial,sans-serif" font-size="9" letter-spacing="3" fill="#514b40">THE ART OF LOOKING CLOSER</text></g>
+<circle cx="674" cy="528" r="109" fill="#b6382d"/><circle cx="674" cy="528" r="88" stroke="#f4e8d6" stroke-width=".8"/>
+<path d="M634 528h80m-26-26 26 26-26 26" stroke="#faf1df" stroke-width="3"/>
+<path d="M70 71h95M70 71v95M830 689h-95M830 689v-95" stroke="#a19886"/><text x="70" y="716" font-family="Arial,sans-serif" font-size="9" letter-spacing="3" fill="#716958">OBSERVATIONS / IDEAS / STORIES</text>
+</svg>

@@ -1,4 +1,4 @@
-/* Shared structure for the three enterprise themes; loaded only by those themes. */
+/* Shared structure for the built-in enterprise and editorial themes. */
 .enterprise-theme{overflow-x:clip;--enterprise-header-height:88px}
 .enterprise-theme .container{width:min(1240px,calc(100% - 80px))}
 .enterprise-theme .site-header{position:sticky;top:0;z-index:30}

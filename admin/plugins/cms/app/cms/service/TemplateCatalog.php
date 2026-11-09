@@ -14,8 +14,8 @@ final class TemplateCatalog
             if($directory->isDot()||!$directory->isDir()||$directory->isLink())continue;
             $name=$directory->getFilename();
             if(!preg_match('/^[a-zA-Z0-9_-]+$/D',$name))continue;
-            $root=$directory->getRealPath();$home=$root?realpath($root.'/index.html'):false;
-            if(!$root||!str_starts_with($root,$base.DIRECTORY_SEPARATOR)||!$home||!is_file($home)||is_link($root.'/index.html')||!is_readable($home)||!str_starts_with($home,$root.DIRECTORY_SEPARATOR))continue;
+            $root=$directory->getRealPath();$homeFile=$root.'/index'.(is_file($root.'/index.blade.php')?'.blade.php':'.html');$home=$root?realpath($homeFile):false;
+            if(!$root||!str_starts_with($root,$base.DIRECTORY_SEPARATOR)||!$home||!is_file($home)||is_link($homeFile)||!is_readable($home)||!str_starts_with($home,$root.DIRECTORY_SEPARATOR))continue;
             $definition=BuiltinThemes::get($name);
             $options[]=['value'=>$name,'label'=>$definition?$definition['name'].'（'.$name.'）':$name.'（自定义主题）'];
         }
@@ -32,13 +32,15 @@ final class TemplateCatalog
         $options=[];
         $files=new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root,\FilesystemIterator::SKIP_DOTS));
         foreach($files as $file){
-            if(!$file->isFile()||$file->isLink()||$file->getExtension()!=='html')continue;
+            if(!$file->isFile()||$file->isLink())continue;
+            $suffix=str_ends_with($file->getFilename(),'.blade.php')?'.blade.php':($file->getExtension()==='html'?'.html':null);if($suffix===null)continue;
             $resolved=$file->getRealPath();if(!$resolved||!str_starts_with($resolved,$root.DIRECTORY_SEPARATOR))continue;
-            $name=substr(str_replace(DIRECTORY_SEPARATOR,'/',substr($file->getPathname(),strlen($root)+1)),0,-5);
+            $name=substr(str_replace(DIRECTORY_SEPARATOR,'/',substr($file->getPathname(),strlen($root)+1)),0,-strlen($suffix));
             if(preg_match('~^(?:partials|includes|layouts)(?:/|$)~',$name)||in_array($name,['index','category','search'],true))continue;
             if(!preg_match('~^[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*$~D',$name))continue;
-            $options[]=['value'=>$name,'label'=>($labels[$name]??$name).' ('.$name.')'];
+            $options[$name]=['value'=>$name,'label'=>($labels[$name]??$name).' ('.$name.')'];
         }
+        $options=array_values($options);
         usort($options,static fn($a,$b)=>strcmp($a['value'],$b['value']));
         return $options;
     }

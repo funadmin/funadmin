@@ -8,6 +8,15 @@ use app\cms\template\{TemplateEngine,RenderContext};
 use support\Db;
 final class TagsTest extends CmsTestCase
 {
+    public function test_backend_preview_keeps_restricted_fragments_and_can_include_blade_partial():void {
+        $site=$this->site();$service=new TemplateTagService();$name='preview_fixture_'.bin2hex(random_bytes(4));
+        $file=dirname(__DIR__,2).'/plugins/cms/app/cms/view/default/partials/'.$name.'.blade.php';
+        file_put_contents($file,'<span>{{ $item }}</span>');
+        try{
+            $tag=$service->save($site['id'],'',['name'=>'blade_preview','provider'=>'text','parameters'=>['value'=>'<safe>'],'template_fragment'=>'{cms:include file="partials/'.$name.'" /}@php throw new Exception("no"); @endphp'],'1');
+            self::assertSame('<span>&lt;safe&gt;</span>@php throw new Exception("no"); @endphp',$service->preview($site['id'],'zh-cn',$tag['id'],(int)$tag['draft_version']));
+        }finally{unlink($file);}
+    }
     public function test_deleting_menu_group_removes_nested_items_but_preserves_other_groups_and_targets(): void
     {
         $site=$this->site();$service=new MenuService();

@@ -12,7 +12,7 @@ final class ThemeCatalogTest extends \PHPUnit\Framework\TestCase
         $valid=$base.'/'.$name;$empty=$base.'/'.$name.'_empty';$linked=$base.'/'.$name.'_link';$linkedIndex=$base.'/'.$name.'_index';
         $outside=sys_get_temp_dir().'/'.$name;
         foreach([$valid,$empty,$linkedIndex,$outside] as $path)mkdir($path);
-        file_put_contents($valid.'/index.html','<h1>Theme home</h1>');
+        file_put_contents($valid.'/index.blade.php','@if(true)<h1>Theme home</h1>@endif');
         file_put_contents($outside.'/index.html','<h1>Outside theme</h1>');
         symlink($outside,$linked);symlink($outside.'/index.html',$linkedIndex.'/index.html');
         try{
@@ -21,7 +21,7 @@ final class ThemeCatalogTest extends \PHPUnit\Framework\TestCase
             self::assertNotContains($name.'_empty',$values);self::assertNotContains($name.'_link',$values);self::assertNotContains($name.'_index',$values);
             foreach($options as $option){self::assertArrayNotHasKey('path',$option);self::assertNotEmpty($option['label']);}
         }finally{
-            unlink($linked);unlink($linkedIndex.'/index.html');unlink($valid.'/index.html');unlink($outside.'/index.html');
+            unlink($linked);unlink($linkedIndex.'/index.html');unlink($valid.'/index.blade.php');unlink($outside.'/index.html');
             foreach([$valid,$empty,$linkedIndex,$outside] as $path)rmdir($path);
         }
     }

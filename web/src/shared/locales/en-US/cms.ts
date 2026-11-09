@@ -1,6 +1,8 @@
 /** Static cms interface messages. Schema labels and content remain data. */
 export default {
   "labels": {
+    bladeTemplateUsage: 'Theme templates use Blade. Copy the usage code below into .blade.php files.',
+    restrictedFragmentHelp: 'Display fragments keep the restricted CMS tag syntax and do not execute Blade or PHP.',
     "saveMemberRoles": "Save member roles",
     "cancel": "Cancel",
     "theseActionsAreGrantedBySiteRolesButThis": "These actions are granted by site roles, but this account lacks the required system roles. A platform administrator must update the system roles first.",
@@ -314,7 +316,6 @@ export default {
     "primaryDomain": "Primary domain",
     "siteName": "Site name",
     "siteCode": "Site code",
-    "siteAdministrators": "Site administrators",
     "domainSettings": "Domain settings",
     "languageSettings": "Language settings",
     "siteSettings": "Site settings",

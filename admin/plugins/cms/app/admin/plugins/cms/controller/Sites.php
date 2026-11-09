@@ -50,8 +50,6 @@ final class Sites extends Base
     public function localeSave(): Response { return $this->action(fn()=>(new SiteService())->saveLocale($this->site('cms:site:locale'),$this->input())); }
     #[Post('/domains/save')]
     public function domainSave(): Response { return $this->action(fn()=>(new SiteService())->saveDomain($this->site('cms:site:domain'),$this->input())); }
-    #[Post('/sites/grant')]
-    public function grant(): Response { return $this->action(function():bool {(new SiteAccess())->super($this->actor());(new SiteService())->grant(Input::id($this->input()['site_id']??''),$this->actor(),$this->input()['admin_ids']??[]);return true;}); }
     #[Post('/site-models/save')]
     public function modelSave(): Response { return $this->action(fn()=>Db::transaction(function():bool {
         $site=Input::id($this->input()['site_id']??'');(new SiteService())->lock($site);$this->siteAny(['cms:model:status','cms:model:template']);$input=$this->input();$id=Input::id($input['model_id']??'');

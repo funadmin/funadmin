@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" fill="none">
+<defs><linearGradient id="face" x1="220" y1="110" x2="420" y2="460" gradientUnits="userSpaceOnUse"><stop stop-color="#3c3c3c"/><stop offset="1" stop-color="#111"/></linearGradient><linearGradient id="light" x1="470" y1="200" x2="610" y2="400" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset="1" stop-color="#dfdfd9"/></linearGradient></defs>
+<path d="M60 423l390-150 300 135-370 100z" fill="#f2f2ed"/><path d="M255 421l132 61 266-100-132-58z" fill="#d0d0c8"/>
+<path d="M234 376V142l145-57 112 52v234l-145 57z" fill="#191919"/><path d="M234 142l112 52v234l-112-52z" fill="url(#face)"/><path d="M346 194l145-57-112-52-145 57z" fill="#525252"/>
+<path d="M394 351V245a50 50 0 0 1 93-25v106z" fill="#a9a9a2"/><path d="M416 342V249a35 35 0 0 1 68-13v91z" fill="#1b1b1b"/>
+<path d="M497 336V220l93-36 83 40v116l-93 36z" fill="url(#light)"/><path d="M497 220l83 40v116l-83-40z" fill="#e0e0d8"/><path d="M580 260l93-36v116l-93 36z" fill="#b6b6ae"/>
+<circle cx="213" cy="314" r="61" fill="#d5d5cb"/><path d="M213 253a61 61 0 0 1 0 122z" fill="#b3b3aa"/>
+<path d="M86 66h96M86 66v96M716 454h-96M716 454v-96" stroke="#7b7b74" stroke-width=".7"/>
+<text x="86" y="481" font-family="Arial,sans-serif" font-size="9" letter-spacing="3" fill="#62625c">FORM / SPACE / PURPOSE</text>
+</svg>

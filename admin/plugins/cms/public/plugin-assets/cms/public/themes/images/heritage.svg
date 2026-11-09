@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="900" viewBox="0 0 800 900" fill="none">
+<defs><linearGradient id="sky" x1="400" y1="70" x2="400" y2="840" gradientUnits="userSpaceOnUse"><stop stop-color="#e8e9d9"/><stop offset="1" stop-color="#f1eee0"/></linearGradient><linearGradient id="far" x1="400" y1="260" x2="400" y2="700" gradientUnits="userSpaceOnUse"><stop stop-color="#bac6ad"/><stop offset="1" stop-color="#e9e9d8"/></linearGradient><linearGradient id="near" x1="400" y1="360" x2="400" y2="820" gradientUnits="userSpaceOnUse"><stop stop-color="#627c65"/><stop offset="1" stop-color="#c6d0b4"/></linearGradient><clipPath id="arch"><path d="M115 790V341a285 285 0 0 1 570 0v449z"/></clipPath><pattern id="paper" width="11" height="11" patternUnits="userSpaceOnUse"><circle cx="2" cy="3" r=".55" fill="#7b8a6d" opacity=".15"/></pattern></defs>
+<path d="M115 790V341a285 285 0 0 1 570 0v449z" fill="url(#sky)"/>
+<g clip-path="url(#arch)"><circle cx="504" cy="286" r="75" fill="#c88965" opacity=".67"/>
+<path d="M24 570C126 499 157 515 222 416s96-103 170-32 94 82 156-23 103-118 217 10v495H24z" fill="url(#far)"/>
+<path d="M-20 676c108-133 143-72 223-138s102-66 166 15 76 59 155-68 126-103 265-17v409H-20z" fill="url(#near)"/>
+<path d="M-20 784c125-99 203-145 328-68s159 14 231-54 121-82 260-2v221H-20z" fill="#365844" opacity=".8"/>
+<path d="M161 793c74-40 125-40 188-4 88 51 171 13 221-11 44-21 80-16 115-6" stroke="#d7dec2" stroke-width="2"/>
+<path d="M375 790c-78-32-103-63-39-105s126-72 81-114" stroke="#eff0dd" stroke-width="17" opacity=".67"/>
+<path d="M115 790V341a285 285 0 0 1 570 0v449z" fill="url(#paper)"/>
+<path d="M155 318c39-10 68-4 111 0m223 87c45-10 79-7 114-1m-408 78c31-7 55-4 76 0" stroke="#f7f5e8" stroke-width="9" stroke-linecap="round" opacity=".65"/></g>
+<path d="M91 790V341a309 309 0 0 1 618 0v449M115 819h570" stroke="#9fac8f" stroke-width="1"/>
+<g stroke="#3e5b41" stroke-width="3" stroke-linecap="round"><path d="M620 792c-9-62-25-118-48-161m26 85c25-26 36-51 32-75m-40 45c-27-8-43-25-48-52m76 137c27-9 45-26 49-51"/></g>
+<g fill="#506e4e"><ellipse cx="626" cy="660" rx="9" ry="22" transform="rotate(28 626 660)"/><ellipse cx="551" cy="649" rx="9" ry="23" transform="rotate(-39 551 649)"/><ellipse cx="654" cy="735" rx="8" ry="23" transform="rotate(38 654 735)"/></g>
+<text x="115" y="858" font-family="Georgia,serif" font-size="10" letter-spacing="4" fill="#829075">FORMED BY NATURE. CONSIDERED BY DESIGN.</text>
+</svg>

@@ -5,16 +5,17 @@ namespace app\cms\controller;
 
 use app\BaseController;
 use app\common\service\authentication\BearerTokenExtractor;
-use app\common\service\member\MemberTokenService;
+use app\common\service\member\MemberApiSessionService;
 use InvalidArgumentException;
 use support\Response;
-/** Common opaque member authentication and private API envelope for CMS extensions. */
+/** CMS 扩展的会员接口基类：按会员 API v2 会话（access token）识别会员，并统一私有响应格式。 */
 abstract class MemberEndpoint extends BaseController
 {
     protected function member(): string
     {
         $token = (new BearerTokenExtractor())->extract($this->request) ?? '';
-        $id = $token === '' ? null : (new MemberTokenService())->memberId($token);
+        $member = $token === '' ? null : (new MemberApiSessionService())->authenticate($token);
+        $id = $member['id'] ?? null;
         if ($id === null) {
             throw new InvalidArgumentException('会员未登录或令牌已失效', 401);
         }

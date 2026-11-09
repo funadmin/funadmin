@@ -37,9 +37,9 @@ final class SiteRoleApiTest extends CmsTestCase
         $menu=$service->save($site,'zh-cn',['code'=>'disposable','name'=>'Disposable','items'=>[]]);
         self::assertSame(403,$this->call('Menus','remove',['id'=>$menu['id']],true)[0]);
         (new SiteRoleService())->saveRole($site,'1',['id'=>$this->role['id'],'code'=>'editor_api','name'=>'Menu deleter','permissions'=>['cms:menu:list','cms:menu:delete']]);
-        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,self::hostPermissionIds(['cms:menu:list','cms:menu:save']));
+        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,self::permissionIds(['cms:menu:list','cms:menu:save','cms:menus:index','cms:menus:targets','cms:sites:context','cms:menus:save','cms:menus:status']));
         self::assertSame(403,$this->call('Menus','remove',['id'=>$menu['id']],true)[0]);
-        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,self::hostPermissionIds(['cms:menu:list','cms:menu:delete']));
+        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,self::permissionIds(['cms:menu:list','cms:menu:delete','cms:menus:index','cms:menus:targets','cms:sites:context','cms:menus:remove']));
         $other=$this->site('delete_other','delete-other.test');
         self::assertSame(403,$this->call('Menus','remove',['site_id'=>$other['id'],'id'=>$menu['id']],true)[0]);
         self::assertSame(404,$this->call('Menus','remove',['id'=>'999999'],true)[0]);
@@ -50,7 +50,7 @@ final class SiteRoleApiTest extends CmsTestCase
         self::assertTrue(method_exists(\app\admin\plugins\cms\controller\Tags::class,'options'),'标签编辑需要独立选项接口');
         $site=$this->siteRow['id'];
         (new SiteRoleService())->saveRole($site,'1',['id'=>$this->role['id'],'code'=>'editor_api','name'=>'Tag only','permissions'=>['cms:tag:list']]);
-        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,self::hostPermissionIds(['cms:tag:list']));
+        \app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,self::permissionIds(['cms:tag:list','cms:sites:context','cms:tags:index','cms:tags:options','cms:tags:providers']));
         [$status,$body]=$this->call('Tags','options');
         self::assertSame(200,$status);
         self::assertContains(['value'=>'article','label'=>'文章'],$body['data']['models']);
@@ -59,7 +59,7 @@ final class SiteRoleApiTest extends CmsTestCase
         self::assertSame(403,$this->call('Tags','options',['site_id'=>$this->site('other_choices','other-choices.test')['id']])[0]);
     }
     public function test_content_only_context_is_minimal_and_other_site_is_denied(): void {
-        $codes=self::hostPermissionIds(['cms:content:list']);\app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,$codes);
+        $codes=self::permissionIds(['cms:content:list','cms:content:detail','cms:content:index','cms:content:lookups','cms:content:revisions','cms:content:translation','cms:sites:context']);\app\admin\authorization\service\CasbinService::instance()->syncRolePermissions(91,$codes);
         [$status,$body]=$this->call('Sites','context',['menu'=>'cms:content:list']);self::assertSame(200,$status);$item=$body['data']['items'][0];self::assertSame($this->siteRow['id'],$item['id']);self::assertArrayNotHasKey('settings',$item);self::assertArrayNotHasKey('domains',$item);self::assertArrayNotHasKey('admin_ids',$item);self::assertArrayNotHasKey('settings',$item['locales'][0]);
         self::assertSame(403,$this->call('Sites','settings')[0]);$other=$this->site('other','other.test');self::assertSame(403,$this->call('Content','index',['site_id'=>$other['id']])[0]);
     }

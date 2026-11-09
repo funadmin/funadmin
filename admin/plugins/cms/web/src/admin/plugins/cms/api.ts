@@ -21,7 +21,6 @@ export const cmsApi = {
   saveSite: (data: FormData) => post<Site>('/sites/save', data),
   saveLocale: (data: FormData) => post('/locales/save', data),
   saveDomain: (data: FormData) => post('/domains/save', data),
-  grant: (data: FormData) => post('/sites/grant', data),
   saveSiteModel: (data: FormData) => post('/site-models/save', data),
   content: (scope: Scope & FormData) => get<ContentList>('/content', scope),
   translation: (data: FormData) => get<ContentRow>('/content/translation', data),

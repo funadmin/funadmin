@@ -28,7 +28,7 @@ final class ContributionAuthorizationTest extends CmsTestCase
         $roles=new SiteRoleService();$role=$roles->saveRole($a,'1',['code'=>'review_only','name'=>'Review only','permissions'=>['cms:submission:list','cms:submission:review']]);$roles->assign($a,'1','91',[$role['id']]);
         $this->denied(fn()=>$v->review($b,'91',$other['id'],0,'publish'));
         $this->denied(fn()=>$v->reviewContent($a,'91',$first['id'],0,'publish'));
-        CasbinService::instance()->syncRolePermissions(91,self::hostPermissionIds(['cms:submission:list']));
+        CasbinService::instance()->syncRolePermissions(91,self::permissionIds(['cms:submission:list','cms:contributions:index','cms:sites:context']));
         $this->denied(fn()=>$v->review($a,'91',$first['id'],0,'reject','No capability'));
         CasbinService::instance()->syncRolePermissions(91,Db::table('permission')->where('source_name','cms')->pluck('id')->all());
         self::assertSame('rejected',$v->review($a,'91',$first['id'],0,'reject','Reason')['status']);

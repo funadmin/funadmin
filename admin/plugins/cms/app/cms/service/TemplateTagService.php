@@ -5,7 +5,7 @@ use support\Db;
 use app\cms\tags\BuiltinTags;
 use app\cms\template\RenderContext;
 use app\cms\template\TagRegistry;
-use app\cms\template\TemplateEngine;
+use app\cms\template\CmsTags;
 use InvalidArgumentException;
 final class TemplateTagService
 {
@@ -73,6 +73,7 @@ final class TemplateTagService
         $tag=Db::table('cms_template_tag')->where('site_id',Input::id($siteId))->whereIn('locale',['',$locale])->where('id',Input::id($id))->whereNull('deleted_at')->first();if(!$tag)throw new InvalidArgumentException('标签不存在',404);
         $revision=Input::row(Db::table('cms_template_tag_version')->where('tag_id',$id)->where('version',$version)->first());if(!$revision)throw new InvalidArgumentException('标签版本不存在');
         $context=new RenderContext($siteId,Input::locale($locale));$registry=(new BuiltinTags())->registry($context);$this->register($registry,$context,$tag->name);$registry->alias($tag->name,$revision['provider'],$revision['parameters'],$revision['template_fragment']??'');
-        return (new TemplateEngine($registry,dirname(__DIR__).'/view/default'))->render('{cms:'.$tag->name.' /}',[],$context);
+        $registry->beginRender();
+        return (new CmsTags($registry,dirname(__DIR__).'/view/default',[],$context))->tag($tag->name)->value;
     }
 }

@@ -8,7 +8,7 @@ final class TemplateEngine
 {
     private int $calls=0;
     private array $stack=[];
-    public function __construct(private TagRegistry $registry, private string $root) {}
+    public function __construct(private TagRegistry $registry, private string $root,private ?\Closure $bladeInclude=null) {}
     public function render(string $source,array $variables,RenderContext $context): string
     {
         $this->calls=0; $this->stack=[];
@@ -18,6 +18,11 @@ final class TemplateEngine
     public function renderFile(string $template,array $variables,RenderContext $context): string
     {
         return $this->render($this->file($template),$variables,$context);
+    }
+    /** Render a database alias inside an existing page without resetting provider state. */
+    public function renderTag(string $name,array $parameters,array $variables,RenderContext $context):string
+    {
+        return $this->evaluate([['tag',$name,$parameters,null]],$variables,$context,0);
     }
     private function file(string $template): string
     {
@@ -124,7 +129,14 @@ final class TemplateEngine
                 if(array_keys($attrs)!==['file'] || $children!==null) throw new InvalidArgumentException('include 参数错误');
                 $key='file:'.$attrs['file']; if(in_array($key,$this->stack,true)) throw new RuntimeException('循环 include');
                 $this->stack[]=$key;
-                try { $this->append($output,$this->evaluate($this->parse($this->file((string)$attrs['file'])),$variables,$context,$depth+1)); } finally { array_pop($this->stack); }
+                try {
+                    $file=(string)$attrs['file'];
+                    if($this->bladeInclude&&(is_file($this->root.'/'.$file.'.blade.php')||!is_file($this->root.'/'.$file.'.html'))){
+                        $this->append($output,($this->bladeInclude)($file,$variables));
+                    }else{
+                        $this->append($output,$this->evaluate($this->parse($this->file($file)),$variables,$context,$depth+1));
+                    }
+                } finally { array_pop($this->stack); }
                 continue;
             }
             $as=(string)($attrs['as']??'item'); unset($attrs['as']);

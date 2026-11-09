@@ -1,5 +1,0 @@
-{cms:if test="$home.has_contacts"}
-<section class="container module-section"><div class="section-heading"><h2>{$ui.contacts}</h2></div><div class="contacts-grid">
-{cms:theme name="contacts" as="contact"}<article class="contact-card"><div><h3>{$contact.name}</h3>{cms:if test="$contact.phone"}<p>{$contact.phone}</p>{/cms:if}{cms:if test="$contact.email"}<a href="mailto:{$contact.email}">{$contact.email}</a>{/cms:if}</div>{cms:if test="$contact.qrcode"}<img src="{$contact.qrcode}" alt="{$contact.name}" loading="lazy" width="100" height="100">{/cms:if}</article>{/cms:theme}
-</div></section>
-{/cms:if}

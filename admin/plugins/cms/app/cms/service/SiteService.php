@@ -95,22 +95,6 @@ final class SiteService
             return Input::row(Db::table('cms_domain')->where('id',$id)->first());
         });
     }
-    public function grant(string $siteId,string $actorId,array $adminIds): void
-    {
-        (new SiteAccess())->super($actorId);$this->get($siteId);$ids=array_unique(array_map(Input::id(...),$adminIds));
-        if(!SiteRoleSchema::ready())throw new InvalidArgumentException('请完成 CMS 升级后再使用站点权限',409);
-        Db::transaction(function()use($siteId,$ids,$actorId): void {
-            $this->lock($siteId);
-            if(!Db::schema()->hasTable('admin')||Db::table('admin')->whereIn('id',$ids)->where('status',1)->whereNull('deleted_at')->count()!==count($ids))throw new InvalidArgumentException('授权账号不存在或未启用',422);
-            SiteRoleSchema::seedSite($siteId);$role=Db::table('cms_site_role')->where('site_id',$siteId)->where('code','legacy')->value('id');
-            $before=['admin_ids'=>array_map('strval',Db::table('cms_site_admin')->where('site_id',$siteId)->pluck('admin_id')->all()),'roles'=>Input::rows(Db::table('cms_site_role_member')->where('site_id',$siteId)->get())];
-            Db::table('cms_site_role_member')->where('site_id',$siteId)->delete();Db::table('cms_site_admin')->where('site_id',$siteId)->delete();
-            foreach($ids as $id){Db::table('cms_site_admin')->insert(['site_id'=>$siteId,'admin_id'=>$id]);Db::table('cms_site_role_member')->insert(['site_id'=>$siteId,'role_id'=>$role,'admin_id'=>$id]);}
-            $after=['admin_ids'=>array_values($ids),'roles'=>Input::rows(Db::table('cms_site_role_member')->where('site_id',$siteId)->get())];
-            Db::table('cms_site_auth_audit')->insert(['site_id'=>$siteId,'actor_admin_id'=>$actorId,'target_type'=>'site','target_id'=>$siteId,'operation'=>'member.replace-legacy','before_state'=>Input::json($before),'after_state'=>Input::json($after),'created_at'=>Input::now()]);
-        });
-    }
-
     public function byHost(string $host): ?array
     {
         try{$host=self::host($host);}catch(InvalidArgumentException){return null;}

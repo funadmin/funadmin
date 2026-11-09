@@ -17,16 +17,13 @@ abstract class CmsTestCase extends \PHPUnit\Framework\TestCase
         \app\cms\service\ModelService::seed();
     }
     /**
-     * 宿主角色授权以升级前的旧权限码表达，再按冻结映射展开为按方法推导的接口权限码（与升级迁移完全一致），
-     * 站点操作码本身作为能力权限保留。这样测试同时验证"升级前的授权在升级后仍得到同样的结果"。
+     * 宿主角色直接以权限码授权：站点操作码作为能力权限，CMS 后台方法推导出的接口权限码作为路由权限。
      *
-     * @param list<string> $legacyCodes
+     * @param list<string> $codes
      * @return list<int>
      */
-    protected static function hostPermissionIds(array $legacyCodes): array
+    protected static function permissionIds(array $codes): array
     {
-        $map=require dirname(__DIR__,2).'/database/permission-maps/plugin-per-method.php';
-        $codes=$legacyCodes;foreach($legacyCodes as $code)$codes=array_merge($codes,$map[$code]??[]);
         return array_map('intval',Db::table('permission')->whereIn('code',array_values(array_unique($codes)))->where('status',1)->pluck('id')->all());
     }
     /** 登记 CMS 站点操作（能力权限）与 CMS 后台方法推导出的接口权限码，与插件启用时一致。 */

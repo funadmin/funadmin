@@ -1,6 +1,8 @@
 /** Static cms interface messages. Schema labels and content remain data. */
 export default {
   "labels": {
+    bladeTemplateUsage: '主题模板使用 Blade，下面的调用代码可复制到 .blade.php 文件。',
+    restrictedFragmentHelp: '展示片段继续使用原有 CMS 标签语法，不执行 Blade 或 PHP。',
     "saveMemberRoles": "保存成员角色",
     "cancel": "取消",
     "theseActionsAreGrantedBySiteRolesButThis": "以下操作已由本站角色授予，但该账号缺少系统角色资格，需要平台管理员调整系统角色后才能生效。",
@@ -314,7 +316,6 @@ export default {
     "primaryDomain": "主域名",
     "siteName": "站点名称",
     "siteCode": "站点标识",
-    "siteAdministrators": "站点管理员",
     "domainSettings": "域名配置",
     "languageSettings": "语言配置",
     "siteSettings": "站点配置",

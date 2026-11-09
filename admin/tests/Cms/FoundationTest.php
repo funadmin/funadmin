@@ -42,8 +42,8 @@ final class FoundationTest extends CmsTestCase
     public function test_site_grants_do_not_give_access_to_other_sites(): void
     {
         $a=$this->site(); $b=$this->site('second','second.test');
-        (new \app\common\service\database\MigrationService())->run();Db::table('admin')->insertOrIgnore(['id'=>9,'username'=>'cms_scope','password'=>'unused','status'=>1]);
-        (new SiteService())->grant($a['id'],'1',['9']);
+        (new \app\common\service\database\MigrationService())->run();Db::table('admin')->insertOrIgnore(['id'=>9,'username'=>'cms_scope','password'=>'unused','status'=>1]);self::registerHostPermissions();
+        $roles=new \app\cms\service\SiteRoleService();$roles->assign($a['id'],'1','9',[$roles->saveRole($a['id'],'1',['code'=>'scope_reader','name'=>'Reader','permissions'=>['cms:content:list']])['id']]);
         (new SiteAccess())->assert($a['id'],'9');
         $this->expectException(\InvalidArgumentException::class);
         (new SiteAccess())->assert($b['id'],'9');

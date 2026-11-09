@@ -4,11 +4,12 @@ namespace app\cms\template;
 use InvalidArgumentException;
 final class TagRegistry
 {
+    private int $calls=0;
     private array $handlers=[];
     private array $aliases=[];
     private array $renderInitializers=[];
     public function onRender(callable $initializer): void { $this->renderInitializers[]=\Closure::fromCallable($initializer); }
-    public function beginRender(): void { foreach($this->renderInitializers as $initialize)$initialize(); }
+    public function beginRender(): void { $this->calls=0; foreach($this->renderInitializers as $initialize)$initialize(); }
     public function register(string $name, TagHandler $handler): void
     {
         $this->assertName($name);
@@ -32,6 +33,7 @@ final class TagRegistry
     public function isAlias(string $name): bool { return isset($this->aliases[$name]); }
     public function resolve(string $name,array $parameters,RenderContext $context): array
     {
+        if(++$this->calls>200)throw new \RuntimeException('整页标签调用超过200次');
         $alias=$this->aliases[$name]??null;
         $handler=$this->handlers[$alias['provider']??$name]??null;
         if (!$handler) throw new InvalidArgumentException('未知标签：'.$name);

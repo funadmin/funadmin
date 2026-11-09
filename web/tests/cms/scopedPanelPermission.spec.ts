@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
-const mocks = vi.hoisted(() => ({ allowed: false, permissions: [] as string[], saveSite: vi.fn(), grant: vi.fn(), saveCategory: vi.fn(), saveModel: vi.fn(), saveSiteModel: vi.fn() }));
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+const mocks = vi.hoisted(() => ({ allowed: false, permissions: [] as string[], saveSite: vi.fn(), saveCategory: vi.fn(), saveModel: vi.fn(), saveSiteModel: vi.fn() }));
 vi.mock('@/utils/permission', () => ({ hasPermission: (code: string) => mocks.permissions.includes(code) }));
-vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api', () => ({ cmsApi: { sites: async () => [], categories: async () => [], models: async () => [], saveSite: mocks.saveSite, grant: mocks.grant, saveCategory: mocks.saveCategory, saveModel: mocks.saveModel, saveSiteModel: mocks.saveSiteModel } }));
+vi.mock('../../../admin/plugins/cms/web/src/admin/plugins/cms/api', () => ({ cmsApi: { sites: async () => [], categories: async () => [], models: async () => [], saveSite: mocks.saveSite, saveCategory: mocks.saveCategory, saveModel: mocks.saveModel, saveSiteModel: mocks.saveSiteModel } }));
 import SitePanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/SitePanel.vue';
 import CategoryPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/CategoryPanel.vue';
 import ModelPanel from '../../../admin/plugins/cms/web/src/admin/plugins/cms/components/ModelPanel.vue';
@@ -21,12 +23,13 @@ describe('CMS功能权限与站点授权', () => {
     const state = (wrapper.vm as any).$.setupState; state.open(); mocks.permissions = []; mocks.allowed = false;
     await state.save(); expect(mocks.saveCategory).not.toHaveBeenCalled(); wrapper.unmount();
   });
-  it('站点授权仍需超级管理员且不能被站点写权限替代', async () => {
-    mocks.permissions = ['cms:site:save', 'cms:site:grant'];
+  it('新建站点仍需超级管理员，站点成员只通过角色分配管理', async () => {
+    mocks.permissions = ['cms:site:save'];
     const wrapper = shallowMount(SitePanel, { props: { can: () => mocks.allowed, isSuper: false }, global });
-    const state = (wrapper.vm as any).$.setupState; state.dialog = 'grant'; await state.save();
-    expect(mocks.grant).not.toHaveBeenCalled(); state.dialog = 'site'; state.form = {}; await state.save();
+    const state = (wrapper.vm as any).$.setupState; state.dialog = 'site'; state.form = {}; await state.save();
     expect(mocks.saveSite).not.toHaveBeenCalled(); wrapper.unmount();
+    const source = readFileSync(resolve(process.cwd(), '../admin/plugins/cms/web/src/admin/plugins/cms/api.ts'), 'utf8');
+    expect(source).not.toContain('/sites/grant');
   });
   it('模型管理保留超级管理员约束，本站开关需要本站权限', async () => {
     mocks.permissions = ['cms:model:save'];

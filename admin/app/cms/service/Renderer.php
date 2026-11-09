@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace app\cms\service;
 use app\cms\template\RenderContext;
-use app\cms\template\TemplateEngine;
+use app\cms\template\ThemeEngine;
 use app\cms\template\TrustedHtml;
 use app\cms\tags\BuiltinTags;
 final class Renderer
@@ -39,6 +39,6 @@ final class Renderer
         if(!empty($configuration['brand_name']))$variables['site']['name']=$configuration['brand_name'];
         $theme=Input::template($site['theme']);$root=dirname(__DIR__).'/view';$resolved=realpath($root.'/'.$theme);$base=realpath($root);
         if(!$base||!$resolved||!str_starts_with($resolved,$base.DIRECTORY_SEPARATOR))throw new \InvalidArgumentException('主题不存在');
-        return (new TemplateEngine($registry,$resolved))->renderFile(Input::template($template),$variables,$context);
+        return (new ThemeEngine($registry,$resolved))->renderFile(Input::template($template),$variables,$context);
     }
 }

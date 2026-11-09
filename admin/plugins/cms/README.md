@@ -79,24 +79,24 @@ server {
 
 ## 模板标签
 
-默认主题在 `app/cms/view/default/`，发布后位于 `admin/app/cms/view/default/`。新主题可放在相邻目录，并在站点设置中选择主题标识。模板是 HTML，CMS 独立解释器在服务端解析，不更改宿主全局 Raw 配置，不执行 PHP 或任意表达式。
+默认主题在 `app/cms/view/default/`，发布后位于 `admin/app/cms/view/default/`。新主题可放在相邻目录，并在站点设置中选择主题标识。内置主题使用原生 Blade（`.blade.php`），支持标准 include、条件和循环，编译缓存位于 `runtime/views/cms/`。旧 `.html` 自定义主题继续使用受限解释器。完整开发指南见 [CMS Blade](../../../docs/cms-blade.md)。
 
-```html
-{cms:include file="partials/header" /}
-<h1>{$content.title}</h1>
-<div>{$content.body}</div>
-{cms:content model="article" category="news" limit="10" as="item"}
-  <a href="{$item.url}">{$item.title}</a>
-{/cms:content}
-{cms:if test="$content.summary"}
-  <p>{$content.summary}</p>
-{cms:else /}
+```blade
+@include('partials.header')
+<h1>{{ $content['title'] ?? '' }}</h1>
+<div>{{ $content['body'] ?? '' }}</div>
+@foreach($cms->items('content', ['model' => 'article', 'category' => 'news', 'limit' => '10']) as $item)
+  <a href="{{ $item['url'] ?? '' }}">{{ $item['title'] ?? '' }}</a>
+@endforeach
+@if(!empty($content['summary']))
+  <p>{{ $content['summary'] ?? '' }}</p>
+@else
   <p>暂无摘要</p>
-{/cms:if}
-{cms:include file="partials/footer" /}
+@endif
+@include('partials.footer')
 ```
 
-变量默认 HTML 转义；`content.body` 是净化后的富文本，模板片段不再被当成 PHP 编译。Vue 的 `{{ query }}` 与 CMS 的 `{$content.title}` 分开处理。需要原样展示 CMS 语法时，使用 `{cms:literal}...{/cms:literal}`。
+变量默认 HTML 转义；`$content['body']` 是净化后显式标记的可信富文本。主题里的 Vue 插值使用 `@{{ query }}` 或 `@verbatim ... @endverbatim`。后台数据库展示片段保持受限 CMS 语法，不作为 Blade/PHP 编译。
 
 | 标签 | 参数/返回 |
 |---|---|
@@ -112,19 +112,19 @@ server {
 | `text` | value，返回转义文本 |
 | `date` | value、format（默认 Y-m-d）、default；日期格式化，最终输出仍转义 |
 
-所有集合/对象都需要块体，或通过后台标签的展示片段渲染。例如 `{cms:site as="info"}{$info.name}{/cms:site}`。列表参数可以引用当前变量，如 `category="$category.id"`；不允许函数调用或 SQL 表达式。模板默认变量包含 site、locale、page、content、category、seo。
+集合用 `$cms->items(标签名, 参数数组)` 配合 Blade foreach 展示；标量或后台标签片段使用 `$cms->tag(...)`。参数可直接引用 PHP 数组变量，如 `['category' => $category['id']]`，数据处理器仍校验参数白名单，不接受 SQL 表达式。模板默认变量包含 site、locale、page、content、category、seo。
 
 二期首批补充文本默认值/去 HTML/截取、日期格式化、loop 循环信息、内容排序/offset、分页主列表校验，以及默认首页的列表配置模块。站点配置可通过“添加常用列表”快速创建 slides / partners / contacts / ads。完整参数、首页数量限制和升级后的用法见仓库 `docs/cms-phase2.md`。
 
 ## 后台自定义标签
 
-在“模板标签”中新建名称，例如 featured；选择 content 处理器，设置 model=article、limit=6，展示片段填写：
+后台展示片段继续使用受限 CMS 语法。在“模板标签”中新建名称，例如 featured；选择 content 处理器，设置 model=article、limit=6，展示片段填写：
 
 ```html
 <article><a href="{$item.url}">{$item.title}</a><p>{$item.summary}</p></article>
 ```
 
-保存生成标签草稿；发布后模板使用 `{cms:featured /}`。也可在调用处覆盖允许的参数和展示块体：
+保存生成标签草稿；发布后 Blade 主题使用 `{{ $cms->tag('featured') }}`。自行展示时使用 `$cms->items('featured', ['limit' => 3])` 配合 Blade foreach。下面是旧 HTML 主题/数据库片段的兼容写法：
 
 ```html
 {cms:featured limit="3" as="row"}
@@ -154,7 +154,7 @@ final class CompanyTags
 }
 ```
 
-配置：`return ['tag_providers' => [\app\cms\tags\CompanyTags::class]];`。模板调用 `{cms:company_note label="联系我们" /}`。也可以直接实现 TagHandler 的 schema/configurable/resolve 三个方法。
+配置：`return ['tag_providers' => [\app\cms\tags\CompanyTags::class]];`。Blade 模板调用 `{{ $cms->tag('company_note', ['label' => '联系我们']) }}`。也可以直接实现 TagHandler 的 schema/configurable/resolve 三个方法。
 
 RenderContext 中 siteId 和 locale 不可变；数据库查询必须使用该上下文限定范围。处理器可返回标量、对象数组或列表。只有可信 PHP 代码生成并显式包装为 TrustedHtml 的结果才能直接输出 HTML。内置名称和模板控制名称受保护。
 
@@ -187,7 +187,7 @@ node scripts/build-cms.mjs
 
 “站点权限”中可创建自定义角色，逐项勾选菜单查看、新建、编辑、启停、预览、发布、下架及设置操作；分配成员支持多个角色并展示预计有效权限与缺少的系统资格。菜单查看与写入操作需分别勾选。角色停用和成员撤销在下一次 API 请求生效。
 
-系统角色仍使用已有 `cms:content:save` 等保存资格，站点内再细分 create/edit/status；`cms:site:grant` 是站点授权的系统资格。新能力不会静默写入真实账号的系统角色。普通授权管理员只能给宿主允许其管理的账号授予不超过自己本站有效权限的角色，也不能修改会影响本人或不可管理账号的共享角色。全局模型定义与新建站点保留平台管理员权限；模型的本站启停与模板可独立授权。
+系统角色仍使用已有 `cms:content:save` 等保存资格，站点内再细分 create/edit/status；站点成员通过「站点权限」中的角色分配加入站点，没有单独的站点管理员名单授权。新能力不会静默写入真实账号的系统角色。普通授权管理员只能给宿主允许其管理的账号授予不超过自己本站有效权限的角色，也不能修改会影响本人或不可管理账号的共享角色。全局模型定义与新建站点保留平台管理员权限；模型的本站启停与模板可独立授权。
 
 授权变更记录在 `cms_site_auth_audit`。本轮粒度为站点、菜单、按钮；不包含按栏目、内容语言、字段或“仅本人内容”的数据范围。
 
@@ -209,10 +209,10 @@ node scripts/build-cms.mjs
 
 这些配置用于公开网站展示，不用于保存登录密码、API 密钥等凭据。数据写入现有站点/语言 settings JSON，不需要为新增字段执行 SQL。模板可直接读取：
 
-```html
-<h2>{$config.company_mission}</h2>
-<p>{cms:config name="phone" /}</p>
-{cms:if test="$config.show_phone"}<span>{$config.phone}</span>{/cms:if}
+```blade
+<h2>{{ $config['company_mission'] ?? '' }}</h2>
+<p>{{ $cms->tag('config', ['name' => 'phone']) }}</p>
+@if(!empty($config['show_phone']))<span>{{ $config['phone'] ?? '' }}</span>@endif
 ```
 
 文本自动转义。配置项的图片/链接类型在保存时校验 URL；自定义模板应将地址字段定义为相应类型，不把普通文本直接作为 URL 或样式代码。
@@ -228,16 +228,16 @@ node scripts/build-cms.mjs
 
 模板使用已有 `config` 标签循环，按后台顺序返回启用条目，`limit` 可选（1至100，默认100）：
 
-```html
-{cms:config name="partners" limit="12" as="partner"}
-  <a href="{$partner.url}">
-    {cms:if test="$partner.logo"}<img src="{$partner.logo}" alt="{$partner.name}">{/cms:if}
-    <span>{$partner.name}</span>
+```blade
+@foreach($cms->items('config', ['name' => 'partners', 'limit' => '12']) as $partner)
+  <a href="{{ $partner['url'] ?? '' }}">
+    @if(!empty($partner['logo']))<img src="{{ $partner['logo'] ?? '' }}" alt="{{ $partner['name'] ?? '' }}">@endif
+    <span>{{ $partner['name'] ?? '' }}</span>
   </a>
-{/cms:config}
+@endforeach
 ```
 
-字段仍自动转义，图片/链接地址保存时校验。模型调整若与已有站点值或语言覆盖不兼容，保存会拒绝，避免静默丢弃数据。已有电话等标量仍支持 `{cms:config name="phone" /}` 和 `{$config.phone}`。自定义列表不会自动加入主题首页，需要把循环代码放入相应主题片段。
+字段仍自动转义，图片/链接地址保存时校验。模型调整若与已有站点值或语言覆盖不兼容，保存会拒绝，避免静默丢弃数据。已有电话等标量在 Blade 中使用 `{{ $config['phone'] }}` 或 `{{ $cms->tag('config', ['name' => 'phone']) }}`，旧 HTML 主题保留原语法。自定义列表不会自动加入主题首页，需要把循环代码放入相应主题片段。
 
 查看配置需要本站“查看设置”，保存全站值和定义需要“修改基本设置”，保存语言覆盖需要“管理语言”；继续受宿主 CMS 功能资格限制。编辑站点名称、域名等元信息不会把旧配置快照回写覆盖新值。
 
@@ -262,7 +262,7 @@ nginx -p "$PWD/admin/runtime/cms-local-nginx/" -c nginx-8088.conf -s quit
 
 关闭、离开页面和切换语言前提醒未保存修改。预览、发布和历史版本发布前须先保存当前修改。保存响应保留继续输入的内容，同时回填内容标识、乐观锁和字段版本。
 
-## 三套企业官网主题
+## 企业与内容展示主题
 
 在“站点管理 → 编辑站点 → 主题”选择并保存：
 
@@ -271,36 +271,47 @@ nginx -p "$PWD/admin/runtime/cms-local-nginx/" -c nginx-8088.conf -s quit
 | 商务蓝白 | `corporate` | 蓝白色调、正式清晰的分栏首屏，适合综合企业、咨询与企业服务 |
 | 工业科技 | `industrial` | 深色工程网格、橙色点缀，适合制造、工程与技术企业 |
 | 现代品牌 | `studio` | 暖白赤陶色、衬线大字、错位作品布局，适合品牌与专业服务 |
+| 杂志资讯 | `editorial` | 纸白墨黑与报刊红、刊头和新闻优先布局，适合资讯、媒体、知识分享 |
+| 极简黑白 | `minimal` | 黑白大字、清晰细线、作品先行，适合设计机构、作品集与简洁品牌 |
+| 数字科技 | `aurora` | 深靛背景、青紫光晕和数字空间图形，适合软件、技术服务与数字产品 |
+| 东方雅韵 | `heritage` | 米纸墨绿、宋体标题和山水意境，适合文化、生活方式与传统品牌 |
 
 每套自带首页、栏目、文章、产品、案例、单页、下载和搜索模板，兼容当前网站配置、Logo、导航、多语言、轮播、合作伙伴、联系人和广告。产品、案例和资讯继续取本站、当前语言的已发布数据；缺图使用本地 SVG，空站显示空状态。页面不依赖外部字体、图片或 CDN，无需额外前端构建。
 
 默认 `detail` 会按实际内容模型选择内页布局；显式指定的页面模板继续优先。主题名称由内置描述服务统一提供，只有实际安装且有首页模板的目录会进入选择列表；第三方主题可继续使用自己的展示逻辑。切换主题不会改动已有内容或导航项。
 
-模板位于 `app/cms/view/{corporate,industrial,studio}/`，主题样式与插画位于 `public/plugin-assets/cms/public/themes/`。共享展示数据和基础交互，各主题首页和样式独立维护。长手机菜单在固定页头下独立滚动，可访问屏幕下方的链接。
+模板位于 `app/cms/view/{corporate,industrial,studio,editorial,minimal,aurora,heritage}/`，主题样式与插画位于 `public/plugin-assets/cms/public/themes/`。共享展示数据和基础交互，各主题首页和样式独立维护。长手机菜单在固定页头下独立滚动，可访问屏幕下方的链接。
 
 ## Element Plus 浏览器直载
 
-`default`、`corporate`、`industrial`、`studio` 共用 `public/plugin-assets/cms/public/cms-element.js` 与 `cms-element.css`。页面通过普通 `defer` 脚本依次加载本地 Vue、Element Plus、中文语言包和共享交互脚本；修改官网 HTML、CSS、JS 后无需 npm、Vite 或打包。管理端仍沿用现有 Vue 工程。
+八套内置主题（`default`、`corporate`、`industrial`、`studio`、`editorial`、`minimal`、`aurora`、`heritage`）共用 `public/plugin-assets/cms/public/cms-element.js` 与 `cms-element.css`。页面通过普通 `defer` 脚本依次加载本地 Vue、Element Plus、中文语言包和共享交互脚本；修改官网 Blade、CSS、JS 后无需 npm、Vite 或打包。管理端仍沿用现有 Vue 工程。
 
 页面布局、响应式栅格、内容卡片和封面、主按钮、桌面下拉导航、手机抽屉、语言切换、轮播、面包屑、搜索输入和分页使用真实 Element Plus 组件。各主题继续保留自己的配色和企业展示版式。
 
-组件结构直接声明在 `app/cms/view/{主题}/` 的 HTML 中；`cms-element.js` 只解析声明、挂载组件并连接公共交互，不再按 CSS 类拼出菜单、卡片或布局。例如：
+组件结构直接声明在 `app/cms/view/{主题}/` 的 `.blade.php` 模板中；`cms-element.js` 只解析声明、挂载组件并连接公共交互，不再按 CSS 类拼出菜单、卡片或布局。例如：
 
-```html
+```blade
 <el-row gutter="24" class="cms-el-grid">
-  {cms:theme name="products"}
+  @foreach($cms->items('theme', ['name' => 'products']) as $item)
   <el-col xs="24" sm="12" lg="8">
     <el-card shadow="hover">
-      <h3><a href="{$item.url}">{$item.title}</a></h3>
-      <p>{$item.summary}</p>
+      <h3><a href="{{ $item['url'] ?? '' }}">{{ $item['title'] ?? '' }}</a></h3>
+      <p>{{ $item['summary'] ?? '' }}</p>
     </el-card>
   </el-col>
-  {/cms:theme}
+  @endforeach
 </el-row>
 ```
 
 属性值是字面量，数值、布尔属性会按组件声明转换，例如 `gutter="24"`、`autoplay="false"`。具名插槽写成 `<span data-cms-slot="append">…</span>`；表单和抽屉用 `data-cms-model` 连接状态，按钮用 `data-cms-open` 打开对应抽屉。不要写 `v-*`、`:属性`、`@事件` 或 JavaScript 表达式，这些不会执行。原生降级内容用 `data-cms-fallback` 标记，成功挂载时才移除；仅增强时显示的控件用 `data-cms-enhance` 标记。
 
-导航节点的组件结构位于每套主题的 `partials/navigation-item.html`，通过 `{cms:navigation code="header" template="partials/navigation-item" /}` 使用，支持现有全部嵌套层级与新窗口链接。不传 `template` 时继续输出原生导航。卡片、轮播、面包屑和分页分别维护在对应的 `partials/` 文件，搜索输入框在 `search.html` 中。
+导航节点的组件结构位于每套主题的 `partials/navigation-item.blade.php`，通过 `{{ $cms->tag('navigation', ['code' => 'header', 'template' => 'partials/navigation-item']) }}` 使用，支持现有全部嵌套层级与新窗口链接。不传 `template` 时继续输出原生导航。卡片、轮播、面包屑和分页分别维护在对应的 `partials/` 文件，搜索输入框在 `search.blade.php` 中。
 
-PHP 输出完整正文与链接。浏览器挂载不使用 Vue 模板编译器，站点名称、配置和 `{{ ... }}` 都保持字面文本；正文和模型字段通过 `data-cms-static` 边界保留为普通 HTML，其中组件标签与交互标记不会生效。组件库缺失或组件执行异常时保留或恢复服务端页面；`cms.js` 仅处理原生导航和轮播交互。搜索保持原生 GET 表单，分页将 PHP 生成的真实 `<a href>` 放入 Element 默认插槽，挂载后仍保留栏目路径、语言前缀和编码后的关键词。
+PHP 输出完整正文与链接。浏览器挂载不使用 Vue 模板编译器，Blade 在服务端先完成解析，站点名称和配置字符串中的花括号保持字面文本；正文和模型字段通过 `data-cms-static` 边界保留为普通 HTML，其中组件标签与交互标记不会生效。组件库缺失或组件执行异常时保留或恢复服务端页面；`cms.js` 仅处理原生导航和轮播交互。搜索保持原生 GET 表单，分页将 PHP 生成的真实 `<a href>` 放入 Element 默认插槽，挂载后仍保留栏目路径、语言前缀和编码后的关键词。
+
+
+## 新增主题的选择与维护
+
+在“CMS → 站点管理 → 编辑站点 → 主题”选择并保存，栏目、内容、导航和网站配置继续使用原数据。新增主题不插入演示记录，也不会自动替换当前站点主题。新主题各自有完整的24个 Blade 页面/片段、独立首页结构、CSS 与 SVG。可以在主题目录中直接调整布局；共享数据过滤和分页规则沿用 CMS。
+
+主题模板和公共资源更新不需要前台 npm 构建，发布/更新插件并按 Webman 流程重载 PHP worker 即可。资源与运行模板在本地工作区已同步。

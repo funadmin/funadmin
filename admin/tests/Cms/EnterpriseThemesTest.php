@@ -10,7 +10,7 @@ final class EnterpriseThemesTest extends CmsTestCase
     {
         $site=$this->site();$category=(new CategoryService())->save($site['id'],'zh-cn',['name'=>'News','desired_path'=>'/news/']);
         for($i=0;$i<13;$i++)$this->publish($site,'article','Fallback article '.$i,'/fallback-'.$i,'zh-cn',['category_id'=>$category['id']]);
-        foreach(['default','corporate','industrial','studio'] as $theme){
+        foreach(array_merge(['default'],array_keys(self::THEMES)) as $theme){
             (new SiteService())->save(['id'=>$site['id'],'theme'=>$theme],'1');$response=$this->response('/news/page/2/');self::assertSame(200,$response->getStatusCode(),$theme);$html=$response->rawBody();
             $document=new \DOMDocument();$document->loadHTML($html,LIBXML_NOERROR|LIBXML_NOWARNING);$xpath=new \DOMXPath($document);
             self::assertSame(1,$xpath->query('//*[@id="cms-site"]//*[@role="banner"]')->length);
@@ -31,13 +31,26 @@ final class EnterpriseThemesTest extends CmsTestCase
     {
         $site=$this->site();
         (new MenuService())->save($site['id'],'zh-cn',['code'=>'header','name'=>'Header','items'=>[['title'=>'Products <literal>','external_url'=>'/products/','open_in_new_tab'=>1,'children'=>[['title'=>'Solutions','external_url'=>'/solutions/','children'=>[['title'=>'Deep link','external_url'=>'/deep/']]]]]]]);
-        foreach(['default','corporate','industrial','studio'] as $theme){
+        foreach(array_merge(['default'],array_keys(self::THEMES)) as $theme){
             (new SiteService())->save(['id'=>$site['id'],'theme'=>$theme],'1');
             $html=$this->response()->rawBody();self::assertStringContainsString('<el-container',$html,$theme);self::assertStringContainsString('<el-menu ',$html,$theme);
             self::assertStringContainsString('<el-sub-menu ',$html,$theme);self::assertStringContainsString('Products &lt;literal&gt;',$html,$theme);self::assertStringNotContainsString('Products <literal>',$html);
             self::assertStringContainsString('href="/deep/"',$html);self::assertStringContainsString('target="_blank" rel="noopener noreferrer"',$html);
             $root=dirname(__DIR__,2).'/plugins/cms/app/cms/view/'.$theme;
-            foreach(['partials/card'=>'<el-card','partials/breadcrumb'=>'<el-breadcrumb','partials/slides'=>'<el-carousel','partials/pagination'=>'<el-pagination','search'=>'<el-input','partials/navigation-item'=>'<el-menu-item'] as $file=>$component)self::assertStringContainsString($component,file_get_contents($root.'/'.$file.'.html'),$theme.' '.$file);
+            foreach(['partials/card'=>'<el-card','partials/breadcrumb'=>'<el-breadcrumb','partials/slides'=>'<el-carousel','partials/pagination'=>'<el-pagination','search'=>'<el-input','partials/navigation-item'=>'<el-menu-item'] as $file=>$component)self::assertStringContainsString($component,file_get_contents($root.'/'.$file.'.blade.php'),$theme.' '.$file);
+        }
+    }
+
+    public function test_builtin_theme_stylesheets_and_hero_images_are_packaged_locally(): void
+    {
+        $root=dirname(__DIR__,2).'/plugins/cms/public';
+        foreach(\app\cms\service\BuiltinThemes::definitions() as $code=>$theme){
+            foreach(['stylesheet','hero'] as $key){
+                if($theme[$key]==='')continue;
+                self::assertStringStartsWith('/plugin-assets/cms/public/',$theme[$key]);
+                $file=$root.$theme[$key];self::assertFileIsReadable($file,$code.' '.$key);self::assertGreaterThan(0,filesize($file));
+                if(str_ends_with($file,'.svg')){ $svg=new \DOMDocument();self::assertTrue($svg->load($file,LIBXML_NONET));self::assertSame('svg',$svg->documentElement->localName); }
+            }
         }
     }
 
@@ -49,7 +62,7 @@ final class EnterpriseThemesTest extends CmsTestCase
         $response=$this->response();self::assertSame(200,$response->getStatusCode());self::assertStringContainsString('href="/deepest/"',$response->rawBody());
     }
 
-    private const THEMES=['corporate'=>'商务蓝白','industrial'=>'工业科技','studio'=>'现代品牌'];
+    private const THEMES=['corporate'=>'商务蓝白','industrial'=>'工业科技','studio'=>'现代品牌','editorial'=>'杂志资讯','minimal'=>'极简黑白','aurora'=>'数字科技','heritage'=>'东方雅韵'];
     private function response(string $path='/'): \support\Response
     {
         return (new PublicSite())->handle(new Request('GET /cms'.$path." HTTP/1.1\r\nHost: cms.test\r\n\r\n"));
@@ -60,7 +73,7 @@ final class EnterpriseThemesTest extends CmsTestCase
         $draft=$service->save($site['id'],$locale,array_replace(['model_id'=>(string)Db::table('cms_content_model')->where('code',$model)->value('id'),'title'=>$title,'summary'=>'A real introduction','body_html'=>'<p>Published body</p>','desired_path'=>$path,'data'=>[]],$extra),'1');
         return $service->publish($site['id'],$draft['id'],$draft['draft_revision_id'],$draft['lock_version']);
     }
-    public function test_all_three_enterprise_themes_are_selectable_and_empty_homepages_render_honestly(): void
+    public function test_all_enterprise_themes_are_selectable_and_empty_homepages_render_honestly(): void
     {
         $site=$this->site();$options=array_column((new TemplateCatalog())->themes(),'label','value');
         foreach(self::THEMES as $theme=>$name){
@@ -73,6 +86,7 @@ final class EnterpriseThemesTest extends CmsTestCase
             self::assertStringContainsString('id="products"',$html);self::assertStringContainsString('id="cases"',$html);self::assertStringContainsString('id="insights"',$html);
             self::assertStringContainsString('更多内容，正在准备中',$html);self::assertStringContainsString('rel="canonical"',$html);
             self::assertStringNotContainsString('{$',$html);self::assertStringNotContainsString('{cms:',$html);
+            self::assertSame(0,Db::table('cms_content')->count(),'主题渲染不能写入演示内容');
         }
     }
     public function test_new_themes_render_all_models_and_keep_explicit_template_overrides(): void

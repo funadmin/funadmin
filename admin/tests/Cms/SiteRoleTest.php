@@ -22,7 +22,7 @@ final class SiteRoleTest extends CmsTestCase
         $r->assign($a['id'],'1','91',[$editor['id'],$publisher['id']]);$r->assign($b['id'],'1','91',[$viewer['id']]);
         self::assertContains('cms:content:edit',$auth->effective($a['id'],'91'));self::assertContains('cms:content:publish',$auth->effective($a['id'],'91'));
         self::assertSame(['cms:content:list'],$auth->effective($b['id'],'91'));
-        $c=\app\admin\authorization\service\CasbinService::instance();$c->syncRolePermissions(91,self::hostPermissionIds(['cms:content:list']));
+        $c=\app\admin\authorization\service\CasbinService::instance();$c->syncRolePermissions(91,self::permissionIds(['cms:content:list','cms:content:detail','cms:content:index','cms:content:lookups','cms:content:revisions','cms:content:translation','cms:sites:context']));
         self::assertSame(['cms:content:list'],$auth->effective($a['id'],'91'));
         $r->remove($a['id'],'1','91');self::assertSame([],$auth->effective($a['id'],'91'));self::assertNotEmpty($auth->effective($b['id'],'91'));
         self::assertSame(6,Db::table('cms_site_auth_audit')->count());
@@ -34,11 +34,13 @@ final class SiteRoleTest extends CmsTestCase
         try{$r->saveRole($a['id'],'1',['code'=>'bad','name'=>'Bad','permissions'=>['system:admin:delete']]);self::fail('Unknown permission accepted');}catch(\InvalidArgumentException $e){self::assertSame(422,$e->getCode());}
         Db::table('cms_site_admin')->insert(['site_id'=>$a['id'],'admin_id'=>92]);self::assertSame([],(new SiteAuthorization())->effective($a['id'],'92'));
     }
-    public function test_legacy_migration_is_idempotent_and_never_grants_delegation(): void {
+    public function test_bootstrap_seeds_only_standard_roles_and_never_assigns_members(): void {
         $s=$this->site();Db::table('cms_site_role')->where('site_id',$s['id'])->delete();Db::table('cms_site_admin')->insert(['site_id'=>$s['id'],'admin_id'=>91]);
-        SiteRoleSchema::bootstrap();SiteRoleSchema::bootstrap();$effective=(new SiteAuthorization())->effective($s['id'],'91');
-        self::assertContains('cms:content:edit',$effective);self::assertNotContains('cms:access:members',$effective);self::assertSame(1,Db::table('cms_site_role_member')->where('admin_id',91)->count());
-        Db::table('cms_site_role_member')->where('admin_id',91)->delete();SiteRoleSchema::bootstrap();self::assertSame([],(new SiteAuthorization())->effective($s['id'],'91'));
+        SiteRoleSchema::bootstrap();SiteRoleSchema::bootstrap();
+        self::assertSame(['administrator','editor','publisher','viewer'],Db::table('cms_site_role')->where('site_id',$s['id'])->orderBy('code')->pluck('code')->all());
+        self::assertArrayNotHasKey('legacy',PermissionCatalog::presets());
+        self::assertSame(0,Db::table('cms_site_role_member')->where('admin_id',91)->count(),'站点成员只通过角色分配获得权限');
+        self::assertSame([],(new SiteAuthorization())->effective($s['id'],'91'));
     }
     public function test_non_super_cannot_self_assign_or_edit_a_role_that_affects_self(): void {
         $s=$this->site();$r=new SiteRoleService();$role=$r->saveRole($s['id'],'1',['code'=>'delegate','name'=>'Delegate','permissions'=>PermissionCatalog::operations()]);$r->assign($s['id'],'1','91',[$role['id']]);
@@ -53,7 +55,7 @@ final class SiteRoleTest extends CmsTestCase
     public function test_host_discovery_filter_hides_menu_without_its_view_operation(): void {
         $site=$this->site();$r=new SiteRoleService();$role=$r->saveRole($site['id'],'1',['code'=>'delegator','name'=>'Delegator','permissions'=>['cms:access:members']]);$r->assign($site['id'],'1','91',[$role['id']]);
         $map=require dirname(__DIR__,2).'/plugins/cms/hooks/permissions.php';
-        $grant=(require dirname(__DIR__,2).'/database/permission-maps/plugin-per-method.php')['cms:site:grant'];
+        $grant=['cms:access:assign','cms:access:candidates','cms:access:index','cms:access:remove','cms:access:save-role','cms:sites:context'];
         self::assertSame(['system:admin:list'],$map['scope'](array_merge(['system:admin:list'],$grant),['admin_id'=>91]));
     }
     public function test_host_discovery_keeps_cms_codes_when_site_role_schema_is_missing_so_controllers_report_409(): void {
@@ -67,11 +69,10 @@ final class SiteRoleTest extends CmsTestCase
         $map=require dirname(__DIR__,2).'/plugins/cms/hooks/permissions.php';
         self::assertSame(['system:admin:list'],$map['scope'](['system:admin:list','cms:content:index'],['admin_id'=>'not-an-id']));
     }
-    public function test_legacy_grant_validates_accounts_and_records_audited_replacement(): void {
-        $site=$this->site();$service=new \app\cms\service\SiteService();$before=Db::table('cms_site_auth_audit')->count();
-        $service->grant($site['id'],'1',['91']);self::assertGreaterThan($before,Db::table('cms_site_auth_audit')->count());
-        $service->grant($site['id'],'1',[]);self::assertSame(0,Db::table('cms_site_role_member')->where('site_id',$site['id'])->count());
-        $this->expectException(\InvalidArgumentException::class);$service->grant($site['id'],'1',['999999999']);
+    public function test_site_membership_is_managed_only_through_role_assignment(): void {
+        self::assertFalse(method_exists(\app\cms\service\SiteService::class,'grant'));
+        self::assertFalse(method_exists(\app\admin\plugins\cms\controller\Sites::class,'grant'));
+        self::assertNotContains('cms:sites:grant',array_merge(PermissionCatalog::hostCodes(),...array_map(PermissionCatalog::ceilings(...),PermissionCatalog::operations())));
     }
     public function test_a_edits_site_one_and_reads_site_two_while_b_publishes_site_two_only(): void {
         $a=$this->site();$b=$this->site('site_two','site-two.test');$r=new SiteRoleService();$auth=new SiteAuthorization();

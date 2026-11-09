@@ -21,8 +21,7 @@ final class ControllerTest extends QaTestCase
     {
         self::assertTrue(class_exists(Questions::class),'QA member controller must exist');
         [$response,$body]=$this->call(Questions::class,'ask',['member_id'=>'1','request_key'=>'api_question','title'=>'API','body_html'=>'<p>Body</p>'],post:true);self::assertSame(401,$body['code']);
-        Db::schema()->dropIfExists('market_token');Db::schema()->create('market_token',static function($t):void { $t->id();$t->unsignedBigInteger('member_id');$t->string('access_hash');$t->unsignedInteger('access_expires_at');$t->dateTime('revoked_at')->nullable(); });
-        $token=str_repeat('b',64);Db::table('market_token')->insert(['member_id'=>2,'access_hash'=>hash('sha256',$token),'access_expires_at'=>time()+300]);
+        (new \app\common\service\database\MigrationService())->run();putenv('MEMBER_JWT_SECRET='.str_repeat('m',64));\Webman\Config::load(config_path(),['route']);$token=(new \app\common\service\member\MemberApiSessionService())->open(2,'127.0.0.1')['access_token'];
         [$response,$body]=$this->call(Questions::class,'ask',['member_id'=>'1','status'=>'published','request_key'=>'api_question','title'=>'API','body_html'=>'<p>Body</p>'],token:$token,post:true);
         self::assertSame(200,$body['code']);self::assertSame('2',$body['data']['member_id']);self::assertSame('pending',$body['data']['status']);
         [$response,$body]=$this->call(Questions::class,'index');self::assertSame(200,$body['code']);self::assertSame(0,$body['data']['total']);self::assertStringContainsString('no-store',(string)$response->getHeader('Cache-Control'));

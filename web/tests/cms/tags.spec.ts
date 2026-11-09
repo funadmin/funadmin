@@ -47,6 +47,17 @@ describe.each([['源插件', SourceTagPanel], ['运行副本', PublishedTagPanel
     return wrapper;
   }
 
+  it('主题调用代码使用 Blade，编辑片段继续使用原受限语法', async () => {
+    const wrapper = await render();
+    const rows = wrapper.findAll('.el-table__row');
+    expect(rows.find(row => row.text().includes('系统内置'))!.find('code').text()).toContain("@foreach($cms->items('content') as $item)");
+    const row = rows.find(row => row.text().includes('company_news'))!;
+    expect(row.find('code').text()).toBe("{{ $cms->tag('company_news') }}");
+    await row.findAll('button').find(button => button.text() === '编辑')!.trigger('click');
+    const state = (wrapper.vm as any).$.setupState;
+    expect(state.form.template_fragment).toBe('<p>{$item.title}</p>');
+  });
+
   it('显示系统内置标识，内置行没有编辑、删除或发布操作，自定义行仍可编辑', async () => {
     const wrapper = await render();
     const row = wrapper.findAll('.el-table__row').find(item => item.text().includes('系统内置'));

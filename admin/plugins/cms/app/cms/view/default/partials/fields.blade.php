@@ -1,0 +1,1 @@
+@if(!empty($display['has_fields']))<section class="detail-fields"><span class="eyebrow">DETAILS</span><h2>{{ $ui['details'] ?? '' }}</h2><dl data-cms-static class="model-fields">@foreach($cms->items('fields') as $field)<dt>{{ $field['label'] ?? '' }}</dt><dd>{{ $field['value'] ?? '' }}</dd>@endforeach</dl></section>@endif
