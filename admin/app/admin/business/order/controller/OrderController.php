@@ -42,8 +42,8 @@ final class OrderController extends AdminController
     {
         return new \app\admin\form\service\FormDataService(permissionChecker: fn (string $route): bool => (new \app\admin\authorization\service\AdminAuthorizationService())->nodeAccess($route), productionBinding: array (
   'formKey' => 'order',
-  'schemaHash' => 'a89864e189620fc8f917c94a0475460931ae96469ae931229e4c4dadb167fc06',
-  'route' => 'admin/business.ordercontroller',
+  'schemaHash' => '572021ff99a3d7911dae44372a9ff10f152095deea69c663fbf1d4fe51acaf39',
+  'route' => 'business:order',
   'table' => 'fun_order',
   'connection' => 'mysql',
 ));
