@@ -202,6 +202,30 @@
       {
         "code": "cms:access:index",
         "name": "查看站点成员与角色"
+      },
+      {
+        "code": "cms:form:list",
+        "name": "查看表单"
+      },
+      {
+        "code": "cms:form:manage",
+        "name": "管理表单"
+      },
+      {
+        "code": "cms:form:submissions",
+        "name": "查看表单提交"
+      },
+      {
+        "code": "cms:form:handle",
+        "name": "跟进处理表单提交"
+      },
+      {
+        "code": "cms:form:export",
+        "name": "导出表单提交"
+      },
+      {
+        "code": "cms:form:delete",
+        "name": "删除表单提交"
       }
     ],
     "permissionGroups": {
@@ -218,7 +242,9 @@
       "tags": "模板标签",
       "submission": "会员投稿",
       "contributions": "会员投稿",
-      "access": "站点权限"
+      "access": "站点权限",
+      "form": "表单",
+      "forms": "表单"
     },
     "menu": [
       {

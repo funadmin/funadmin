@@ -16,6 +16,7 @@ final class PermissionCatalog
             'model'=>['name'=>'内容模型','menu'=>'list','actions'=>['list'=>'查看模型','status'=>'本站启用/停用','template'=>'本站默认模板']],
             'submission'=>['name'=>'会员投稿','menu'=>'list','actions'=>['list'=>'查看投稿','review'=>'审核投稿']],
             'access'=>['name'=>'站点权限','menu'=>'list','actions'=>['list'=>'查看成员/角色','members'=>'管理成员','roles'=>'管理角色/权限']],
+            'form'=>['name'=>'表单','menu'=>'list','actions'=>['list'=>'查看表单','manage'=>'管理表单','submissions'=>'查看提交','handle'=>'跟进处理','export'=>'导出提交','delete'=>'删除提交']],
         ];
     }
     public static function operations(): array
@@ -70,6 +71,12 @@ final class PermissionCatalog
         'cms:access:list' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
         'cms:access:members' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
         'cms:access:roles' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
+        'cms:form:list' => ['cms:forms:index', 'cms:forms:summary', 'cms:sites:context'],
+        'cms:form:manage' => ['cms:forms:save', 'cms:forms:status', 'cms:forms:delete'],
+        'cms:form:submissions' => ['cms:forms:submissions', 'cms:forms:detail', 'cms:forms:file'],
+        'cms:form:handle' => ['cms:forms:note', 'cms:forms:transition', 'cms:forms:invalidate'],
+        'cms:form:export' => ['cms:forms:export'],
+        'cms:form:delete' => ['cms:forms:remove'],
     ];
     /** 站点操作码升级前同时用作接口权限的那些路由（冻结）：站点操作生效时这些接口随之可见。 */
     private const ROUTES = [
@@ -122,8 +129,8 @@ final class PermissionCatalog
     }
     public static function presets(): array
     {
-        $read=['cms:category:list','cms:content:list','cms:menu:list','cms:tag:list','cms:model:list'];
-        $edit=array_merge($read,['cms:content:create','cms:content:edit','cms:content:preview']);
+        $read=['cms:category:list','cms:content:list','cms:menu:list','cms:tag:list','cms:model:list','cms:form:list','cms:form:submissions'];
+        $edit=array_merge($read,['cms:content:create','cms:content:edit','cms:content:preview','cms:form:handle']);
         return ['viewer'=>['只读',$read],'editor'=>['编辑',$edit],'publisher'=>['发布',array_merge($edit,['cms:content:publish','cms:content:offline'])],'administrator'=>['站点管理员',self::operations()]];
     }
 }

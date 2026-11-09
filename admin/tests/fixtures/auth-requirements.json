@@ -514,6 +514,36 @@
         "login": true,
         "permission": "cms:contributions:settings"
     },
+    "GET /admin/plugins/cms/forms => app\\admin\\plugins\\cms\\controller\\Forms::index": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:index"
+    },
+    "GET /admin/plugins/cms/forms/files/download => app\\admin\\plugins\\cms\\controller\\Forms::file": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:file"
+    },
+    "GET /admin/plugins/cms/forms/submissions => app\\admin\\plugins\\cms\\controller\\Forms::submissions": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:submissions"
+    },
+    "GET /admin/plugins/cms/forms/submissions/detail => app\\admin\\plugins\\cms\\controller\\Forms::detail": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:detail"
+    },
+    "GET /admin/plugins/cms/forms/submissions/export => app\\admin\\plugins\\cms\\controller\\Forms::export": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:export"
+    },
+    "GET /admin/plugins/cms/forms/summary => app\\admin\\plugins\\cms\\controller\\Forms::summary": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:summary"
+    },
     "GET /admin/plugins/cms/menus => app\\admin\\plugins\\cms\\controller\\Menus::index": {
         "guard": "plugin",
         "login": true,
@@ -1428,6 +1458,41 @@
         "guard": "plugin",
         "login": true,
         "permission": "cms:sites:domain-save"
+    },
+    "POST /admin/plugins/cms/forms/delete => app\\admin\\plugins\\cms\\controller\\Forms::delete": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:delete"
+    },
+    "POST /admin/plugins/cms/forms/save => app\\admin\\plugins\\cms\\controller\\Forms::save": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:save"
+    },
+    "POST /admin/plugins/cms/forms/status => app\\admin\\plugins\\cms\\controller\\Forms::status": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:status"
+    },
+    "POST /admin/plugins/cms/forms/submissions/invalidate => app\\admin\\plugins\\cms\\controller\\Forms::invalidate": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:invalidate"
+    },
+    "POST /admin/plugins/cms/forms/submissions/note => app\\admin\\plugins\\cms\\controller\\Forms::note": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:note"
+    },
+    "POST /admin/plugins/cms/forms/submissions/remove => app\\admin\\plugins\\cms\\controller\\Forms::remove": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:remove"
+    },
+    "POST /admin/plugins/cms/forms/submissions/transition => app\\admin\\plugins\\cms\\controller\\Forms::transition": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:transition"
     },
     "POST /admin/plugins/cms/locales/save => app\\admin\\plugins\\cms\\controller\\Sites::localeSave": {
         "guard": "plugin",
