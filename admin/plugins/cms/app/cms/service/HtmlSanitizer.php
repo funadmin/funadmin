@@ -21,6 +21,8 @@ final class HtmlSanitizer
                         if(($tag==='a'&&$name==='href')||(in_array($tag,['img','video','source'],true)&&$name==='src')) $permitted=self::safeUrl($value,$tag==='a');
                         if(!$permitted)$child->removeAttribute($attr->name);
                     }
+                    // 正文图片：缺 alt 时补空 alt（读屏跳过而不是朗读文件名），并延迟加载、异步解码。
+                    if($tag==='img'){if(!$child->hasAttribute('alt'))$child->setAttribute('alt','');$child->setAttribute('loading','lazy');$child->setAttribute('decoding','async');}
                     $walk($child);
                 }elseif(!$child instanceof \DOMText) $node->removeChild($child);
             }

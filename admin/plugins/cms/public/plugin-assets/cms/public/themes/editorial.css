@@ -1,4 +1,4 @@
-:root{--ink:#25231f;--ink-deep:#151411;--muted:#746f66;--paper:#f7f4ed;--sage:#eee9df;--line:#d6cfc2;--lime:#ead3cb;--white:#faf8f2;--el-color-primary:#b3332c;--el-border-radius-base:0}
+:root{--ink:#25231f;--ink-deep:#151411;--muted:#6c675f;--paper:#f7f4ed;--sage:#eee9df;--line:#d6cfc2;--lime:#ead3cb;--white:#faf8f2;--el-color-primary:#b3332c;--el-border-radius-base:0}
 .theme-editorial{font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif}.theme-editorial a:hover{color:#a62d27}.theme-editorial .site-header{background:#f7f4edf5;backdrop-filter:blur(12px);border-bottom:3px double var(--ink)}
 .theme-editorial .brand{font-family:Georgia,"Songti SC",STSong,serif;font-size:26px}.theme-editorial .brand-mark{transform:none;gap:2px}.theme-editorial .brand-mark i{background:var(--ink);border-radius:0}.theme-editorial .brand-mark i:nth-child(2){background:#b3332c}
 .theme-editorial .brand small{font-family:Arial,sans-serif;letter-spacing:.15em}.theme-editorial .button{background:#b3332c;border-color:#b3332c;border-radius:0}.theme-editorial .button:hover{background:#89251f}.theme-editorial .button-small{background:var(--ink);border-color:var(--ink)}

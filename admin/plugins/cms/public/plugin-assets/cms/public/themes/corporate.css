@@ -1,4 +1,4 @@
-:root{--ink:#143253;--ink-deep:#0d2340;--muted:#6b7b91;--paper:#fff;--sage:#edf4fc;--line:#e0e8f2;--lime:#d8e9ff;--el-color-primary:#1b5cd6}
+:root{--ink:#143253;--ink-deep:#0d2340;--muted:#606f82;--paper:#fff;--sage:#edf4fc;--line:#e0e8f2;--lime:#d8e9ff;--el-color-primary:#1b5cd6}
 .theme-corporate .site-header{background:#ffffffed;backdrop-filter:blur(14px);border-bottom:1px solid #e4ebf4}
 .theme-corporate .brand-mark i{background:#164579}.theme-corporate .brand-mark i:nth-child(2){background:#6c9ff0}
 .theme-corporate .button{background:#1b5cd6;border-color:#1b5cd6;border-radius:3px}.theme-corporate .button:hover{background:#12459f}

@@ -36,8 +36,8 @@
 - [x] Verify JSON and no-JS responses, CSRF/captcha, site isolation.
 
 ### Task 4: Accessibility and mobile baseline
-- [ ] Add contract/browser checks for focus visibility, alt, heading order, reduced motion, drawer focus and contrast tokens.
-- [ ] Fix shared CSS/Blade attributes and run all theme browser checks.
+- [x] Add contract/browser checks for focus visibility, alt, heading order, reduced motion, drawer focus and contrast tokens.
+- [x] Fix shared CSS/Blade attributes and run all theme browser checks.
 
 ### Task 5: Follow-up editor and public template refactor
 - [ ] Add autosave, batch publish/offline and conflict diff as separate reviewable increments.

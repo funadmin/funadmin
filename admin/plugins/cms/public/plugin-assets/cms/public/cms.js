@@ -31,6 +31,22 @@ if (document.querySelector('[data-cms-ui-ready="true"]')) return;
   });
 })();
 
+/* Native mobile and language disclosures close with Escape and return focus to their toggle. */
+(() => {
+  document.querySelectorAll('details.mobile-navigation, details.language-switch').forEach(details => {
+    const summary = details.querySelector(':scope > summary');
+    if (!summary || details.dataset.disclosureReady) return;
+    details.dataset.disclosureReady = 'true';
+    details.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || !details.open) return;
+      details.open = false;
+      summary.focus();
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  });
+})();
+
 /* Slides remain a native horizontal scroll region without JavaScript. */
 (() => {
   document.querySelectorAll('[data-cms-slider]').forEach(root => {

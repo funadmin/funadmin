@@ -88,6 +88,17 @@ server {
 - 配置：`app/cms/config/app.php` 的 `public_page_cache`，`enabled` 开关、`ttl` 秒数（1–3600，默认 300）、`store` 缓存 store 名（空为默认 store）。多进程部署必须使用 file/redis 等进程间共享的 store，`array` 只在单进程内有效。
 - 定时发布等不经过后台写接口的变化，最晚在 TTL 后生效。页面内表单令牌由 `/forms/{code}/token` 刷新，缓存中的旧令牌不影响提交。
 
+## 无障碍与移动端基线
+
+八套内置主题共用以下约定，`tests/Cms/AccessibilityTest.php` 对每个主题的首页、栏目、分页、各模型详情和搜索页逐项检查：
+
+- 每页一个 h1，标题不跳级（列表区有视觉隐藏的“内容列表” h2）；图片都有 alt，正文图片缺 alt 时清洗器补空 alt，并加 `loading="lazy" decoding="async"`（已保存的旧正文在下次保存时生效，有意义的图片请在编辑器里填写替代文本）。
+- 链接、按钮、开关都有可访问名称；不存在重复 id 或指向不存在锚点的页内链接；表单控件都有 label 或 aria-label。
+- 焦点环：原生控件与 Element 菜单、子菜单、分页、轮播指示器统一使用“内圈纸色 + 外圈墨色”双色环，在浅色和深色区块上都可见；表单输入框键盘聚焦时同样显示。主题样式不得去掉 `:focus` / `:focus-visible` 的 outline。
+- 对比度：各主题 `--ink`、`--muted` 在页面、浅色区块与卡片背景上不低于 4.5:1；主按钮白字同样满足 4.5:1。新主题沿用这些变量即可通过检查。
+- 减少动态效果：系统开启“减少动态效果”时关闭过渡、动画与平滑滚动；轮播不自动播放。
+- 移动端菜单：Element 抽屉打开时焦点进入抽屉，关闭后回到菜单按钮；无 JS 降级的原生手机菜单与语言切换支持 Esc 关闭并把焦点还给开关。
+
 ## 模板标签
 
 默认主题在 `app/cms/view/default/`，发布后位于 `admin/app/cms/view/default/`。新主题可放在相邻目录，并在站点设置中选择主题标识。内置主题使用原生 Blade（`.blade.php`），支持标准 include、条件和循环，编译缓存位于 `runtime/views/cms/`。旧 `.html` 自定义主题继续使用受限解释器。完整开发指南见 [CMS Blade](../../../docs/cms-blade.md)。
