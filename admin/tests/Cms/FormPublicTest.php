@@ -268,12 +268,26 @@ final class FormPublicTest extends CmsTestCase
         for($i=1;$i<=5;$i++) self::assertSame(200,$submit('127.0.0.1',['X-Forwarded-For'=>"6.6.6.$i, 198.51.100.20"])->getStatusCode(),"attempt $i");
         self::assertSame(429,$submit('127.0.0.1',['X-Forwarded-For'=>'6.6.6.99, 198.51.100.20'])->getStatusCode(),'rotating the client-controlled first hop does not open a new bucket');
         self::assertSame(['198.51.100.20'],Db::table('cms_form_submission')->distinct()->pluck('ip')->all(),'the hop appended by the trusted proxy is recorded');
-        self::assertSame(200,$submit('10.0.0.5',['X-Real-IP'=>'198.51.100.21','X-Forwarded-For'=>'198.51.100.20'])->getStatusCode(),'X-Real-IP from a trusted proxy wins over X-Forwarded-For');
+        self::assertSame(429,$submit('10.0.0.5',['X-Real-IP'=>'198.51.100.21','X-Forwarded-For'=>'198.51.100.20'])->getStatusCode(),'X-Forwarded-For last hop wins over X-Real-IP when both are present');
         self::assertSame(200,$submit('8.8.8.8',['X-Real-IP'=>'198.51.100.20','X-Forwarded-For'=>'198.51.100.20'])->getStatusCode(),'headers from a public peer are ignored');
         self::assertSame('8.8.8.8',Db::table('cms_form_submission')->orderByDesc('created_at')->orderByDesc('id')->value('ip'));
         self::assertSame(200,$submit('127.0.0.1',['X-Real-IP'=>'2001:db8:1:2::1'])->getStatusCode());
         for($i=2;$i<=5;$i++) self::assertSame(200,$submit('127.0.0.1',['X-Real-IP'=>"2001:db8:1:2::$i"])->getStatusCode(),"ipv6 attempt $i");
         self::assertSame(429,$submit('127.0.0.1',['X-Real-IP'=>'2001:db8:1:2:ffff::9'])->getStatusCode(),'addresses in one IPv6 /64 share a bucket');
+    }
+
+    public function test_trusted_proxy_prefers_forwarded_for_last_hop_over_client_supplied_real_ip(): void
+    {
+        $site=$this->site();$form=$this->form($site['id'],[['name'=>'name','type'=>'text','label'=>'姓名']],['rate_limit'=>5],'realip');
+        $endpoint=$this->endpoint();
+        $submit=fn(string $remote,array $headers): Response=>$endpoint->submit($this->request('realip',['_token'=>$this->token($site,$form),'name'=>'a'],[],true,'cms.test',$remote,$headers),'realip');
+        // 旧配置只用 $proxy_add_x_forwarded_for：访客伪造的 X-Real-IP 被 nginx 原样透传，最后一段才是 nginx 看到的地址。
+        for($i=1;$i<=5;$i++) self::assertSame(200,$submit('127.0.0.1',['X-Real-IP'=>"6.6.6.$i",'X-Forwarded-For'=>"6.6.6.$i, 198.51.100.30"])->getStatusCode(),"attempt $i");
+        self::assertSame(429,$submit('127.0.0.1',['X-Real-IP'=>'6.6.6.99','X-Forwarded-For'=>'198.51.100.30'])->getStatusCode(),'rotating a spoofed X-Real-IP does not open a new bucket');
+        self::assertSame(['198.51.100.30'],Db::table('cms_form_submission')->where('form_id',$form['id'])->distinct()->pluck('ip')->all());
+        // 没有 X-Forwarded-For 时才使用 X-Real-IP。
+        self::assertSame(200,$submit('127.0.0.1',['X-Real-IP'=>'198.51.100.31'])->getStatusCode());
+        self::assertSame('198.51.100.31',Db::table('cms_form_submission')->where('form_id',$form['id'])->orderByDesc('created_at')->orderByDesc('id')->value('ip'));
     }
 
     public function test_unexpected_failures_are_logged_without_submitted_values(): void

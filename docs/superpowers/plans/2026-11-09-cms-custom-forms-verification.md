@@ -81,6 +81,12 @@
 - 添加备注“E2E 备注：已电话联系”，再改为“已完成”：状态变为 `done`。时间线依次为 created → note → status(new→done)。新提交数降到 1。
 - 导出：默认筛选“新提交 + 跟进中”时，只导出表头和 1 行未完成的提交，与后台“清空状态即全部、默认看未完成”的设计一致。
 
+## 更正：旧 nginx 配置下的访客 IP
+
+终审修复记录里曾写“仍使用 `$proxy_add_x_forwarded_for` 的旧配置结果仍然正确”，这是错的：当时 `ip()` 在受信任代理后优先读取 `X-Real-IP`，而只设置 `X-Forwarded-For` 的旧配置（旧 README 示例、nginx 常见写法、本机 `admin/runtime/cms-local-nginx/nginx*.conf`）会把访客伪造的 `X-Real-IP` 原样透传，访客可以轮换该头绕过按 IP 限流。
+
+现已改为：直连地址为内网/回环时，有 `X-Forwarded-For` 就只取最后一段，没有时才用 `X-Real-IP`。`$proxy_add_x_forwarded_for` 追加的最后一段就是 nginx 看到的地址；新 README 示例把两个头都设为 `$remote_addr`，最后一段同样正确。README 升级步骤已要求把两个头改为 `$remote_addr`。本机两份 nginx 配置已补上 `proxy_set_header X-Real-IP $remote_addr;`（未启动或重载 nginx；该目录被 git 忽略）。
+
 ## 跳过的部分
 
 - 浏览器里加载主题页面并截图：Nginx 8088 没有运行，也没有主题嵌入表单。页面渲染改为服务层检查，提交走 HTTP。

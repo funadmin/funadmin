@@ -176,7 +176,7 @@ final class FormEndpoint
     /**
      * 访客地址（用于限流与记录）。不使用 getRealIp()：它信任 X-Forwarded-For 的第一段，而那一段由客户端任意填写。
      * - 直连地址不是内网/回环地址：直接使用它，忽略所有转发头；
-     * - 直连地址是内网/回环（视为受信任的反向代理）：优先 X-Real-IP，其次 X-Forwarded-For 的最后一段（即该代理追加的那一段）；
+     * - 直连地址是内网/回环（视为受信任的反向代理）：有 X-Forwarded-For 时取其最后一段（即该代理追加的那一段），没有 XFF 时才用 X-Real-IP；
      * - 头部缺失或无效时回落到直连地址，仍无效则为 0.0.0.0。
      */
     private function ip(Request $request): string
@@ -184,11 +184,16 @@ final class FormEndpoint
         $remote = trim((string)$request->getRemoteIp(), '[]');
         $remote = filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '0.0.0.0';
         if (!Request::isIntranetIp($remote)) return $remote;
+        // 有 X-Forwarded-For 时只取最后一段：$proxy_add_x_forwarded_for 追加的就是 nginx 自己看到的地址；
+        // 只设置 XFF 的旧配置会原样透传访客伪造的 X-Real-IP，所以 X-Real-IP 只在没有 XFF 时使用。
+        $forwarded = trim(self::text($request->header('x-forwarded-for')));
+        if ($forwarded !== '') {
+            $hops = explode(',', $forwarded);
+            $last = trim((string)end($hops));
+            return filter_var($last, FILTER_VALIDATE_IP) ? $last : $remote;
+        }
         $real = trim(self::text($request->header('x-real-ip')));
-        if (filter_var($real, FILTER_VALIDATE_IP)) return $real;
-        $hops = explode(',', self::text($request->header('x-forwarded-for')));
-        $last = trim((string)end($hops));
-        return filter_var($last, FILTER_VALIDATE_IP) ? $last : $remote;
+        return filter_var($real, FILTER_VALIDATE_IP) ? $real : $remote;
     }
 
     /**

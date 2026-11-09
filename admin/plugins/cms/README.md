@@ -60,7 +60,7 @@ server {
 }
 ```
 
-`X-Real-IP` 和 `X-Forwarded-For` 必须用 `$remote_addr` 覆盖，不要用 `$proxy_add_x_forwarded_for`：后者会把客户端自带的 `X-Forwarded-For` 原样保留在前面，访客就能自己决定“来源 IP”，绕过表单的按 IP 限流。CMS 只在直连地址是内网/回环地址（即本机或内网的反向代理）时才读取这两个头，优先 `X-Real-IP`，其次 `X-Forwarded-For` 的最后一段；公网直连时一律使用直连地址。Nginx 前面还有 CDN 或负载均衡时，先用 `real_ip_header`/`set_real_ip_from` 还原真实 `$remote_addr`，再按上面覆盖。
+`X-Real-IP` 和 `X-Forwarded-For` 必须用 `$remote_addr` 覆盖，不要用 `$proxy_add_x_forwarded_for`：后者会把客户端自带的 `X-Forwarded-For` 原样保留在前面，访客就能自己决定“来源 IP”，绕过表单的按 IP 限流。CMS 只在直连地址是内网/回环地址（即本机或内网的反向代理）时才读取转发头：有 `X-Forwarded-For` 时只取它的最后一段，没有 `X-Forwarded-For` 时才使用 `X-Real-IP`；公网直连时一律使用直连地址。Nginx 前面还有 CDN 或负载均衡时，先用 `real_ip_header`/`set_real_ip_from` 还原真实 `$remote_addr`，再按上面覆盖。
 
 先配置 A/AAAA 或 CNAME、证书和服务器入口，再检查站点。每个站点可以使用单独的 Nginx server 块；同一入口也可以接收多个明确列出的域名，CMS 按 Host 查找站点。未知或停用的域名返回 404，不自动转到第一个站点。
 
@@ -327,6 +327,8 @@ PHP 输出完整正文与链接。浏览器挂载不使用 Vue 模板编译器�
 
 已安装 1.3.x 的站点：在插件中心停用 CMS → 更新（执行 `004_forms.sql`，只新增 `cms_form`、`cms_form_submission`、`cms_form_file`、`cms_form_event` 四张表）→ 启用 → 按部署流程重载 Webman，再执行 `npm run build:webman`。升级后第一次启用时，只给各站点已有的 `administrator`（站点管理员）角色补齐全部表单权限；只读、编辑、发布及自定义角色不会自动变化，需要在“站点权限”中按需勾选。补齐对每个站点只做一次：完成后在该站点的 `cms_site.settings` 中记下 `form_permissions_backfilled_at`（与补齐在同一事务中写入），之后的停用→启用、更新都不会再补；1.4.0 之后新建的站点在创建时已按预设授权并直接记下该标记。因此站点有意收回的表单权限（例如站点管理员的导出或删除）会保持收回。
 
+升级时同时修改反向代理配置：把站点 `location` 中的转发头改为 `proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Real-IP $remote_addr;`（见“域名入口配置”）。原因：只设置 `X-Forwarded-For $proxy_add_x_forwarded_for` 的旧写法会把访客自己带来的 `X-Real-IP` 原样透传、把访客自带的 `X-Forwarded-For` 留在前面，两个头都改为 `$remote_addr` 后访客无法伪造。CMS 读取的是 `X-Forwarded-For` 的最后一段（没有 `X-Forwarded-For` 时才读 `X-Real-IP`），所以未修改的旧配置下表单限流仍按代理看到的地址计数，但宿主其他使用 `getRealIp()` 的功能仍会受伪造头影响，请务必修改。
+
 | 权限码 | 含义 | 新站点预置角色 |
 |---|---|---|
 | `cms:form:list` | 查看表单 | 只读、编辑、发布、站点管理员 |
@@ -358,7 +360,7 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
 - 验证码：可选，在表单设置中开启。答案缓存 300 秒，校验一次即失效。
 - 密钥：令牌与验证码 ID 的签名优先使用环境变量 `CMS_FORM_SECRET`；未配置时自动生成 `runtime/plugins-data/cms/form.secret`（目录 0700、文件 0600）。多台服务器部署时应配置相同的 `CMS_FORM_SECRET`。
 
-频率限制复用 `webman/limiter`。`config/plugin/webman/limiter/app.php` 的 `driver` 为 `auto` 时，装有 APCu 则用 APCu，否则退回每个 worker 进程独立的内存计数，实际上限会变成“设定次数 × worker 数”。生产环境建议安装 APCu，或把 `driver` 设为 `redis`。访客 IP 不使用 `getRealIp()`（它信任 `X-Forwarded-For` 的第一段，可被伪造）：直连地址为内网/回环时取 `X-Real-IP`，其次取 `X-Forwarded-For` 的最后一段，否则使用直连地址。反向代理必须按“域名入口配置”中的写法用 `$remote_addr` 覆盖这两个头。
+频率限制复用 `webman/limiter`。`config/plugin/webman/limiter/app.php` 的 `driver` 为 `auto` 时，装有 APCu 则用 APCu，否则退回每个 worker 进程独立的内存计数，实际上限会变成“设定次数 × worker 数”。生产环境建议安装 APCu，或把 `driver` 设为 `redis`。访客 IP 不使用 `getRealIp()`（它信任 `X-Forwarded-For` 的第一段，可被伪造）：直连地址为内网/回环时，有 `X-Forwarded-For` 则取其最后一段（`$proxy_add_x_forwarded_for` 追加的就是代理自己看到的地址），没有才取 `X-Real-IP`；否则使用直连地址。反向代理必须按“域名入口配置”中的写法用 `$remote_addr` 覆盖这两个头。
 
 ### 附件
 
