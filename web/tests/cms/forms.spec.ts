@@ -172,6 +172,51 @@ describe('CMS 后台表单页面', () => {
     expect(w.emitted('saved')).toHaveLength(1);
   });
 
+  it('导出与翻页只使用已查询的筛选，未选状态按全部状态查询', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const w = keep(mount(FormsPanel, { props: { scope, can: () => true, languages }, global })); await flushPromises();
+    const state = (w.vm as any).$.setupState;
+    state.filters.keyword = '李四'; state.filters.status = []; await nextTick();
+    await buttons(w, '导出 CSV')[0].trigger('click');
+    expect(api.formExportUrl).toHaveBeenLastCalledWith({ site_id: '7', status: ['new', 'processing'], locale: 'zh-cn' });
+    state.page = 2; await flushPromises();
+    expect(api.formSubmissions).toHaveBeenLastCalledWith({ site_id: '7', status: ['new', 'processing'], page: 2 });
+    await buttons(w, '查询')[0].trigger('click'); await flushPromises();
+    const all = ['new', 'processing', 'done', 'invalid'];
+    expect(api.formSubmissions).toHaveBeenLastCalledWith({ site_id: '7', status: all, keyword: '李四', page: 1 });
+    await buttons(w, '导出 CSV')[0].trigger('click');
+    expect(api.formExportUrl).toHaveBeenLastCalledWith({ site_id: '7', status: all, keyword: '李四', locale: 'zh-cn' });
+    open.mockRestore();
+  });
+
+  it('文件字段必须选择允许的类型，数字默认值必须是数字', async () => {
+    expect(validateFormFields([{ name: 'cv', type: 'file', label: '简历', width: 'full', accept: [], max_size: 1024, max_files: 1 }])).toBe('「简历」至少选择一种允许的文件类型');
+    expect(validateFormFields([{ name: 'photo', type: 'image', label: '照片', width: 'full', accept: [], max_size: 1024, max_files: 1 }])).toBe('');
+    const w = keep(mount(FormEditor, { props: { siteId: '7', form: null, languages }, global })); await flushPromises();
+    await w.get('input[aria-label="表单名称"]').setValue('报名');
+    await w.get('input[aria-label="调用代码"]').setValue('signup');
+    await w.get('select[aria-label="字段类型"]').setValue('number');
+    await buttons(w, '添加字段')[0].trigger('click');
+    await w.get('input[aria-label="标签"]').setValue('人数');
+    await w.get('input[aria-label="默认值"]').setValue('abc');
+    await buttons(w, '保存表单')[0].trigger('click'); await flushPromises();
+    expect(w.text()).toContain('「人数」的默认值必须是数字');
+    await w.get('input[aria-label="默认值"]').setValue('3');
+    await w.get('select[aria-label="字段类型"]').setValue('file');
+    await buttons(w, '添加字段')[0].trigger('click');
+    (w.vm as any).$.setupState.selected.field.accept = [];
+    await buttons(w, '保存表单')[0].trigger('click'); await flushPromises();
+    expect(w.text()).toContain('至少选择一种允许的文件类型');
+    expect(api.saveForm).not.toHaveBeenCalled();
+    (w.vm as any).$.setupState.selected.field.accept = ['document'];
+    api.saveForm.mockResolvedValue(contact);
+    await buttons(w, '保存表单')[0].trigger('click'); await flushPromises();
+    expect(api.saveForm.mock.calls[0][0].fields).toEqual([
+      expect.objectContaining({ name: 'number_1', type: 'number', default: 3 }),
+      expect.objectContaining({ name: 'file_1', type: 'file', accept: ['document'] })
+    ]);
+  });
+
   it('复制嵌入代码同时给出 Blade 与模板标签写法', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });

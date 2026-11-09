@@ -20,15 +20,18 @@ const detailId=ref<string>(),editorOpen=ref(false),editing=ref<CmsForm|null>(nul
 const statuses=computed<Record<string,string>>(()=>Object.fromEntries(FORM_SUBMISSION_STATUSES.map(status=>[status,t(`cms.forms.statuses.${status}`)])));
 const embedCodes=computed(()=>embed.value?[{label:t('cms.forms.bladeUsage'),code:`{!! $cms->tag('form', ['name' => '${embed.value.code}']) !!}`},{label:t('cms.forms.tagUsage'),code:`{cms:form name="${embed.value.code}" /}`}]:[]);
 let generation=0;
-function filterParams(){
+/** 读取筛选控件当前值；未选任何状态即“全部状态”，显式发送四个状态，避免服务端回落到默认的新提交+跟进中。 */
+function readFilters():FormData{
   const [from,to]=filters.range||[];
-  const params:FormData={site_id:props.scope.site_id,form_id:filters.form_id,status:[...filters.status],from,to,keyword:filters.keyword.trim()};
-  return Object.fromEntries(Object.entries(params).filter(([,value])=>Array.isArray(value)?value.length:value!==undefined&&value!==null&&value!==''));
+  const params:FormData={site_id:props.scope.site_id,form_id:filters.form_id,status:filters.status.length?[...filters.status]:[...FORM_SUBMISSION_STATUSES],from,to,keyword:filters.keyword.trim()};
+  return Object.fromEntries(Object.entries(params).filter(([,value])=>value!==undefined&&value!==null&&value!==''));
 }
+/** 列表、翻页与导出只使用点“查询”时生效的筛选，编辑中未提交的控件不影响它们。 */
+const applied=ref<FormData>(readFilters());
 async function loadSubmissions(){
   if(!canSubmissions.value)return;
   const token=++generation;loading.value=true;
-  try{const result=await cmsApi.formSubmissions({...filterParams(),page:page.value});if(token===generation){rows.value=result.list;total.value=result.total;}}
+  try{const result=await cmsApi.formSubmissions({...applied.value,page:page.value});if(token===generation){rows.value=result.list;total.value=result.total;}}
   catch(cause){if(token===generation){rows.value=[];total.value=0;error.value=(cause as {msg?:string})?.msg||t('cms.labels.couldNotLoadPleaseTryAgainLater');}}
   finally{if(token===generation)loading.value=false;}
 }
@@ -36,7 +39,7 @@ async function loadSummary(){try{newCount.value=(await cmsApi.formSummary(props.
 async function loadForms(){try{forms.value=await cmsApi.forms(props.scope.site_id);}catch(cause){error.value=(cause as {msg?:string})?.msg||t('cms.labels.couldNotLoadPleaseTryAgainLater');}}
 /** 任何变更后同时刷新列表、新提交数量与表单计数。 */
 async function refresh(){await Promise.all([loadSubmissions(),loadSummary(),loadForms()]);}
-function search(){if(page.value!==1)page.value=1;else void loadSubmissions();}
+function search(){applied.value=readFilters();if(page.value!==1)page.value=1;else void loadSubmissions();}
 async function invalidate(){
   if(!canHandle.value||!selection.value.length)return;
   const ids=selection.value.map(row=>row.id);notice.value='';
@@ -51,7 +54,7 @@ async function removeSelected(){
 }
 function exportCsv(){
   if(!canExport.value)return;
-  const params=filterParams();params.locale=String(locale.value).toLowerCase().startsWith('en')?'en-us':'zh-cn';
+  const params:FormData={...applied.value};params.locale=String(locale.value).toLowerCase().startsWith('en')?'en-us':'zh-cn';
   window.open(cmsApi.formExportUrl(params),'_blank','noopener');
 }
 async function toggle(form:CmsForm,enabled:boolean){
@@ -65,6 +68,7 @@ async function removeForm(form:CmsForm){
   notice.value='';
   const done=await run(async()=>{await cmsApi.deleteForm({site_id:props.scope.site_id,id:form.id});return true;});
   if(done&&filters.form_id===form.id)filters.form_id='';
+  if(done&&applied.value.form_id===form.id){const {form_id:_,...rest}=applied.value;applied.value=rest;void loadSubmissions();}
   await loadForms();
 }
 function openEditor(form?:CmsForm){if(!canManage.value)return;editing.value=form||null;editorOpen.value=true;}
@@ -83,7 +87,7 @@ onMounted(()=>void refresh());onBeforeUnmount(()=>generation++);
       <el-tab-pane v-if="canSubmissions" name="submissions" :label="t('cms.forms.newSubmissionsTab',{count:newCount})">
         <div class="toolbar">
           <el-select v-model="filters.form_id" clearable :placeholder="t('cms.forms.allForms')" :aria-label="t('cms.forms.form')"><el-option v-for="form in forms" :key="form.id" :label="form.name" :value="form.id" /></el-select>
-          <el-select v-model="filters.status" multiple collapse-tags :placeholder="t('cms.forms.status')" :aria-label="t('cms.forms.status')"><el-option v-for="(label,value) in statuses" :key="value" :label="label" :value="value" /></el-select>
+          <el-select v-model="filters.status" multiple collapse-tags :placeholder="t('cms.forms.allStatuses')" :aria-label="t('cms.forms.status')"><el-option v-for="(label,value) in statuses" :key="value" :label="label" :value="value" /></el-select>
           <el-date-picker v-model="filters.range" type="daterange" value-format="YYYY-MM-DD" :start-placeholder="t('cms.forms.startDate')" :end-placeholder="t('cms.forms.endDate')" :aria-label="t('cms.forms.dateRange')" />
           <el-input v-model="filters.keyword" clearable maxlength="100" :placeholder="t('cms.forms.keyword')" :aria-label="t('cms.forms.keyword')" @keyup.enter="search" />
           <el-button type="primary" :disabled="loading" @click="search">{{ t('cms.forms.search') }}</el-button>

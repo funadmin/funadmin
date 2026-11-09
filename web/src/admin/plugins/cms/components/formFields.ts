@@ -85,6 +85,8 @@ export function validateFormFields(fields: CmsFormField[]): string {
       const [min, max] = range === 'date' ? [String(field.min), String(field.max)] : [Number(field.min), Number(field.max)];
       if (min > max) return cmsTranslate('cms.forms.validation.range', { label });
     }
+    if (field.type === 'number' && !blank(field.default) && !Number.isFinite(Number(field.default))) return cmsTranslate('cms.forms.validation.defaultNumber', { label });
+    if (field.type === 'file' && !field.accept?.length) return cmsTranslate('cms.forms.validation.accept', { label });
     if (fieldHas(field, 'max_size') && (!Number.isInteger(field.max_size) || field.max_size! < 1 || field.max_size! > MAX_FILE_SIZE || !Number.isInteger(field.max_files) || field.max_files! < 1 || field.max_files! > MAX_FILES)) {
       return cmsTranslate('cms.forms.validation.files', { label, size: MAX_FILE_SIZE / 1024 / 1024, max: MAX_FILES });
     }
