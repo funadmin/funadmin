@@ -80,7 +80,6 @@ final class CrudDefinition implements JsonSerializable
         if (!$isPlugin) {
             $data['generationTargets'] ??= is_array($data['paths'] ?? null) ? $data['paths'] : [];
         }
-        $data['layoutSchema'] = is_array($data['layoutSchema'] ?? null) ? $data['layoutSchema'] : [];
         // 携带 Schema 时以其顶层 list 为唯一真源，禁止发布配置覆盖。
         $data['list'] = isset($data['formSchema']) ? ($data['formSchema']['list'] ?? []) : ($data['list'] ?? []);
         $entity = (string) $data['entity'];

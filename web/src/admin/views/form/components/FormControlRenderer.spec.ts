@@ -5,17 +5,13 @@ import SchemaRenderer from './SchemaRenderer.vue';
 import { formatFieldValue } from '../runtime/fieldPresentation';
 import { describe, expect, it, vi } from 'vitest';
 import FormControlRenderer from './FormControlRenderer.vue';
-import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from '../schema/types';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
 
 const selectionTypes = ['select', 'selectV2', 'treeSelect', 'cascader', 'relation', 'dictionary', 'user', 'department'] as const;
 
-const field = (type: string): FormFieldDef => ({
-  field_name: 'owner_id', label: '负责人', type, column_type: '', nullable: 1, default_value: '', comment: '', unsigned: 0,
-  index_type: 'none', placeholder: '', options_source: {}, control_props: {}, validate_rules: null, link_rules: null,
-  relation_type: 'none', relation_table: '', relation_label_field: '', relation_value_field: '', relation_multiple: 0,
-  relation_on_delete: 'restrict', list_show: 0, list_sort: 0, list_filter: '', list_formatter: '', list_width: 0,
-  form_show: 1, form_required: 0, form_group: '', form_span: 24, form_readonly: 0, sort_order: 0
+const node = (type: string, overrides: Partial<FormSchemaNode> = {}): FormSchemaNode => ({
+  id: 'owner_id', kind: 'field', field: 'owner_id', title: '负责人', type, children: [], props: {}, ...overrides
 });
 
 const Selection = defineComponent({
@@ -67,7 +63,7 @@ const state = (overrides: Partial<FormDataSourceControlState> = {}): FormDataSou
 });
 
 const mountControl = (type: string, dataSourceState?: FormDataSourceControlState) => mount(FormControlRenderer, {
-  props: { field: field(type), dataSourceState, options: [{ label: '用户', value: 1 }] },
+  props: { node: node(type), dataSourceState, options: [{ label: '用户', value: 1 }] },
   global: {
     config: { warnHandler: () => undefined },
     stubs: {
@@ -112,7 +108,7 @@ describe('真实选择控件标签与值语义', () => {
 
   it.each(['selectV2', 'treeSelect', 'cascader'])('%s 回显数据库字符串值对应的选项标签，保留原始值', async (type) => {
     const wrapper = mount(FormControlRenderer, {
-      props: { field: field(type), modelValue: '1', options: [{ label: '选项一', value: 1 }] },
+      props: { node: node(type), modelValue: '1', options: [{ label: '选项一', value: 1 }] },
       global: { plugins: [ElementPlus] }
     });
     try {
@@ -128,7 +124,7 @@ describe('真实选择控件标签与值语义', () => {
 
   it('嵌套分组保留 disabled，主动点击提交选项的原始值', async () => {
     const wrapper = mount(FormControlRenderer, {
-      props: { field: field('select'), modelValue: '1', options },
+      props: { node: node('select'), modelValue: '1', options },
       global: { plugins: [ElementPlus] }, attachTo: document.body
     });
     try {
@@ -154,7 +150,7 @@ describe('真实选择控件标签与值语义', () => {
 
   it('迟到的嵌套选项更新标签但不回写模型，父选项和分组均保留', async () => {
     const wrapper = mount(FormControlRenderer, {
-      props: { field: field('select'), modelValue: '2', options: [] }, global: { plugins: [ElementPlus] }
+      props: { node: node('select'), modelValue: '2', options: [] }, global: { plugins: [ElementPlus] }
     });
     try {
       await flushPromises();
@@ -176,7 +172,7 @@ describe('真实选择控件标签与值语义', () => {
     const mixed = [{ label: '数字', value: 1 }, { label: '字符串', value: '1' }];
     expect(formatFieldValue('1', mixed)).toBe('字符串');
     expect(formatFieldValue(true, [{ label: '字符串真', value: 'true' }])).toBe('true');
-    const wrapper = mount(FormControlRenderer, { props: { field: field('select'), modelValue: '1', options: mixed }, global: { plugins: [ElementPlus] } });
+    const wrapper = mount(FormControlRenderer, { props: { node: node('select'), modelValue: '1', options: mixed }, global: { plugins: [ElementPlus] } });
     try {
       await flushPromises();
       expect(wrapper.get('.el-select__selected-item:not(.el-select__input-wrapper)').text()).toBe('字符串');
@@ -209,7 +205,7 @@ describe('数据源选择控件 UI', () => {
     expect(dataSourceState.setPage).toHaveBeenCalledWith(2);
   });
 
-  it('未提供数据源状态时兼容旧 SchemaForm 且不启用远程能力', () => {
+  it('未提供数据源状态时不启用远程能力', () => {
     const wrapper = mountControl('select');
     expect(wrapper.get('.selection').attributes('data-loading')).toBe('false');
     expect(wrapper.get('.selection').attributes('data-remote')).toBe('false');
@@ -234,9 +230,9 @@ describe('数据源选择控件 UI', () => {
 
   it('只读展示支持 formatter、树形选项和空字符串', async () => {
     const wrapper = mountControl('readonly');
-    await wrapper.setProps({ field: { ...field('readonly'), list_formatter: 'money' }, modelValue: 12.5 });
+    await wrapper.setProps({ node: node('readonly', { list: { formatter: 'money' } }), modelValue: 12.5 });
     expect(wrapper.text()).toBe('￥12.50');
-    await wrapper.setProps({ field: { ...field('readonly'), default_value: '2' }, modelValue: '2', options: [{ label: '父', value: 1, children: [{ label: '子', value: 2 }] }] });
+    await wrapper.setProps({ node: node('readonly', { defaultValue: '2' }), modelValue: '2', options: [{ label: '父', value: 1, children: [{ label: '子', value: 2 }] }] });
     expect(wrapper.text()).toBe('子');
     await wrapper.setProps({ modelValue: '' });
     expect(wrapper.text()).toBe('');
@@ -253,7 +249,7 @@ describe('数据源选择控件 UI', () => {
 
   it('显式空值不被默认值替换，避免详情与列表展示不同记录值', async () => {
     const wrapper = mountControl('readonly');
-    await wrapper.setProps({ field: { ...field('readonly'), default_value: '99', list_formatter: 'money' }, modelValue: null });
+    await wrapper.setProps({ node: node('readonly', { defaultValue: '99', list: { formatter: 'money' } }), modelValue: null });
     expect(wrapper.text()).toBe('');
     wrapper.unmount();
   });
@@ -265,5 +261,28 @@ describe('数据源选择控件 UI', () => {
     await nextTick();
     expect(wrapper.emitted('update:modelValue')).toEqual([[1]]);
     expect(wrapper.emitted('event')).toEqual([['select', 1]]);
+  });
+
+  it('只传 node：database.relation.multiple 使选择控件多选，title 作为占位符', () => {
+    const wrapper = mountControl('select');
+    expect(wrapper.get('.selection').attributes('multiple')).toBe('false');
+    expect(wrapper.get('.selection').attributes('placeholder')).toBe('负责人');
+    wrapper.unmount();
+    const multi = mount(FormControlRenderer, {
+      props: { node: node('select', { database: { relation: { type: 'belongs_to', multiple: true } }, props: { placeholder: '请选择负责人' } }), options: [] },
+      global: { config: { warnHandler: () => undefined }, stubs: { ElSelect: Selection, ElOption: true } }
+    });
+    expect(multi.get('.selection').attributes('multiple')).toBe('true');
+    expect(multi.get('.selection').attributes('placeholder')).toBe('请选择负责人');
+    multi.unmount();
+  });
+
+  it('只传 node：readonly 按 list.formatter 格式化值', () => {
+    const readonly = mount(FormControlRenderer, {
+      props: { node: node('input', { list: { formatter: 'money' } }), readonly: true, modelValue: 3 },
+      global: { stubs: { ElText: defineComponent({ template: '<span class="readonly-value"><slot /></span>' }) } }
+    });
+    expect(readonly.get('.readonly-value').text()).toBe('￥3.00');
+    readonly.unmount();
   });
 });

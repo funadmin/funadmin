@@ -258,7 +258,7 @@ describe('混合布局菜单全树路由', () => {
     const leaf = (route: RouteRecordRaw) => route.children![0]!.component;
     try {
       const [built, pending, legacy, codegen] = generateRoutes([
-        page(1, 'business/i18n-demo/index'),
+        page(1, 'business/order/index'),
         page(2, 'business/not-built-yet/index'),
         page(3, 'generated/not-built-yet/index'),
         page(4, 'development/business/mine')

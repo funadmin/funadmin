@@ -45,12 +45,12 @@
     </template>
 
     <div v-else class="designer-field-preview" @click.stop="store.selectNode(node.id)">
-      <span v-if="field && node.type !== 'hidden'" class="designer-field-label" :class="{ 'is-required': field.form_required === 1 }">{{ field.label }}</span>
+      <span v-if="node.field && node.type !== 'hidden'" class="designer-field-label" :class="{ 'is-required': isRequiredNode(node) }">{{ node.title }}</span>
       <FormControlRenderer
-        v-if="field"
+        v-if="node.field"
         class="designer-field-control"
-        :field="field"
-        :model-value="field.default_value"
+        :node="node"
+        :model-value="node.defaultValue"
         :options="previewOptions"
         disabled
         preview
@@ -65,6 +65,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { FormSchemaNode } from '@/api/form';
 import { controlMeta } from '../../registry';
+import { isRequiredNode } from '../../schema/fieldNodes';
 import type { DesignerKeyboardMove, DesignerStore } from '../../composables/useDesigner';
 import FormControlRenderer from '../../components/FormControlRenderer.vue';
 import DesignerCanvas from './DesignerCanvas.vue';
@@ -94,11 +95,8 @@ const descendantCount = computed(() => {
   return count(props.node.children);
 });
 const collapsed = ref(container.value && descendantCount.value > COLLAPSE_THRESHOLD);
-const field = computed(() => props.node.field
-  ? props.store.fields.value.find((item) => item.field_name === props.node.field) ?? null
-  : null);
 const previewOptions = computed(() => {
-  const options = field.value?.options_source?.options;
+  const options = props.node.dataSource?.options;
   return Array.isArray(options) ? options as Array<{ label: string; value: string | number }> : [];
 });
 

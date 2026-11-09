@@ -25,11 +25,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from '../schema/types';
+import { columnTypeOf, isSensitiveNode } from '../schema/fieldNodes';
 import { parseCsv } from '../runtime/csvParse';
 
 const { t } = useI18n();
-const props = defineProps<{ modelValue: boolean; fields: FormFieldDef[] }>();
+const props = defineProps<{ modelValue: boolean; fields: FormSchemaNode[] }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; submit: [rows: Array<Record<string, unknown>>] }>();
 
 const hasHeader = ref(true);
@@ -37,20 +38,20 @@ const parseError = ref('');
 const raw = ref<string[][]>([]);
 const rows = computed(() => buildRows());
 
-const writableFields = computed(() => props.fields.filter(field => field.column_type && field.type !== 'password' && !field.control_props?.sensitive && !field.control_props?.writeOnly));
-const fieldLabel = (name: string) => props.fields.find(field => field.field_name === name)?.label || name;
+const writableFields = computed(() => props.fields.filter(node => columnTypeOf(node) && !isSensitiveNode(node)));
+const fieldLabel = (name: string) => props.fields.find(node => node.field === name)?.title || name;
 
 function headerMap(header: string[]): Array<string | null> {
   return header.map(cell => {
     const key = cell.trim();
-    const hit = props.fields.find(field => field.field_name === key) ?? props.fields.find(field => field.label?.trim() === key);
-    return hit && writableFields.value.some(field => field.field_name === hit.field_name) ? hit.field_name : null;
+    const hit = props.fields.find(node => node.field === key) ?? props.fields.find(node => node.title?.trim() === key);
+    return hit?.field && writableFields.value.some(node => node.field === hit.field) ? hit.field : null;
   });
 }
 function buildRows(): Array<Record<string, unknown>> {
   if (!raw.value.length) return [];
   const table = raw.value;
-  const map = hasHeader.value ? headerMap(table[0]) : writableFields.value.map(field => field.field_name);
+  const map = hasHeader.value ? headerMap(table[0]) : writableFields.value.map(node => node.field ?? null);
   const body = hasHeader.value ? table.slice(1) : table;
   return body.slice(0, 1000).map(cells => {
     const record: Record<string, unknown> = {};

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FormComponentCatalog } from '@/api/form';
-import { createField } from '../registry';
+import { createNode } from '../registry';
 import { useDesigner } from '../composables/useDesigner';
 import {
   catalogItemToControlMeta,
@@ -55,11 +55,15 @@ describe('设计器插件组件目录', () => {
       defaultProps: { max: 5 },
       propertySchema: catalog.components[0].propertySchema
     });
-    expect(createField('demo:rating', 1)).toMatchObject({
+    expect(createNode('demo:rating', 1, 'node_demo_1')).toMatchObject({
+      id: 'node_demo_1',
+      kind: 'field',
       type: 'demo:rating',
-      label: '插件评分',
-      column_type: 'tinyint',
-      control_props: { max: 5 }
+      field: 'field_1',
+      title: '插件评分',
+      valueType: 'number',
+      database: { columnType: 'tinyint' },
+      props: { max: 5 }
     });
     const designer = useDesigner();
     const node = designer.addNode('demo:rating');
@@ -96,7 +100,7 @@ describe('设计器插件组件目录', () => {
     state.accept(incompatible, registered());
 
     expect(state.controls.value).toEqual([]);
-    expect(createField('demo:rating', 1).type).toBe('input');
+    expect(createNode('demo:rating', 1, 'node_demo_1').type).toBe('input');
     expect(state.diagnostics.value[0]).toMatchObject({ code: 'version-mismatch' });
     expect(state.canPublish([])).toBe(false);
   });

@@ -1,5 +1,5 @@
-FunAdmin brand assets: fun-balanced-1
+FunAdmin brand assets: fun-inset-a-1
 
-Accepted design: balanced geometric F + Manrope un.
-Manrope copyright 2018 The Manrope Project Authors. SIL Open Font License 1.1, attached in licenses/Manrope-OFL.txt.
-Trademark clearance remains NOT_COMPLETED. A font license and a source record are not trademark clearance.
+Accepted icon: geometric F + custom geometric u/n; no font glyphs used for the icon.
+The separate FunAdmin horizontal wordmark uses Manrope, copyright 2018 The Manrope Project Authors, under SIL Open Font License 1.1. The full license is attached in licenses/Manrope-OFL.txt.
+Trademark clearance remains NOT_COMPLETED. Source records and a font license do not establish trademark clearance.

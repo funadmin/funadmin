@@ -14,8 +14,14 @@ describe('统一页面入口', () => {
 
   it('published 详情复用共享展示并保持敏感字段过滤', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/admin/views/form/published.vue'), 'utf8');
-    expect(source).toContain('presentField(field, detail?.row ?? {}, detailOptions)');
+    expect(source).toContain('presentField(node, detail?.row ?? {}, detailOptions)');
     expect(source).not.toContain('detail.row[field.field_name] ?? \'-\'');
-    expect(source).toContain("!['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly");
+    expect(source).toContain("formFields.value.filter(node => !node.hidden && node.type !== 'hidden' && !isSensitiveNode(node))");
+  });
+
+  it.each(['data', 'published'])('%s 运行态只读取 schema 字段节点，不读取 meta.fields', name => {
+    const source = readFileSync(resolve(process.cwd(), `src/admin/views/form/${name}.vue`), 'utf8');
+    expect(source).toContain('const formFields = computed(() => fieldNodes(meta.value?.schema.nodes ?? []));');
+    expect(source).not.toMatch(/meta\.value\?\.fields|FormFieldDef|field_name|presentationNodes/);
   });
 });

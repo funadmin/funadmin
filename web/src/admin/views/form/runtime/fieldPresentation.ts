@@ -77,14 +77,6 @@ export async function resolveFieldOptionsAsync(formKey: string, node: Presentati
 
 export const isDynamicFieldOptions = (node: PresentationNode): boolean => !!node.dataSource?.kind && node.dataSource.kind !== 'static';
 
-// schema 节点优先于旧字段投影，保留嵌套节点声明的实际依赖。
-export function presentationNodes(fields: Array<{ field_name: string; options_source?: PresentationNode['dataSource'] }>, nodes: Array<PresentationNode & { children?: any[] }> = []): PresentationNode[] {
-  const sources = new Map<string, PresentationNode>();
-  const visit = (items: typeof nodes) => items.forEach(node => { if (node.field) sources.set(node.field, node); visit(node.children ?? []); });
-  visit(nodes);
-  return fields.map(field => ({ field: field.field_name, dataSource: sources.get(field.field_name)?.dataSource ?? field.options_source }));
-}
-
 export function useSuppliedFieldOptions(context: MaybeRefOrGetter<Record<string, unknown> | Record<string, unknown>[]> = {}) {
   type Entry = { controller: AbortController; options?: PresentationOption[]; error?: string; pending: boolean; task?: Promise<void> };
   const entries = new Map<string, Entry>();

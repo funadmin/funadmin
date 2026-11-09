@@ -41,6 +41,46 @@ export interface FormSchemaDataSource {
   pagination?: { pageSize?: number };
 }
 
+export interface FormSchemaAccess {
+  read?: string[];
+  write?: string[];
+  include?: 'auto' | 'always' | 'never';
+}
+
+export type FormSchemaRelationType = 'none' | 'belongs_to' | 'has_many';
+
+/** 字段节点 database.relation；缺省值由读取方给出（type 缺省 none，onDelete 缺省 restrict）。 */
+export interface FormSchemaRelationConfig {
+  [key: string]: unknown;
+  type?: FormSchemaRelationType;
+  table?: string;
+  labelField?: string;
+  valueField?: string;
+  multiple?: boolean;
+  onDelete?: 'restrict' | 'cascade' | 'set_null';
+}
+
+/** 字段节点 database 切片（物理列）；未列出的键原样保留。 */
+export interface FormSchemaDatabase {
+  [key: string]: unknown;
+  columnType?: string;
+  nullable?: boolean;
+  comment?: string;
+  unsigned?: boolean;
+  index?: 'none' | 'index' | 'unique';
+  relation?: FormSchemaRelationConfig;
+}
+
+/** 字段节点 list 切片（列表列）；未列出的键原样保留。 */
+export interface FormSchemaListColumn {
+  [key: string]: unknown;
+  show?: boolean;
+  sort?: boolean;
+  filter?: string;
+  formatter?: string;
+  width?: number;
+}
+
 export interface FormSchemaNode {
   id: string;
   kind: FormNodeKind;
@@ -62,9 +102,10 @@ export interface FormSchemaNode {
   dataSource?: FormSchemaDataSource | null;
   conditions?: unknown[];
   events?: Record<string, unknown[]>;
+  access?: FormSchemaAccess;
   layout?: { span?: FormResponsiveSpan; group?: string };
-  database?: Record<string, unknown>;
-  list?: Record<string, unknown>;
+  database?: FormSchemaDatabase;
+  list?: FormSchemaListColumn;
 }
 
 export interface FormLeftTreeConfiguration {

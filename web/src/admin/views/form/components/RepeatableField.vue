@@ -3,7 +3,7 @@
     <el-card v-for="(row, index) in rows" :key="rowKey(row, index)" shadow="never" class="repeatable-row">
       <template #header>
         <div class="repeatable-header">
-          <span>{{ field.label }} {{ index + 1 }}</span>
+          <span>{{ node.title }} {{ index + 1 }}</span>
           <el-button v-if="!disabled" link type="danger" @click="removeRow(index)">{{ t('common.remove', '删除') }}</el-button>
         </div>
       </template>
@@ -14,7 +14,7 @@
           :node="child"
           :values="row"
           :disabled="disabled"
-          :id-prefix="`repeatable-${field.field_name}-${index}`"
+          :id-prefix="`repeatable-${node.field ?? node.id}-${index}`"
           @change="(column, value) => updateCell(index, column, value)"
         />
       </el-row>
@@ -32,7 +32,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { FormFieldDef } from '@/api/form';
 import type { FormSchemaNode } from '../schema/types';
 
 const SchemaNodeRenderer = defineAsyncComponent(() => import('./SchemaNodeRenderer.vue'));
@@ -40,21 +39,25 @@ const SchemaNodeRenderer = defineAsyncComponent(() => import('./SchemaNodeRender
 const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
-  field: FormFieldDef;
+  node: FormSchemaNode;
   modelValue?: Array<Record<string, unknown>>;
   disabled?: boolean;
-  schemaNode?: FormSchemaNode;
 }>(), { modelValue: () => [], disabled: false });
 const emit = defineEmits<{ 'update:modelValue': [value: Array<Record<string, unknown>>] }>();
 const rows = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
-const primaryKey = computed(() => String(props.field.control_props?.primaryKey ?? 'id'));
-const minRows = computed(() => Number(props.field.control_props?.minRows ?? 0));
-const maxRows = computed(() => Number(props.field.control_props?.maxRows ?? 0));
-const configuredColumns = computed(() => Array.isArray(props.field.control_props?.columns) ? props.field.control_props.columns.map(String) : []);
-const childNodes = computed(() => props.schemaNode?.children ?? []);
+const controlProps = computed(() => props.node.props ?? {});
+const relationValueField = computed(() => props.node.database?.relation?.valueField ?? '');
+const primaryKey = computed(() => String(controlProps.value.primaryKey ?? 'id'));
+const minRows = computed(() => Number(controlProps.value.minRows ?? 0));
+const maxRows = computed(() => Number(controlProps.value.maxRows ?? 0));
+const configuredColumns = computed(() => {
+  const columns = controlProps.value.columns;
+  return Array.isArray(columns) ? columns.map(String) : [];
+});
+const childNodes = computed(() => props.node.children ?? []);
 const columns = computed(() => configuredColumns.value.length
-  ? configuredColumns.value.filter((column) => column !== primaryKey.value && column !== props.field.relation_value_field)
-  : [...new Set(rows.value.flatMap((row) => Object.keys(row)))].filter((column) => column !== primaryKey.value && column !== props.field.relation_value_field));
+  ? configuredColumns.value.filter((column) => column !== primaryKey.value && column !== relationValueField.value)
+  : [...new Set(rows.value.flatMap((row) => Object.keys(row)))].filter((column) => column !== primaryKey.value && column !== relationValueField.value));
 const canAdd = computed(() => maxRows.value < 1 || rows.value.length < maxRows.value);
 const rowKey = (row: Record<string, unknown>, index: number) => String(row[primaryKey.value] ?? `new-${index}`);
 const inputValue = (value: unknown): string | number => typeof value === 'string' || typeof value === 'number' ? value : String(value ?? '');

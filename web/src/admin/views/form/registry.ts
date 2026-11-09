@@ -1,5 +1,5 @@
 import { i18n } from '@/locales';
-import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from './schema/types';
 
 export type ControlKind = 'field' | 'business' | 'layout' | 'relation-container';
 export type ControlGroup = string;
@@ -100,47 +100,51 @@ export const setPluginControls = (controls: ControlMeta[]): void => {
 export const controlMeta = (type: string): ControlMeta =>
   CONTROL_REGISTRY.find((item) => item.type === type) ?? PLUGIN_CONTROL_REGISTRY.get(type) ?? CONTROL_REGISTRY[0];
 
+const UNSIGNED_CONTROLS = new Set(['treeSelect', 'rate', 'relation', 'department', 'user']);
+
 const cloneConfig = (value: Record<string, unknown> | null) =>
   value === null ? null : JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 
-/** 根据注册表创建字段或布局节点。 */
-export const createField = (type: string, index: number): FormFieldDef => {
+/** 根据注册表创建 FormSchema 节点：布局控件为 layout 节点（无 field），其余为字段节点 field_<index>。 */
+export const createNode = (type: string, index: number, id: string): FormSchemaNode => {
   const meta = controlMeta(type);
   const isLayout = meta.kind === 'layout';
   const isRelationContainer = meta.kind === 'relation-container';
-  return {
-    field_name: `field_${index}`,
-    label: meta.label,
+  const node: FormSchemaNode = {
+    id,
+    kind: isLayout ? 'layout' : 'field',
     type: meta.type,
-    column_type: meta.defaultColumnType,
-    nullable: 1,
-    default_value: '',
-    comment: '',
-    unsigned: ['treeSelect', 'rate', 'relation', 'department', 'user'].includes(meta.type) ? 1 : 0,
-    index_type: 'none',
-    placeholder: '',
-    options_source: cloneConfig(meta.defaultOptions),
-    control_props: cloneConfig(meta.defaultProps),
-    validate_rules: null,
-    link_rules: null,
-    relation_type: isRelationContainer ? 'has_many' : 'none',
-    relation_table: '',
-    relation_label_field: '',
-    relation_value_field: 'id',
-    relation_multiple: 0,
-    relation_on_delete: 'restrict',
-    list_show: isLayout || isRelationContainer ? 0 : 1,
-    list_sort: 0,
-    list_filter: '',
-    list_formatter: '',
-    list_width: 0,
-    form_show: 1,
-    form_required: 0,
-    form_group: '',
-    form_span: 24,
-    form_readonly: 0,
-    sort_order: index
+    field: isLayout ? null : `field_${index}`,
+    title: meta.label,
+    defaultValue: '',
+    props: cloneConfig(meta.defaultProps) ?? {},
+    children: [],
+    validation: [],
+    dataSource: cloneConfig(meta.defaultOptions),
+    conditions: [],
+    events: {},
+    hidden: false,
+    disabled: false,
+    database: {
+      columnType: meta.defaultColumnType,
+      nullable: true,
+      comment: '',
+      unsigned: UNSIGNED_CONTROLS.has(meta.type),
+      index: 'none',
+      relation: {
+        type: isRelationContainer ? 'has_many' : 'none',
+        table: '',
+        labelField: '',
+        valueField: 'id',
+        multiple: false,
+        onDelete: 'restrict'
+      }
+    },
+    list: { show: !isLayout && !isRelationContainer, sort: false, filter: '', formatter: '', width: 0 },
+    layout: { span: 24, group: '' }
   };
+  if (meta.valueType) node.valueType = meta.valueType as FormSchemaNode['valueType'];
+  return node;
 };
 
 export interface ListOption {

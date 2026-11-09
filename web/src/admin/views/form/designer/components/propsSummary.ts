@@ -1,4 +1,4 @@
-import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from '../../schema/types';
 
 /** 属性面板只读摘要：把校验规则 / 联动条件写成一句话。仅用于展示，不改写字段数据。 */
 export type SummaryTranslate = (key: string, named: Record<string, unknown>, fallback: string) => string;
@@ -52,13 +52,18 @@ export const describeValidationRule = (type: string, value: unknown, rules: Reco
   }
 };
 
-/** 与改版前相同的规则来源：form_required 开关 + validate_rules（其中的 required 键由开关代表）。 */
-export const validationEntries = (field: FormFieldDef, tr: SummaryTranslate): ValidationSummaryEntry[] => {
-  const rules = field.validate_rules ?? {};
-  return [
-    ...(field.form_required === 1 ? [{ type: 'required', value: true as unknown }] : []),
-    ...Object.entries(rules).filter(([type]) => type !== 'required').map(([type, value]) => ({ type, value }))
-  ].map((rule) => ({ ...rule, text: describeValidationRule(rule.type, rule.value, rules, tr) }));
+/** 规则来源为 node.validation：必填规则排在最前，其余按文档顺序；type → value 映射供修饰规则（如 type=array）参考。 */
+export const validationEntries = (node: FormSchemaNode, tr: SummaryTranslate): ValidationSummaryEntry[] => {
+  const list = node.validation ?? [];
+  const rules = Object.fromEntries(list.map((rule) => [rule.type, rule.value ?? true]));
+  const ordered = [
+    ...list.filter((rule) => rule.type === 'required').slice(0, 1),
+    ...list.filter((rule) => rule.type !== 'required')
+  ];
+  return ordered.map((rule) => {
+    const value = rule.value ?? true;
+    return { type: rule.type, value, text: describeValidationRule(rule.type, value, rules, tr) };
+  });
 };
 
 const OPERATORS: Record<string, [string, string]> = {

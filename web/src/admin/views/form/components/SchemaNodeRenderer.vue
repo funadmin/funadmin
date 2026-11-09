@@ -31,7 +31,6 @@
     >
       <RegisteredControlRenderer
         :node="node"
-        :field="legacyField"
         :model-value="node.field ? values[node.field] : undefined"
         :options="nodeOptions"
         :data-source-state="dataSourceState"
@@ -50,7 +49,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { FormFieldDef } from '@/api/form';
 import { componentRegistry, sanitizeComponentBindings } from '../schema/componentRegistry';
 import type { FormSchemaNode } from '../schema/types';
 import type { FormDataSourceControlState } from '../dataSource/useFormDataSource';
@@ -104,17 +102,6 @@ const state = computed(() => {
 });
 const dataSourceState = computed(() => props.dataSources[props.node.id]);
 const nodeOptions = computed(() => resolveFieldOptions(props.node, props.options));
-const legacyField = computed<FormFieldDef>(() => ({
-  field_name: props.node.field ?? props.node.id,
-  label: props.node.title,
-  type: props.node.type,
-  column_type: '', nullable: 1, default_value: String(props.node.defaultValue ?? ''), comment: '', unsigned: 0,
-  index_type: 'none', placeholder: String(props.node.props?.placeholder ?? ''), options_source: props.node.dataSource,
-  control_props: props.node.props, validate_rules: null, link_rules: null, relation_type: 'none', relation_table: '',
-  relation_label_field: '', relation_value_field: '', relation_multiple: 0, relation_on_delete: 'restrict', list_show: 0,
-  list_sort: 0, list_filter: String(props.node.list?.filter ?? ''), list_formatter: String(props.node.list?.formatter ?? ''), list_width: Number(props.node.list?.width ?? 0), form_show: props.node.hidden ? 0 : 1,
-  form_required: 0, form_group: '', form_span: typeof props.node.layout?.span === 'number' ? props.node.layout.span : 24, form_readonly: props.node.disabled ? 1 : 0, sort_order: 0
-}));
 const updateValue = (value: unknown) => {
   if (props.node.field) emit('change', props.node.field, value);
 };

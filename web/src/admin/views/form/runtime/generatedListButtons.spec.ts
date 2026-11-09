@@ -23,9 +23,9 @@ const permission = Vue.reactive({ permissions: [] as string[] });
 const php = process.env.PHP_BINARY || 'php';
 function generate(empty: boolean | 'defaults' = false, batch = true, soft = true, plugin = false, search = true, presentation: Record<string, unknown> = {}) {
   return JSON.parse(execFileSync(php, ['-r', `require 'vendor/autoload.php';
-$s = ['schemaVersion'=>2,'key'=>'host_demo','title'=>'宿主测试','nodes'=>[['id'=>'title','kind'=>'field','type'=>'input','field'=>'order_title','title'=>'标题','database'=>['columnType'=>'varchar','length'=>100]]]];
+$s = ['schemaVersion'=>2,'key'=>'host_demo','title'=>'宿主测试','database'=>['table'=>'fun_host_demo'],'nodes'=>[['id'=>'title','kind'=>'field','type'=>'input','field'=>'order_title','title'=>'标题','database'=>['columnType'=>'varchar','length'=>100]]]];
 $c = (new app\\common\\form\\schema\\FormSchemaCompiler(new app\\common\\form\\schema\\FormSchemaValidator()))->compile($s);
-$d = (new app\\admin\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c, ['table_name'=>'fun_host_demo']);
+$d = (new app\\admin\\development\\service\\FormCrudDefinitionFactory())->createFromSchema($c, []);
 $a = $d->toArray(); $a['fields'][0]['name']='order_id'; $a['primaryKey']='order_id';
 $a['fields'][1]['search']=${search ? 'true' : 'false'}; $a['fields'][1]['searchOperator']='eq';
 $a['fields'][1] = array_replace($a['fields'][1], json_decode(base64_decode('${Buffer.from(JSON.stringify(presentation)).toString('base64')}'), true));
@@ -132,7 +132,7 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     expect(defaults[5]).toMatchObject({ color: 'primary', plain: true, icon: 'download' });
   });
   it('已生成的业务列表页 CSV 导出按钮与模板一致使用彩色 primary', () => {
-    for (const file of ['src/admin/views/business/order/index.vue', 'src/admin/views/business/i18n-demo/index.vue', 'src/admin/plugins/example/test/index.vue']) {
+    for (const file of ['src/admin/views/business/order/index.vue', 'src/admin/plugins/example/test/index.vue']) {
       const source = readFileSync(resolve(process.cwd(), file), 'utf8');
       expect(source, file).toContain('{"id":"export","label":"CSV 导出","action":{"type":"builtin","key":"export"},"color":"primary","plain":true');
       expect(source, file).not.toContain('"color":"default"');

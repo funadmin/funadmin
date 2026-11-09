@@ -120,7 +120,7 @@ describe('设计器左栏：大纲', () => {
   it('搜索字段过滤大纲（保留匹配节点的祖先），并在搜索期间禁用拖拽', async () => {
     const group = store.addNode('group');
     const inner = store.addNode('input', group.id);
-    store.updateField({ label: '订单号' });
+    store.updateNode({ title: '订单号' });
     store.addNode('select');
     render();
     await openOutline();

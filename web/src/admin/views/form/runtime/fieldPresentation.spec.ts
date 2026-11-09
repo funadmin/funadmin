@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import { defineComponent, h } from 'vue';
+import { mount, flushPromises } from '@vue/test-utils';
+import * as presentation from './fieldPresentation';
+import type { FormSchemaNode } from '../schema/types';
 import { formatFieldValue, resolveFieldOptions, resolveFieldOptionsAsync, clearFieldOptionsCache } from './fieldPresentation';
 
 const dynamicRequest = async (_key: string, _field: string) => ({ options: [{ label: '动态标签', value: 7 }] });
@@ -68,5 +72,19 @@ describe('共享字段展示运行时', () => {
     expect(options).toEqual([{ label: '父', value: 1, disabled: true, children: [{ label: '子', value: 2 }] }]);
     expect(formatFieldValue(2, options)).toBe('子');
     expect(resolveFieldOptions(node, { tree: [] })).toEqual([]);
+  });
+
+  it('直接接受 schema 字段节点：动态选项按节点 id 供给并解析，不再提供投影合并', async () => {
+    expect('presentationNodes' in presentation).toBe(false);
+    const node: FormSchemaNode = { id: 'node_owner', kind: 'field', type: 'select', field: 'owner', title: '负责人', children: [], dataSource: { kind: 'remote', params: { tenant: 't1' } }, list: { show: true, formatter: 'tag' } };
+    const request = vi.fn(async () => ({ options: [{ label: '张三', value: 7 }] }));
+    let state!: ReturnType<typeof presentation.useSuppliedFieldOptions>;
+    const host = mount(defineComponent({ setup() { state = presentation.useSuppliedFieldOptions({}); return () => h('div'); } }));
+    await state.load('orders', [node], request);
+    await flushPromises();
+    expect(request).toHaveBeenCalledWith('orders', 'owner', { tenant: 't1' }, expect.any(AbortSignal));
+    expect(state.pending.value).toEqual({ node_owner: false });
+    expect(formatFieldValue(7, resolveFieldOptions(node, state.supplied.value), node.list?.formatter)).toBe('张三');
+    host.unmount();
   });
 });

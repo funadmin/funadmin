@@ -118,7 +118,7 @@ const open = async (action: 'create' | 'addChild' | 'edit', id: FormRecordId = '
   sourceMeta.value = form.meta;
   operation.value = action;
   editingId.value = id;
-  values.value = action === 'edit' ? form.row : emptyRuntimeValues(sourceMeta.value.fields);
+  values.value = action === 'edit' ? form.row : emptyRuntimeValues(sourceMeta.value.schema.nodes);
   if (action === 'addChild' && props.config.mapping.parentField) values.value[props.config.mapping.parentField] = id;
   visible.value = true;
 };
@@ -132,7 +132,7 @@ const save = async () => {
   try {
     await renderer.value.submit();
     if (sequence !== dialogSequence.value || !actionAllowed(operation.value) || !sourceMeta.value) return;
-    const data = buildSubmissionPayload(sourceMeta.value.fields, values.value, []);
+    const data = buildSubmissionPayload(sourceMeta.value.schema.nodes, values.value, []);
     const api = props.api ?? formDataApi;
     await api.mutateLeftTree(props.formKey, operation.value, editingId.value, data, props.schemaHash, sourceMeta.value.schemaHash);
     visible.value = false;

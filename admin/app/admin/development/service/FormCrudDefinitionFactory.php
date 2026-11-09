@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\admin\development\service;
 
 use app\common\crud\CrudDefinition;
+use app\common\form\schema\FormFieldView;
 use app\common\form\schema\FormSchema;
 use InvalidArgumentException;
 
@@ -27,20 +28,16 @@ final class FormCrudDefinitionFactory
 
     public function createFromSchema(FormSchema $formSchema, array $form, array $publishConfig = [], array $schema = []): CrudDefinition
     {
-        $form['form_key'] = $formSchema->key();
         $form['name'] = (string) ($formSchema->document()['title'] ?? $form['name'] ?? '');
-        $form['fields'] = $formSchema->fieldProjection();
         $database = (array) ($formSchema->document()['database'] ?? []);
-        $form['table_name'] = (string) ($database['table'] ?? $form['table_name'] ?? '');
         $form['connection'] = (string) ($database['connection'] ?? $form['connection'] ?? 'mysql');
-        $form['source_type'] = (string) ($database['source'] ?? $form['source_type'] ?? 'created');
-        $key = $this->identifier((string) ($form['form_key'] ?? ''), '表单标识');
-        $table = $this->identifier((string) ($form['table_name'] ?? ''), '绑定表');
+        $key = $this->identifier($formSchema->key(), '表单标识');
+        $table = $this->identifier((string) ($database['table'] ?? ''), '绑定表');
         $entity = str_replace('_', '-', $key);
         $class = $this->studly($entity);
         $config = $this->config($form, $publishConfig, $entity);
         $memberApi = (bool) $config['memberApiEnabled'];
-        $adopted = (string) ($form['source_type'] ?? 'created') === 'adopted';
+        $adopted = (string) ($database['source'] ?? 'created') === 'adopted';
         $schemaColumns = array_column((array) ($schema['columns'] ?? []), null, 'name');
         $primaryKey = $adopted ? $this->adoptedPrimaryKey($schema) : 'id';
         $connectionSettings = \app\common\service\database\DatabaseConnections::settings($form['connection']);
@@ -50,24 +47,20 @@ final class FormCrudDefinitionFactory
         $prefix = (string) ($connectionSettings['prefix'] ?? '');
         $relations = [];
         $optionSources = [];
-        $layoutSchema = [];
 
-        foreach ((array) ($form['fields'] ?? []) as $field) {
-            if (!is_array($field)) continue;
-            if ($adopted && (string) ($field['field_name'] ?? '') === $primaryKey) continue;
-            $type = (string) ($field['type'] ?? 'input');
-            $layoutSchema[] = $this->formSchemaNode($field, $type);
-            if (in_array($type, self::LAYOUT_TYPES, true)) continue;
-            if ((string) ($field['relation_type'] ?? 'none') === 'has_many') {
+        foreach ($formSchema->fields() as $field) {
+            if ($adopted && $field->name() === $primaryKey) continue;
+            if (in_array($field->type(), self::LAYOUT_TYPES, true)) continue;
+            if ($field->relationType() === 'has_many') {
                 $relations[] = [
-                    'name' => (string) ($field['field_name'] ?? ''), 'type' => 'hasMany',
-                    'field' => $primaryKey, 'target' => $this->relationClass((string) ($field['relation_table'] ?? ''), $prefix),
-                    'targetField' => (string) ($field['relation_value_field'] ?? ''), 'with' => true,
-                    'targetTable' => (string) ($field['relation_table'] ?? ''),
+                    'name' => $field->name(), 'type' => 'hasMany',
+                    'field' => $primaryKey, 'target' => $this->relationClass($field->relationTable(), $prefix),
+                    'targetField' => $field->relationValueField(), 'with' => true,
+                    'targetTable' => $field->relationTable(),
                 ];
                 continue;
             }
-            $fields[] = $this->field($field, $type, $relations, $optionSources, $prefix);
+            $fields[] = $this->field($field, $relations, $optionSources, $prefix);
         }
         foreach ((array) ($formSchema->document()['relations'] ?? []) as $relation) {
             $relations[] = $this->schemaRelation((array) $relation, $prefix);
@@ -128,7 +121,6 @@ final class FormCrudDefinitionFactory
                 'hidden' => false, 'keepAlive' => true, 'affix' => false, 'target' => '_self',
             ],
             'permission' => ['enabled' => true, 'groupName' => (string) $config['menuName'], 'actions' => []],
-            'layoutSchema' => $layoutSchema,
             'list' => (array) ($formSchema->document()['list'] ?? []),
             'formSchemaVersion' => $formSchema->version(),
             'formSchemaHash' => $formSchema->hash(),
@@ -166,33 +158,37 @@ final class FormCrudDefinitionFactory
         return $this->config($form, [], $key);
     }
 
-    private function field(array $field, string $type, array &$relations, array &$optionSources, string $prefix): array
+    private function field(FormFieldView $field, array &$relations, array &$optionSources, string $prefix): array
     {
+        $type = $field->type();
         if (!isset(self::COMPONENTS[$type])) throw new InvalidArgumentException('控件无法生成静态代码：' . $type);
-        $name = $this->identifier((string) ($field['field_name'] ?? ''), '字段名');
-        $columnType = trim((string) ($field['column_type'] ?? ''));
-        if ((int) ($field['unsigned'] ?? 0) === 1 && !str_contains(strtolower($columnType), 'unsigned')) $columnType .= ' unsigned';
-        $hidden = (int) ($field['form_show'] ?? 1) !== 1 || $type === 'hidden';
+        $name = $this->identifier($field->name(), '字段名');
+        $columnType = trim($field->columnType());
+        if ($field->unsigned() && !str_contains(strtolower($columnType), 'unsigned')) $columnType .= ' unsigned';
+        $hidden = $field->hidden() || $type === 'hidden';
         $row = [
-            'name' => $name, 'label' => (string) ($field['label'] ?? $name), 'dbType' => $columnType,
-            'nullable' => (int) ($field['nullable'] ?? 1) === 1, 'primary' => false,
-            'comment' => (string) ($field['comment'] ?? ''), 'component' => self::COMPONENTS[$type],
+            'name' => $name, 'label' => $field->title(), 'dbType' => $columnType,
+            'nullable' => $field->nullable(), 'primary' => false,
+            'comment' => $field->comment(), 'component' => self::COMPONENTS[$type],
             'valueType' => $this->valueType($columnType, $type), 'managed' => false,
-            'writable' => (int) ($field['form_readonly'] ?? 0) !== 1 && $type !== 'readonly',
-            'list' => (int) ($field['list_show'] ?? 1) === 1,
-            'search' => (string) ($field['list_filter'] ?? '') !== '',
-            'searchOperator' => (string) ($field['list_filter'] ?? '') ?: 'eq',
-            'sortable' => (int) ($field['list_sort'] ?? 0) === 1,
+            'writable' => !$field->disabled() && $type !== 'readonly',
+            'list' => $field->listShow(),
+            'search' => $field->listFilter() !== '',
+            'searchOperator' => $field->listFilter() ?: 'eq',
+            'sortable' => $field->listSort(),
             'form' => true, 'detail' => !$hidden,
-            'required' => (int) ($field['form_required'] ?? 0) === 1,
-            'rules' => $this->rules((array) ($field['validate_rules'] ?? [])),
-            'listFormatter' => (string) ($field['list_formatter'] ?? ''),
-            'listWidth' => (int) ($field['list_width'] ?? 0),
-            'placeholder' => (string) ($field['placeholder'] ?? ''),
-            'controlProps' => (array) ($field['control_props'] ?? []),
+            'required' => $field->required(),
+            'rules' => $this->rules($field->rules()),
+            'listFormatter' => $field->listFormatter(),
+            'listWidth' => $field->listWidth(),
+            // 占位文案随 formSchema 节点 props 渲染；生成器行保持空串，生成结果不变。
+            'placeholder' => '',
+            // schemaAccess 供生成器把受访问控制的字段视为敏感字段（ProductionTemplateContext::sensitiveField）。
+            'controlProps' => array_replace($field->props(), ['schemaAccess' => $field->access()]),
         ];
-        if (array_key_exists('default_value', $field) && $field['default_value'] !== '') $row['default'] = $field['default_value'];
-        if ((string) ($field['index_type'] ?? '') === 'unique') $row['unique'] = true;
+        $default = $field->defaultValue();
+        if ($default !== null && $default !== '') $row['default'] = $default;
+        if ($field->index() === 'unique') $row['unique'] = true;
         if (in_array($type, ['checkbox', 'transfer', 'daterange', 'datetimerange', 'images', 'file', 'files', 'json'], true)) $row['cast'] = 'json';
         if (in_array($type, ['image', 'images', 'file', 'files'], true)) $row['upload'] = true;
         $this->options($field, $name, $row, $optionSources);
@@ -200,10 +196,10 @@ final class FormCrudDefinitionFactory
         return $row;
     }
 
-    private function options(array $field, string $name, array &$row, array &$sources): void
+    private function options(FormFieldView $field, string $name, array &$row, array &$sources): void
     {
-        $source = (array) ($field['options_source'] ?? []);
-        $mode = (string) ($source['kind'] ?? '');
+        $source = $field->dataSource() ?? [];
+        $mode = $field->dataSourceKind();
         if ($mode === 'static' && is_array($source['options'] ?? null)) {
             $row['options'] = $source['options'];
             return;
@@ -225,11 +221,11 @@ final class FormCrudDefinitionFactory
         ];
     }
 
-    private function relation(array $field, string $name, array &$row, array &$relations, array &$sources, string $prefix): void
+    private function relation(FormFieldView $field, string $name, array &$row, array &$relations, array &$sources, string $prefix): void
     {
-        if ((string) ($field['relation_type'] ?? 'none') !== 'belongs_to') return;
-        $table = $this->identifier((string) ($field['relation_table'] ?? ''), '关联表');
-        $targetField = $this->identifier((string) ($field['relation_value_field'] ?? 'id'), '关联值字段');
+        if ($field->relationType() !== 'belongs_to') return;
+        $table = $this->identifier($field->relationTable(), '关联表');
+        $targetField = $this->identifier($field->relationValueField(), '关联值字段');
         $relationName = preg_replace('/_id$/', '', $name) ?: $name . '_relation';
         $target = $this->relationClass($table, $prefix);
         $sourceName = $name . '_options';
@@ -243,7 +239,7 @@ final class FormCrudDefinitionFactory
         ];
         $sources[$sourceName] = [
             'name' => $sourceName, 'type' => 'relation',
-            'labelField' => $this->identifier((string) ($field['relation_label_field'] ?? 'name'), '关联显示字段'),
+            'labelField' => $this->identifier($field->relationLabelField(), '关联显示字段'),
             'valueField' => $targetField,
         ];
     }
@@ -392,20 +388,6 @@ final class FormCrudDefinitionFactory
             'search' => false, 'sortable' => $primary, 'form' => false, 'detail' => true,
             'component' => $primary ? 'inputNumber' : 'datetime', 'valueType' => $primary ? 'integer' : 'datetime',
         ];
-    }
-
-    private function formSchemaNode(array $field, string $type): array
-    {
-        return array_replace([
-            'field_name' => '', 'label' => '', 'type' => $type, 'column_type' => '', 'nullable' => 1,
-            'default_value' => '', 'comment' => '', 'unsigned' => 0, 'index_type' => 'none', 'placeholder' => '',
-            'options_source' => null, 'control_props' => null, 'validate_rules' => null, 'link_rules' => null,
-            'relation_type' => 'none', 'relation_table' => '', 'relation_label_field' => '',
-            'relation_value_field' => 'id', 'relation_multiple' => 0, 'relation_on_delete' => 'restrict',
-            'list_show' => 0, 'list_sort' => 0, 'list_filter' => '', 'list_formatter' => '', 'list_width' => 0,
-            'form_show' => 1, 'form_required' => 0, 'form_group' => '', 'form_span' => 24,
-            'form_readonly' => 0, 'sort_order' => 0,
-        ], $field);
     }
 
     private function rules(array $rules): array

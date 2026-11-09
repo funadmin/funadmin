@@ -148,7 +148,7 @@ describe('常驻表单大纲（左栏页签）', () => {
     expect(rows[1].text()).not.toContain('（');
     await rows[0].trigger('click');
     expect(wrapper.get(`.designer-node[data-node-id="${field.id}"]`).attributes('aria-selected')).toBe('true');
-    expect(state.store.selected.value.field_name).toBe(field.field);
+    expect(state.store.selectedNode.value.field).toBe(field.field);
     await wrapper.get(`.designer-node[data-node-id="${state.store.nodes.value[1].id}"]`).trigger('click');
     expect(rows[1].classes()).toContain('is-selected');
   });

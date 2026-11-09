@@ -27,7 +27,7 @@ final class CodeGeneratorRelationsTest extends TestCase
     /** 修改关联生成前记录的无关联模块基准（definitionHash 与全部生成文件 sha256）。 */
     private const PLAIN_BASELINE = [
         'core' => [
-            'definitionHash' => 'ba3ede61aca0d48ccc3d932ebc46adc96b7594ff24423a38d0f99f2bf6ea9799',
+            'definitionHash' => '3bd6f00fb003a0aa5c571b99dc722023d2b0f2577d066103c16899be69e69cae',
             'files' => [
                 'app/admin/business/shop_plain/controller/ShopPlainController.php' => 'd5bdfe07b1fcf59b23783a47bd38d138e6a15862985bec2227ae29da5e5e7672',
                 'app/admin/business/shop_plain/lang/en-us.php' => 'cf6264058cd19ba878b3828997d7bd5f0a93e6307ad7e9a8790311790c9acee4',
@@ -41,13 +41,13 @@ final class CodeGeneratorRelationsTest extends TestCase
                 'tests/business/ShopPlainGeneratedTest.php' => '6e65441cd0b2fc2b778732cd320c8808c8221821750b147e9dcbbf35d8c069e1',
                 'web/src/admin/api/business/shop-plain.ts' => 'be5314e795a3d07aa720bd9a7372c24d4bb0730653814caa231187e87efdf6d7',
                 'web/src/admin/views/business/shop-plain/components/ShopPlainDetail.vue' => 'beb70112a10ab27ccab812822e4807507515403cf2791946444fc8e964acee6c',
-                'web/src/admin/views/business/shop-plain/components/ShopPlainForm.vue' => '6927aa1eb452d91eca895d75e84707287a706033eb768388b131fec09052f382',
+                'web/src/admin/views/business/shop-plain/components/ShopPlainForm.vue' => '9957f5c04f51f87b1458c9968f410176d0fe45c2ba2e26cb7f79936a57c1c5a9',
                 'web/src/admin/views/business/shop-plain/index.vue' => 'f1c0628836ba60c6d4c457d8d19078b92714dc3f7e1eab924b8b0a4e4ff861f6',
                 'web/tests/business/shop-plain.spec.ts' => '50089bc2daf01a7d382586b734cd5a2f86f8a95d35b31e62085c56ddd45b6486',
             ],
         ],
         'plugin' => [
-            'definitionHash' => '9d196b6a36f680a8f663f4563b5eabbc5978e7ca3b63618e93112f7d97a47cd8',
+            'definitionHash' => 'f679b6610da6e308f93672c05abc322797431b4d8b2f573389d86b4aa92c0a60',
             'files' => [
                 'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => '6f43e2318ad4976cee5a929ea898111b4cb942ca69f846c89be54a7fa34e5c27',
                 'plugins/shopkit/app/admin/plugins/shopkit/model/ShopPlain.php' => '735cbf06dc88f65462099000fa3e0f4536f4f0550e04d89ac3be3867c044e193',
@@ -57,7 +57,7 @@ final class CodeGeneratorRelationsTest extends TestCase
                 'plugins/shopkit/plugin.json' => 'cc10c9096e8733b808c245c7f4fc2e7d452add5bbab2a32da831ea5e959df9c9',
                 'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/api.ts' => '87354cfa671278907fb83577be0c410f36c0885d53a8aa9cf9d958cb8812d220',
                 'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/components/ShopPlainDetail.vue' => '7669711049fd28699c321cfb2bde96ecb2eb1100b017e4aab8931c7874654c76',
-                'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/components/ShopPlainForm.vue' => '3c197c0278b9865176180b5a22850ae88d07156374ca4b034a922b0dbaf4cddc',
+                'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/components/ShopPlainForm.vue' => '7fcb0f8da03cc7270993fb40c326205cd71470bfa4a9f4b3c445be65ba2e9860',
                 'plugins/shopkit/web/src/admin/plugins/shopkit/shop-plain/index.vue' => 'd705b454841835ee5f76132a32034f3074ecd41c779653dbb923ed68a285a680',
             ],
         ],
@@ -327,6 +327,17 @@ final class CodeGeneratorRelationsTest extends TestCase
             ksort($files);
             self::assertSame(self::PLAIN_BASELINE[$name], ['definitionHash' => $definition->hash(), 'files' => $files], $name);
         }
+    }
+
+    public function test_definition_has_no_layout_schema(): void
+    {
+        $definition = (new FormCrudDefinitionFactory())->createFromSchema($this->schema('shop_plain', [
+            $this->node('title', 'input', 'varchar(120)', ['list' => ['show' => true, 'filter' => 'like']]),
+            $this->node('stock', 'number', 'int'),
+            $this->node('remark', 'textarea', 'text'),
+        ], [], 'mysql', '无关联模块'), []);
+
+        self::assertArrayNotHasKey('layoutSchema', $definition->toArray());
     }
 
     private function categoryDefinition(bool $relation): CrudDefinition

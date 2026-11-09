@@ -2,7 +2,7 @@
   <div class="props-panel">
     <header class="props-panel__header">
       <div class="props-panel__title">
-        <b data-props-title :title="field.label">{{ field.label || t('formDesigner.unnamed', '未命名') }}</b>
+        <b data-props-title :title="node.title">{{ node.title || t('formDesigner.unnamed', '未命名') }}</b>
         <span class="props-panel__chip" data-props-chip>{{ selectedMeta.label }}</span>
       </div>
       <span class="props-panel__meta" data-props-meta>{{ headerMeta }}</span>
@@ -13,22 +13,22 @@
           <section class="props-section" data-props-section="basic">
             <h4 class="props-section__title" data-props-section-title>{{ t('formDesigner.propsPanel.sectionBasic', '基础') }}</h4>
             <el-form-item data-prop="label" :label="t('formDesigner.displayName', '显示名称')">
-              <el-input :model-value="field.label" @update:model-value="patch({ label: $event })" />
+              <el-input :model-value="node.title" @update:model-value="patch({ title: $event })" />
             </el-form-item>
             <div class="props-two" :class="{ 'is-single': isLayout }">
               <el-form-item data-prop="type" :label="t('formDesigner.controlType', '控件类型')">
-                <el-select :model-value="field.type" class="w-full" filterable :disabled="isLayout" @update:model-value="onTypeChange">
+                <el-select :model-value="node.type" class="w-full" filterable :disabled="typeLocked" @update:model-value="onTypeChange">
                   <el-option-group v-for="group in controlGroups" :key="group.label" :label="group.label">
                     <el-option v-for="control in group.options" :key="control.type" :label="control.label" :value="control.type" />
                   </el-option-group>
                 </el-select>
               </el-form-item>
               <el-form-item v-if="!isLayout" data-prop="form_group" :label="t('formDesigner.formGroup', '分组')">
-                <el-input :model-value="field.form_group" :placeholder="t('formDesigner.none', '无')" @update:model-value="patch({ form_group: $event })" />
+                <el-input :model-value="layoutGroup" :placeholder="t('formDesigner.none', '无')" @update:model-value="emitNode(patchLayout(node, { group: $event }))" />
               </el-form-item>
             </div>
             <el-form-item v-if="!isLayout" data-prop="placeholder" :label="t('formDesigner.placeholderLabel', '占位提示')">
-              <el-input :model-value="field.placeholder" @update:model-value="patch({ placeholder: $event })" />
+              <el-input :model-value="placeholder" @update:model-value="patch({ props: { ...(node.props ?? {}), placeholder: $event } })" />
             </el-form-item>
           </section>
           <section class="props-section" data-props-section="layout">
@@ -51,75 +51,75 @@
               <el-input-number
                 v-if="customSpanOpen"
                 data-span-custom-input
-                :model-value="field.form_span"
+                :model-value="span"
                 :min="1"
                 :max="24"
                 class="w-full props-seg__custom"
-                @update:model-value="patch({ form_span: $event ?? 24 })"
+                @update:model-value="setSpan($event ?? 24)"
               />
             </el-form-item>
           </section>
           <section class="props-section" data-props-section="state">
             <h4 class="props-section__title" data-props-section-title>{{ t('formDesigner.propsPanel.sectionState', '状态') }}</h4>
             <div class="props-toggles" data-props-toggles="form">
-              <PropsToggle v-if="!isLayout" data-toggle="form_required" :label="t('formDesigner.required', '必填')" :model-value="field.form_required === 1" @update:model-value="patch({ form_required: $event ? 1 : 0 })" />
-              <PropsToggle data-toggle="form_show" :label="t('formDesigner.show', '显示')" :model-value="field.form_show === 1" @update:model-value="patch({ form_show: $event ? 1 : 0 })" />
-              <PropsToggle v-if="!isLayout" data-toggle="form_readonly" :label="t('formDesigner.propsPanel.readonly', '只读')" :model-value="field.form_readonly === 1" @update:model-value="patch({ form_readonly: $event ? 1 : 0 })" />
+              <PropsToggle v-if="!isLayout" data-toggle="form_required" :label="t('formDesigner.required', '必填')" :model-value="isRequiredNode(node)" @update:model-value="emitNode(withRequired(node, $event))" />
+              <PropsToggle data-toggle="form_show" :label="t('formDesigner.show', '显示')" :model-value="node.hidden !== true" @update:model-value="patch({ hidden: !$event })" />
+              <PropsToggle v-if="!isLayout" data-toggle="form_readonly" :label="t('formDesigner.propsPanel.readonly', '只读')" :model-value="node.disabled === true" @update:model-value="patch({ disabled: $event })" />
             </div>
           </section>
         </el-form>
-        <PropsFieldFolds :field="field" :layout="isLayout" @update="patch" />
+        <PropsFieldFolds :node="node" :layout="isLayout" @update="patch" />
       </el-tab-pane>
       <el-tab-pane v-if="!isLayout" :label="t('formDesigner.tabList', '列表')" name="list" data-props-tab="list">
         <el-form label-position="top" size="small" class="props-form">
           <div class="props-toggles props-form__block" data-props-toggles="list">
-            <PropsToggle data-toggle="list_show" :label="t('formDesigner.show', '显示')" :model-value="field.list_show === 1" @update:model-value="patch({ list_show: $event ? 1 : 0 })" />
-            <PropsToggle data-toggle="list_sort" :label="t('formDesigner.sortable', '可排序')" :model-value="field.list_sort === 1" @update:model-value="patch({ list_sort: $event ? 1 : 0 })" />
+            <PropsToggle data-toggle="list_show" :label="t('formDesigner.show', '显示')" :model-value="node.list?.show === true" @update:model-value="emitNode(patchList(node, { show: $event }))" />
+            <PropsToggle data-toggle="list_sort" :label="t('formDesigner.sortable', '可排序')" :model-value="node.list?.sort === true" @update:model-value="emitNode(patchList(node, { sort: $event }))" />
           </div>
           <el-form-item data-prop="list_filter" :label="t('formDesigner.filter', '筛选')">
-            <el-select :model-value="field.list_filter" class="w-full" filterable @update:model-value="patch({ list_filter: $event })">
+            <el-select :model-value="node.list?.filter ?? ''" class="w-full" filterable @update:model-value="emitNode(patchList(node, { filter: $event }))">
               <el-option v-for="item in LIST_FILTERS" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           <el-form-item data-prop="list_formatter" :label="t('formDesigner.formatter', '格式化器')">
-            <el-select :model-value="field.list_formatter" class="w-full" filterable @update:model-value="patch({ list_formatter: $event })">
+            <el-select :model-value="node.list?.formatter ?? ''" class="w-full" filterable @update:model-value="emitNode(patchList(node, { formatter: $event }))">
               <el-option v-for="item in LIST_FORMATTERS" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
           <el-form-item data-prop="list_width" :label="t('formDesigner.columnWidth', '列宽')">
-            <el-input-number :model-value="field.list_width" :min="0" :max="800" class="w-full" @update:model-value="patch({ list_width: $event ?? 0 })" />
+            <el-input-number :model-value="node.list?.width ?? 0" :min="0" :max="800" class="w-full" @update:model-value="emitNode(patchList(node, { width: $event ?? 0 }))" />
           </el-form-item>
         </el-form>
       </el-tab-pane>
       <el-tab-pane v-if="!isLayout" :label="t('formDesigner.layout.tabDatabaseColumn', '数据库列')" name="column" data-props-tab="column">
-        <el-form label-position="top" size="small" class="props-form" @change="emitUpdate">
+        <el-form label-position="top" size="small" class="props-form">
           <el-form-item data-prop="field_name" :label="t('formDesigner.fieldName', '字段名')">
-            <el-input :model-value="field.field_name" @update:model-value="patch({ field_name: $event })" />
+            <el-input :model-value="node.field ?? ''" @update:model-value="patch({ field: $event })" />
           </el-form-item>
           <el-form-item data-prop="column_type" :label="t('formDesigner.columnType', '列类型')">
             <el-select
-              :model-value="field.column_type"
+              :model-value="columnTypeOf(node)"
               :disabled="sourceType === 'adopted'"
               class="w-full"
               filterable
               allow-create
               default-first-option
               :placeholder="t('formDesigner.columnTypePlaceholder', '请选择或输入列类型')"
-              @update:model-value="patch({ column_type: $event })"
+              @update:model-value="emitNode(patchDatabase(node, { columnType: $event }))"
             >
               <el-option v-for="item in COLUMN_TYPE_OPTIONS" :key="item" :label="item" :value="item" />
             </el-select>
           </el-form-item>
           <div class="props-toggles props-form__block" data-props-toggles="column">
-            <PropsToggle data-toggle="nullable" :label="t('formDesigner.nullable', '可空')" :model-value="field.nullable === 1" :disabled="sourceType === 'adopted'" @update:model-value="patch({ nullable: $event ? 1 : 0 })" />
-            <PropsToggle data-toggle="unsigned" :label="t('formDesigner.unsigned', '无符号')" :model-value="field.unsigned === 1" :disabled="sourceType === 'adopted'" @update:model-value="patch({ unsigned: $event ? 1 : 0 })" />
+            <PropsToggle data-toggle="nullable" :label="t('formDesigner.nullable', '可空')" :model-value="node.database?.nullable !== false" :disabled="sourceType === 'adopted'" @update:model-value="emitNode(patchDatabase(node, { nullable: $event }))" />
+            <PropsToggle data-toggle="unsigned" :label="t('formDesigner.unsigned', '无符号')" :model-value="node.database?.unsigned === true" :disabled="sourceType === 'adopted'" @update:model-value="emitNode(patchDatabase(node, { unsigned: $event }))" />
           </div>
           <div class="props-two">
             <el-form-item data-prop="default_value" :label="t('formDesigner.defaultValue', '默认值')">
-              <el-input :model-value="field.default_value" :disabled="sourceType === 'adopted'" @update:model-value="patch({ default_value: $event })" />
+              <el-input :model-value="defaultValueText" :disabled="sourceType === 'adopted'" @update:model-value="patch({ defaultValue: $event })" />
             </el-form-item>
             <el-form-item data-prop="index_type" :label="t('formDesigner.index', '索引')">
-              <el-select :model-value="field.index_type" :disabled="sourceType === 'adopted'" class="w-full" @update:model-value="patch({ index_type: $event })">
+              <el-select :model-value="node.database?.index ?? 'none'" :disabled="sourceType === 'adopted'" class="w-full" @update:model-value="emitNode(patchDatabase(node, { index: $event }))">
                 <el-option :label="t('formDesigner.none', '无')" value="none" />
                 <el-option :label="t('formDesigner.unique', '唯一')" value="unique" />
                 <el-option :label="t('formDesigner.normal', '普通')" value="index" />
@@ -127,19 +127,19 @@
             </el-form-item>
           </div>
           <el-form-item data-prop="comment" :label="t('formDesigner.comment', '注释')">
-            <el-input :model-value="field.comment" @update:model-value="patch({ comment: $event })" />
+            <el-input :model-value="node.database?.comment ?? ''" @update:model-value="emitNode(patchDatabase(node, { comment: $event }))" />
           </el-form-item>
           <el-form-item data-prop="relation_type" :label="t('formDesigner.relationType', '关联类型')">
-            <el-select :model-value="field.relation_type" class="w-full" @update:model-value="patch({ relation_type: $event })">
+            <el-select :model-value="relationTypeOf(node)" class="w-full" @update:model-value="emitNode(patchRelation(node, { type: $event }))">
               <el-option :label="t('formDesigner.none', '无')" value="none" />
               <el-option label="belongs_to" value="belongs_to" />
               <el-option label="has_many" value="has_many" />
             </el-select>
           </el-form-item>
-          <template v-if="field.relation_type !== 'none'">
+          <template v-if="relationTypeOf(node) !== 'none'">
             <el-form-item data-prop="relation_table" :label="t('formDesigner.relationTable', '关联表')">
               <el-select
-                :model-value="field.relation_table"
+                :model-value="relation.table ?? ''"
                 class="w-full"
                 filterable
                 allow-create
@@ -154,34 +154,34 @@
             </el-form-item>
             <el-form-item data-prop="relation_label_field" :label="t('formDesigner.relationLabelField', '显示字段')">
               <el-select
-                :model-value="field.relation_label_field"
+                :model-value="relation.labelField ?? ''"
                 class="w-full"
                 filterable
                 allow-create
                 :loading="columnsLoading"
                 :placeholder="t('formDesigner.relationLabelFieldPlaceholder', '请选择显示字段')"
                 @visible-change="loadRelationColumns"
-                @update:model-value="patch({ relation_label_field: $event })"
+                @update:model-value="emitNode(patchRelation(node, { labelField: $event }))"
               >
                 <el-option v-for="column in relationColumns" :key="column.name" :label="columnLabel(column)" :value="column.name" />
               </el-select>
             </el-form-item>
             <el-form-item data-prop="relation_value_field" :label="t('formDesigner.relationValueField', '值字段')">
               <el-select
-                :model-value="field.relation_value_field"
+                :model-value="relation.valueField ?? ''"
                 class="w-full"
                 filterable
                 allow-create
                 :loading="columnsLoading"
                 :placeholder="t('formDesigner.relationValueFieldPlaceholder', '请选择值字段')"
                 @visible-change="loadRelationColumns"
-                @update:model-value="patch({ relation_value_field: $event })"
+                @update:model-value="emitNode(patchRelation(node, { valueField: $event }))"
               >
                 <el-option v-for="column in relationColumns" :key="column.name" :label="columnLabel(column)" :value="column.name" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="field.relation_type === 'belongs_to'" data-prop="relation_on_delete" :label="t('formDesigner.relationOnDelete', '删除规则')">
-              <el-select :model-value="field.relation_on_delete" class="w-full" @update:model-value="patch({ relation_on_delete: $event })">
+            <el-form-item v-if="relationTypeOf(node) === 'belongs_to'" data-prop="relation_on_delete" :label="t('formDesigner.relationOnDelete', '删除规则')">
+              <el-select :model-value="relation.onDelete ?? 'restrict'" class="w-full" @update:model-value="emitNode(patchRelation(node, { onDelete: $event }))">
                 <el-option label="RESTRICT" value="restrict" />
                 <el-option label="CASCADE" value="cascade" />
                 <el-option label="SET NULL" value="set_null" />
@@ -193,7 +193,7 @@
       <el-tab-pane :label="t('formDesigner.tabProperties', '属性')" name="properties" data-props-tab="properties">
         <el-form label-position="top" size="small" class="props-form">
           <el-form-item data-prop="form_span" :label="t('formDesigner.propsPanel.spanExact', '栅格列数（1–24）')">
-            <el-input-number :model-value="field.form_span" :min="1" :max="24" class="w-full" @update:model-value="patch({ form_span: $event ?? 24 })" />
+            <el-input-number :model-value="span" :min="1" :max="24" class="w-full" @update:model-value="setSpan($event ?? 24)" />
           </el-form-item>
           <el-alert v-if="!propertyFields.length" :title="t('formDesigner.noDynamicProps', '当前组件没有可配置的动态属性')" type="info" :closable="false" class="mb-3" />
           <template v-for="property in propertyFields" :key="property.name">
@@ -241,19 +241,20 @@
 import { computed, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import type { FormFieldDef } from '@/api/form';
 import { businessDevelopmentApi, type BusinessDatabaseTable } from '@/api/development/business';
 import { componentRegistry } from '../../schema/componentRegistry';
+import type { FormSchemaNode } from '../../schema/types';
+import { columnTypeOf, isRequiredNode, relationTypeOf } from '../../schema/fieldNodes';
+import { changeControl, patchDatabase, patchLayout, patchList, patchRelation, withRequired } from '../../schema/nodeEdits';
 import { normalizePropertySchema, patchDynamicProperty, type DynamicPropertyField } from '../structuredEditor';
 import { COLUMN_TYPE_OPTIONS, LIST_FILTERS, LIST_FORMATTERS, controlMeta, type ControlMeta } from '../../registry';
-import { NODE_FIELD_PREFIX } from '../../composables/useDesigner';
 import PropsFieldFolds from './PropsFieldFolds.vue';
 import PropsToggle from './PropsToggle.vue';
 
 const { t } = useI18n();
 
-const props = defineProps<{ moduleId: number; field: FormFieldDef; sourceType: 'created' | 'adopted'; controls: ControlMeta[]; groupTitle?: string }>();
-const emit = defineEmits<{ (event: 'update', patch: Partial<FormFieldDef>): void }>();
+const props = defineProps<{ moduleId: number; node: FormSchemaNode; sourceType: 'created' | 'adopted'; controls: ControlMeta[]; groupTitle?: string }>();
+const emit = defineEmits<{ (event: 'update', patch: Partial<FormSchemaNode>): void }>();
 
 interface RelationColumn {
   name: string;
@@ -268,24 +269,45 @@ const relationColumns = ref<RelationColumn[]>([]);
 const tablesLoading = ref(false);
 const columnsLoading = ref(false);
 const loadedRelationTable = ref('');
-const patch = (value: Partial<FormFieldDef>) => emit('update', value);
-const emitUpdate = () => undefined;
+const patch = (value: Partial<FormSchemaNode>) => emit('update', value);
+/** 把 nodeEdits 产出的新节点转成补丁：只带引用发生变化的键，被移除的键以 undefined 表示删除。 */
+const emitNode = (next: FormSchemaNode) => {
+  if (next === props.node) return;
+  const current = props.node as unknown as Record<string, unknown>;
+  const target = next as unknown as Record<string, unknown>;
+  const changed: Record<string, unknown> = {};
+  for (const key of new Set([...Object.keys(current), ...Object.keys(target)])) {
+    if (key === 'id' || key === 'children') continue;
+    if (!Object.is(current[key], target[key])) changed[key] = target[key];
+  }
+  if (Object.keys(changed).length) patch(changed as Partial<FormSchemaNode>);
+};
 
-const selectedMeta = computed(() => controlMeta(props.field.type));
-const isLayout = computed(() => selectedMeta.value.kind === 'layout');
+const selectedMeta = computed(() => controlMeta(props.node.type));
+const isLayout = computed(() => props.node.kind === 'layout');
+const isRelationContainer = computed(() => selectedMeta.value.kind === 'relation-container');
+// 字段只能切换为字段控件（nodeEdits.changeControl 拒绝布局与子表容器）；布局与 repeatable/subform 节点不可切换控件。
+const typeLocked = computed(() => isLayout.value || isRelationContainer.value);
+const relation = computed(() => props.node.database?.relation ?? {});
+const placeholder = computed(() => String(props.node.props?.placeholder ?? ''));
+const layoutGroup = computed(() => String(props.node.layout?.group ?? ''));
+const defaultValueText = computed(() => (props.node.defaultValue == null ? '' : String(props.node.defaultValue)));
 // 标题区：字段名（布局节点显示节点 ID）· 列类型（字段）· 位于「父容器」/根节点；控件类型单独显示为标签。
 const headerMeta = computed(() => {
-  const key = props.field.field_name.startsWith(NODE_FIELD_PREFIX) ? props.field.field_name.slice(NODE_FIELD_PREFIX.length) : props.field.field_name;
+  const key = isLayout.value ? props.node.id : (props.node.field || props.node.id);
   const located = props.groupTitle
     ? t('formDesigner.layout.propsLocated', { group: props.groupTitle }, '位于「{group}」')
     : t('formDesigner.propsPanel.locatedRoot', '位于根节点');
-  return [key, isLayout.value ? '' : props.field.column_type, located].filter(Boolean).join(' · ');
+  return [key, isLayout.value ? '' : columnTypeOf(props.node), located].filter(Boolean).join(' · ');
 });
 
+// 宽度：layout.span 为整数时取其值，否则（缺省或响应式对象）按 24 列显示，与后端 FormFieldView::span() 一致。
+const span = computed(() => (Number.isInteger(props.node.layout?.span) ? Number(props.node.layout?.span) : 24));
+const setSpan = (value: number) => emitNode(patchLayout(props.node, { span: value }));
 // 宽度分段：只映射 6/8/12/24 四个常用值；其他列数原样保留，显示「自定义 N 列」，不做任何改写。
 const SPAN_PRESETS = [6, 8, 12, 24] as const;
 const customSpanOpen = ref(false);
-const isPresetSpan = computed(() => (SPAN_PRESETS as readonly number[]).includes(props.field.form_span));
+const isPresetSpan = computed(() => (SPAN_PRESETS as readonly number[]).includes(span.value));
 const spanOptions = computed(() => {
   const labels: Record<number, string> = {
     6: t('formDesigner.propsPanel.spanQuarter', '1/4'),
@@ -294,29 +316,29 @@ const spanOptions = computed(() => {
     24: t('formDesigner.propsPanel.spanFull', '整行')
   };
   return [
-    ...SPAN_PRESETS.map((span) => ({ value: String(span), label: labels[span], active: !customSpanOpen.value && props.field.form_span === span })),
+    ...SPAN_PRESETS.map((preset) => ({ value: String(preset), label: labels[preset], active: !customSpanOpen.value && span.value === preset })),
     { value: 'custom', label: t('formDesigner.propsPanel.spanCustom', '自定义'), active: customSpanOpen.value || !isPresetSpan.value }
   ];
 });
 const spanHint = computed(() => (isPresetSpan.value
   ? t('formDesigner.propsPanel.spanHint', '对应栅格 24 列中的 6 / 8 / 12 / 24')
-  : t('formDesigner.propsPanel.spanCustomValue', { n: props.field.form_span }, '自定义 {n} 列')));
+  : t('formDesigner.propsPanel.spanCustomValue', { n: span.value }, '自定义 {n} 列')));
 const onSpanOption = (value: string) => {
   if (value === 'custom') {
     customSpanOpen.value = !customSpanOpen.value;
     return;
   }
   customSpanOpen.value = false;
-  patch({ form_span: Number(value) });
+  setSpan(Number(value));
 };
-watch(() => props.field.field_name, () => { customSpanOpen.value = false; });
-const componentDefinition = computed(() => componentRegistry.resolve(props.field.type));
+watch(() => props.node.id, () => { customSpanOpen.value = false; });
+const componentDefinition = computed(() => componentRegistry.resolve(props.node.type));
 // 布局节点无“数据库列/列表”页签：选中容器时回落到可见页签，避免内容区空白。
-watch(selectedMeta, (meta) => {
-  if (meta.kind === 'layout' && (tab.value === 'column' || tab.value === 'list')) tab.value = 'form';
+watch(isLayout, (layout) => {
+  if (layout && (tab.value === 'column' || tab.value === 'list')) tab.value = 'form';
 }, { immediate: true });
 const propertyFields = computed(() => normalizePropertySchema(componentDefinition.value?.propertySchema ?? {}));
-const propertyValue = (property: DynamicPropertyField): unknown => props.field.control_props?.[property.name] ?? property.defaultValue;
+const propertyValue = (property: DynamicPropertyField): unknown => props.node.props?.[property.name] ?? property.defaultValue;
 const numberPropertyValue = (property: DynamicPropertyField): number | undefined => {
   const value = propertyValue(property);
   return typeof value === 'number' ? value : undefined;
@@ -333,7 +355,7 @@ const displayPropertyValue = (property: DynamicPropertyField): string => {
   return property.type === 'json' ? JSON.stringify(value, null, 2) : String(value);
 };
 const updateProperty = (property: DynamicPropertyField, value: unknown) => {
-  patch({ control_props: patchDynamicProperty(props.field.control_props, property.name, value) });
+  patch({ props: patchDynamicProperty(props.node.props, property.name, value) });
 };
 const updatePropertyInput = (property: DynamicPropertyField, value: string) => {
   if (property.type !== 'json' || value.trim() === '') {
@@ -346,9 +368,13 @@ const updatePropertyInput = (property: DynamicPropertyField, value: string) => {
     ElMessage.warning(t('formDesigner.invalidJsonProperty', { title: property.title }, '{title} 需要合法 JSON'));
   }
 };
+// 字段节点只列出可切换的字段控件；锁定的布局 / 子表容器节点只显示自身类型。
+const switchableControls = computed(() => (typeLocked.value
+  ? [props.controls.find((control) => control.type === props.node.type) ?? selectedMeta.value]
+  : props.controls.filter((control) => control.kind !== 'layout' && control.kind !== 'relation-container')));
 const controlGroups = computed(() => {
-  const labels = [...new Set(props.controls.map((control) => control.group))];
-  return labels.map((label) => ({ label, options: props.controls.filter((control) => control.group === label) }));
+  const labels = [...new Set(switchableControls.value.map((control) => control.group))];
+  return labels.map((label) => ({ label, options: switchableControls.value.filter((control) => control.group === label) }));
 });
 const tableLabel = (table: BusinessDatabaseTable) => table.comment ? `${table.name}（${table.comment}）` : table.name;
 const columnLabel = (column: RelationColumn) => `${column.name}${column.comment ? `（${column.comment}）` : ''}${column.primary ? t('formDesigner.primaryKeyTag', ' [主键]') : ''}`;
@@ -362,7 +388,7 @@ const loadRelationTables = async (visible: boolean) => {
   }
 };
 const loadRelationColumns = async (visible = true, selectedTable?: string) => {
-  const table = (selectedTable ?? props.field.relation_table).trim();
+  const table = (selectedTable ?? String(relation.value.table ?? '')).trim();
   if (!visible || !table || columnsLoading.value || loadedRelationTable.value === table) return;
   columnsLoading.value = true;
   try {
@@ -376,29 +402,22 @@ const loadRelationColumns = async (visible = true, selectedTable?: string) => {
 const onRelationTableChange = async (table: string) => {
   loadedRelationTable.value = '';
   relationColumns.value = [];
-  patch({ relation_table: table, relation_label_field: '', relation_value_field: 'id' });
+  emitNode(patchRelation(props.node, { table, labelField: '', valueField: 'id' }));
   await loadRelationColumns(true, table);
   const primary = relationColumns.value.find((column) => column.primary)?.name;
   const display = relationColumns.value.find((column) => ['name', 'title', 'label', 'username', 'nickname'].includes(column.name))?.name;
-  patch({
-    relation_value_field: primary || relationColumns.value.find((column) => column.name === 'id')?.name || 'id',
-    relation_label_field: display || relationColumns.value.find((column) => !column.primary)?.name || ''
-  });
+  // 第二次补丁带上 table：父组件可能尚未把第一次补丁写回 props.node。
+  emitNode(patchRelation(props.node, {
+    table,
+    valueField: primary || relationColumns.value.find((column) => column.name === 'id')?.name || 'id',
+    labelField: display || relationColumns.value.find((column) => !column.primary)?.name || ''
+  }));
 };
 
-const cloneConfig = (value: Record<string, unknown> | null) =>
-  value === null ? null : JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 const onTypeChange = (type: string) => {
-  const meta = controlMeta(type);
-  if (meta.kind === 'layout') tab.value = 'form';
-  patch({
-    type,
-    column_type: meta.defaultColumnType,
-    options_source: cloneConfig(meta.defaultOptions),
-    control_props: cloneConfig(meta.defaultProps),
-    list_show: meta.kind === 'layout' ? 0 : props.field.list_show,
-    form_required: meta.kind === 'layout' ? 0 : props.field.form_required
-  });
+  if (typeLocked.value) return;
+  // 采纳表不静默改动已有列的物理类型；新建表改为控件默认列类型。
+  emitNode(changeControl(props.node, type, { resetColumnType: props.sourceType !== 'adopted' }));
 };
 
 </script>

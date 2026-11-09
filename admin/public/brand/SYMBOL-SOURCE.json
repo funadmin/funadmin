@@ -1,0 +1,32 @@
+{
+  "name": "Open F with taller geometric un — selected option A",
+  "viewBox": [
+    0,
+    0,
+    64,
+    64
+  ],
+  "f": "M15 17H35.625L32.25 23.75H20.25V44Q20.25 45.5 18.75 45.5H13.5V18.5Q13.5 17 15 17Z",
+  "accent": "M38.0625 17H44.8125L41.4375 23.75H34.6875Z",
+  "u": "M24.5 28H28.8V39.7Q28.8 41.2 30.3 41.2H31.9V28H36.2V45.5H28L24.5 38.5Z",
+  "n": "M40 28H48L51.3 34.6V45.5H47V33.8Q47 32.3 45.5 32.3H43.6V45.5H39.3V28.7Q39.3 28 40 28Z",
+  "construction": {
+    "un_stroke_width": 4.3,
+    "cut_ratio": "2:1",
+    "baseline": 45.5,
+    "u_cut": "lower-left",
+    "n_cut": "upper-right",
+    "un_height": 17.5,
+    "f_middle_bar": false,
+    "un_inset_x": 7,
+    "group_recenter_x": 3.5,
+    "stem_to_un_gap": 4.25,
+    "un_top": 28
+  },
+  "font_used_for_logo_letters": null,
+  "external_icon_template": null,
+  "status": "accepted and applied to site",
+  "trademark_clearance": "NOT_COMPLETED",
+  "edition": "fun-inset-a-1",
+  "selected_option": "A"
+}

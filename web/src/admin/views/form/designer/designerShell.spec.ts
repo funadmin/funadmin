@@ -359,7 +359,8 @@ describe('表单设计页签：三栏', () => {
     expect(wrapper.get('[data-canvas-toolbar]').text()).toContain('1 个字段 · 1 个布局');
     const panel = props('[data-designer-right] [data-props-panel]');
     expect(panel.props('groupTitle')).toBe(group.title);
-    expect(panel.props('field').field_name).toBe(state.store.selected.value.field_name);
+    expect(panel.props('node')).toStrictEqual(state.store.selectedNode.value);
+    expect(panel.props('node').field).toBe(state.store.selectedNode.value.field);
   });
 
   it('预览模式收起左右栏，页签行显示 创建/编辑/只读/搜索 与「预览数据」', async () => {

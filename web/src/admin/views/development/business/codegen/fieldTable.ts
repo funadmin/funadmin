@@ -1,5 +1,5 @@
-import { controlMeta } from '@/views/form/registry';
-import type { FormSchemaDocument, FormSchemaNode, FormSchemaValidationRule } from '@/views/form/schema/types';
+import { changeControl, withRequired } from '@/views/form/schema/nodeEdits';
+import type { FormSchemaDocument, FormSchemaNode } from '@/views/form/schema/types';
 
 export interface FieldRow {
   path: string;
@@ -98,26 +98,6 @@ export const removeNodeAtPath = (doc: FormSchemaDocument, path: string): FormSch
   return { ...doc, nodes };
 };
 
-/**
- * 对应 PropsPanel.onTypeChange：切换控件时重置为该控件的默认选项来源与属性。
- * 有意不改 database.columnType：表格/关联编辑不应静默改动已有列的物理类型。
- */
-export const controlChange = (node: FormSchemaNode, type: string): FormSchemaNode => {
-  const meta = controlMeta(type);
-  if (meta.type !== type) throw new Error(`未知控件：${type}`);
-  if (meta.kind === 'layout' || meta.kind === 'relation-container') throw new Error(`字段不能切换为容器控件：${type}`);
-  const next: FormSchemaNode = {
-    ...node,
-    type,
-    dataSource: meta.defaultOptions === null ? null : structuredClone(meta.defaultOptions),
-    props: structuredClone(meta.defaultProps ?? {})
-  };
-  // 与设计器一致：valueType 取自控件元信息，未声明则不保留
-  if (meta.valueType) next.valueType = meta.valueType as FormSchemaNode['valueType'];
-  else Reflect.deleteProperty(next, 'valueType');
-  return next;
-};
-
 export const dataSourceKind = (source: Record<string, unknown> | null | undefined): string => String(source?.kind ?? '');
 
 const nodeToRow = ({ node, path, parentPath, groupTitle }: FieldNodeEntry): FieldRow => {
@@ -144,17 +124,14 @@ const nodeToRow = ({ node, path, parentPath, groupTitle }: FieldNodeEntry): Fiel
 
 export const schemaToFieldRows = (doc: FormSchemaDocument): FieldRow[] => walkFieldNodes(doc.nodes).map(nodeToRow);
 
-const withRequired = (rules: FormSchemaValidationRule[], required: boolean): FormSchemaValidationRule[] => required
-  ? [{ type: 'required', value: true }, ...rules]
-  : rules.filter((rule) => rule.type !== 'required');
-
 /** 只把改动映射到对应的节点切片并合并回原节点；值未变化的列不触碰，全部未变时返回原节点。 */
 const applyRowPatch = (node: FormSchemaNode, row: FieldRow, patch: FieldRowPatch): FormSchemaNode => {
   const changed = <K extends keyof FieldRowPatch>(key: K): boolean => patch[key] !== undefined && patch[key] !== row[key];
   let next = node;
-  if (changed('component')) next = controlChange(next, patch.component as string);
+  // 字段表格切换控件有意不改 database.columnType：表格/关联编辑不应静默改动已有列的物理类型
+  if (changed('component')) next = changeControl(next, patch.component as string, { resetColumnType: false });
   if (changed('title')) next = { ...next, title: patch.title as string };
-  if (changed('required')) next = { ...next, validation: withRequired(next.validation ?? [], patch.required as boolean) };
+  if (changed('required')) next = withRequired(next, patch.required as boolean);
   if (changed('inForm')) next = { ...next, hidden: !patch.inForm };
   const list: Record<string, unknown> = {};
   if (changed('inList')) list.show = patch.inList;

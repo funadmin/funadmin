@@ -17,9 +17,10 @@ describe('统一表单发布引擎契约', () => {
     expect(factory).toContain('final class FormCrudDefinitionFactory');
     expect(factory).toContain('public function createFromSchema(');
     expect(factory).not.toContain('public function create(');
-    for (const key of ['generationTargets', 'permissionPrefix', 'listFormatter', 'listWidth', 'layoutSchema']) {
+    for (const key of ['generationTargets', 'permissionPrefix', 'listFormatter', 'listWidth']) {
       expect(factory).toContain(`'${key}'`);
     }
+    expect(factory).not.toContain('layoutSchema');
     expect(factory).toContain("managedField('id', 'bigint unsigned', true)");
     expect(factory).toContain("foreach (['created_at', 'updated_at', 'deleted_at'] as $managed)");
     for (const layer of ['model', 'validate', 'service', 'controller']) expect(factory).toContain(`/${layer}/{$class}`);
@@ -33,7 +34,7 @@ describe('统一表单发布引擎契约', () => {
     const orchestration = read('admin/app/admin/development/service/BusinessDevelopmentService.php');
     expect(dynamic).toContain('public function previewDynamic(');
     expect(dynamic).toContain('public function publishDynamic(');
-    expect(dynamic).toContain('applyDynamicDdl($payload)');
+    expect(dynamic).toContain('applyDynamicDdl($schema, $expectedDdlHash)');
     expect(dynamic).not.toContain('preflightGeneration(');
     expect(business).toContain('$this->business->previewPublish(');
     expect(business).toContain('$this->business->publish(');
@@ -55,7 +56,7 @@ describe('统一表单发布引擎契约', () => {
       expect(validator).toContain(`'${operator}'`);
     }
     const definition = read('admin/app/common/crud/CrudDefinition.php');
-    expect(definition).toContain("'layoutSchema'");
+    expect(definition).not.toContain('layoutSchema');
   });
 
   it('表单设置（编辑生成信息）提供所属菜单选择，并将选择纳入发布配置', () => {
@@ -163,10 +164,23 @@ describe('统一表单发布引擎契约', () => {
     expect(published).toContain('setFieldErrors(mapFieldErrors(errors))');
     expect(published).toContain('source?.children');
     expect(published).toContain('buildSubmissionPayload');
+    expect(published).toContain('buildSubmissionPayload(schemaNodes.value,');
+    expect(published).toContain("const schemaNodes = computed(() => meta.value?.schema.nodes ?? []);");
+    expect(published).not.toContain('isSensitiveField');
     expect(api).toContain('schema: FormSchemaDocument');
     expect(api).toContain('schemaHash: string');
     expect(api).toContain('etag: string');
     expect(api).toContain('{ data, include, schemaHash }');
+  });
+
+  it('生成表单按 FormSchema v2 节点提交，不再内嵌 submissionFields', () => {
+    for (const file of ['web/src/admin/views/business/order/components/OrderForm.vue', 'web/src/admin/plugins/example/test/components/TestForm.vue']) {
+      const source = read(file);
+      expect(source, file).toContain('buildSubmissionPayload(sourceSchema.nodes,form,resolveSubmissionInclude({schema_document:sourceSchema}),hasPermission)');
+      expect(source, file).not.toContain('submissionFields');
+      expect(source, file).not.toContain('FormFieldDef');
+      expect(source, file).not.toContain('"legacy"');
+    }
   });
 
 });

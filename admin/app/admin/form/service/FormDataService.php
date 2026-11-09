@@ -94,7 +94,7 @@ final class FormDataService
                 || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none'
                 || in_array($row['type'] ?? '', ['repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
                 || !empty($row['control_props']['multiple'])) continue;
-            $fields[] = ['field_name' => (string) $row['field_name'], 'label' => (string) ($row['label'] ?? '')];
+            $fields[] = ['field' => (string) $row['field_name'], 'title' => (string) ($row['label'] ?? '')];
         }
         // 独立白名单 DTO，不复用运行态 meta，避免 AST、默认值及选项查询旁路泄露。
         return [

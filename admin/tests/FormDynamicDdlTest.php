@@ -7,6 +7,10 @@ namespace Tests;
 use app\admin\development\service\BusinessDevelopmentService;
 use app\admin\form\model\Form;
 use app\admin\form\service\FormDesignerService;
+use app\admin\form\service\FormPublishService;
+use app\common\form\builder\Form as FormBuilder;
+use app\common\form\schema\FormSchemaCompiler;
+use app\common\form\schema\FormSchemaValidator;
 use Illuminate\Database\SQLiteConnection;
 use PDO;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -30,26 +34,87 @@ final class FormDynamicDdlTest extends TestCase
 
     public function testApplyDynamicDdlCreatesTableThroughConnectionStatement(): void
     {
-        $manager = (new \ReflectionProperty(\Illuminate\Database\Capsule\Manager::class, 'instance'))->getValue();
-        $manager->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''], self::CONNECTION);
-        $manager->getDatabaseManager()->extend(self::CONNECTION, static fn (array $config): MysqlDialectSqliteConnection
-            => new MysqlDialectSqliteConnection(new PDO('sqlite::memory:'), ':memory:', '', $config));
+        $this->registerProbeConnection();
 
         $forms = new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
-        $payload = [
-            'form_key' => 'dynamic_ddl_probe', 'name' => '动态 DDL 探针', 'table_name' => 'dynamic_ddl_probe',
-            'connection' => self::CONNECTION, 'source_type' => 'created',
-            'fields' => [['field_name' => 'title', 'label' => '标题', 'type' => 'input', 'column_type' => 'varchar(255)', 'index_type' => 'none']],
-        ];
-        $preview = $forms->previewMigration($payload);
+        $document = FormBuilder::make('dynamic_ddl_probe')->title('动态 DDL 探针')->table('dynamic_ddl_probe', self::CONNECTION, 'created');
+        $document->input('title', '标题')->column('varchar(255)');
+        $compiled = $document->compile();
+        $preview = $forms->previewMigration($compiled);
         self::assertSame('create', $preview['mode']);
 
-        $result = $forms->applyDynamicDdl($payload + ['dynamic_ddl_hash' => hash('sha256', (string) $preview['sql'])]);
+        $result = $forms->applyDynamicDdl($compiled, hash('sha256', (string) $preview['sql']));
 
         self::assertTrue($result['applied']);
         $connection = Db::connection(self::CONNECTION);
         self::assertTrue($connection->getSchemaBuilder()->hasTable('dynamic_ddl_probe'));
         self::assertTrue($connection->getSchemaBuilder()->hasColumn('dynamic_ddl_probe', 'title'));
+    }
+
+    public function test_belongs_to_without_value_field_references_id(): void
+    {
+        $this->registerProbeConnection();
+        $document = FormBuilder::make('belongs_probe')->title('关联探针')->table('belongs_probe', self::CONNECTION, 'created');
+        $document->input('owner_id', '负责人')->column('bigint')->relation('belongs_to', 'admin', 'username');
+        $schema = $document->toArray();
+        unset($schema['nodes'][0]['database']['relation']['valueField']);
+        $compiled = (new FormSchemaCompiler(new FormSchemaValidator()))->compile($schema);
+        self::assertArrayNotHasKey('valueField', $compiled->document()['nodes'][0]['database']['relation']);
+
+        $sql = (new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR))->previewMigration($compiled)['sql'];
+
+        self::assertStringContainsString('REFERENCES `admin` (`id`)', $sql);
+    }
+
+    /** 公共 created 路径会先拒绝空列类型，因此直接钉住 columnDdl 的能力默认列类型回退。 */
+    public function test_empty_column_type_uses_capability_default(): void
+    {
+        $document = FormBuilder::make('column_probe')->title('列类型探针')->table('column_probe', self::CONNECTION, 'adopted');
+        $document->input('title', '标题')->column('');
+        $field = $document->compile()->field('title');
+        self::assertNotNull($field);
+        self::assertSame('', $field->columnType());
+
+        $forms = new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        $sql = (new \ReflectionMethod($forms, 'columnDdl'))->invoke($forms, $field);
+
+        self::assertStringContainsString('`title` varchar(255)', $sql);
+    }
+
+    /** 空字段或身份不合法：发布在保存前以 validation_failed 拒绝，不写草稿与版本。 */
+    public function test_publish_rejects_empty_or_invalid_identity_before_save(): void
+    {
+        $empty = FormBuilder::make('empty_probe')->title('空表单')->table('empty_probe', self::CONNECTION, 'created');
+        $badTable = FormBuilder::make('bad_table_probe')->title('坏表名')->table('Bad-Table', self::CONNECTION, 'created');
+        $badTable->input('title', '标题')->column('varchar(255)');
+        foreach (['至少需要一个字段' => $empty, '表名必须为小写字母开头的字母数字下划线' => $badTable] as $message => $document) {
+            $compiled = $document->compile();
+            $statuses = [];
+            $saves = 0;
+            $publisher = new FormPublishService(
+                new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR),
+                saveForm: static function () use (&$saves): array { $saves++; return ['form' => ['id' => 7]]; },
+                statusUpdater: static function (int $formId, string $status) use (&$statuses): int { $statuses[] = $status; return 1; },
+                publishedBaselineReader: static fn (): array => ['exists' => false, 'hash' => '', 'version' => 0],
+                moduleTargetReader: static fn (): array => [],
+            );
+            try {
+                $publisher->publishDynamic(['id' => 7, 'schema_document' => $compiled->document(), 'schemaHash' => $compiled->hash()], 'test:1');
+                self::fail('发布必须拒绝：' . $message);
+            } catch (\InvalidArgumentException $exception) {
+                self::assertSame($message, $exception->getMessage());
+            }
+            self::assertSame(['validation_failed'], $statuses);
+            self::assertSame(0, $saves, '校验失败不得写入草稿或 Schema 版本');
+        }
+    }
+
+    private function registerProbeConnection(): void
+    {
+        $manager = (new \ReflectionProperty(\Illuminate\Database\Capsule\Manager::class, 'instance'))->getValue();
+        $manager->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => ''], self::CONNECTION);
+        $manager->getDatabaseManager()->extend(self::CONNECTION, static fn (array $config): MysqlDialectSqliteConnection
+            => new MysqlDialectSqliteConnection(new PDO('sqlite::memory:'), ':memory:', '', $config));
     }
 
     /**

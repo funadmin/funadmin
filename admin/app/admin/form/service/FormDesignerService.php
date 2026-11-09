@@ -7,6 +7,8 @@ namespace app\admin\form\service;
 use app\common\crud\SchemaInspector;
 use app\common\crud\SqlLiteral;
 use app\common\form\registry\FieldCapabilityRegistry;
+use app\common\form\schema\FormFieldView;
+use app\common\form\schema\FormSchema;
 use app\common\form\schema\FormSchemaException;
 use app\admin\form\exception\FormMigrationException;
 use app\admin\form\model\Form;
@@ -39,9 +41,6 @@ final class FormDesignerService
         'text' => '', 'collapse' => '', 'tabs' => '',
     ];
 
-    private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
-    private const RELATION_CONTAINER_TYPES = ['repeatable', 'subform'];
-
     private const INDEX_TYPES = ['none', 'unique', 'index'];
     private const RELATION_TYPES = ['none', 'belongs_to', 'has_many'];
     private const ON_DELETE = ['restrict' => 'RESTRICT', 'cascade' => 'CASCADE', 'set_null' => 'SET NULL'];
@@ -58,22 +57,6 @@ final class FormDesignerService
         $this->fieldCapabilities = $fieldCapabilities ?? $this->schemas->fieldCapabilities();
     }
 
-    /** 表单分页列表（含字段数）。 */
-    public function listing(int $page, int $pageSize, string $keyword, mixed $status): array
-    {
-        $query = Form::query()->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
-        if ($keyword !== '') {
-            $query->where(function ($q) use ($keyword): void {
-                $q->where('name', 'like', '%' . $keyword . '%')->orWhere('form_key', 'like', '%' . $keyword . '%');
-            });
-        }
-        if ($status !== null && $status !== '') {
-            $query->where('status', (int) $status);
-        }
-        $result = $query->withCount(['fields'])->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return ['list' => $result->items(), 'total' => $result->total()];
-    }
-
     /** 表单详情（含按 sort_order 排序的字段）。 */
     public function detail(int $id): array
     {
@@ -85,36 +68,13 @@ final class FormDesignerService
         return ['form' => $form, 'fields' => $fields];
     }
 
-    /** 服务端定义校验：不合法抛 InvalidArgumentException。 */
-    public function validateDefinition(array $payload, bool $allowEmptyFields = false): array
+    /** 服务端字段校验：按编译后的字段视图逐个校验，不合法抛 InvalidArgumentException。 */
+    public function validateFields(FormSchema $schema, string $sourceType): void
     {
-        $formKey = trim((string) ($payload['form_key'] ?? ''));
-        $name = trim((string) ($payload['name'] ?? ''));
-        $table = trim((string) ($payload['table_name'] ?? ''));
-        $sourceType = (string) ($payload['source_type'] ?? 'created');
-        if (!preg_match('/^[a-z][a-z0-9_]{0,60}$/', $formKey)) {
-            throw new InvalidArgumentException('表单标识须以小写字母开头，仅包含小写字母、数字和下划线，最长 61 个字符');
-        }
-        if ($name === '' || mb_strlen($name) > 100) {
-            throw new InvalidArgumentException('表单名称不能为空且不能超过 100 个字符');
-        }
-        if (!preg_match('/^[a-z][a-z0-9_]*$/', $table)) {
-            throw new InvalidArgumentException('表名必须为小写字母开头的字母数字下划线');
-        }
-        if (!in_array($sourceType, ['created', 'adopted'], true)) {
-            throw new InvalidArgumentException('来源类型只能为 created 或 adopted');
-        }
-        $fields = $payload['fields'] ?? [];
-        if (!is_array($fields)) {
-            throw new InvalidArgumentException('fields 必须为数组');
-        }
-        if ($fields === [] && !$allowEmptyFields) {
-            throw new InvalidArgumentException('至少需要一个字段');
-        }
         $seen = [];
-        foreach (array_values($fields) as $index => $field) {
+        foreach ($schema->fields() as $index => $field) {
             $label = '第' . ($index + 1) . '个字段';
-            $fieldName = trim((string) ($field['field_name'] ?? ''));
+            $fieldName = $field->name();
             if (!preg_match('/^[a-z][a-z0-9_]{0,60}$/', $fieldName)) {
                 throw new InvalidArgumentException($label . '字段名不合法：' . $fieldName);
             }
@@ -122,95 +82,63 @@ final class FormDesignerService
                 throw new InvalidArgumentException('字段名重复：' . $fieldName);
             }
             $seen[$fieldName] = true;
-            if (trim((string) ($field['label'] ?? '')) === '') {
+            if (trim($field->title()) === '') {
                 throw new InvalidArgumentException($label . '显示名称不能为空');
             }
-            $type = (string) ($field['type'] ?? 'input');
+            $type = $field->type();
             if (!$this->fieldCapabilities->has($type)) {
                 throw new InvalidArgumentException($label . '控件类型不支持：' . $type);
             }
-            if (!in_array((string) ($field['index_type'] ?? 'none'), self::INDEX_TYPES, true)) {
+            if (!in_array($field->index(), self::INDEX_TYPES, true)) {
                 throw new InvalidArgumentException($label . '索引类型不合法');
             }
-            $relationType = (string) ($field['relation_type'] ?? 'none');
-            if (in_array($type, self::RELATION_CONTAINER_TYPES, true) && $relationType !== 'has_many') {
+            $relationType = $field->relationType();
+            if ($field->isRelationContainer() && $relationType !== 'has_many') {
                 throw new InvalidArgumentException($label . '重复行或子表单必须配置 has_many');
             }
             if (!in_array($relationType, self::RELATION_TYPES, true)) {
                 throw new InvalidArgumentException($label . '关联类型不合法');
             }
             if ($relationType === 'belongs_to') {
-                $this->assertIdentifier((string) ($field['relation_table'] ?? ''), $label . '关联表');
-                $this->assertIdentifier((string) ($field['relation_label_field'] ?? ''), $label . '关联显示字段');
-                $this->assertIdentifier((string) ($field['relation_value_field'] ?? 'id'), $label . '关联值字段');
-                if (!array_key_exists((string) ($field['relation_on_delete'] ?? 'restrict'), self::ON_DELETE)) {
+                $this->assertIdentifier($field->relationTable(), $label . '关联表');
+                $this->assertIdentifier($field->relationLabelField(), $label . '关联显示字段');
+                $this->assertIdentifier($field->relationValueField() ?: 'id', $label . '关联值字段');
+                if (!array_key_exists($field->relationOnDelete(), self::ON_DELETE)) {
                     throw new InvalidArgumentException($label . '外键删除规则不合法');
                 }
             }
             if ($relationType === 'has_many') {
-                $this->assertIdentifier((string) ($field['relation_table'] ?? ''), $label . '子表');
-                $this->assertIdentifier((string) ($field['relation_value_field'] ?? ''), $label . '子表外键字段');
+                $this->assertIdentifier($field->relationTable(), $label . '子表');
+                $this->assertIdentifier($field->relationValueField(), $label . '子表外键字段');
             }
-            $this->validateOptionsSource($field['options_source'] ?? null, $label);
-            $span = (int) ($field['form_span'] ?? 24);
+            $this->validateOptionsSource($field->dataSource(), $label);
+            $span = $field->span();
             if ($span < 1 || $span > 24) {
                 throw new InvalidArgumentException($label . '栅格 span 必须在 1-24');
             }
-            if ($sourceType === 'created' && !in_array($type, array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true) && $relationType !== 'has_many') {
-                $columnType = trim((string) ($field['column_type'] ?? ''));
+            if ($sourceType === 'created' && !$field->isVirtual()) {
+                $columnType = trim($field->columnType());
                 if ($columnType === '' || !preg_match('/^[a-z]+(?:\(\d+(?:,\d+)?\))?$/D', $columnType)) {
                     throw new InvalidArgumentException($label . '列类型不合法：' . $columnType);
                 }
-                $default = (string) ($field['default_value'] ?? '');
+                $default = $this->defaultText($field);
                 if ($default !== '' && preg_match('/^(tinyint|int|bigint|decimal)/', $columnType) && !preg_match('/^-?\d+(?:\.\d+)?$/D', $default)) {
                     throw new InvalidArgumentException($label . '数字默认值不合法');
                 }
             }
         }
-        return ['valid' => true];
     }
 
-    public function normalizeIdentifier(string $value, bool $fromTable = false, string $connection = 'mysql'): string
-    {
-        $normalized = strtolower(trim($value));
-        $normalized = preg_replace('/[\s-]+/', '_', $normalized) ?? '';
-        $normalized = preg_replace('/[^a-z0-9_]/', '', $normalized) ?? '';
-        $normalized = trim($normalized, '_');
-        if ($fromTable) {
-            $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['prefix'] ?? '');
-            if ($prefix !== '' && str_starts_with($normalized, strtolower($prefix))) $normalized = substr($normalized, strlen($prefix));
-        }
-        return substr($normalized, 0, 61);
-    }
-
-    /** 保存表单与字段（事务＋乐观锁）。 */
+    /** 保存表单（事务＋乐观锁）；身份与字段均以编译后的文档为准。 */
     public function save(array $payload): array
     {
-        $formKey = $this->normalizeIdentifier((string) ($payload['form_key'] ?? ''));
-        if ($formKey === '') {
-            $formKey = $this->normalizeIdentifier((string) ($payload['table_name'] ?? ''), true, (string) ($payload['connection'] ?? 'mysql'));
-        }
-        $payload['form_key'] = $formKey;
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
         $expectedSchemaHash = trim((string) ($payload['expected_schema_hash'] ?? ''));
         $compiled = $this->schemas->compile($this->schemaPayload($payload));
-        $document = $compiled->document();
-        $database = (array) ($document['database'] ?? []);
-        $payload = array_replace($payload, [
-            'form_key' => $compiled->key(),
-            'name' => (string) ($document['title'] ?? ''),
-            'table_name' => (string) ($database['table'] ?? $payload['table_name'] ?? ''),
-            'connection' => (string) ($database['connection'] ?? $payload['connection'] ?? 'mysql'),
-            'source_type' => (string) ($database['source'] ?? $payload['source_type'] ?? 'created'),
-            'fields' => $compiled->fieldProjection(),
-            'schema_version' => $compiled->version(),
-            'schema_document' => $document,
-            'schema_hash' => $compiled->hash(),
-        ]);
-        // 字段校验以编译后的投影为准（与发布、生成读取的字段一致）。
-        $this->validateDefinition($payload, true);
-        return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt, $expectedSchemaHash, $compiled): array {
+        $identity = $this->identity($compiled);
+        $this->validateFields($compiled, $identity['source_type']);
+        return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt, $expectedSchemaHash, $compiled, $identity): array {
             $form = $id > 0 ? Form::lockForUpdate()->firstWhere('id', $id) : new Form();
             if ($id > 0 && !$form) {
                 throw new InvalidArgumentException('表单不存在');
@@ -223,31 +151,25 @@ final class FormDesignerService
             if ($id > 0 && $expectedSchemaHash === '' && $expectedUpdatedAt !== '' && (string) $form->updated_at !== $expectedUpdatedAt) {
                 throw new InvalidArgumentException('表单已被他人修改，请刷新后重试');
             }
-            if ($id === 0 && Form::where('form_key', $payload['form_key'])->first()) {
+            if ($id === 0 && Form::where('form_key', $identity['form_key'])->first()) {
                 throw new InvalidArgumentException('表单标识已存在');
             }
             $form->fill([
-                'form_key' => trim((string) $payload['form_key']),
-                'name' => trim((string) $payload['name']),
-                'table_name' => trim((string) $payload['table_name']),
-                'connection' => trim((string) ($payload['connection'] ?? 'mysql')) ?: 'mysql',
-                'source_type' => (string) ($payload['source_type'] ?? 'created'),
+                'form_key' => $identity['form_key'],
+                'name' => $identity['name'],
+                'table_name' => $identity['table_name'],
+                'connection' => $identity['connection'],
+                'source_type' => $identity['source_type'],
                 'status' => (int) ($payload['status'] ?? 1),
-                'list_config' => $payload['list_config'] ?? null,
-                'form_config' => $payload['form_config'] ?? null,
-                'schema_version' => (int) ($payload['schema_version'] ?? 1),
-                'schema_document' => $payload['schema_document'] ?? null,
-                'schema_hash' => $payload['schema_hash'] ?? null,
+                'schema_version' => $compiled->version(),
+                'schema_document' => $compiled->document(),
+                'schema_hash' => $compiled->hash(),
                 'schema_origin' => (string) ($payload['schema_origin'] ?? 'designer'),
                 'publish_config' => $payload['publish_config'] ?? null,
-                'publish_status' => isset($payload['schema_hash']) && $payload['schema_hash'] !== ($form->schema_hash ?? null) ? 'draft' : ($form->publish_status ?? 'draft'),
+                'publish_status' => $compiled->hash() !== ($form->schema_hash ?? null) ? 'draft' : ($form->publish_status ?? 'draft'),
                 'remark' => trim((string) ($payload['remark'] ?? '')),
                 'sort_order' => (int) ($payload['sort_order'] ?? 0),
             ])->save();
-            FormField::where('form_id', (int) $form->id)->delete();
-            foreach (array_values($payload['fields']) as $sort => $field) {
-                FormField::create($this->fieldRow((int) $form->id, $field, $sort));
-            }
             $this->schemas->saveCompiledVersion(
                 (int) $form->id,
                 $compiled,
@@ -259,88 +181,76 @@ final class FormDesignerService
         });
     }
 
-    /** 删除表单（仅 created 且绑定表无数据时允许删表记录；元数据始终可删）。 */
-    public function remove(int $id): array
+    /**
+     * 编译文档中的表单身份，校验后返回 form_key/name/table_name/connection/source_type。
+     *
+     * @return array{form_key: string, name: string, table_name: string, connection: string, source_type: string}
+     */
+    private function identity(FormSchema $schema): array
     {
-        $form = Form::find($id);
-        if (!$form) {
-            throw new InvalidArgumentException('表单不存在');
+        $document = $schema->document();
+        $database = (array) ($document['database'] ?? []);
+        $identity = [
+            'form_key' => $schema->key(),
+            'name' => trim((string) ($document['title'] ?? '')),
+            'table_name' => trim((string) ($database['table'] ?? '')),
+            'connection' => trim((string) ($database['connection'] ?? '')) ?: 'mysql',
+            'source_type' => (string) ($database['source'] ?? 'created'),
+        ];
+        if (!preg_match('/^[a-z][a-z0-9_]{0,60}$/', $identity['form_key'])) {
+            throw new InvalidArgumentException('表单标识须以小写字母开头，仅包含小写字母、数字和下划线，最长 61 个字符');
         }
-        return Db::transaction(function () use ($form): array {
-            FormField::where('form_id', (int) $form->id)->delete();
-            $form->delete();
-            return ['removed' => 1];
-        });
+        if ($identity['name'] === '' || mb_strlen($identity['name']) > 100) {
+            throw new InvalidArgumentException('表单名称不能为空且不能超过 100 个字符');
+        }
+        if (!preg_match('/^[a-z][a-z0-9_]*$/', $identity['table_name'])) {
+            throw new InvalidArgumentException('表名必须为小写字母开头的字母数字下划线');
+        }
+        if (!in_array($identity['source_type'], ['created', 'adopted'], true)) {
+            throw new InvalidArgumentException('来源类型只能为 created 或 adopted');
+        }
+        return $identity;
     }
 
-    /** 启用/禁用。 */
-    public function setStatus(int $id, int $status): array
+    /**
+     * 发布 / DDL 前置校验：身份合法、至少一个字段、逐字段校验；返回编译文档中的身份。
+     *
+     * @return array{form_key: string, name: string, table_name: string, connection: string, source_type: string}
+     */
+    public function assertPublishable(FormSchema $schema): array
     {
-        $form = Form::find($id);
-        if (!$form) {
-            throw new InvalidArgumentException('表单不存在');
+        $identity = $this->identity($schema);
+        if ($schema->fields() === []) {
+            throw new InvalidArgumentException('至少需要一个字段');
         }
-        $form->fill(['status' => $status === 1 ? 1 : 0])->save();
-        return ['status' => (int) $form->status];
-    }
-
-    /** 采纳模式：读取已有表结构并映射为字段行。 */
-    public function inferFields(string $connection, string $table): array
-    {
-        if (!in_array($connection, \app\common\service\database\DatabaseConnections::allowed(), true)) {
-            throw new InvalidArgumentException('数据库连接不在配置白名单');
-        }
-        $inspector = SchemaInspector::forConnection($connection);
-        $schema = $inspector->inspect($table);
-        $rows = [];
-        foreach ($schema['columns'] as $index => $column) {
-            $name = (string) $column['name'];
-            if (in_array($name, array_merge((array) ($schema['primaryKey'] ?? []), ['created_at', 'updated_at', 'deleted_at']), true)) {
-                continue;
-            }
-            $dbType = (string) $column['type'];
-            $rows[] = [
-                'field_name' => $name,
-                'label' => trim((string) ($column['comment'] ?? '')) ?: $name,
-                'type' => $this->controlFromDbType($dbType),
-                'column_type' => $dbType,
-                'nullable' => (bool) ($column['nullable'] ?? true) ? 1 : 0,
-                'default_value' => (string) ($column['default'] ?? ''),
-                'comment' => (string) ($column['comment'] ?? ''),
-                'index_type' => $this->indexFromSchema($schema, $name),
-                'list_show' => 1,
-                'form_show' => 1,
-                'sort_order' => $index,
-            ];
-        }
-        return $rows;
+        $this->validateFields($schema, $identity['source_type']);
+        return $identity;
     }
 
     /** DDL 预览：created 表不存在→CREATE；已存在→仅加列/加索引；adopted→禁止。 */
-    public function previewMigration(array $payload): array
+    public function previewMigration(FormSchema $schema): array
     {
-        $this->validateDefinition($payload);
-        $sourceType = (string) ($payload['source_type'] ?? 'created');
-        if ($sourceType === 'adopted') {
+        $identity = $this->assertPublishable($schema);
+        if ($identity['source_type'] === 'adopted') {
             return ['mode' => 'none', 'sql' => '', 'file' => '', 'message' => '采纳表禁止 DDL，仅保存元数据'];
         }
-        $table = trim((string) $payload['table_name']);
-        $exists = in_array($table, array_column(SchemaInspector::forConnection((string) ($payload['connection'] ?? config('database.default')))->tables(), 'name'), true);
-        $connection = (string) ($payload['connection'] ?? config('database.default', 'mysql'));
-        $sql = $exists ? $this->additiveSql($table, $payload['fields'], $connection) : $this->createTableSql($table, $payload['fields']);
+        $table = $identity['table_name'];
+        $connection = $identity['connection'];
+        $exists = in_array($table, array_column(SchemaInspector::forConnection($connection)->tables(), 'name'), true);
+        $sql = $exists ? $this->additiveSql($table, $schema->fields(), $connection) : $this->createTableSql($table, $schema->fields());
         return [
             'mode' => $exists ? 'additive' : 'create',
             'sql' => $sql,
-            'file' => $this->migrationPath($payload, $sql),
+            'file' => $this->migrationPath($schema, $sql),
             'message' => $sql === '' ? '无结构变更' : ($exists ? '仅新增列/索引' : '创建新表'),
         ];
     }
 
     /** 动态发布专用 DDL：二次预检后仅执行 forward-only SQL，不生成或登记迁移文件。 */
-    public function applyDynamicDdl(array $payload): array
+    public function applyDynamicDdl(FormSchema $schema, string $expectedDdlHash): array
     {
-        $expectedHash = trim((string) ($payload['dynamic_ddl_hash'] ?? ''));
-        $preview = $this->previewMigration($payload);
+        $expectedHash = trim($expectedDdlHash);
+        $preview = $this->previewMigration($schema);
         $actualHash = hash('sha256', (string) $preview['sql']);
         if ($expectedHash === '' || !hash_equals($expectedHash, $actualHash)) {
             throw new InvalidArgumentException('FORM_SCHEMA_CONFLICT');
@@ -348,7 +258,7 @@ final class FormDesignerService
         if ($preview['mode'] === 'none' || $preview['sql'] === '') {
             return $preview + ['applied' => false];
         }
-        $connection = Db::connection((string) ($payload['connection'] ?? config('database.default', 'mysql')));
+        $connection = Db::connection($this->identity($schema)['connection']);
         $this->assertDynamicForwardSql((string) $preview['sql']);
         $ddlApplied = false;
         try {
@@ -431,54 +341,13 @@ final class FormDesignerService
         return $document;
     }
 
-    private function fieldRow(int $formId, array $field, int $sort): array
+    private function migrationPath(FormSchema $schema, string $sql): string
     {
-        $type = (string) ($field['type'] ?? 'input');
-        return [
-            'form_id' => $formId,
-            'field_name' => trim((string) $field['field_name']),
-            'label' => trim((string) $field['label']),
-            'type' => $type,
-            'column_type' => in_array($type, array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true)
-                ? ''
-                : (trim((string) ($field['column_type'] ?? '')) ?: (string) ($this->fieldCapabilities->get($type)['defaultColumnType'] ?? '')),
-            'nullable' => (int) ($field['nullable'] ?? 1),
-            'default_value' => (string) ($field['default_value'] ?? ''),
-            'comment' => trim((string) ($field['comment'] ?? '')),
-            'unsigned' => (int) ($field['unsigned'] ?? 0),
-            'index_type' => (string) ($field['index_type'] ?? 'none'),
-            'placeholder' => trim((string) ($field['placeholder'] ?? '')),
-            'options_source' => $field['options_source'] ?? null,
-            'control_props' => $field['control_props'] ?? null,
-            'validate_rules' => $field['validate_rules'] ?? null,
-            'link_rules' => $field['link_rules'] ?? null,
-            'relation_type' => (string) ($field['relation_type'] ?? 'none'),
-            'relation_table' => trim((string) ($field['relation_table'] ?? '')),
-            'relation_label_field' => trim((string) ($field['relation_label_field'] ?? '')),
-            'relation_value_field' => trim((string) ($field['relation_value_field'] ?? '')) ?: 'id',
-            'relation_multiple' => (int) ($field['relation_multiple'] ?? 0),
-            'relation_on_delete' => (string) ($field['relation_on_delete'] ?? 'restrict'),
-            'list_show' => (int) ($field['list_show'] ?? 1),
-            'list_sort' => (int) ($field['list_sort'] ?? 0),
-            'list_filter' => (string) ($field['list_filter'] ?? ''),
-            'list_formatter' => (string) ($field['list_formatter'] ?? ''),
-            'list_width' => (int) ($field['list_width'] ?? 0),
-            'form_show' => (int) ($field['form_show'] ?? 1),
-            'form_required' => (int) ($field['form_required'] ?? 0),
-            'form_group' => trim((string) ($field['form_group'] ?? '')),
-            'form_span' => (int) ($field['form_span'] ?? 24),
-            'form_readonly' => (int) ($field['form_readonly'] ?? 0),
-            'sort_order' => (int) ($field['sort_order'] ?? $sort),
-        ];
-    }
-
-    private function migrationPath(array $payload, string $sql): string
-    {
-        $key = trim((string) $payload['form_key']);
         $version = substr(hash('sha256', $sql), 0, 12);
-        return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'business' . DIRECTORY_SEPARATOR . 'form_' . $key . '_' . $version . '.sql';
+        return $this->projectRoot . 'database' . DIRECTORY_SEPARATOR . 'business' . DIRECTORY_SEPARATOR . 'form_' . $schema->key() . '_' . $version . '.sql';
     }
 
+    /** @param list<FormFieldView> $fields */
     private function createTableSql(string $table, array $fields): string
     {
         $lines = ['  `id` bigint unsigned NOT NULL AUTO_INCREMENT'];
@@ -488,17 +357,17 @@ final class FormDesignerService
                 continue;
             }
             $lines[] = '  ' . $this->columnDdl($field);
-            $indexType = (string) ($field['index_type'] ?? 'none');
-            $name = trim((string) $field['field_name']);
+            $indexType = $field->index();
+            $name = trim($field->name());
             if ($indexType === 'unique') {
                 $indexes[] = '  UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`)';
             } elseif ($indexType === 'index') {
                 $indexes[] = '  KEY `idx_' . $table . '_' . $name . '` (`' . $name . '`)';
             }
-            if ((string) ($field['relation_type'] ?? 'none') === 'belongs_to') {
-                $refTable = trim((string) $field['relation_table']);
-                $refValue = trim((string) ($field['relation_value_field'] ?? '')) ?: 'id';
-                $onDelete = self::ON_DELETE[(string) ($field['relation_on_delete'] ?? 'restrict')] ?? 'RESTRICT';
+            if ($field->relationType() === 'belongs_to') {
+                $refTable = trim($field->relationTable());
+                $refValue = trim($field->relationValueField()) ?: 'id';
+                $onDelete = self::ON_DELETE[$field->relationOnDelete()] ?? 'RESTRICT';
                 $indexes[] = '  KEY `idx_' . $table . '_' . $name . '_fk` (`' . $name . '`)';
                 $indexes[] = '  CONSTRAINT `fk_' . $table . '_' . $name . '` FOREIGN KEY (`' . $name . '`) REFERENCES `' . $refTable . '` (`' . $refValue . '`) ON DELETE ' . $onDelete;
             }
@@ -511,6 +380,7 @@ final class FormDesignerService
         return $sql;
     }
 
+    /** @param list<FormFieldView> $fields */
     private function additiveSql(string $table, array $fields, string $connection = 'mysql'): string
     {
         $metadata = SchemaInspector::forConnection($connection)->inspect($table);
@@ -521,11 +391,11 @@ final class FormDesignerService
             if ($this->isVirtualField($field)) {
                 continue;
             }
-            $name = trim((string) $field['field_name']);
+            $name = trim($field->name());
             if (!in_array($name, $existing, true)) {
                 $parts[] = 'ADD COLUMN ' . $this->columnDdl($field);
             }
-            $indexType = (string) ($field['index_type'] ?? 'none');
+            $indexType = $field->index();
             if ($indexType === 'unique' && !in_array('uk_' . $table . '_' . $name, $existingIndexes, true)) {
                 $parts[] = 'ADD UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`)';
             } elseif ($indexType === 'index' && !in_array('idx_' . $table . '_' . $name, $existingIndexes, true)) {
@@ -535,23 +405,22 @@ final class FormDesignerService
         return $parts === [] ? '' : 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n";
     }
 
-    private function isVirtualField(array $field): bool
+    private function isVirtualField(FormFieldView $field): bool
     {
-        return in_array((string) ($field['type'] ?? ''), array_merge(self::LAYOUT_TYPES, self::RELATION_CONTAINER_TYPES), true)
-            || (string) ($field['relation_type'] ?? 'none') === 'has_many';
+        return $field->isVirtual();
     }
 
-    private function columnDdl(array $field): string
+    private function columnDdl(FormFieldView $field): string
     {
-        $name = trim((string) $field['field_name']);
-        $type = trim((string) ($field['column_type'] ?? ''))
-            ?: (string) ($this->fieldCapabilities->get((string) ($field['type'] ?? 'input'))['defaultColumnType'] ?? '');
-        if ((int) ($field['unsigned'] ?? 0) === 1 && preg_match('/^(tinyint|int|bigint|decimal)/', $type)) {
+        $name = trim($field->name());
+        $type = trim($field->columnType())
+            ?: (string) ($this->fieldCapabilities->get($field->type())['defaultColumnType'] ?? '');
+        if ($field->unsigned() && preg_match('/^(tinyint|int|bigint|decimal)/', $type)) {
             $type .= ' unsigned';
         }
-        $comment = trim((string) ($field['comment'] ?? ''));
-        $nullable = (int) ($field['nullable'] ?? 1) === 1;
-        $default = (string) ($field['default_value'] ?? '');
+        $comment = trim($field->comment());
+        $nullable = $field->nullable();
+        $default = $this->defaultText($field);
         $numeric = (bool) preg_match('/^(tinyint|int|bigint|decimal)/', $type);
         if ($numeric && $default !== '' && !preg_match('/^-?\d+(?:\.\d+)?$/D', $default)) {
             throw new InvalidArgumentException('字段 ' . $name . ' 数字默认值不合法');
@@ -569,6 +438,13 @@ final class FormDesignerService
         return $ddl;
     }
 
+    /** 列默认值的 DDL 文本：标量转字符串，其它（null/数组）视为无默认值。 */
+    private function defaultText(FormFieldView $field): string
+    {
+        $value = $field->defaultValue();
+        return is_scalar($value) ? (string) $value : '';
+    }
+
     private function assertIdentifier(string $identifier, string $label): void
     {
         if (!preg_match('/^[a-z_][a-z0-9_]*$/', trim($identifier))) {
@@ -576,13 +452,10 @@ final class FormDesignerService
         }
     }
 
-    private function validateOptionsSource(mixed $source, string $label): void
+    private function validateOptionsSource(?array $source, string $label): void
     {
         if ($source === null || $source === []) {
             return;
-        }
-        if (!is_array($source)) {
-            throw new InvalidArgumentException($label . '选项来源必须为对象');
         }
         if (($source['kind'] ?? '') !== 'relation') {
             return;
@@ -590,28 +463,5 @@ final class FormDesignerService
         $this->assertIdentifier((string) ($source['table'] ?? ''), $label . '选项关联表');
         $this->assertIdentifier((string) ($source['label_field'] ?? ''), $label . '选项显示字段');
         $this->assertIdentifier((string) ($source['value_field'] ?? ''), $label . '选项值字段');
-    }
-
-    private function controlFromDbType(string $dbType): string
-    {
-        return match (true) {
-            (bool) preg_match('/^tinyint\(1\)/', $dbType) => 'switch',
-            (bool) preg_match('/^(tinyint|int|bigint|decimal|float|double)/', $dbType) => 'number',
-            (bool) preg_match('/^(text|longtext|mediumtext)/', $dbType) => 'textarea',
-            (bool) preg_match('/^date$/', $dbType) => 'date',
-            (bool) preg_match('/^(datetime|timestamp)/', $dbType) => 'date',
-            default => 'input',
-        };
-    }
-
-    private function indexFromSchema(array $schema, string $column): string
-    {
-        foreach ($schema['indexes'] ?? [] as $index) {
-            $columns = (array) ($index['columns'] ?? []);
-            if ($columns === [$column]) {
-                return (bool) ($index['unique'] ?? false) ? 'unique' : 'index';
-            }
-        }
-        return 'none';
     }
 }

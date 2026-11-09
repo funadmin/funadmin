@@ -1,18 +1,18 @@
 import { computed, ref, shallowRef } from 'vue';
 import { i18n } from '@/locales';
-import type { FormDefinition, FormFieldDef, FormSchemaDocument, FormSchemaNode } from '@/api/form';
-import { createField, controlMeta } from '../registry';
+import type { FormDefinition, FormSchemaDocument, FormSchemaNode } from '@/api/form';
+import { createNode } from '../registry';
+import { fieldNodes as collectFieldNodes } from '../schema/fieldNodes';
 
 const t = (key: string, fallback: string): string => i18n.global.t(key, fallback);
 const tNamed = (key: string, named: Record<string, unknown>, fallback: string): string => i18n.global.t(key, named, fallback);
 
 const HISTORY_LIMIT = 50;
 const CONTAINER_TYPES = new Set(['group', 'grid', 'collapse', 'tabs', 'repeatable', 'subform']);
-/** 容器/布局节点无 field_name，用哨兵前缀键在属性面板中寻址。 */
-export const NODE_FIELD_PREFIX = '@node:';
+/** updateNode 不改写的结构键：节点身份与子树只经由增删移动操作变化。 */
+const STRUCTURAL_KEYS = new Set(['id', 'children']);
 
 interface DesignerSnapshot {
-  fields: FormFieldDef[];
   nodes: FormSchemaNode[];
   form: Partial<FormDefinition>;
 }
@@ -52,112 +52,14 @@ const findLocation = (
   return null;
 };
 
-const validationFromField = (field: FormFieldDef): FormSchemaNode['validation'] => {
-  const rules = Object.entries(field.validate_rules ?? {}).map(([type, value]) => ({ type, value }));
-  if (field.form_required) rules.unshift({ type: 'required', value: true });
-  return rules;
-};
-
-export const fieldToNode = (field: FormFieldDef, nodeId: string): FormSchemaNode => ({
-  id: nodeId,
-  kind: controlMeta(field.type).kind === 'layout' ? 'layout' : 'field',
-  type: field.type,
-  field: controlMeta(field.type).kind === 'layout' ? null : field.field_name,
-  title: field.label,
-  defaultValue: field.default_value,
-  valueType: controlMeta(field.type).valueType as FormSchemaNode['valueType'],
-  props: clone(field.control_props ?? {}),
-  children: [],
-  validation: validationFromField(field),
-  dataSource: clone(field.options_source ?? null),
-  conditions: clone((field.link_rules?.rules as unknown[]) ?? []),
-  events: {},
-  hidden: field.form_show === 0,
-  disabled: field.form_readonly === 1,
-  database: {
-    columnType: field.column_type,
-    nullable: field.nullable === 1,
-    comment: field.comment,
-    unsigned: field.unsigned === 1,
-    index: field.index_type,
-    relation: {
-      type: field.relation_type,
-      table: field.relation_table,
-      labelField: field.relation_label_field,
-      valueField: field.relation_value_field,
-      multiple: field.relation_multiple === 1,
-      onDelete: field.relation_on_delete
-    }
-  },
-  list: {
-    show: field.list_show === 1,
-    sort: field.list_sort === 1,
-    filter: field.list_filter,
-    formatter: field.list_formatter,
-    width: field.list_width
-  },
-  layout: { span: field.form_span, group: field.form_group }
-});
-
-const nodeToField = (node: FormSchemaNode, index: number, current?: FormFieldDef): FormFieldDef => {
-  const database = node.database ?? {};
-  const relation = (database.relation as Record<string, unknown> | undefined) ?? {};
-  const list = node.list ?? {};
-  const validation = node.validation ?? [];
-  const validationRules = Object.fromEntries(validation
-    .filter((rule) => rule.type !== 'required')
-    .map((rule) => [rule.type, rule.value ?? true]));
-  const base = current ?? createField(node.type, index + 1);
-  return {
-    ...base,
-    field_name: String(node.field ?? base.field_name),
-    label: node.title,
-    type: node.type,
-    default_value: node.defaultValue == null ? '' : String(node.defaultValue),
-    control_props: clone(node.props ?? {}),
-    options_source: clone(node.dataSource ?? null),
-    column_type: String(database.columnType ?? base.column_type),
-    nullable: (database.nullable ?? base.nullable === 1) ? 1 : 0,
-    comment: String(database.comment ?? base.comment),
-    unsigned: (database.unsigned ?? base.unsigned === 1) ? 1 : 0,
-    index_type: (database.index ?? base.index_type) as FormFieldDef['index_type'],
-    relation_type: (relation.type ?? base.relation_type) as FormFieldDef['relation_type'],
-    relation_table: String(relation.table ?? base.relation_table),
-    relation_label_field: String(relation.labelField ?? base.relation_label_field),
-    relation_value_field: String(relation.valueField ?? base.relation_value_field),
-    relation_multiple: (relation.multiple ?? base.relation_multiple === 1) ? 1 : 0,
-    relation_on_delete: (relation.onDelete ?? base.relation_on_delete) as FormFieldDef['relation_on_delete'],
-    list_show: (list.show ?? base.list_show === 1) ? 1 : 0,
-    list_sort: (list.sort ?? base.list_sort === 1) ? 1 : 0,
-    list_filter: String(list.filter ?? base.list_filter),
-    list_formatter: String(list.formatter ?? base.list_formatter),
-    list_width: Number(list.width ?? base.list_width),
-    form_show: node.hidden ? 0 : 1,
-    form_required: validation.some((rule) => rule.type === 'required') ? 1 : 0,
-    form_group: String(node.layout?.group ?? base.form_group),
-    form_span: Number(node.layout?.span ?? base.form_span),
-    form_readonly: node.disabled ? 1 : 0,
-    validate_rules: Object.keys(validationRules).length ? validationRules : null,
-    link_rules: { rules: clone(node.conditions ?? []) },
-    sort_order: index
-  };
-};
-
-export const projectFields = (nodes: FormSchemaNode[], current: FormFieldDef[]): FormFieldDef[] => flattenNodes(nodes)
-  .map(({ node }) => node.field ? node : null)
-  .filter((node): node is FormSchemaNode => node !== null)
-  .map((node, index) => nodeToField(node, index, current.find((field) => field.field_name === node.field)));
-
-/** 表单设计器状态：兼容字段投影，并以 FormSchema v2 AST 作为布局编辑模型。 */
+/** 表单设计器状态：FormSchema v2 节点是唯一的编辑模型，属性面板补丁直接写入节点。 */
 export function useDesigner() {
   const form = ref<Partial<FormDefinition>>({
     form_key: '', name: '', table_name: '', connection: 'mysql', source_type: 'created',
-    status: 1, remark: '', sort_order: 0, list_config: null, form_config: null,
+    status: 1, remark: '', sort_order: 0,
     schema_version: 2, schema_document: null, schema_origin: 'designer'
   });
-  const fields = ref<FormFieldDef[]>([]);
   const nodes = ref<FormSchemaNode[]>([]);
-  const selectedKey = ref<string | null>(null);
   const selectedNodeId = ref<string | null>(null);
   const dirty = ref(false);
   const saveStatus = ref<DesignerSaveStatus>('saved');
@@ -166,48 +68,14 @@ export function useDesigner() {
   let nodeSequence = 0;
 
   const flattenedNodes = computed(() => flattenNodes(nodes.value));
-  const selected = computed((): FormFieldDef | null => {
-    const byKey = fields.value.find((field) => field.field_name === selectedKey.value);
-    if (byKey) return byKey;
-    if (!selectedKey.value?.startsWith(NODE_FIELD_PREFIX)) return null;
-    const node = selectedNode.value;
-    if (!node || node.kind === 'field') return null;
-    const props = (node.props as Record<string, unknown> | undefined) ?? {};
-    return {
-      field_name: selectedKey.value,
-      label: node.title,
-      type: node.type,
-      column_type: '',
-      nullable: 1,
-      default_value: '',
-      comment: '',
-      unsigned: 0,
-      index_type: 'none',
-      placeholder: String(props.placeholder ?? ''),
-      options_source: null,
-      control_props: { ...props },
-      validate_rules: null,
-      link_rules: null,
-      relation_type: 'none',
-      relation_table: '',
-      relation_label_field: '',
-      relation_value_field: '',
-      form_show: node.hidden === true ? 0 : 1,
-      form_required: 0,
-      form_readonly: 0,
-      form_group: String(props.form_group ?? ''),
-      form_span: Number(props.form_span ?? 24),
-      list_show: 0,
-      list_sort: 0,
-    } as FormFieldDef;
-  });
+  /** 主表字段节点（布局内展开，repeatable/subform 子节点不展开）。 */
+  const fieldNodes = computed(() => collectFieldNodes(nodes.value));
   const selectedNode = computed(() => flattenedNodes.value.find((entry) => entry.node.id === selectedNodeId.value)?.node ?? null);
   const canUndo = computed(() => undoStack.value.length > 0);
   const canRedo = computed(() => redoStack.value.length > 0);
   const historyDepth = computed(() => ({ undo: undoStack.value.length, redo: redoStack.value.length }));
 
   const currentSnapshot = (): DesignerSnapshot => ({
-    fields: fields.value,
     nodes: nodes.value,
     form: form.value
   });
@@ -220,10 +88,8 @@ export function useDesigner() {
   };
   const restore = (snapshotValue: DesignerSnapshot) => {
     // 快照从历史栈弹出后即转移为当前状态，无需再次深拷贝大型 AST。
-    fields.value = snapshotValue.fields;
     nodes.value = snapshotValue.nodes;
     form.value = { ...snapshotValue.form, schema_hash: form.value.schema_hash };
-    if (selectedKey.value && !fields.value.some((field) => field.field_name === selectedKey.value)) selectedKey.value = null;
     if (selectedNodeId.value && !findLocation(nodes.value, selectedNodeId.value)) selectedNodeId.value = null;
   };
   const undo = () => {
@@ -255,21 +121,10 @@ export function useDesigner() {
     } while (used.has(candidate));
     return candidate;
   };
-  const uniqueFieldName = (base: string) => {
-    let candidate = base;
-    let suffix = 2;
-    while (fields.value.some((field) => field.field_name === candidate)) {
-      candidate = `${base}_${suffix}`;
-      suffix += 1;
-    }
-    return candidate;
-  };
+  const usedFieldNames = () => new Set(collectFieldNodes(nodes.value).map((node) => node.field).filter((name): name is string => typeof name === 'string' && name !== ''));
   const findNode = (nodeId: string) => findLocation(nodes.value, nodeId)?.node ?? null;
   const selectNode = (nodeId: string | null) => {
     selectedNodeId.value = nodeId;
-    const node = nodeId ? findNode(nodeId) : null;
-    const fieldName = node?.field;
-    selectedKey.value = typeof fieldName === 'string' ? fieldName : (node && node.kind !== 'field' ? NODE_FIELD_PREFIX + node.id : null);
   };
   const targetChildren = (parentId: string | null): FormSchemaNode[] | null => {
     if (parentId === null) return nodes.value;
@@ -280,35 +135,21 @@ export function useDesigner() {
     const target = targetChildren(parentId);
     if (!target) throw new Error(t('formDesigner.targetNotContainer', '目标节点不是容器'));
     pushHistory();
-    const field = createField(type, fields.value.length + 1);
-    field.field_name = uniqueFieldName(field.field_name);
-    const node = fieldToNode(field, nextNodeId(type));
+    const used = usedFieldNames();
+    let sequence = collectFieldNodes(nodes.value).length + 1;
+    while (used.has(`field_${sequence}`)) sequence += 1;
+    const node = createNode(type, sequence, nextNodeId(type));
     const at = Math.max(0, Math.min(index ?? target.length, target.length));
     target.splice(at, 0, node);
-    if (node.kind === 'field') fields.value = [...fields.value, field];
     selectNode(node.id);
     return node;
-  };
-  const addField = (type: string) => {
-    const node = addNode(type);
-    return node.field ? fields.value.find((field) => field.field_name === node.field) : undefined;
   };
   const removeNode = (nodeId: string) => {
     const location = findLocation(nodes.value, nodeId);
     if (!location) return false;
     pushHistory();
-    const removedIds = new Set(flattenNodes([location.node]).map((entry) => entry.node.field).filter(Boolean));
     location.siblings.splice(location.index, 1);
-    fields.value = fields.value.filter((field) => !removedIds.has(field.field_name));
-    if (selectedNodeId.value === nodeId) selectNode(null);
-    return true;
-  };
-  const removeField = (fieldName: string) => {
-    const node = flattenedNodes.value.find((entry) => entry.node.field === fieldName)?.node;
-    if (node) return removeNode(node.id);
-    pushHistory();
-    fields.value = fields.value.filter((field) => field.field_name !== fieldName);
-    if (selectedKey.value === fieldName) selectedKey.value = null;
+    if (selectedNodeId.value && !findLocation(nodes.value, selectedNodeId.value)) selectNode(null);
     return true;
   };
   const moveNode = (nodeId: string, parentId: string | null, index: number) => {
@@ -321,7 +162,6 @@ export function useDesigner() {
     pushHistory();
     const [moving] = source.siblings.splice(source.index, 1);
     destination.splice(Math.max(0, Math.min(adjusted, destination.length)), 0, moving);
-    fields.value = projectFields(nodes.value, fields.value);
     return true;
   };
   const moveNodeByKeyboard = (nodeId: string, direction: DesignerKeyboardMove) => {
@@ -338,18 +178,6 @@ export function useDesigner() {
     const parentLocation = findLocation(nodes.value, source.parent.id);
     return Boolean(parentLocation && moveNode(nodeId, parentLocation.parent?.id ?? null, parentLocation.index + 1));
   };
-  const moveField = (from: number, to: number) => {
-    if (from === to || from < 0 || to < 0 || from >= fields.value.length || to >= fields.value.length) return;
-    pushHistory();
-    const next = [...fields.value];
-    const [item] = next.splice(from, 1);
-    next.splice(to, 0, item);
-    fields.value = next.map((field, index) => ({ ...field, sort_order: index }));
-    const orderedNodes = fields.value
-      .map((field) => nodes.value.find((node) => node.field === field.field_name))
-      .filter((node): node is FormSchemaNode => node !== undefined);
-    if (orderedNodes.length === nodes.value.length) nodes.value = orderedNodes;
-  };
   const cloneNodeTree = (source: FormSchemaNode): FormSchemaNode => {
     const copy = clone(source);
     copy.id = nextNodeId(copy.type);
@@ -361,92 +189,41 @@ export function useDesigner() {
     if (!source) return null;
     pushHistory();
     const copy = cloneNodeTree(source.node);
-    const fieldCopies = flattenNodes([copy]).filter((entry) => entry.node.field).map((entry) => {
-      const original = fields.value.find((field) => field.field_name === entry.node.field);
-      if (!original) return null;
-      const field = clone(original);
-      field.field_name = uniqueFieldName(`${original.field_name}_copy`);
-      field.label = tNamed('formDesigner.copySuffix', { label: original.label }, '{label}(副本)');
-      entry.node.field = field.field_name;
-      entry.node.title = field.label;
-      return field;
-    }).filter((field): field is FormFieldDef => field !== null);
+    // 复制出的主表字段各取唯一字段名 <name>_copy[_n]；repeatable/subform 子字段属于子表作用域，保持原名。
+    const used = usedFieldNames();
+    for (const node of collectFieldNodes([copy])) {
+      if (typeof node.field !== 'string' || node.field === '') continue;
+      const base = `${node.field}_copy`;
+      let candidate = base;
+      for (let suffix = 2; used.has(candidate); suffix += 1) candidate = `${base}_${suffix}`;
+      used.add(candidate);
+      node.title = tNamed('formDesigner.copySuffix', { label: node.title }, '{label}(副本)');
+      node.field = candidate;
+    }
     source.siblings.splice(source.index + 1, 0, copy);
-    const sourceFieldIndex = source.node.field
-      ? fields.value.findIndex((field) => field.field_name === source.node.field)
-      : fields.value.length - 1;
-    const nextFields = [...fields.value];
-    nextFields.splice(sourceFieldIndex + 1, 0, ...fieldCopies);
-    fields.value = nextFields.map((field, index) => ({ ...field, sort_order: index }));
     selectNode(copy.id);
     return copy;
   };
-  const duplicateField = (fieldName: string) => {
-    const node = flattenedNodes.value.find((entry) => entry.node.field === fieldName)?.node;
-    if (node) return duplicateNode(node.id);
-    const source = fields.value.find((field) => field.field_name === fieldName);
-    if (!source) return null;
-    pushHistory();
-    const copy = clone(source);
-    copy.field_name = uniqueFieldName(`${source.field_name}_copy`);
-    copy.label = tNamed('formDesigner.copySuffix', { label: source.label }, '{label}(副本)');
-    const index = fields.value.indexOf(source);
-    fields.value.splice(index + 1, 0, copy);
-    selectedKey.value = copy.field_name;
-    return null;
-  };
-  const updateField = (patch: Partial<FormFieldDef> & { props?: Record<string, unknown> }) => {
-    if (!selectedKey.value) return;
-    const currentName = selectedKey.value;
-    if (currentName.startsWith(NODE_FIELD_PREFIX)) {
-      const node = findNode(currentName.slice(NODE_FIELD_PREFIX.length));
-      if (!node) return;
-      pushHistory();
-      if (patch.label !== undefined) node.title = String(patch.label);
-      if (patch.form_show !== undefined) node.hidden = patch.form_show === 0;
-      const props = { ...(((node.props as Record<string, unknown> | undefined) ?? {})) };
-      let propsChanged = false;
-      for (const key of ['placeholder', 'form_group', 'form_span'] as const) {
-        if (patch[key] !== undefined) {
-          props[key] = patch[key];
-          propsChanged = true;
-        }
-      }
-      if (patch.control_props !== undefined) {
-        Object.assign(props, (patch.control_props as Record<string, unknown> | null) ?? {});
-        propsChanged = true;
-      }
-      if (propsChanged) node.props = props;
-      return;
-    }
-    pushHistory();
-    fields.value = fields.value.map((field) => field.field_name === currentName ? { ...field, ...patch } : field);
-    const field = fields.value.find((item) => item.field_name === (patch.field_name ?? currentName));
-    const node = flattenedNodes.value.find((entry) => entry.node.field === currentName)?.node;
-    if (field && node) Object.assign(node, fieldToNode(field, node.id), { children: node.children });
-    if (patch.field_name) {
-      selectedKey.value = patch.field_name;
-      if (node) node.field = patch.field_name;
-    }
-  };
+  /**
+   * 把节点补丁写入当前选中节点：只替换补丁中出现的键（值为 undefined 表示删除该键），
+   * 其余键（events、access、attrs、info、valueType 等）原样保留；id 与 children 不经此处改写。
+   */
   const updateNode = (patch: Partial<FormSchemaNode>) => {
     if (!selectedNodeId.value) return;
     const node = findNode(selectedNodeId.value);
     if (!node) return;
+    const changes = Object.entries(patch).filter(([key, value]) => !STRUCTURAL_KEYS.has(key)
+      && JSON.stringify(Reflect.get(node, key)) !== JSON.stringify(value));
+    if (!changes.length) return;
     pushHistory();
-    Object.assign(node, clone(patch));
-    fields.value = projectFields(nodes.value, fields.value);
-    selectedKey.value = node.field ?? null;
+    for (const [key, value] of changes) {
+      if (value === undefined) Reflect.deleteProperty(node, key);
+      else Reflect.set(node, key, clone(value));
+    }
   };
   const updateForm = (patch: Partial<FormDefinition>) => {
     pushHistory();
     form.value = { ...form.value, ...clone(patch) };
-  };
-  const replaceFields = (next: Partial<FormFieldDef>[]) => {
-    pushHistory();
-    fields.value = next.map((row, index) => ({ ...createField(row.type ?? 'input', index + 1), ...row, sort_order: index })) as FormFieldDef[];
-    nodes.value = fields.value.map((field) => fieldToNode(field, nextNodeId(field.type)));
-    selectNode(null);
   };
   const replaceSchema = (schema: FormSchemaDocument) => {
     if (schema.schemaVersion !== 2 || !Array.isArray(schema.nodes)) return { ok: false, error: t('formDesigner.replaceSchemaV2Only', '仅支持 FormSchema v2 文档') };
@@ -454,7 +231,6 @@ export function useDesigner() {
     if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return { ok: false, error: t('formDesigner.nodeIdInvalid', 'nodeId 不能为空且必须唯一') };
     pushHistory();
     nodes.value = clone(schema.nodes);
-    fields.value = projectFields(nodes.value, fields.value);
     form.value = {
       ...form.value,
       form_key: schema.key,
@@ -484,19 +260,19 @@ export function useDesigner() {
     list: clone(form.value.schema_document?.list ?? {}),
     nodes: clone(nodes.value)
   }));
+  /** 只加载 FormSchema v2 定义；其他版本直接报错，不做 v1 字段回退。 */
   const load = (definition: FormDefinition) => {
+    const document = definition.schema_document;
+    if (document?.schemaVersion !== 2 || !Array.isArray(document.nodes)) {
+      throw new Error(t('formDesigner.replaceSchemaV2Only', '仅支持 FormSchema v2 文档'));
+    }
     form.value = { ...definition };
-    fields.value = (definition.fields ?? []).map((field, index) => ({ ...field, sort_order: field.sort_order ?? index }));
-    nodes.value = definition.schema_document?.schemaVersion === 2
-      ? clone(definition.schema_document.nodes)
-      : fields.value.map((field, index) => fieldToNode(field, `node_${field.type}_${index + 1}`));
-    if (definition.schema_document?.schemaVersion === 2) fields.value = projectFields(nodes.value, fields.value);
+    nodes.value = clone(document.nodes);
     nodeSequence = flattenNodes(nodes.value).length;
     undoStack.value = [];
     redoStack.value = [];
     dirty.value = false;
     saveStatus.value = 'saved';
-    selectedKey.value = null;
     selectedNodeId.value = null;
   };
   const beginSave = () => { saveStatus.value = 'saving'; };
@@ -528,12 +304,7 @@ export function useDesigner() {
           if (target.length !== next.length || next.some((node, index) => node !== target[index])) target.splice(0, target.length, ...next);
         };
         reconcile(nodes.value, document.nodes);
-        const projected = projectFields(nodes.value, fields.value).map((field) => {
-          const current = fields.value.find((item) => item.field_name === field.field_name);
-          return current ? Object.assign(current, field) : field;
-        });
-        fields.value.splice(0, fields.value.length, ...projected);
-        selectNode(selectedNodeId.value && findNode(selectedNodeId.value) ? selectedNodeId.value : null);
+        if (selectedNodeId.value && !findNode(selectedNodeId.value)) selectNode(null);
       }
       form.value.schema_document = clone(document);
     }
@@ -543,9 +314,9 @@ export function useDesigner() {
   };
 
   return {
-    form, fields, nodes, selectedKey, selectedNodeId, selected, selectedNode, flattenedNodes, schemaDocument,
-    dirty, saveStatus, beginSave, failSave, acknowledgeSave, canUndo, canRedo, historyDepth, undo, redo, findNode, selectNode, addNode, addField, removeNode, removeField,
-    duplicateNode, duplicateField, moveNode, moveNodeByKeyboard, moveField, updateField, updateNode, updateForm, updateList, replaceFields, replaceSchema, load, markSaved
+    form, nodes, selectedNodeId, selectedNode, flattenedNodes, fieldNodes, schemaDocument,
+    dirty, saveStatus, beginSave, failSave, acknowledgeSave, canUndo, canRedo, historyDepth, undo, redo, findNode, selectNode,
+    addNode, removeNode, duplicateNode, moveNode, moveNodeByKeyboard, updateNode, updateForm, updateList, replaceSchema, load, markSaved
   };
 }
 

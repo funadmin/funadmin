@@ -1258,10 +1258,10 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $enabled = self::enabledCapabilities($data);
         $tag = $data['features']['formMode'] === 'drawer' ? 'el-drawer' : 'el-dialog';
         $sizeAttrs = self::formSizeAttributes($data['features']);
-        $nodes = $data['layoutSchema'] ?? [];
+        $nodes = [];
         $formFields = ($data['capabilities']['form'] ?? true) ? array_values(array_filter($data['fields'], static fn (array $field): bool => ($field['form'] ?? false) && !($field['primary'] ?? false) && !($field['managed'] ?? false))) : [];
         $writable = array_values(array_filter($formFields, static fn (array $field): bool => ($field['writable'] ?? true) && ($field['component'] ?? '') !== 'readonly'));
-        if ($nodes === []) foreach ($formFields as $field) {
+        if (empty($data['formSchema']['nodes'])) foreach ($formFields as $field) {
             $rules = [];
             if ($field['required'] ?? false) $rules[] = ['type' => 'required'];
             $nodes[] = ['id' => $field['name'], 'kind' => 'field', 'type' => $field['component'] ?? 'input', 'field' => $field['name'], 'title' => $field['label'] ?? $field['name'], 'defaultValue' => $field['default'] ?? '', 'props' => (object) ($field['controlProps'] ?? []), 'validation' => $rules, 'dataSource' => ['kind' => 'static', 'options' => $field['options'] ?? []], 'children' => []];
@@ -1338,22 +1338,6 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
             static fn (array $field): array => ['source' => self::camel((string) $field['name']), 'target' => (string) $field['name'], 'sensitive' => self::sensitiveField($field)],
             $writable
         )));
-        $submissionFields = [];
-        $collectSubmission = static function (array $nodes) use (&$collectSubmission, &$submissionFields): void {
-            foreach ($nodes as $node) {
-                if (($node['kind'] ?? '') === 'field') {
-                    $submissionFields[] = [
-                        'field_name' => $node['field'], 'type' => $node['type'],
-                        'form_readonly' => ($node['disabled'] ?? false) ? 1 : 0,
-                        'control_props' => array_replace((array) ($node['props'] ?? []), ['schemaAccess' => (array) ($node['access'] ?? [])]),
-                        'options_source' => $node['dataSource'] ?? null,
-                    ];
-                }
-                if (!in_array($node['type'] ?? '', ['repeatable', 'subform'], true)) $collectSubmission((array) ($node['children'] ?? []));
-            }
-        };
-        $collectSubmission($document['nodes']);
-        $submissionFields = self::json($submissionFields);
         $defaults = self::json((object) array_column($formFields, 'default', 'name'));
         $formKey = str_replace('-', '_', (string) $data['entity']);
         // 选项映射仅来自裁剪后真正交给 renderer 的节点。
@@ -1371,16 +1355,16 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $saveExpr = self::tCall(self::collectFrontend($data, 'form.save', '保存'), '保存');
         return "<template><{$tag} v-model=\"visible\" :title=\"(row ? {$editTitleExpr} : {$createTitleExpr})\" {$sizeAttrs}><SchemaRenderer :key=\"generation\" ref=\"schemaFormRef\" :schema=\"formSchema\" :values=\"form\" :options-request=\"optionsRequest\" form-key=\"{$formKey}\" @change=\"(field, value) => { form[field] = value; changed.add(field); }\" /><template #footer><el-button @click=\"visible=false\">{{ {$cancelExpr} }}</el-button><el-button type=\"primary\" :loading=\"saving\" :disabled=\"saving || !permitted(!!row)\" @click=\"submit\">{{ {$saveExpr} }}</el-button></template></{$tag}></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';\nimport { useI18n } from 'vue-i18n';\nimport SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';\nimport { hasPermission } from '@/utils/permission';\n"
-            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport type { FormFieldDef } from '@/api/form';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { mapFieldErrors } from '@/views/form/validation/asyncValidatorRegistry';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
+            . "import type { FormSchemaDocument } from '@/views/form/schema/types';\nimport { buildSubmissionPayload, resolveSubmissionInclude } from '@/views/form/runtime/submissionPolicy';\nimport { mapFieldErrors } from '@/views/form/validation/asyncValidatorRegistry';\nimport { {$camel}Api, type {$type}, type {$type}Payload } from '{$data['_frontendComponentApiImport']}';\n"
             . "const { t } = useI18n();\nconst props=defineProps<{modelValue:boolean;row:{$type}|null;lock?:{busy:boolean}}>(); const emit=defineEmits<{ 'update:modelValue':[boolean]; success:[] }>();\n"
-            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const changed=reactive(new Set<string>()); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const sourceSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>; const submissionFields={$submissionFields} as unknown as FormFieldDef[];\n"
+            . "const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)}); const form=reactive<Record<string,unknown>>({}); const changed=reactive(new Set<string>()); const schemaFormRef=ref<InstanceType<typeof SchemaRenderer>>(); const sourceSchema={$schema} as unknown as FormSchemaDocument; const fieldMap={$fieldMap}; const valueMap={$valueMap}; const defaults={$defaults} as Record<string,unknown>;\n"
             . 'const nodeTitles = computed<Record<string, string>>(() => (' . self::tsRecord($nodeTitles) . "));\n"
             . "const formSchema=computed(()=>{const project=(nodes:FormSchemaDocument['nodes']):FormSchemaDocument['nodes']=>nodes.map(node=>({...node,...(node.id !== undefined && nodeTitles.value[node.id] !== undefined ? { title: nodeTitles.value[node.id] } : {}),...(props.row && fieldMap.some(item=>item.target===node.field && item.sensitive) && !changed.has(node.field ?? '')?{validation:[]}:{}),children:project(node.children ?? [])}));return {...sourceSchema,nodes:project(sourceSchema.nodes)};});\n"
             . $optionsSetup
             . "const permitted=(edit:boolean)=>hasPermission({$permissionPrefix}+':'+(edit?'update':'create'));\n"
             . "const saving=ref(false); const generation=ref(0); let active=true; onBeforeUnmount(()=>{active=false; generation.value++;});\n"
             . "watch(()=>[props.row,props.modelValue] as const,([row])=>{generation.value++;changed.clear();Object.keys(form).forEach(key=>delete form[key]);for(const item of valueMap)form[item.target]=row && fieldMap.some(field=>field.target===item.target && field.sensitive)?'':row?.[item.source as keyof {$type}]??defaults[item.target]??'';},{immediate:true});\n"
-            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const renderer=schemaFormRef.value;if(!renderer)return;await renderer.submit();if(!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const submitted=buildSubmissionPayload(submissionFields,form,resolveSubmissionInclude({schema_document:sourceSchema}),hasPermission);const payload=Object.fromEntries(fieldMap.filter(item=>Object.hasOwn(submitted,item.target)&&(!item.sensitive || !row || changed.has(item.target))).map(item=>[item.source,submitted[item.target]])) as {$type}Payload;{$write}if(active&&token===generation.value&&props.modelValue){visible.value=false;emit('success');}}catch(reason){const response=reason&&typeof reason==='object'?reason as {data?:{fieldErrors?:Array<{path:string;message:string}>};fieldErrors?:Array<{path:string;message:string}>}:null;const errors=response?.data?.fieldErrors??response?.fieldErrors??[];if(Array.isArray(errors)&&errors.length){if(!active||token!==generation.value||!props.modelValue)return;const mapped=mapFieldErrors(errors);const normalized=Object.fromEntries(Object.entries(mapped).map(([key,message])=>[valueMap.find(item=>item.target===key)?.target??valueMap.find(item=>item.source===key)?.target??key,message]));await schemaFormRef.value?.setFieldErrors(normalized);return;}throw reason;}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
+            . "async function submit(){const lock=props.lock;if(!active||saving.value||lock?.busy||!permitted(!!props.row))return;saving.value=true;if(lock)lock.busy=true;const token=generation.value;const row=props.row;try{if(!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const renderer=schemaFormRef.value;if(!renderer)return;await renderer.submit();if(!active||token!==generation.value||!props.modelValue||!permitted(!!row))return;const submitted=buildSubmissionPayload(sourceSchema.nodes,form,resolveSubmissionInclude({schema_document:sourceSchema}),hasPermission);const payload=Object.fromEntries(fieldMap.filter(item=>Object.hasOwn(submitted,item.target)&&(!item.sensitive || !row || changed.has(item.target))).map(item=>[item.source,submitted[item.target]])) as {$type}Payload;{$write}if(active&&token===generation.value&&props.modelValue){visible.value=false;emit('success');}}catch(reason){const response=reason&&typeof reason==='object'?reason as {data?:{fieldErrors?:Array<{path:string;message:string}>};fieldErrors?:Array<{path:string;message:string}>}:null;const errors=response?.data?.fieldErrors??response?.fieldErrors??[];if(Array.isArray(errors)&&errors.length){if(!active||token!==generation.value||!props.modelValue)return;const mapped=mapFieldErrors(errors);const normalized=Object.fromEntries(Object.entries(mapped).map(([key,message])=>[valueMap.find(item=>item.target===key)?.target??valueMap.find(item=>item.source===key)?.target??key,message]));await schemaFormRef.value?.setFieldErrors(normalized);return;}throw reason;}finally{saving.value=false;if(lock)lock.busy=false;}}\n</script>\n";
     }
 
     private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string

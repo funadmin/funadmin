@@ -1,52 +1,13 @@
+import type { FormNodeKind, FormSchemaNode } from '@/views/form/schema/types';
+
+export type {
+  FormNodeKind,
+  FormSchemaCondition,
+  FormSchemaNode,
+  FormSchemaValidationRule
+} from '@/views/form/schema/types';
+
 export type FormSchemaOrigin = 'designer' | 'import' | 'migration' | 'api' | string;
-export type FormSchemaNodeKind = 'field' | 'layout';
-
-export interface FormSchemaValidationCondition {
-  field?: string;
-  op: string;
-  value?: unknown;
-  conditions?: FormSchemaValidationCondition[];
-  condition?: FormSchemaValidationCondition;
-}
-
-export interface FormSchemaValidationRule {
-  type: string;
-  value?: unknown;
-  message?: string;
-  trigger?: string[];
-  validator?: { key: string; params?: Record<string, unknown>; debounce?: number; timeout?: number; cacheTtl?: number };
-  when?: FormSchemaValidationCondition;
-  severity?: 'error' | 'warning';
-  bail?: boolean;
-}
-
-export interface FormSchemaNode {
-  id: string;
-  kind: FormSchemaNodeKind;
-  type: string;
-  field?: string | null;
-  title: string;
-  defaultValue?: unknown;
-  valueType?: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  props?: Record<string, unknown>;
-  attrs?: Record<string, unknown>;
-  className?: string;
-  style?: Record<string, string | number>;
-  hidden?: boolean;
-  disabled?: boolean;
-  info?: string;
-  slot?: string | null;
-  children: FormSchemaNode[];
-  validation?: FormSchemaValidationRule[];
-  dataSource?: Record<string, unknown> | null;
-  conditions?: unknown[];
-  events?: Record<string, unknown[]>;
-  access?: { read?: string[]; write?: string[]; include?: 'auto' | 'always' | 'never' };
-  layout?: { span?: number; group?: string };
-  database?: Record<string, unknown>;
-  list?: Record<string, unknown>;
-}
-
 export interface FormSchemaDocument {
   list?: import('@/views/form/schema/types').FormListConfiguration;
   schemaVersion: 2;
@@ -205,7 +166,7 @@ export interface FormComponentCatalogItem {
   type: string;
   namespace: string;
   component: string;
-  kind?: FormSchemaNodeKind;
+  kind?: FormNodeKind;
   label?: string;
   group?: string;
   defaultColumnType?: string;

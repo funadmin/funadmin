@@ -1,6 +1,6 @@
 <template>
   <el-card shadow="never" class="mb-4" :class="{ 'list-panel--buttons-only': buttonsOnly, 'list-panel--categories': mode === 'categories' }">
-    <CategoryWorkspace v-if="!buttonsOnly" :model-value="modelValue" :left="left" :category-fields="categoryFields" :source-fields="sourceFields" :target-fields="targetFields" :modules="modules" :columns="previewColumns" :locations="workspaceLocations" :tree-pending="treePending" @category="category" @update-left="updateLeft" @change-source="changeSource" @choose-module="code => chooseModule(code)" @load-modules="loadModules" @clear="clearCategories" />
+    <CategoryWorkspace v-if="!buttonsOnly" :model-value="modelValue" :left="left" :category-fields="categoryFields" :source-fields="sourceFields" :target-fields="targetSources" :modules="modules" :columns="previewColumns" :locations="workspaceLocations" :tree-pending="treePending" @category="category" @update-left="updateLeft" @change-source="changeSource" @choose-module="code => chooseModule(code)" @load-modules="loadModules" @clear="clearCategories" />
     <ButtonsWorkspace v-else :model-value="modelValue" :locations="workspaceLocations" :tools="tools" :filter-fields="filterFields" :category-fields="categoryButtonFields" :resources="resources" :columns="previewColumns" :catalog-loading="catalogLoading" :catalog-count="catalogCount" :catalog-failed="Object.keys(catalogErrors).length > 0" :catalog-teleport="catalogTeleport" :custom-action-entity="customActionEntity" :custom-actions-blocked="pluginTarget" @update-buttons="updateButtons" @update-tools="value => emit('update', { tools: value })" @reload-catalog="loadButtonCatalog" @update-custom-actions="updateCustomActions" />
   </el-card>
 </template>
@@ -8,17 +8,17 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { formDataApi, type FormSourceMeta, type FormSourceField } from '@/api/formData';
-import type { FormFieldDef } from '@/api/form';
 import { businessDevelopmentApi } from '@/api/development/business';
 import type { ListResource } from '../../runtime/listResourceHost';
 import { listButtonKeys } from '../../runtime/listButtonHost';
-import type { FormListActionMetadata, FormListBuiltinAction } from '../../schema/types';
+import type { FormListActionMetadata, FormListBuiltinAction, FormSchemaNode } from '../../schema/types';
+import { columnTypeOf, isSensitiveNode, relationTypeOf } from '../../schema/fieldNodes';
 import type { FormListConfiguration, FormLeftTreeConfiguration, FormListButton, FormListButtonLocation, FormListCustomAction } from '../../schema/types';
 import { customActionEntity as customActionEntityOf } from './customActions';
 import ButtonsWorkspace, { type ButtonsWorkspaceLocation } from './ButtonsWorkspace.vue';
 import CategoryWorkspace from './CategoryWorkspace.vue';
 import type { ListPreviewColumn } from './listPreviewSample';
-const props = defineProps<{ modelValue: FormListConfiguration; fields: FormFieldDef[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean; mode?: 'all' | 'buttons' | 'categories'; catalogTeleport?: string }>();
+const props = defineProps<{ modelValue: FormListConfiguration; fields: FormSchemaNode[]; moduleId?: number; formKey?: string; permissions?: string[]; pluginTarget?: boolean; mode?: 'all' | 'buttons' | 'categories'; catalogTeleport?: string }>();
 const emit = defineEmits<{ update: [value: FormListConfiguration] }>();
 const { t } = useI18n();
 // 按钮与工具模式下外层只保留编辑区，去掉卡片头、说明与冗余的二级 Tab 条。
@@ -35,12 +35,16 @@ const customActionEntity = computed(() => props.formKey ? customActionEntityOf(p
 const updateCustomActions = (actions: FormListCustomAction[] | undefined, buttons: Partial<Record<FormListButtonLocation, FormListButton[]>> | undefined) => {
   emit('update', { customActions: actions, ...(buttons ? { buttons: { ...props.modelValue.buttons, ...buttons } } : {}) });
 };
-const targetFields = computed(() => props.fields.filter(field => field.column_type && ['none', 'belongs_to'].includes(field.relation_type) && !['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'].includes(field.type) && !field.control_props?.multiple && !field.control_props?.sensitive && !field.control_props?.writeOnly));
-const scalarFields = computed(() => targetFields.value.filter(field => field.relation_type === 'none'));
+// fields 为设计器字段节点（调用方经 fieldNodes() 展开，布局内字段已包含）。
+const targetFields = computed(() => props.fields.filter(node => Boolean(node.field) && Boolean(columnTypeOf(node)) && ['none', 'belongs_to'].includes(relationTypeOf(node)) && !['repeatable', 'subform', 'json', 'checkbox', 'transfer'].includes(node.type) && !node.props?.multiple && !isSensitiveNode(node)));
+const scalarFields = computed(() => targetFields.value.filter(node => relationTypeOf(node) === 'none'));
+const fieldName = (node: FormSchemaNode): string => String(node.field);
+const sourceField = (node: FormSchemaNode): FormSourceField => ({ field: fieldName(node), title: node.title });
+const targetSources = computed(() => targetFields.value.map(sourceField));
 const modules = ref<FormSourceMeta[]>([]);
 const externalFields = ref<FormSourceField[]>([]);
 const left = computed<FormLeftTreeConfiguration>(() => props.modelValue.leftTree ?? { enabled: false, source: { type: 'current' }, mapping: { valueField: '', labelField: '', targetField: '' } });
-const sourceFields = computed(() => left.value.source.type === 'current' ? scalarFields.value : externalFields.value);
+const sourceFields = computed<FormSourceField[]>(() => left.value.source.type === 'current' ? scalarFields.value.map(sourceField) : externalFields.value);
 // 没有父级字段时不能新增子节点、也不能包含后代：每次写回分类树都按此规则清理。
 const normalizeLeft = (patch: Partial<FormLeftTreeConfiguration>): FormLeftTreeConfiguration => {
   const next = { ...left.value, ...patch };
@@ -71,8 +75,8 @@ const prefillMapping = (patch: Partial<FormLeftTreeConfiguration>): Partial<Form
   const source = patch.source ?? left.value.source;
   if (source.type !== 'current') return patch;
   const mapping = patch.mapping ?? left.value.mapping;
-  const text = scalarFields.value.find(field => ['input', 'textarea'].includes(field.type));
-  return { ...patch, mapping: { ...mapping, valueField: mapping.valueField || 'id', labelField: mapping.labelField || text?.field_name || '' } };
+  const text = scalarFields.value.find(node => ['input', 'textarea'].includes(node.type));
+  return { ...patch, mapping: { ...mapping, valueField: mapping.valueField || 'id', labelField: mapping.labelField || (text ? fieldName(text) : '') } };
 };
 const updateLeft = (patch: Partial<FormLeftTreeConfiguration>) => {
   const choosing = patch.enabled === true && !left.value.enabled && !treePending.value;
@@ -104,7 +108,7 @@ const chooseModule = async (code: string, restore = false) => {
   const meta = await formDataApi.sourceMeta(item.formKey);
   if (disposed || sequence !== sourceSequence || left.value.source.type !== 'module') return;
   externalFields.value = [...meta.fields];
-  if (!externalFields.value.some(field => field.field_name === meta.primaryKey.name)) externalFields.value.unshift({ field_name: meta.primaryKey.name, label: t('formDesigner.listPanel.sourcePrimaryKey', '来源主键') });
+  if (!externalFields.value.some(field => field.field === meta.primaryKey.name)) externalFields.value.unshift({ field: meta.primaryKey.name, title: t('formDesigner.listPanel.sourcePrimaryKey', '来源主键') });
   if (!restore) updateLeft({ source: { type: 'module', module: code }, mapping: { valueField: meta.primaryKey.name, labelField: '', targetField: left.value.mapping.targetField } });
   } catch { /* 来源授权已撤销时保留原配置，不覆盖草稿。 */ }
 };
@@ -116,8 +120,10 @@ watch(() => [left.value.source.type, left.value.source.module], async ([type, co
   if (disposed || sequence !== sourceSequence) return;
   await chooseModule(code, true);
 }, { immediate: true });
-const buttonFields = computed(() => ['id', ...scalarFields.value.filter(field => !field.control_props?.schemaAccess).map(field => field.field_name)].filter((field, index, all) => all.indexOf(field) === index));
-const categoryButtonFields = computed(() => left.value.enabled ? sourceFields.value.map(field => field.field_name).filter(name => buttonFields.value.includes(name)) : []);
+// 带访问控制（node.access 非空）的字段不能被按钮参数引用，与后端 ListButtonSchemaValidator::readableField 一致。
+const hasAccess = (node: FormSchemaNode): boolean => Object.keys(node.access ?? {}).length > 0;
+const buttonFields = computed(() => ['id', ...scalarFields.value.filter(node => !hasAccess(node)).map(fieldName)].filter((field, index, all) => all.indexOf(field) === index));
+const categoryButtonFields = computed(() => left.value.enabled ? sourceFields.value.map(field => field.field).filter(name => buttonFields.value.includes(name)) : []);
 const resources = ref<Record<string, ListResource>>({});
 const actionCatalogs = ref<Partial<Record<FormListButtonLocation, Record<string, FormListActionMetadata>>>>({});
 const catalogErrors = ref<Partial<Record<FormListButtonLocation, string>>>({});
@@ -147,13 +153,13 @@ async function loadButtonCatalog() {
   } finally { if (!disposed && current === catalogSequence) { catalogErrors.value = errors; catalogLoading.value = false; } }
 }
 watch(() => [props.moduleId, props.permissions, props.pluginTarget], loadButtonCatalog, { immediate: true, deep: true });
-const filterFields = computed(() => scalarFields.value.filter(field => field.list_filter && field.list_filter !== 'none').map(field => field.field_name));
+const filterFields = computed(() => scalarFields.value.filter(node => node.list?.filter && node.list.filter !== 'none').map(fieldName));
 // 按钮与工具工作区：每个位置的字段、可用内置动作、目录与错误；数据语义与原四个 ListButtonEditor 完全一致。
 const workspaceLocations = computed<ButtonsWorkspaceLocation[]>(() => buttonLocations.value.map(location => ({ key: location.key, label: location.label, fields: location.key.startsWith('category') ? categoryButtonFields.value : buttonFields.value, builtinKeys: builtinKeys(location.key), resourceEnabled: !props.pluginTarget && (!location.key.startsWith('category') || left.value.enabled), actions: actionCatalogs.value[location.key], catalogError: catalogErrors.value[location.key] })));
 const catalogCount = computed(() => catalogLoading.value || !props.moduleId || Object.keys(catalogErrors.value).length ? undefined : Object.keys(resources.value).length + Object.values(actionCatalogs.value).reduce((total, items) => total + Object.keys(items ?? {}).length, 0));
-const staticOptions = (field: FormFieldDef) => { const source = field.options_source as { kind?: string; options?: Array<{ label?: unknown; value?: unknown }> } | null | undefined; return source?.kind === 'static' && Array.isArray(source?.options) ? source.options.filter(option => option && option.value !== undefined).map(option => ({ label: String(option.label ?? option.value), value: option.value })) : undefined; };
-const previewColumns = computed<ListPreviewColumn[]>(() => { const readable = scalarFields.value.filter(field => buttonFields.value.includes(field.field_name)); const shown = readable.filter(field => field.list_show); return [...shown, ...readable.filter(field => !field.list_show)].map(field => ({ field: field.field_name, label: field.label?.trim() || field.field_name, options: staticOptions(field), numeric: /int|decimal|float|double|numeric/i.test(field.column_type ?? '') })); });
-const categoryFields = computed(() => scalarFields.value.filter(field => ['static', 'dictionary'].includes(String(field.options_source?.kind ?? ''))));
+const staticOptions = (node: FormSchemaNode) => { const source = node.dataSource as { kind?: string; options?: Array<{ label?: unknown; value?: unknown }> } | null | undefined; return source?.kind === 'static' && Array.isArray(source?.options) ? source.options.filter(option => option && option.value !== undefined).map(option => ({ label: String(option.label ?? option.value), value: option.value })) : undefined; };
+const previewColumns = computed<ListPreviewColumn[]>(() => { const readable = scalarFields.value.filter(node => buttonFields.value.includes(fieldName(node))); const shown = readable.filter(node => node.list?.show); return [...shown, ...readable.filter(node => !node.list?.show)].map(node => ({ field: fieldName(node), label: node.title?.trim() || fieldName(node), options: staticOptions(node), numeric: /int|decimal|float|double|numeric/i.test(columnTypeOf(node)) })); });
+const categoryFields = computed(() => scalarFields.value.filter(node => ['static', 'dictionary'].includes(String(node.dataSource?.kind ?? ''))).map(sourceField));
 const category = (patch: Partial<NonNullable<FormListConfiguration['category']>>) => {
   if (patch.enabled) treePending.value = false;
   emitUpdate({ category: { enabled: false, ...props.modelValue.category, ...patch }, ...(patch.enabled ? { leftTree: { ...left.value, enabled: false } } : {}) });

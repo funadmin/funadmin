@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from '../schema/types';
 import {
   buildSubmissionPayload,
   emptyRuntimeValues,
@@ -8,57 +8,96 @@ import {
   stableRuntimeValues
 } from './submissionPolicy';
 
-const field = (name: string, overrides: Partial<FormFieldDef> = {}): FormFieldDef => ({
-  field_name: name, label: name, type: 'input', column_type: 'varchar(255)', nullable: 1,
-  default_value: '', comment: '', unsigned: 0, index_type: 'none', placeholder: '',
-  relation_type: 'none', relation_table: '', relation_label_field: '', relation_value_field: '',
-  relation_multiple: 0, relation_on_delete: 'restrict', list_show: 1, list_sort: 0,
-  list_filter: '', list_formatter: '', list_width: 0, form_show: 1, form_required: 0,
-  form_group: '', form_span: 24, form_readonly: 0, sort_order: 0, ...overrides
+const node = (name: string, overrides: Partial<FormSchemaNode> = {}): FormSchemaNode => ({
+  id: `node_${name}`, kind: 'field', type: 'input', field: name, title: name, children: [], ...overrides
 });
 
+const layout = (id: string, children: FormSchemaNode[], type = 'group'): FormSchemaNode => ({
+  id, kind: 'layout', type, field: null, title: id, children
+});
+
+const valuesOf = (names: string[]): Record<string, unknown> => Object.fromEntries(names.map((name) => [name, name]));
+
 describe('表单运行时提交与敏感字段治理', () => {
-  const fields = [
-    field('title'),
-    field('hidden', { type: 'hidden' }),
-    field('disabled', { control_props: { disabled: true } }),
-    field('readonly', { form_readonly: 1 }),
-    field('computed', { options_source: { kind: 'computed' } }),
-    field('primary', { index_type: 'unique', control_props: { primary: true } }),
-    field('system', { control_props: { system: true } }),
-    field('secret', { type: 'password', default_value: 'never', control_props: { sensitive: true, writeOnly: true } })
+  const nodes = [
+    node('title'),
+    node('hidden', { type: 'hidden' }),
+    node('disabled', { props: { disabled: true } }),
+    node('readonly', { disabled: true }),
+    node('computed', { dataSource: { kind: 'computed' } }),
+    node('computed_prop', { props: { computed: true } }),
+    node('primary', { props: { primary: true } }),
+    node('system', { props: { system: true } }),
+    node('secret', { type: 'password', defaultValue: 'never', props: { sensitive: true, writeOnly: true } })
   ];
+  const names = ['title', 'hidden', 'disabled', 'readonly', 'computed', 'computed_prop', 'primary', 'system', 'secret'];
 
   it('默认仅提交普通字段，显式 include 可纳入受治理字段', () => {
-    const values = Object.fromEntries(fields.map((item) => [item.field_name, item.field_name]));
-    expect(buildSubmissionPayload(fields, values)).toEqual({ title: 'title', secret: 'secret' });
-    expect(buildSubmissionPayload(fields, values, ['readonly', 'computed'])).toEqual({
+    expect(buildSubmissionPayload(nodes, valuesOf(names))).toEqual({ title: 'title', secret: 'secret' });
+    expect(buildSubmissionPayload(nodes, valuesOf(names), ['readonly', 'computed'])).toEqual({
       title: 'title', readonly: 'readonly', computed: 'computed', secret: 'secret'
     });
   });
 
-  it('普通 form_show 隐藏保留默认值和提交，metadata 不改写业务字段名', () => {
-    const hidden = field('hidden_default', { form_show: 0, default_value: '隐藏默认值' });
+  it('节点 hidden 显示隐藏保留默认值和提交，不改写业务字段名', () => {
+    const hidden = node('hidden_default', { hidden: true, defaultValue: '隐藏默认值' });
     expect(emptyRuntimeValues([hidden])).toEqual({ hidden_default: '隐藏默认值' });
     expect(buildSubmissionPayload([hidden], { hidden_default: '联动值', hiddenDefault: '错误别名' })).toEqual({ hidden_default: '联动值' });
   });
 
-  it('snake_case metadata 中 camelCase schemaAccess 策略不能被显式 include 绕过', () => {
-    const policyFields = [
-      field('hidden_include', { type: 'hidden' }),
-      field('hidden_always', { type: 'hidden', control_props: { schemaAccess: { include: 'always' } } }),
-      field('hidden_never', { type: 'hidden', control_props: { schemaAccess: { include: 'never' } } }),
-      field('hidden_denied', { type: 'hidden', control_props: { schemaAccess: { write: ['secret:write'] } } })
+  it('access 策略不能被显式 include 绕过', () => {
+    const policyNodes = [
+      node('hidden_include', { type: 'hidden' }),
+      node('hidden_always', { type: 'hidden', access: { include: 'always' } }),
+      node('hidden_never', { type: 'hidden', access: { include: 'never' } }),
+      node('hidden_denied', { type: 'hidden', access: { write: ['secret:write'] } })
     ];
-    const values = Object.fromEntries(policyFields.map(item => [item.field_name, item.field_name]));
-    const include = policyFields.map(item => item.field_name);
-    expect(buildSubmissionPayload(policyFields, values, include)).toEqual({ hidden_include: 'hidden_include', hidden_always: 'hidden_always' });
-    expect(buildSubmissionPayload(policyFields, values, include, permission => permission === 'secret:write')).toEqual({ hidden_include: 'hidden_include', hidden_always: 'hidden_always', hidden_denied: 'hidden_denied' });
+    const policyNames = policyNodes.map((item) => String(item.field));
+    expect(buildSubmissionPayload(policyNodes, valuesOf(policyNames), policyNames)).toEqual({ hidden_include: 'hidden_include', hidden_always: 'hidden_always' });
+    expect(buildSubmissionPayload(policyNodes, valuesOf(policyNames), policyNames, (permission) => permission === 'secret:write'))
+      .toEqual({ hidden_include: 'hidden_include', hidden_always: 'hidden_always', hidden_denied: 'hidden_denied' });
+  });
+
+  it('excludes access.include never', () => {
+    const fields = [node('title'), node('note', { access: { include: 'never' } })];
+    expect(buildSubmissionPayload(fields, valuesOf(['title', 'note']), ['note'], () => true)).toEqual({ title: 'title' });
+  });
+
+  it('excludes node whose access.write permission is missing', () => {
+    const fields = [node('title'), node('salary', { access: { write: ['hr:salary', 'hr:write'] } })];
+    const values = valuesOf(['title', 'salary']);
+    expect(buildSubmissionPayload(fields, values, [], (permission) => permission === 'hr:salary')).toEqual({ title: 'title' });
+    expect(buildSubmissionPayload(fields, values, [], () => true)).toEqual({ title: 'title', salary: 'salary' });
+  });
+
+  it('includes nested field inside group', () => {
+    const fields = [layout('tabs_1', [layout('group_1', [node('inner')])], 'tabs'), node('title')];
+    expect(buildSubmissionPayload(fields, valuesOf(['inner', 'title', 'group_1']))).toEqual({ inner: 'inner', title: 'title' });
+    expect(emptyRuntimeValues(fields)).toEqual({ inner: '', title: '' });
+  });
+
+  it('ignores children of repeatable', () => {
+    const fields = [node('items', { type: 'repeatable', children: [node('sku')] }), node('title')];
+    const values = { items: [{ sku: 'A' }], sku: 'leak', title: 'title' };
+    expect(buildSubmissionPayload(fields, values)).toEqual({ items: [{ sku: 'A' }], title: 'title' });
+    expect(emptyRuntimeValues(fields)).toEqual({ items: [], title: '' });
   });
 
   it('敏感字段不从记录回显且不使用默认值', () => {
+    const fields = [node('title'), layout('group_1', [node('secret', { type: 'password', defaultValue: 'never' })])];
     expect(sanitizeRuntimeRecord(fields, { title: 'ok', secret: 'stored' })).toEqual({ title: 'ok' });
-    expect(emptyRuntimeValues(fields)).toMatchObject({ title: '', secret: '' });
+    expect(emptyRuntimeValues(fields)).toEqual({ title: '', secret: '' });
+  });
+
+  it('按控件类型给出空值', () => {
+    const fields = [
+      node('enabled', { type: 'switch', defaultValue: 1 }),
+      node('count', { type: 'number', defaultValue: 3 }),
+      node('lines', { type: 'subform' }),
+      node('tags', { type: 'select', database: { relation: { type: 'has_many' } } }),
+      node('remark', { defaultValue: '默认' })
+    ];
+    expect(emptyRuntimeValues(fields)).toEqual({ enabled: 0, count: undefined, lines: [], tags: [], remark: '默认' });
   });
 
   it('嵌套子表值变化时稳定序列化结果必须变化', () => {
@@ -69,12 +108,14 @@ describe('表单运行时提交与敏感字段治理', () => {
     expect(stableRuntimeValues(initial)).toBe(stableRuntimeValues({ items: [{ quantity: 1, sku: 'A' }], title: '订单' }));
   });
 
-  it('优先读取 v2 submit.include 并兼容旧 form_config', () => {
-    const definition = {
-      schema_document: { submit: { include: ['computed', 'system'] } },
-      form_config: { submitInclude: ['readonly'] }
-    };
-    expect(resolveSubmissionInclude(definition)).toEqual(['computed', 'system']);
-    expect(resolveSubmissionInclude({ form_config: { submitInclude: ['readonly'] } })).toEqual(['readonly']);
+  it('读取 v2 submit.include', () => {
+    expect(resolveSubmissionInclude({ schema_document: { submit: { include: ['computed', 'system', 3] } } })).toEqual(['computed', 'system']);
+    expect(resolveSubmissionInclude(null)).toEqual([]);
+    expect(resolveSubmissionInclude({ schema_document: null })).toEqual([]);
+  });
+
+  it('resolveSubmissionInclude ignores form_config', () => {
+    const legacy = { form_config: { submitInclude: ['readonly'] } } as unknown as Parameters<typeof resolveSubmissionInclude>[0];
+    expect(resolveSubmissionInclude(legacy)).toEqual([]);
   });
 });

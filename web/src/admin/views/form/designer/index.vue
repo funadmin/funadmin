@@ -96,7 +96,7 @@
           <span>{{ t('formDesigner.layout.canvasStats', { fields: canvasStats.fields, layouts: canvasStats.layouts }, '{fields} 个字段 · {layouts} 个布局') }}</span>
           <span class="designer-canvas-toolbar__spacer" />
           <span class="designer-canvas-toolbar__meta">{{ store.form.value.name || t('formDesigner.unnamed', '未命名') }} → {{ store.form.value.table_name }}</span>
-          <el-button v-if="narrowRight && store.selected.value" size="small" data-action="open-props" @click="propsDrawerVisible = true"><i class="i-ep-setting" /> {{ t('formDesigner.fieldPropsTitle', '字段属性') }}</el-button>
+          <el-button v-if="narrowRight && store.selectedNode.value" size="small" data-action="open-props" @click="propsDrawerVisible = true"><i class="i-ep-setting" /> {{ t('formDesigner.fieldPropsTitle', '字段属性') }}</el-button>
         </div>
         <el-alert
           v-if="workspaceMode === 'edit' && catalogDiagnostics.length"
@@ -123,7 +123,7 @@
 
       <!-- 右：属性面板（<1100px 变为选中字段时弹出的抽屉） -->
       <aside v-if="showRightColumn" class="designer-column designer-column--right" data-designer-right>
-        <PropsPanel v-if="store.selected.value" data-props-panel :module-id="moduleId" :field="store.selected.value" :group-title="selectedGroupTitle" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
+        <PropsPanel v-if="store.selectedNode.value" data-props-panel :module-id="moduleId" :node="store.selectedNode.value" :group-title="selectedGroupTitle" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateNode" />
         <el-empty v-else :image-size="64" :description="t('formDesigner.emptyProps', '点选画布字段编辑参数')" />
       </aside>
     </div>
@@ -133,13 +133,13 @@
       <el-tab-pane :label="t('formDesigner.tabCategories', '分类管理')" name="list" :lazy="false" />
     </el-tabs>
     </div>
-    <ListConfigurationPanel v-if="activeTab === 'buttons' || activeTab === 'list'" :mode="activeTab === 'buttons' ? 'buttons' : 'categories'" :model-value="store.schemaDocument.value.list ?? {}" :fields="store.fields.value" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" :catalog-teleport="activeTab === 'buttons' ? '#designer-buttons-tab-extra' : undefined" @update="store.updateList" />
+    <ListConfigurationPanel v-if="activeTab === 'buttons' || activeTab === 'list'" :mode="activeTab === 'buttons' ? 'buttons' : 'categories'" :model-value="store.schemaDocument.value.list ?? {}" :fields="designerFieldNodes" :module-id="moduleId" :form-key="store.form.value.form_key" :permissions="buttonUser.permissions" :plugin-target="isPluginTarget" :catalog-teleport="activeTab === 'buttons' ? '#designer-buttons-tab-extra' : undefined" @update="store.updateList" />
 
     <el-drawer v-if="narrowLeft" v-model="leftDrawerVisible" data-left-drawer class="designer-side-drawer" direction="ltr" size="min(288px, 100vw)" :title="t('formDesigner.layout.leftTabsAria', '控件与大纲')" append-to-body>
       <DesignerLeftPanel :store="store" :controls="designerControls" @added="leftDrawerVisible = false" />
     </el-drawer>
     <el-drawer v-if="narrowRight" v-model="propsDrawerVisible" data-props-drawer class="designer-side-drawer" direction="rtl" size="min(360px, 100vw)" :title="t('formDesigner.fieldPropsTitle', '字段属性')" append-to-body>
-      <PropsPanel v-if="store.selected.value" data-props-panel :module-id="moduleId" :field="store.selected.value" :group-title="selectedGroupTitle" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateField" />
+      <PropsPanel v-if="store.selectedNode.value" data-props-panel :module-id="moduleId" :node="store.selectedNode.value" :group-title="selectedGroupTitle" :source-type="store.form.value.source_type ?? 'created'" :controls="designerControls" @update="store.updateNode" />
       <el-empty v-else :image-size="64" :description="t('formDesigner.emptyProps', '点选画布字段编辑参数')" />
     </el-drawer>
 
@@ -202,6 +202,8 @@ const store = useDesigner();
 const businessModule = ref<BusinessModule | null>(null);
 const businessTarget = computed(() => businessModule.value?.metadata?.target);
 const isPluginTarget = computed(() => businessTarget.value?.type === 'plugin');
+// 列表配置读取字段节点（布局内字段展开，repeatable/subform 子节点不展开）。
+const designerFieldNodes = store.fieldNodes;
 // 区域切换仅改变显示，不进入 Schema、历史和自动保存通道。
 // 原「基本信息」页签由「⚙ 表单设置」打开的代码生成「编辑生成信息」弹窗承担。
 const activeTab = ref<'design' | 'buttons' | 'list'>('design');
@@ -257,14 +259,18 @@ const previewOptionsRequest: FormDataSourceRequest = async (formKey, field, para
   }
   return formDataApi.options(formKey, field, { ...params, draft: 1 }, signal);
 };
-const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(store.fields.value.map((field) => [field.field_name, field.default_value])));
-watch(() => store.fields.value.map((field) => [field.field_name, field.default_value] as const), (fields) => {
+const previewDefaults = () => designerFieldNodes.value
+  .filter((node) => typeof node.field === 'string' && node.field !== '')
+  .map((node) => [String(node.field), node.defaultValue] as const);
+const previewValues = reactive<Record<string, unknown>>(Object.fromEntries(previewDefaults()));
+watch(previewDefaults, (fields) => {
   const fieldNames = new Set(fields.map(([name]) => name));
   for (const [name, defaultValue] of fields) if (!(name in previewValues)) previewValues[name] = defaultValue;
   for (const key of Object.keys(previewValues)) if (!fieldNames.has(key)) delete previewValues[key];
 });
 const designerControls = computed(() => [...CONTROL_REGISTRY, ...pluginCatalog.controls.value]);
-const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.fields.value));
+// 插件诊断覆盖全部节点（含布局与子表容器内的节点）。
+const catalogDiagnostics = computed(() => pluginCatalog.fieldDiagnostics(store.flattenedNodes.value.map(({ node }) => node)));
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let localDraftTimer: ReturnType<typeof setTimeout> | null = null;
 let saveInFlight = false;
@@ -325,8 +331,7 @@ const definition = () => ({
   schema_version: 2,
   schema_document: store.schemaDocument.value,
   schemaHash: store.form.value.schema_hash,
-  schema_origin: 'designer',
-  fields: store.fields.value
+  schema_origin: 'designer'
 });
 const previewSchema = computed(() => ({
   ...store.schemaDocument.value,
@@ -402,7 +407,7 @@ async function load() {
   const data = await businessDevelopmentApi.module(moduleId.value);
   if (!data.form) throw new Error(t('formDesigner.noDesignableForm', '业务模块没有可设计表单'));
   businessModule.value = data.module;
-  store.load({ ...data.form, fields: data.fields });
+  store.load(data.form);
 }
 
 async function onSave() {
@@ -426,7 +431,7 @@ async function reviewSaveConflict() {
     if (!data.form?.schema_hash || data.form.schema_document?.schemaVersion !== 2 || !Array.isArray(data.form.schema_document.nodes)) {
       throw new Error(t('formDesigner.serverDocMissing', '服务端文档或版本 hash 缺失，无法安全恢复，请重新核对'));
     }
-    conflictReview.value = { local, server: JSON.parse(JSON.stringify({ ...data.form, fields: data.fields })), moduleId: reviewedModuleId };
+    conflictReview.value = { local, server: JSON.parse(JSON.stringify(data.form)), moduleId: reviewedModuleId };
   } catch (error) {
     conflictReviewError.value = error instanceof Error ? error.message : t('formDesigner.versionReadFailed', '版本读取失败，请重新核对');
   } finally {
@@ -523,7 +528,7 @@ async function saveDefinition(automatic: boolean) {
     warnLeftTreeSavedDisabled(guarded.pendingMissing);
     const unchanged = JSON.stringify(definition()) === payloadHash;
     if (unchanged) {
-      store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash, fields: store.fields.value } as import('@/api/form').FormDefinition);
+      store.markSaved({ ...store.form.value, schema_document: saved.document, schema_hash: saved.schemaHash } as import('@/api/form').FormDefinition);
       clearLocalDraft();
       if (designerActive && !automatic) ElMessage.success(t('formDesigner.saveSuccess', '保存成功'));
     } else {
@@ -625,7 +630,7 @@ async function reloadFromServer() {
     businessModule.value = data.module;
     // 期间产生的本地编辑不能被静默覆盖：保留它们，交由下一次保存的版本冲突核对处理。
     if (store.dirty.value) return;
-    store.load({ ...data.form, fields: data.fields });
+    store.load(data.form);
     clearLocalDraft();
   } catch {
     if (token === reloadToken) ElMessage.error(t('formDesigner.topBar.reloadFailed', '表单设置已保存，但设计器重新加载失败，请刷新页面'));

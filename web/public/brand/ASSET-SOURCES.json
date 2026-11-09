@@ -1,12 +1,12 @@
 {
-  "edition": "fun-balanced-1",
-  "accepted_design": "balanced geometric F + Manrope un",
+  "edition": "fun-inset-a-1",
+  "accepted_design": "option A: open geometric F with taller, thicker inset u/n",
   "symbol_source": "SYMBOL-SOURCE.json",
-  "font_family": "Manrope",
-  "font_license": "SIL Open Font License 1.1",
+  "symbol_font_used": null,
+  "external_icon_template": null,
+  "wordmark_font_family": "Manrope",
+  "wordmark_font_license": "SIL Open Font License 1.1",
   "font_source": "licenses/Manrope-SOURCE.json",
   "font_license_file": "licenses/Manrope-OFL.txt",
-  "un_weight": 750,
-  "un_size": 23,
   "trademark_clearance": "NOT_COMPLETED"
 }

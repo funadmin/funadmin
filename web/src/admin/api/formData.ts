@@ -21,8 +21,8 @@ export interface FormDataMeta {
 }
 
 export interface FormSourceField {
-  field_name: string;
-  label: string;
+  field: string;
+  title: string;
 }
 
 export interface FormSourceMeta {

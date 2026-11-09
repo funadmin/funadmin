@@ -22,8 +22,8 @@ use support\Context;
 final class CodeGeneratorFormSizeTest extends TestCase
 {
     /** 未配置表单尺寸时与 CodeGeneratorRelationsTest::PLAIN_BASELINE 一致的 core 基准。 */
-    private const PLAIN_DEFINITION_HASH = 'ba3ede61aca0d48ccc3d932ebc46adc96b7594ff24423a38d0f99f2bf6ea9799';
-    private const PLAIN_FORM_HASH = '6927aa1eb452d91eca895d75e84707287a706033eb768388b131fec09052f382';
+    private const PLAIN_DEFINITION_HASH = '3bd6f00fb003a0aa5c571b99dc722023d2b0f2577d066103c16899be69e69cae';
+    private const PLAIN_FORM_HASH = '9957f5c04f51f87b1458c9968f410176d0fe45c2ba2e26cb7f79936a57c1c5a9';
     private const PLAIN_VIEW_HASH = 'f1c0628836ba60c6d4c457d8d19078b92714dc3f7e1eab924b8b0a4e4ff861f6';
     private const FORM_PATH = 'web/src/admin/views/business/shop-plain/components/ShopPlainForm.vue';
     private const VIEW_PATH = 'web/src/admin/views/business/shop-plain/index.vue';

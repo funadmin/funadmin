@@ -44,10 +44,10 @@ final class FormPublishService
         ?callable $moduleTargetReader = null
     ) {
         $this->saveForm = Closure::fromCallable($saveForm ?? fn (array $payload): array => $this->forms->save($payload));
-        $this->previewDdl = Closure::fromCallable($previewDdl ?? fn (array $payload): array => $this->previewForwardDdl($payload));
-        $this->applyDdl = Closure::fromCallable($applyDdl ?? fn (array $payload): array => $this->forms->applyDynamicDdl($payload));
-        $this->verifyStructure = Closure::fromCallable($verifyStructure ?? function (array $payload): void {
-            $this->assertStructure($payload);
+        $this->previewDdl = Closure::fromCallable($previewDdl ?? fn (FormSchema $schema): array => $this->forms->previewMigration($schema));
+        $this->applyDdl = Closure::fromCallable($applyDdl ?? fn (FormSchema $schema, string $expectedDdlHash): array => $this->forms->applyDynamicDdl($schema, $expectedDdlHash));
+        $this->verifyStructure = Closure::fromCallable($verifyStructure ?? function (FormSchema $schema): void {
+            $this->assertStructure($schema);
         });
         $this->publishMetadata = Closure::fromCallable($publishMetadata ?? fn (array $saved, FormSchema $compiled, string $operator, array $baseline): array => $this->persistPublishedMetadata($saved, $compiled, $operator, $baseline));
         $this->statusUpdater = Closure::fromCallable($statusUpdater ?? fn (int $formId, string $status, array $extra = [], ?array $baseline = null): int => $this->persistStatus($formId, $status, $extra, $baseline));
@@ -65,13 +65,12 @@ final class FormPublishService
     {
         $this->assertDynamicTarget($payload);
         $compiled = $this->compileForPublish($payload);
-        $compatible = $this->compatiblePayload($payload, $compiled);
-        $this->forms->validateDefinition($compatible);
+        $this->forms->assertPublishable($compiled);
         return [
             'formSchemaHash' => $compiled->hash(),
             'formDependencyHash' => $this->dependencies($compiled)['dependencyHash'],
             'diagnostics' => [],
-            'ddl' => ($this->previewDdl)($compatible),
+            'ddl' => ($this->previewDdl)($compiled),
             'publishStatus' => 'ready',
         ];
     }
@@ -88,8 +87,7 @@ final class FormPublishService
         }
         try {
             $compiled = $this->compileForPublish($payload);
-            $compatible = $this->compatiblePayload($payload, $compiled);
-            $this->forms->validateDefinition($compatible);
+            $this->forms->assertPublishable($compiled);
             $baseline ??= ($this->publishedBaselineReader)($formId, $compiled->key());
             $requestedDependencyHash = trim((string) ($payload['formDependencyHash'] ?? $payload['form_dependency_hash'] ?? ''));
             $currentDependencyHash = (string) $this->dependencies($compiled)['dependencyHash'];
@@ -107,14 +105,14 @@ final class FormPublishService
         $this->setStatus($formId, 'ddl_pending', [], $baseline);
         $ddlApplied = false;
         try {
-            $saved = ($this->saveForm)($compatible);
-            $definition = $this->definitionPayload($saved);
-            $formId = (int) ($definition['id'] ?? $formId);
+            $saved = ($this->saveForm)(array_replace($payload, [
+                'expected_schema_hash' => trim((string) ($payload['expected_schema_hash'] ?? $payload['schema_hash'] ?? '')),
+            ]));
+            $formId = (int) ($this->savedForm($saved)['id'] ?? $formId);
             $this->setStatus($formId, 'publishing', [], $baseline);
-            $ddl = ($this->previewDdl)($definition);
-            if ((string) ($definition['source_type'] ?? 'created') === 'created') {
-                $definition['dynamic_ddl_hash'] = hash('sha256', (string) ($ddl['sql'] ?? ''));
-                $ddl = ($this->applyDdl)($definition);
+            $ddl = ($this->previewDdl)($compiled);
+            if ($this->sourceType($compiled) === 'created') {
+                $ddl = ($this->applyDdl)($compiled, hash('sha256', (string) ($ddl['sql'] ?? '')));
                 $ddlApplied = (bool) ($ddl['applied'] ?? false);
             }
         } catch (Throwable $exception) {
@@ -126,7 +124,7 @@ final class FormPublishService
         }
 
         try {
-            ($this->verifyStructure)($definition, $compiled);
+            ($this->verifyStructure)($compiled);
             $module = ($this->publishMetadata)($saved, $compiled, $operator, $baseline);
         } catch (Throwable $exception) {
             if ($exception->getMessage() !== 'FORM_SCHEMA_CONFLICT') {
@@ -190,15 +188,15 @@ final class FormPublishService
         return $dependencies;
     }
 
-    private function previewForwardDdl(array $payload): array
+    private function sourceType(FormSchema $compiled): string
     {
-        return $this->forms->previewMigration($payload);
+        return (string) ($compiled->document()['database']['source'] ?? 'created');
     }
 
     private function persistPublishedMetadata(array $saved, FormSchema $compiled, string $operator, array $baseline): array
     {
         $this->assertBusinessModuleStorage();
-        $definition = $this->definitionPayload($saved);
+        $definition = $this->savedForm($saved);
         $formId = (int) ($definition['id'] ?? 0);
         $code = $compiled->key();
         return Db::transaction(function () use ($definition, $formId, $code, $compiled, $operator, $baseline): array {
@@ -329,16 +327,15 @@ final class FormPublishService
             || str_contains($exception->getMessage(), 'Duplicate entry');
     }
 
-    private function assertStructure(array $payload): void
+    private function assertStructure(FormSchema $schema): void
     {
-        // table_name 为带前缀物理表名：按零前缀读取物理列，避免 Schema Builder 重复加前缀；getColumnListing 返回列表而非映射。
-        $metadata = SchemaInspector::forConnection((string) ($payload['connection'] ?? 'mysql'))->inspect((string) ($payload['table_name'] ?? ''));
+        // table 为带前缀物理表名：按零前缀读取物理列，避免 Schema Builder 重复加前缀；getColumnListing 返回列表而非映射。
+        $database = (array) ($schema->document()['database'] ?? []);
+        $metadata = SchemaInspector::forConnection((string) ($database['connection'] ?? 'mysql'))->inspect((string) ($database['table'] ?? ''));
         $actual = array_column((array) ($metadata['columns'] ?? []), 'name');
-        foreach ((array) ($payload['fields'] ?? []) as $field) {
-            $virtual = in_array((string) ($field['type'] ?? ''), ['group', 'grid', 'divider', 'text', 'collapse', 'tabs', 'repeatable', 'subform'], true)
-                || (string) ($field['relation_type'] ?? 'none') === 'has_many';
-            $name = (string) ($field['field_name'] ?? '');
-            if (!$virtual && !in_array($name, $actual, true)) {
+        foreach ($schema->fields() as $field) {
+            $name = $field->name();
+            if (!$field->isVirtual() && !in_array($name, $actual, true)) {
                 throw new InvalidArgumentException('DDL 结构验证失败，缺少字段：' . $name);
             }
         }
@@ -383,38 +380,10 @@ final class FormPublishService
         return $schema;
     }
 
-    private function compatiblePayload(array $payload, FormSchema $compiled): array
-    {
-        $expectedSchemaHash = trim((string) ($payload['expected_schema_hash'] ?? $payload['schema_hash'] ?? ''));
-        $document = $compiled->document();
-        $database = (array) ($document['database'] ?? []);
-        return array_replace($payload, [
-            'expected_schema_hash' => $expectedSchemaHash,
-            'form_key' => $compiled->key(),
-            'name' => (string) ($document['title'] ?? ''),
-            'table_name' => (string) ($database['table'] ?? $payload['table_name'] ?? ''),
-            'connection' => (string) ($database['connection'] ?? $payload['connection'] ?? 'mysql'),
-            'source_type' => (string) ($database['source'] ?? $payload['source_type'] ?? 'created'),
-            'fields' => $compiled->fieldProjection(),
-            'schema_version' => $compiled->version(),
-            'schema_document' => $document,
-            'schema_hash' => $compiled->hash(),
-            'schema_origin' => (string) ($payload['schema_origin'] ?? 'designer'),
-        ]);
-    }
-
-    private function definitionPayload(array $saved): array
+    /** saveForm 返回的表单记录（模型或数组）转为数组。 */
+    private function savedForm(array $saved): array
     {
         $form = $saved['form'] ?? null;
-        $data = is_object($form) && method_exists($form, 'toArray') ? $form->toArray() : (array) $form;
-        $fields = $saved['fields'] ?? [];
-        if (is_object($fields) && method_exists($fields, 'toArray')) {
-            $fields = $fields->toArray();
-        }
-        $data['fields'] = array_map(
-            static fn ($field): array => is_object($field) && method_exists($field, 'toArray') ? $field->toArray() : (array) $field,
-            (array) $fields
-        );
-        return $data;
+        return is_object($form) && method_exists($form, 'toArray') ? $form->toArray() : (array) $form;
     }
 }

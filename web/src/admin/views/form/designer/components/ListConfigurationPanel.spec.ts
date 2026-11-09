@@ -4,9 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Panel from './ListConfigurationPanel.vue';
 import { useDesigner } from '../../composables/useDesigner';
 import ElementPlus from 'element-plus';
+import { fieldNodes } from '../../schema/fieldNodes';
+import type { FormSchemaNode } from '../../schema/types';
 
 const api = vi.hoisted(() => ({ modules: vi.fn(), module: vi.fn(), meta: vi.fn(), sourceCandidates: vi.fn(), sourceMeta: vi.fn(), fieldCapabilities: vi.fn(), listActions: vi.fn(), designActionCatalog: vi.fn() }));
-const safeSource = { moduleId: 1, moduleCode: 'allowed', formKey: 'allowed_form', primaryKey: { name: 'code', type: 'string' }, fields: [{ field_name: 'title', label: '标题' }] };
+const safeSource = { moduleId: 1, moduleCode: 'allowed', formKey: 'allowed_form', primaryKey: { name: 'code', type: 'string' }, fields: [{ field: 'title', title: '标题' }] };
+// 设计器字段节点（与 designer/index.vue 一致，经 fieldNodes() 展开后传入）。
+const node = (field: string, title: string, type: string, columnType: string, extra: Partial<FormSchemaNode> = {}): FormSchemaNode => ({ id: `node_${field}`, kind: 'field', type, field, title, children: [], database: { columnType, relation: { type: 'none' } }, ...extra });
 vi.mock('@/api/development/business', () => ({ businessDevelopmentApi: api }));
 vi.mock('@/api/formData', () => ({ formDataApi: api }));
 const box = defineComponent({ template: '<div><slot /></div>' });
@@ -44,10 +48,47 @@ describe('独立分类配置入口', () => {
   });
   it('右表允许选择真实 belongs_to 外键，但选项筛选仍排除关系字段', async () => {
     const wrapper = render();
-    await wrapper.setProps({ fields: [{ field_name: 'category_id', label: '分类', column_type: 'bigint', relation_type: 'belongs_to', type: 'relation' }] as never });
+    await wrapper.setProps({ fields: [node('category_id', '分类', 'relation', 'bigint', { database: { columnType: 'bigint', relation: { type: 'belongs_to', table: 'category' } } })] });
     const state = (wrapper.vm as any).$.setupState;
-    expect(state.targetFields?.map((field: any) => field.field_name)).toEqual(['category_id']);
+    expect(state.targetFields?.map((field: any) => field.field)).toEqual(['category_id']);
     expect(state.scalarFields).toEqual([]);
+    wrapper.unmount();
+  });
+  it('右表关联字段读取字段节点：布局内的标量字段可选，敏感与多选字段排除，传给工作区的是 {field,title}', async () => {
+    const nodes: FormSchemaNode[] = [
+      { id: 'node_tabs', kind: 'layout', type: 'tabs', title: '页签', children: [node('code', '编码', 'input', 'varchar(32)')] },
+      node('secret', '密钥', 'password', 'varchar(255)'),
+      node('tags', '标签', 'select', 'varchar(255)', { props: { multiple: true } }),
+      node('token', '令牌', 'input', 'varchar(64)', { props: { writeOnly: 1 } }),
+      node('title', '标题', 'input', 'varchar(100)')
+    ];
+    const wrapper = render('categories');
+    await wrapper.setProps({ fields: fieldNodes(nodes), modelValue: { leftTree: { ...config().leftTree, source: { type: 'current' as const } } } });
+    const state = (wrapper.vm as any).$.setupState;
+    expect(state.targetFields.map((field: FormSchemaNode) => field.field)).toEqual(['code', 'title']);
+    const workspace = wrapper.findComponent({ name: 'CategoryWorkspace' });
+    expect(workspace.props('targetFields')).toEqual([{ field: 'code', title: '编码' }, { field: 'title', title: '标题' }]);
+    expect(workspace.props('sourceFields')).toEqual([{ field: 'code', title: '编码' }, { field: 'title', title: '标题' }]);
+    wrapper.unmount();
+  });
+  it('分类字段、筛选字段、按钮字段与预览列读取节点的 dataSource / list / access', async () => {
+    const nodes: FormSchemaNode[] = [
+      node('status', '状态', 'select', 'varchar(20)', { dataSource: { kind: 'static', options: [{ label: '启用', value: 'on' }] }, list: { show: true, filter: 'eq' } }),
+      node('level', '等级', 'select', 'int', { dataSource: { kind: 'dictionary' }, list: { filter: 'none' } }),
+      node('owner', '负责人', 'input', 'varchar(50)', { access: { read: ['x:y:read'] }, list: { show: true, filter: 'like' } }),
+      node('remote', '远程', 'select', 'varchar(20)', { dataSource: { kind: 'api' } })
+    ];
+    const wrapper = mount(Panel, { props: { modelValue: config(), fields: fieldNodes(nodes), mode: 'categories' }, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElSwitch: switchStub, ElSelect: box, ElOption: true } } });
+    const state = (wrapper.vm as any).$.setupState;
+    expect(wrapper.findComponent({ name: 'CategoryWorkspace' }).props('categoryFields')).toEqual([{ field: 'status', title: '状态' }, { field: 'level', title: '等级' }]);
+    expect(state.filterFields).toEqual(['status', 'owner']);
+    // 带访问控制的字段不能被按钮参数或预览引用（与后端 ListButtonSchemaValidator 一致）。
+    expect(state.buttonFields).toEqual(['id', 'status', 'level', 'remote']);
+    expect(state.previewColumns).toEqual([
+      { field: 'status', label: '状态', options: [{ label: '启用', value: 'on' }], numeric: false },
+      { field: 'level', label: '等级', options: undefined, numeric: true },
+      { field: 'remote', label: '远程', options: undefined, numeric: false }
+    ]);
     wrapper.unmount();
   });
   it('页签行「刷新目录」调用原目录加载并更新目录规模', async () => {
@@ -109,7 +150,7 @@ describe('独立分类配置入口', () => {
     await state.chooseModule('allowed');
     expect(api.sourceMeta).toHaveBeenCalledWith('allowed_form');
     expect(api.module).not.toHaveBeenCalled();
-    expect(state.externalFields.map((field: any) => field.field_name)).toEqual(['code', 'title']);
+    expect(state.externalFields).toEqual([{ field: 'code', title: '来源主键' }, { field: 'title', title: '标题' }]);
     expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({ leftTree: { source: { type: 'module', module: 'allowed' }, mapping: { valueField: 'code', targetField: 'category_id' } } });
     wrapper.unmount();
   });
@@ -128,13 +169,13 @@ describe('独立分类配置入口', () => {
   });
   describe('分类树待完成：必填映射为空时不写入 enabled: true', () => {
     const fields = [
-      { field_name: 'sort', label: '排序', type: 'number', column_type: 'int', relation_type: 'none' },
-      { field_name: 'title', label: '标题', type: 'input', column_type: 'varchar(100)', relation_type: 'none' },
-      { field_name: 'remark', label: '备注', type: 'textarea', column_type: 'text', relation_type: 'none' },
-      { field_name: 'category_id', label: '分类', type: 'number', column_type: 'bigint', relation_type: 'none' }
+      node('sort', '排序', 'number', 'int'),
+      node('title', '标题', 'input', 'varchar(100)'),
+      node('remark', '备注', 'textarea', 'text'),
+      node('category_id', '分类', 'number', 'bigint')
     ];
     const empty = { enabled: false, source: { type: 'current' as const }, mapping: { valueField: '', labelField: '', targetField: '' } };
-    const mountPanel = (modelValue: Record<string, unknown>) => mount(Panel, { props: { modelValue, fields, mode: 'categories' } as never, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElSwitch: switchStub, ElSelect: box, ElOption: true } } });
+    const mountPanel = (modelValue: Record<string, unknown>) => mount(Panel, { props: { modelValue, fields, mode: 'categories' }, global: { plugins: [ElementPlus], stubs: { ElCard: box, ElSwitch: switchStub, ElSelect: box, ElOption: true } } });
     const lastUpdate = (wrapper: ReturnType<typeof mountPanel>) => wrapper.emitted('update')?.at(-1)?.[0] as any;
     const checked = (wrapper: ReturnType<typeof mountPanel>) => wrapper.findAll('[data-category-mode][aria-checked="true"]').map(item => item.attributes('data-category-mode'));
     const missing = (wrapper: ReturnType<typeof mountPanel>) => wrapper.findAll('[data-category-pending] [data-missing-mapping]').map(item => item.attributes('data-missing-mapping'));

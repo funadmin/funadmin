@@ -18,7 +18,7 @@ final class DefinitionValidator
     private const ROOT_KEYS = [
         'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'apiPrefix', 'routePath',
         'primaryKey', 'timestamps', 'softDeletes', 'target', 'generationTargets', 'permissionPrefix', 'fields',
-        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission', 'layoutSchema',
+        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope', 'menu', 'permission',
         'formSchemaVersion', 'formSchemaHash', 'formSchema', 'list', 'tableIdentity', 'memberApi',
     ];
     private const ARTIFACT_KEYS = [

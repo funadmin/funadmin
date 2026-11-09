@@ -1,10 +1,11 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ElementPlus from 'element-plus';
 import { createI18n } from 'vue-i18n';
 import zhCN from '@/locales/zh-CN';
 import { useDesigner, type DesignerStore } from '../../composables/useDesigner';
+import { withRequired } from '../../schema/nodeEdits';
 import DesignerCanvas from './DesignerCanvas.vue';
 
 vi.mock('sortablejs', () => ({ default: { create: () => ({ destroy() {} }) } }));
@@ -63,12 +64,32 @@ describe('设计画布节点', () => {
   it('字段显示标签与必填标记，容器显示分组标题', async () => {
     const group = store.addNode('group');
     store.addNode('input', group.id);
-    store.updateField({ label: '订单号', form_required: 1 });
+    store.updateNode(withRequired({ ...store.selectedNode.value!, title: '订单号' }, true));
     render();
     await nextTick();
     expect(node(group.id).get('.designer-group-title').text()).toContain(group.title);
     const label = wrapper.get('.designer-field-label');
     expect(label.text()).toBe('订单号');
+    expect(label.classes()).toContain('is-required');
+  });
+
+  it('字段预览直接把节点交给 FormControlRenderer，选项取自 node.dataSource.options', async () => {
+    const select = store.addNode('select');
+    const target = store.nodes.value.find((item) => item.id === select.id)!;
+    target.title = '状态';
+    target.defaultValue = 'on';
+    target.validation = [{ type: 'required' }];
+    target.dataSource = { kind: 'static', options: [{ label: '开', value: 'on' }] };
+    const Control = defineComponent({ name: 'FormControlRenderer', props: { node: Object, modelValue: null, options: Array }, setup: () => () => h('div', { class: 'control-stub' }) });
+    wrapper = mount(DesignerCanvas, { props: { nodes: store.nodes.value, store }, global: { plugins: [ElementPlus, i18n], stubs: { FormControlRenderer: Control } } });
+    await nextTick();
+    const control = wrapper.getComponent(Control);
+    expect(control.props('node')).toStrictEqual(target);
+    expect(control.attributes('field')).toBeUndefined();
+    expect(control.props('modelValue')).toBe('on');
+    expect(control.props('options')).toEqual([{ label: '开', value: 'on' }]);
+    const label = wrapper.get('.designer-field-label');
+    expect(label.text()).toBe('状态');
     expect(label.classes()).toContain('is-required');
   });
 });

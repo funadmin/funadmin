@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
-import ElementPlus, { ElSelect, ElSwitch } from 'element-plus';
+import ElementPlus, { ElOption, ElSelect, ElSwitch } from 'element-plus';
 import Workspace from './CategoryWorkspace.vue';
 import { listButtonKeys } from '../../runtime/listButtonHost';
 import type { FormLeftTreeConfiguration, FormListButtonLocation, FormListConfiguration } from '../../schema/types';
@@ -9,9 +9,9 @@ afterEach(() => { document.body.innerHTML = ''; });
 const locationKeys: FormListButtonLocation[] = ['toolbar', 'row', 'categoryToolbar', 'categoryNode'];
 const locations = locationKeys.map(key => ({ key, label: key, fields: ['id', 'title'], builtinKeys: listButtonKeys[key], resourceEnabled: true }));
 const columns = [{ field: 'title', label: '标题' }, { field: 'status', label: '状态', options: [{ label: '待审核', value: 'pending' }, { label: '已审核', value: 'approved' }] }];
-const categoryFields = [{ field_name: 'status', label: '状态' }, { field_name: 'level', label: '等级' }];
-const sourceFields = [{ field_name: 'id', label: 'ID' }, { field_name: 'name', label: '名称' }, { field_name: 'parent_id', label: '父级' }];
-const targetFields = [{ field_name: 'category_id', label: '分类' }];
+const categoryFields = [{ field: 'status', title: '状态' }, { field: 'level', title: '等级' }];
+const sourceFields = [{ field: 'id', title: 'ID' }, { field: 'name', title: '名称' }, { field: 'parent_id', title: '父级' }];
+const targetFields = [{ field: 'category_id', title: '分类' }, { field: 'code', title: 'code' }];
 const tree = (patch: Partial<FormLeftTreeConfiguration> = {}): FormLeftTreeConfiguration => ({ enabled: true, source: { type: 'current' }, mapping: { valueField: 'id', labelField: 'name', targetField: 'category_id' }, actions: { create: true, addChild: true }, ...patch });
 const render = (modelValue: FormListConfiguration = {}, extra: { left?: FormLeftTreeConfiguration; treePending?: boolean } = {}) => {
   const left = extra.left ?? modelValue.leftTree ?? { enabled: false, source: { type: 'current' as const }, mapping: { valueField: '', labelField: '', targetField: '' } };
@@ -160,5 +160,14 @@ describe('分类管理工作区', () => {
     // 历史数据：已开启但映射缺失时同样提示
     const legacy = render({ leftTree: tree({ mapping: { valueField: '', labelField: 'name', targetField: 'category_id' } }) });
     expect(legacy.get('[data-category-pending]').findAll('[data-missing-mapping]').map(item => item.attributes('data-missing-mapping'))).toEqual(['valueField']);
+  });
+  it('字段选项读取 {field,title}：标题与字段名不同时显示「标题 (字段)」，值为字段名', () => {
+    const wrapper = render({ leftTree: tree() });
+    const options = (ariaLabel: string) => wrapper.findAllComponents(ElSelect).find(select => select.attributes('aria-label') === ariaLabel || select.find(`[aria-label="${ariaLabel}"]`).exists())!
+      .findAllComponents(ElOption).map(option => [option.props('label'), option.props('value')]);
+    expect(options('右表关联字段')).toEqual([['分类 (category_id)', 'category_id'], ['code', 'code']]);
+    expect(options('显示字段')).toEqual([['ID (id)', 'id'], ['名称 (name)', 'name'], ['父级 (parent_id)', 'parent_id']]);
+    const tabs = render({ category: { enabled: true, field: 'status' } });
+    expect(tabs.findComponent(ElSelect).findAllComponents(ElOption).map(option => option.props('value'))).toEqual(['status', 'level']);
   });
 });

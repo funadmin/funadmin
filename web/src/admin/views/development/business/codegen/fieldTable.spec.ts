@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FormSchemaDocument, FormSchemaNode } from '@/views/form/schema/types';
 import { useDesigner } from '@/views/form/composables/useDesigner';
+import { changeControl, patchList, withRequired } from '@/views/form/schema/nodeEdits';
 import { applyFieldPatches, moveFieldWithinParent, schemaToFieldRows } from './fieldTable';
 
 const field = (id: string, type: string, name: string, extra: Partial<FormSchemaNode> = {}): FormSchemaNode => ({
@@ -115,14 +116,15 @@ describe('applyFieldPatches', () => {
     expect(at(next, '/nodes/1/children/0/children/1').dataSource).toMatchObject({ kind: 'dictionary', dictionary: 'goods_status' });
   });
 
-  it('与设计器 updateField 对被改动的属性产出一致', () => {
+  it('与设计器 updateNode 对被改动的属性产出一致', () => {
     const store = useDesigner();
     expect(store.replaceSchema(makeDoc() as never).ok).toBe(true);
-    store.selectedKey.value = 'price';
-    store.updateField({ list_filter: 'gte', form_required: 1, label: '售价', list_width: 90, form_show: 0, list_sort: 1 });
-    store.selectedKey.value = 'status';
+    store.selectNode('n_price');
+    const price = store.selectedNode.value!;
+    store.updateNode(patchList(withRequired({ ...price, title: '售价', hidden: true }, true), { filter: 'gte', width: 90, sort: true }));
+    store.selectNode('n_status');
     // 属性面板 updateDictionary 的产出：保留原数据源其余键，kind 收敛为 dictionary
-    store.updateField({ options_source: { kind: 'dictionary', options: [{ label: '启用', value: 1 }], dictionary: 'goods_status' } });
+    store.updateNode({ dataSource: { ...store.selectedNode.value!.dataSource, kind: 'dictionary', dictionary: 'goods_status' } });
 
     const next = applyFieldPatches(makeDoc(), {
       '/nodes/1/children/0/children/0': { filter: 'gte', required: true, title: '售价', listWidth: 90, inForm: false, sortable: true },
@@ -180,9 +182,9 @@ describe('applyFieldPatches', () => {
 
     const store = useDesigner();
     expect(store.replaceSchema(doc as never).ok).toBe(true);
-    store.selectedKey.value = 'title';
-    // PropsPanel.onTypeChange('input') 的产出（column_type 除外）
-    store.updateField({ type: 'input', options_source: null, control_props: { clearable: true } });
+    store.selectNode('n_title');
+    // PropsPanel.onTypeChange('input') 在采纳表上的产出（列类型不变）
+    store.updateNode(changeControl(store.selectedNode.value!, 'input', { resetColumnType: false }));
     const theirs = store.nodes.value[0];
     expect([next.type, next.props, next.dataSource]).toStrictEqual([theirs.type, theirs.props, theirs.dataSource]);
 

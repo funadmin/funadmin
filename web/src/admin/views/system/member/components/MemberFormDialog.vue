@@ -23,9 +23,9 @@ import { hasPermission } from '@/utils/permission';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { memberApi, type MemberModel, type MemberOptions, type MemberPayload } from '@/api/system/member';
-import type { FormFieldDef } from '@/api/form';
 import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
-import { flattenSchemaNodes } from '@/views/form/schema/types';
+import { flattenSchemaNodes, type FormSchemaNode } from '@/views/form/schema/types';
+import { fieldNodes } from '@/views/form/schema/fieldNodes';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberModel | null; options: MemberOptions; lock?: { busy: boolean } }>(), { row: null });
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void; (event: 'success'): void }>();
@@ -34,20 +34,26 @@ const visible = computed({ get: () => props.modelValue, set: (value) => emit('up
 
 const formRef = ref<InstanceType<typeof SchemaRenderer>>();
 const definition = ref<MemberOptions>();
-const fields = ref<FormFieldDef[]>([]);
+type MemberChoice = { label: string; value: unknown };
+/** 关系字段选项的本地副本，可追加不可用的原值，不修改响应中的 schema。 */
+const choices = ref<Record<string, MemberChoice[]>>({});
 const values = ref<Record<string, any>>({});
 const loading = ref(false);
 const loadError = ref('');
 const saving = ref(false);
 const generation = ref(0);
 const relationKeys = ['group_ids', 'tag_ids', 'level_id'] as const;
+const schemaOptions = (nodes: FormSchemaNode[], key: string): MemberChoice[] | undefined => {
+  const options = fieldNodes(nodes).find(node => node.field === key)?.dataSource?.options;
+  return Array.isArray(options) ? options as MemberChoice[] : undefined;
+};
 const relationOptions = computed<Record<string, Array<{ label: string; value: unknown }>>>(() => Object.fromEntries(flattenSchemaNodes(definition.value?.schema?.nodes ?? []).filter(({ node }) => node.field && relationKeys.includes(node.field as typeof relationKeys[number])).map(({ node }) => {
-  const options = fields.value.find(field => field.field_name === node.field)?.options_source?.options;
+  const options = choices.value[node.field!];
   return [node.id, Array.isArray(options) ? options : []];
 })));
 const unavailable = computed(() => relationKeys.some((key) => {
   const current = key === 'level_id' ? [values.value[key]] : values.value[key] ?? [];
-  const options = definition.value?.fields?.find((field) => field.field_name === key)?.options_source?.options;
+  const options = schemaOptions(definition.value?.schema?.nodes ?? [], key);
   return Array.isArray(options) && current.some((id: number) => id > 0 && !options.some((option: any) => option.value === id));
 }));
 
@@ -56,21 +62,21 @@ async function loadDefinition() {
   const token = ++generation.value;
   const row = props.row;
   definition.value = undefined;
-  fields.value = [];
+  choices.value = {};
   loading.value = true;
   loadError.value = '';
   try {
     const result = await memberApi.options();
     if (token !== generation.value || !props.modelValue) return;
-    if (result.schema?.schemaVersion !== 2 || !Array.isArray(result.schema.nodes) || !result.fields?.length) throw new Error(t('systemMember.formDefinitionUnavailable', '会员表单定义不可用'));
-    fields.value = result.fields.map((field) => ({ ...field, options_source: field.options_source ? { ...field.options_source, options: [...(field.options_source.options as any[] ?? [])] } : null }));
+    if (result.schema?.schemaVersion !== 2 || !Array.isArray(result.schema.nodes)) throw new Error(t('systemMember.formDefinitionUnavailable', '会员表单定义不可用'));
+    const nodes = result.schema.nodes;
+    choices.value = Object.fromEntries(relationKeys.flatMap((key) => { const options = schemaOptions(nodes, key); return options ? [[key, [...options]]] : []; }));
     values.value = Object.fromEntries(flattenSchemaNodes(result.schema.nodes).filter(({ node }) => node.field).map(({ node }) => [node.field!, Array.isArray(node.defaultValue) ? [...node.defaultValue] : node.defaultValue]));
     if (row) {
       values.value = { username: row.username, mobile: row.mobile, email: row.email, sex: row.sex, status: row.status, avatar: row.avatar,
         group_ids: [...row.groupIds], tag_ids: [...row.tagIds], level_id: row.levelId };
       for (const key of relationKeys) {
-        const field = fields.value.find((item) => item.field_name === key);
-        const options = field?.options_source?.options as Array<{ label: string; value: number }> | undefined;
+        const options = choices.value[key];
         const ids = key === 'level_id' ? [row.levelId] : key === 'group_ids' ? row.groupIds : row.tagIds;
         const names = key === 'level_id' ? [row.levelName] : key === 'group_ids' ? row.groupNames : row.tagNames;
         ids.forEach((id, index) => {

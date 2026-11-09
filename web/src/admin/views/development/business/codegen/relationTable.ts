@@ -1,5 +1,6 @@
 import type { FormSchemaDocument, FormSchemaNode, FormSchemaRelation } from '@/views/form/schema/types';
-import { controlChange, dataSourceKind, isFieldContainer, updateNodeAtPath, walkFieldNodes } from './fieldTable';
+import { changeControl } from '@/views/form/schema/nodeEdits';
+import { dataSourceKind, isFieldContainer, updateNodeAtPath, walkFieldNodes } from './fieldTable';
 
 export interface RelationRow {
   origin: 'field' | 'subform' | 'model';
@@ -53,7 +54,7 @@ const withRelation = (node: FormSchemaNode, relation: Record<string, unknown>): 
 // 新增/修改 belongsTo：只合并 database.relation 的关联键；新增时等同于在设计器中把控件切换为「关联数据」
 const linkNode = (node: FormSchemaNode, row: RelationRow): FormSchemaNode => {
   const relation = relationOf(node);
-  const base = relation.type === 'belongs_to' || node.type === RELATION_CONTROL ? node : controlChange(node, RELATION_CONTROL);
+  const base = relation.type === 'belongs_to' || node.type === RELATION_CONTROL ? node : changeControl(node, RELATION_CONTROL, { resetColumnType: false });
   return withRelation(base, {
     multiple: false, onDelete: 'restrict', ...relation,
     type: 'belongs_to', table: row.table, labelField: row.labelField ?? '', valueField: row.foreignField
@@ -66,8 +67,8 @@ const unlinkNode = (node: FormSchemaNode): FormSchemaNode => {
   if (node.type === RELATION_CONTROL) {
     const kind = dataSourceKind(node.dataSource as Record<string, unknown> | null | undefined);
     base = kind === 'static' || kind === 'dictionary'
-      ? { ...controlChange(node, 'select'), dataSource: node.dataSource }
-      : controlChange(node, 'input');
+      ? { ...changeControl(node, 'select', { resetColumnType: false }), dataSource: node.dataSource }
+      : changeControl(node, 'input', { resetColumnType: false });
   }
   return withRelation(base, { ...relationOf(node), type: 'none' });
 };

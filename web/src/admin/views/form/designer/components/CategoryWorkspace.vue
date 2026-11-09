@@ -20,7 +20,7 @@
       <section v-if="mode === 'tabs'" class="category-workspace__sec" data-category-section="field">
         <b>{{ t('formDesigner.listPanel.categoryField', '分类绑定字段') }}</b>
         <el-select :model-value="modelValue.category?.field" filterable :placeholder="t('formDesigner.listPanel.categoryFieldPlaceholder', '选择已有静态选项或字典字段')" @change="(field: string) => emit('category', { field })">
-          <el-option v-for="field in categoryFields" :key="field.field_name" :label="fieldLabel(field)" :value="field.field_name" />
+          <el-option v-for="field in categoryFields" :key="field.field" :label="fieldLabel(field)" :value="field.field" />
         </el-select>
         <span class="category-workspace__muted">{{ categoryFields.length ? t('formDesigner.categoryWorkspace.tabsHint', '页签来自所选字段的静态选项或数据字典，列表顶部按该字段切换。') : t('formDesigner.categoryWorkspace.tabsEmpty', '暂无可用字段：请先在表单设计中为字段配置静态选项或数据字典。') }}</span>
       </section>
@@ -52,7 +52,7 @@
               <div :data-mapping="binding.key">
                 <el-select :model-value="left.mapping[binding.key]" clearable filterable :aria-label="binding.label" @change="(value: string) => setMapping(binding.key, value)">
                   <el-option v-if="binding.key === 'valueField' && showSystemPrimaryKey" :label="t('formDesigner.listPanel.systemPrimaryKey', '系统主键 (id)')" value="id" />
-                  <el-option v-for="field in sourceFields" :key="field.field_name" :label="fieldLabel(field)" :value="field.field_name" />
+                  <el-option v-for="field in sourceFields" :key="field.field" :label="fieldLabel(field)" :value="field.field" />
                 </el-select>
               </div>
               <span class="category-workspace__arr">·</span>
@@ -63,7 +63,7 @@
             <span class="category-workspace__arr">→</span>
             <div data-mapping="targetField">
               <el-select :model-value="left.mapping.targetField" clearable filterable :aria-label="t('formDesigner.listPanel.targetField', '右表关联字段')" :placeholder="t('formDesigner.listPanel.targetField', '右表关联字段')" @change="(value: string) => setMapping('targetField', value)">
-                <el-option v-for="field in targetFields" :key="field.field_name" :label="fieldLabel(field)" :value="field.field_name" />
+                <el-option v-for="field in targetFields" :key="field.field" :label="fieldLabel(field)" :value="field.field" />
               </el-select>
             </div>
           </div>
@@ -133,8 +133,8 @@ function choose(next: Mode) {
   else emit('clear');
 }
 const fieldLabel = (field: FormSourceField): string => {
-  const title = field.label?.trim();
-  return title && title !== field.field_name ? `${title} (${field.field_name})` : field.field_name;
+  const title = field.title?.trim();
+  return title && title !== field.field ? `${title} (${field.field})` : field.field;
 };
 const sourceOptions = computed(() => [{ value: 'current' as const, label: t('formDesigner.categoryWorkspace.sourceCurrent', '当前业务（自关联）') }, { value: 'module' as const, label: t('formDesigner.categoryWorkspace.sourceModule', '其他已发布业务') }]);
 const sourceTitle = computed(() => props.left.source.type === 'module' && props.left.source.module ? t('formDesigner.categoryWorkspace.sourceTableOf', { name: props.left.source.module }, '分类表 {name}') : t('formDesigner.categoryWorkspace.sourceTable', '分类表字段'));
@@ -150,7 +150,7 @@ const missingMappings = computed(() => [
   { key: 'labelField' as const, label: t('formDesigner.listPanel.labelField', '显示字段') },
   { key: 'targetField' as const, label: t('formDesigner.listPanel.targetField', '右表关联字段') }
 ].filter(item => !props.left.mapping[item.key]));
-const showSystemPrimaryKey = computed(() => props.left.source.type === 'current' && !props.sourceFields.some(field => field.field_name === 'id'));
+const showSystemPrimaryKey = computed(() => props.left.source.type === 'current' && !props.sourceFields.some(field => field.field === 'id'));
 const setMapping = (key: MappingKey, value: string) => emit('updateLeft', { mapping: { ...props.left.mapping, [key]: value } });
 const hasParent = computed(() => Boolean(props.left.mapping.parentField));
 const selectionMode = computed(() => props.left.selection?.mode ?? 'single');

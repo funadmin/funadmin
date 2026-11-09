@@ -137,7 +137,10 @@ final class GeneratedLeftTreePermissionTest extends TestCase
         $this->grant(['console-tree' => ['index', 'create']]);
         $tree = $this->service()->leftTree('console_host');
         self::assertSame(['create' => true, 'addChild' => true, 'edit' => false, 'delete' => false], $tree['actions']);
-        self::assertSame('console_tree', $this->service()->sourceMeta('console_tree')['formKey']);
+        $source = $this->service()->sourceMeta('console_tree');
+        self::assertSame('console_tree', $source['formKey']);
+        // 来源字段 DTO 只含 field/title 两个键。
+        self::assertContains(['field' => 'title', 'title' => '标题'], $source['fields']);
         self::assertSame(['console_tree'], array_column($this->service()->sourceCandidates()['list'], 'formKey'));
     }
 

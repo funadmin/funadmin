@@ -11,8 +11,9 @@ import ListButtonBar from '@/views/form/components/ListButtonBar.vue';
 import ListCategoryPanel from '@/views/form/components/ListCategoryPanel.vue';
 import ListSourceTree from '@/views/form/components/ListSourceTree.vue';
 import SchemaRenderer from '@/views/form/components/SchemaRenderer.vue';
+import FormDataImportDialog from '@/views/form/components/FormDataImportDialog.vue';
 import { formDataApi, type FormDataMeta } from '@/api/formData';
-import type { FormFieldDef } from '@/api/form';
+import type { FormSchemaNode } from '@/views/form/schema/types';
 
 const mocks = vi.hoisted(() => ({ route: {} as Record<string, unknown>, submit: vi.fn() }));
 vi.mock('vue-router', () => ({ useRoute: () => mocks.route, useRouter: () => ({ push: vi.fn() }) }));
@@ -29,25 +30,21 @@ function deferred<T>() {
   const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
   return { promise, resolve, reject };
 }
-const field = (name: string, filter = ''): FormFieldDef => ({
-  field_name: name, label: name, type: 'input', column_type: 'varchar', nullable: 1, default_value: '', comment: '', unsigned: 0,
-  index_type: 'none', placeholder: '', relation_type: 'none', relation_table: '', relation_label_field: '', relation_value_field: '',
-  relation_multiple: 0, relation_on_delete: 'restrict', list_show: 1, list_sort: 0, list_filter: filter, list_formatter: '', list_width: 0,
-  form_show: 1, form_required: 0, form_group: '', form_span: 24, form_readonly: 0, sort_order: 0
-});
+const node = (name: string, filter = ''): FormSchemaNode => ({ id: `node_${name}`, kind: 'field', type: 'input', field: name, title: name, children: [], database: { columnType: 'varchar' }, list: { show: true, ...(filter ? { filter } : {}) } });
+// 运行态页面只读取 schema.nodes；后端在 Task 11 前仍可能附带 fields，这里刻意不提供。
 function metadata(key = 'alpha'): FormDataMeta {
   return {
     form: { form_key: key, name: key } as FormDataMeta['form'],
-    fields: [field('name'), field('date', 'date')], primaryKey: { name: 'code', type: 'string' },
-    schema: { schemaVersion: 2, key, title: key, nodes: [], list: {} }, schemaHash: `${key}-hash`, etag: `${key}-etag`
-  };
+    primaryKey: { name: 'code', type: 'string' },
+    schema: { schemaVersion: 2, key, title: key, nodes: [node('name'), node('date', 'date')], list: {} }, schemaHash: `${key}-hash`, etag: `${key}-etag`
+  } as FormDataMeta;
 }
 const reply = (code: string) => ({ row: { code, name: code }, children: {} });
 type Reply = ReturnType<typeof reply>;
 const wrappers: VueWrapper[] = [];
 // 只替换表格渲染外壳，宿主 SFC、搜索表单、日期控件及弹窗均使用真实组件。
 const TableShell = defineComponent({
-  props: ['rows', 'lock'],
+  props: ['rows', 'lock', 'schema'],
   setup(_, { slots, expose }) {
     expose({ clearSelection: vi.fn() });
     return () => h('section', [slots.search?.(), slots.toolbar?.(), slots.actions?.({ row: { code: 'A', name: 'A' } })]);
@@ -168,6 +165,21 @@ for (const [name, page] of [['data', DataPage], ['published', PublishedPage]] as
       expect(state(wrapper).dateFilters).toEqual({});
       expect(picker.findAll('input').map(input => input.element.value)).toEqual(['', '']);
       expect(formDataApi.index).toHaveBeenLastCalledWith('alpha', expect.objectContaining({ page: 1, filters: { __leftTree: [] } }));
+    });
+
+    it('只读 schema 节点：分组内字段渲染列表列与筛选输入', async () => {
+      const meta = metadata();
+      const nested: FormSchemaNode = { id: 'node_title', kind: 'field', type: 'input', field: 'title', title: '标题', children: [], database: { columnType: 'varchar' }, list: { show: true, filter: 'like' } };
+      meta.schema.nodes = [{ id: 'group_main', kind: 'layout', type: 'group', title: '基础信息', children: [nested] }];
+      vi.mocked(formDataApi.meta).mockResolvedValue(meta);
+      const wrapper = await mountPage(page);
+      expect(wrapper.findComponent(TableShell).props('schema').columns).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'title', prop: 'title', label: '标题', slot: 'title' })]));
+      const item = wrapper.findComponent(SearchForm).findAll('.el-form-item').find(entry => entry.find('label').text() === '标题');
+      expect(item).toBeDefined();
+      await item!.find('input').setValue('关键字');
+      await wrapper.findComponent(SearchForm).findAll('button').find(button => button.text() === '查询')!.trigger('click');
+      expect(formDataApi.index).toHaveBeenLastCalledWith('alpha', expect.objectContaining({ filters: { title: '关键字', __leftTree: [] } }));
+      expect(wrapper.findComponent(FormDataImportDialog).props('fields')).toEqual([nested]);
     });
 
     for (const mode of ['edit', 'detail'] as const) {

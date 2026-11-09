@@ -45,6 +45,10 @@ final class CrudFrontendWorkspaceTest extends TestCase
         self::assertFileExists($this->frontend . '/src/admin/views/business/workspace-product/index.vue');
         self::assertFileExists($this->backend . '/app/admin/business/workspace_product/controller/WorkspaceProductController.php');
         self::assertDirectoryDoesNotExist($this->backend . '/web');
+        $formSource = (string) file_get_contents($this->frontend . '/src/admin/views/business/workspace-product/components/WorkspaceProductForm.vue');
+        self::assertStringNotContainsString('submissionFields', $formSource);
+        self::assertStringNotContainsString('FormFieldDef', $formSource);
+        self::assertStringContainsString('buildSubmissionPayload(sourceSchema.nodes,', $formSource);
         file_put_contents($this->frontend . '/src/admin/views/business/workspace-product/index.vue', 'local edit');
         $next = $generator->plan($definition);
         $view = array_column($next['files'], null, 'path')['web/src/admin/views/business/workspace-product/index.vue'];

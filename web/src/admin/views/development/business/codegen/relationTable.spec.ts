@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { FormSchemaDocument, FormSchemaNode } from '@/views/form/schema/types';
+import type { FormSchemaDatabase, FormSchemaDocument, FormSchemaNode } from '@/views/form/schema/types';
 import { useDesigner } from '@/views/form/composables/useDesigner';
+import { changeControl, patchRelation } from '@/views/form/schema/nodeEdits';
 import { applyRelationRows, schemaToRelationRows, type RelationRow } from './relationTable';
 
 const field = (id: string, type: string, name: string, extra: Partial<FormSchemaNode> = {}): FormSchemaNode => ({
@@ -10,7 +11,7 @@ const field = (id: string, type: string, name: string, extra: Partial<FormSchema
   ...extra
 });
 
-const belongsTo = (table: string, labelField: string) => ({
+const belongsTo = (table: string, labelField: string): FormSchemaDatabase => ({
   columnType: 'bigint', nullable: true, comment: '',
   relation: { type: 'belongs_to', table, labelField, valueField: 'id', multiple: false, onDelete: 'restrict' }
 });
@@ -89,14 +90,17 @@ describe('applyRelationRows', () => {
 
     const store = useDesigner();
     expect(store.replaceSchema(makeDoc() as never).ok).toBe(true);
-    store.selectedKey.value = 'name';
-    // PropsPanel.onTypeChange('relation') 的产出（不含 column_type，见实现说明）
-    store.updateField({ type: 'relation', options_source: { kind: 'relation', options: [] }, control_props: { clearable: true, filterable: true }, list_show: 1, form_required: 0 });
-    store.updateField({ relation_type: 'belongs_to', relation_table: 'fun_brand', relation_label_field: 'title', relation_value_field: 'id' });
+    store.selectNode('n_name');
+    // PropsPanel.onTypeChange('relation') 在采纳表上的产出（列类型不变），随后写关联
+    store.updateNode(changeControl(store.selectedNode.value!, 'relation', { resetColumnType: false }));
+    store.updateNode(patchRelation(store.selectedNode.value!, { type: 'belongs_to', table: 'fun_brand', labelField: 'title', valueField: 'id' }));
 
     const theirs = store.nodes.value[1];
-    expect([next.nodes[1].type, next.nodes[1].dataSource, next.nodes[1].props, next.nodes[1].database?.relation])
-      .toStrictEqual([theirs.type, theirs.dataSource, theirs.props, theirs.database?.relation]);
+    expect([next.nodes[1].type, next.nodes[1].dataSource, next.nodes[1].props])
+      .toStrictEqual([theirs.type, theirs.dataSource, theirs.props]);
+    // 设计器只写被编辑的关联键；关联表另补 multiple/onDelete 的缺省值（与后端 FormFieldView 缺省一致）。
+    expect(next.nodes[1].database?.relation).toMatchObject(theirs.database!.relation!);
+    expect(theirs.database?.columnType).toBe('varchar(100)');
     expect(next.nodes[1]).toMatchObject({ type: 'relation', dataSource: { kind: 'relation', options: [] }, props: { clearable: true, filterable: true } });
     expect(next.nodes[1].database).toMatchObject({ columnType: 'varchar(100)', relation: { type: 'belongs_to', table: 'fun_brand', labelField: 'title', valueField: 'id' } });
   });

@@ -9,7 +9,7 @@ export const isAdoptedTable = (doc: FormSchemaDocument, sourceType: string | und
 };
 
 /**
- * 字段表格切换控件：控件、选项来源、属性按 controlChange 重置；
+ * 字段表格切换控件：控件、选项来源、属性按 nodeEdits.changeControl 重置；
  * 新建表与设计器 PropsPanel.onTypeChange 一致，物理类型改为控件默认列类型；采纳表保留实际列类型。
  */
 export const changeFieldControl = (doc: FormSchemaDocument, path: string, type: string, adopted: boolean): FormSchemaDocument => {

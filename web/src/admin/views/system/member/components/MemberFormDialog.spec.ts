@@ -10,17 +10,15 @@ vi.mock('@/store/modules/user', () => ({ useUserStore: () => user }));
 vi.mock('@/views/form/components/SchemaRenderer.vue', () => ({ default: defineComponent({
   name: 'SchemaRenderer', props: ['schema', 'values', 'options'], setup(_, { expose }) { expose({ validate: api.validate }); }, template: '<div />'
 }) }));
-const definition = () => {
-  const result = ({
-  groups: [{ id: 7, name: '组' }], levels: [{ id: 3, name: '等级' }], tags: [], schema: { schemaVersion: 2, key: 'system_member', nodes: [] as any[] },
-  fields: [
+// 后端在 Task 11 前仍可能附带 fields；弹窗只读 schema.nodes，这里刻意不提供 fields。
+const definition = () => ({
+  groups: [{ id: 7, name: '组' }], levels: [{ id: 3, name: '等级' }], tags: [],
+  schema: { schemaVersion: 2, key: 'system_member', nodes: [
     ['username', 'input', ''], ['mobile', 'input', ''], ['email', 'input', ''], ['group_ids', 'select', [7]],
     ['level_id', 'select', 3], ['tag_ids', 'select', []], ['sex', 'radio', '0'], ['status', 'radio', 1], ['avatar', 'image', '']
-  ].map(([field_name, type, default_value]) => ({ field_name, type, default_value, options_source: { kind: 'static', options: field_name === 'group_ids' ? [{ label: '组', value: 7 }] : field_name === 'level_id' ? [{ label: '等级', value: 3 }] : [] } }))
+  ].map(([field, type, defaultValue]) => ({ id: `node_${field}`, field, type, kind: 'field', title: field, defaultValue, children: [],
+    dataSource: { kind: 'static', options: field === 'group_ids' ? [{ label: '组', value: 7 }] : field === 'level_id' ? [{ label: '等级', value: 3 }] : [] } })) }
 });
-  result.schema.nodes = result.fields.map(field => ({ id: field.field_name, field: field.field_name, type: field.type, kind: 'field', title: field.field_name, defaultValue: field.default_value, children: [] }));
-  return result;
-};
 const render = (row: any = null) => mount(MemberFormDialog, {
   props: { modelValue: true, row, options: definition() as any },
   global: { stubs: {
@@ -58,6 +56,16 @@ describe('会员 Builder 弹窗', () => {
     Object.assign(schema.props('values'), { username: '会员', mobile: '123456', email: '' });
     await wrapper.findAll('button').find((b) => b.text() === '确定')!.trigger('click'); await flushPromises();
     expect(api.create).toHaveBeenCalledWith({ username: '会员', mobile: '123456', email: '', groupIds: [7], levelId: 3, tagIds: [], sex: '0', status: 1, avatar: '' });
+    wrapper.unmount();
+  });
+  it('响应不含 fields 时仍从 schema 节点加载关系选项', async () => {
+    const response = definition();
+    expect(response).not.toHaveProperty('fields');
+    api.options.mockResolvedValueOnce(response);
+    const wrapper = render(); await flushPromises();
+    const schema = wrapper.findComponent({ name: 'SchemaRenderer' });
+    expect(schema.exists()).toBe(true);
+    expect(schema.props('options')).toEqual({ node_group_ids: [{ label: '组', value: 7 }], node_level_id: [{ label: '等级', value: 3 }], node_tag_ids: [] });
     wrapper.unmount();
   });
   it('失败时不展示旧定义，提供重试', async () => {

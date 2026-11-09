@@ -6,14 +6,14 @@
     <SchemaTablePage ref="tableRef" class="min-w-0 flex-1" :storage-key="`published-form-${formKey}`" :schema="tableSchema" :query="query" :rows="rows" :total="total" :loading="loading" :context="{ values: {}, permissions: user.permissions, handlers: {} }" :lock="buttonLock" @refresh="loadData" @selection-change="onSelectionChange" @sort-change="onSortChange">
       <template #search>
         <SearchForm :model="filters" :loading="loading" @search="onSearch" @reset="onReset">
-          <el-form-item v-for="field in filterFields" :key="field.field_name" :label="field.label">
-            <div v-if="field.list_filter === 'range'" class="flex gap-1"><el-input v-model="filters[field.field_name + '_from']" :placeholder="t('common.minValue', '最小值')" /><el-input v-model="filters[field.field_name + '_to']" :placeholder="t('common.maxValue', '最大值')" /></div>
-            <el-date-picker v-else-if="field.list_filter === 'date'" v-model="dateFilters[field.field_name]" type="daterange" value-format="YYYY-MM-DD" @change="syncDateFilter(field.field_name)" />
-            <el-select v-else-if="['is_null', 'not_null'].includes(field.list_filter)" v-model="filters[field.field_name]" clearable><el-option :label="t('common.enable', '启用')" value="1" /></el-select>
-            <el-select v-else-if="isDynamicFieldOptions(optionNode(field)) && ['eq', 'neq', '='].includes(field.list_filter)" v-model="filters[field.field_name]" :loading="filterOptions.pending.value[field.field_name]" :placeholder="filterOptions.placeholder(field.field_name) || t('common.pleaseSelect', '请选择')" clearable>
-              <el-option v-for="option in resolveFieldOptions(optionNode(field), filterOptions.supplied.value)" :key="String(option.value)" :label="option.label" :value="option.value as string | number" />
+          <el-form-item v-for="node in filterFields" :key="node.id" :label="node.title">
+            <div v-if="node.list?.filter === 'range'" class="flex gap-1"><el-input v-model="filters[nameOf(node) + '_from']" :placeholder="t('common.minValue', '最小值')" /><el-input v-model="filters[nameOf(node) + '_to']" :placeholder="t('common.maxValue', '最大值')" /></div>
+            <el-date-picker v-else-if="node.list?.filter === 'date'" v-model="dateFilters[nameOf(node)]" type="daterange" value-format="YYYY-MM-DD" @change="syncDateFilter(nameOf(node))" />
+            <el-select v-else-if="['is_null', 'not_null'].includes(node.list?.filter ?? '')" v-model="filters[nameOf(node)]" clearable><el-option :label="t('common.enable', '启用')" value="1" /></el-select>
+            <el-select v-else-if="isDynamicFieldOptions(node) && ['eq', 'neq', '='].includes(node.list?.filter ?? '')" v-model="filters[nameOf(node)]" :loading="filterOptions.pending.value[node.id]" :placeholder="filterOptions.placeholder(node.id) || t('common.pleaseSelect', '请选择')" clearable>
+              <el-option v-for="option in resolveFieldOptions(node, filterOptions.supplied.value)" :key="String(option.value)" :label="option.label" :value="option.value as string | number" />
             </el-select>
-            <el-input v-else v-model="filters[field.field_name]" clearable :placeholder="t('formData.filterPlaceholder', '请输入筛选值')" />
+            <el-input v-else v-model="filters[nameOf(node)]" clearable :placeholder="t('formData.filterPlaceholder', '请输入筛选值')" />
           </el-form-item>
         </SearchForm>
       </template>
@@ -21,17 +21,17 @@
         <el-alert v-if="recycled" :title="t('formData.recycleAlert', '回收站视图：仅显示已删除记录，可恢复或永久删除')" type="warning" :closable="false" class="mb-2" />
         <ListButtonBar :buttons="toolbarButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :lock="buttonLock" :refresh="loadData" :context="buttonContext('toolbar')" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" />
       </template>
-      <template v-for="field in listFields" :key="field.field_name" #[field.field_name]="{ row }">
-            <el-tag v-if="['switch', 'boolean'].includes(field.list_formatter)" :type="Number(row[field.field_name]) === 1 ? 'success' : 'info'">{{ presentField(field, row) }}</el-tag>
-            <el-tag v-else-if="field.list_formatter === 'tag'">{{ presentField(field, row) }}</el-tag>
-            <el-image v-else-if="field.list_formatter === 'image'" :src="String(row[field.field_name] || '')" fit="cover" class="h-10 w-10 rounded" />
-            <span v-else-if="['date', 'datetime', 'time', 'money', 'number', 'percent'].includes(field.list_formatter)">{{ presentField(field, row) }}</span>
-            <el-link v-else-if="['link', 'email', 'phone'].includes(field.list_formatter)" :href="formatLink(field.list_formatter, row[field.field_name])" target="_blank">{{ presentField(field, row) }}</el-link>
-            <code v-else-if="field.list_formatter === 'json'">{{ presentField(field, row) }}</code>
-            <span v-else>{{ presentField(field, row) }}</span>
+      <template v-for="node in listFields" :key="node.id" #[nameOf(node)]="{ row }">
+            <el-tag v-if="['switch', 'boolean'].includes(node.list?.formatter ?? '')" :type="Number(row[nameOf(node)]) === 1 ? 'success' : 'info'">{{ presentField(node, row) }}</el-tag>
+            <el-tag v-else-if="node.list?.formatter === 'tag'">{{ presentField(node, row) }}</el-tag>
+            <el-image v-else-if="node.list?.formatter === 'image'" :src="String(row[nameOf(node)] || '')" fit="cover" class="h-10 w-10 rounded" />
+            <span v-else-if="['date', 'datetime', 'time', 'money', 'number', 'percent'].includes(node.list?.formatter ?? '')">{{ presentField(node, row) }}</span>
+            <el-link v-else-if="['link', 'email', 'phone'].includes(node.list?.formatter ?? '')" :href="formatLink(node.list?.formatter ?? '', row[nameOf(node)])" target="_blank">{{ presentField(node, row) }}</el-link>
+            <code v-else-if="node.list?.formatter === 'json'">{{ presentField(node, row) }}</code>
+            <span v-else>{{ presentField(node, row) }}</span>
       </template>
       <template #actions="{ row }">
-        <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(field => field.field_name)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
+        <ListButtonBar :buttons="rowButtons" :handlers="buttonHandlers" :allowed="buttonAllowed" :row="row" :fields="listFields.map(nameOf)" :lock="buttonLock" :refresh="loadData" :context="buttonContext('row', row)" :context-version="buttonContextVersion" :permission-check="hasPermission" :clear-selection="clearSelection" :close="closeButtonHost" link />
       </template>
     </SchemaTablePage>
     <FormDataImportDialog v-model="importVisible" :fields="formFields" @submit="onImportRows" />
@@ -49,7 +49,7 @@
       />
       <template #footer><el-button @click="dialogVisible = false">{{ t('common.cancel', '取消') }}</el-button><el-button v-if="hasPermission(editingId === null ? 'form:data:create' : 'form:data:update')" type="primary" :loading="saving" @click="saveRow">{{ t('common.save', '保存') }}</el-button></template>
     </el-dialog>
-    <el-drawer v-model="detailVisible" :title="t('common.detail', '详情')" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="field in readableFields" :key="field.field_name" :label="field.label">{{ presentField(field, detail?.row ?? {}, detailOptions) }}</el-descriptions-item></el-descriptions></el-drawer>
+    <el-drawer v-model="detailVisible" :title="t('common.detail', '详情')" size="52%"><el-descriptions v-if="detail" :column="1" border><el-descriptions-item v-for="node in readableFields" :key="node.id" :label="node.title">{{ presentField(node, detail?.row ?? {}, detailOptions) }}</el-descriptions-item></el-descriptions></el-drawer>
   </PageWrapper>
 </template>
 
@@ -60,7 +60,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { formDataApi, type FormDataMeta, type FormFieldError, type FormRecordId } from '@/api/formData';
-import type { FormFieldDef } from '@/api/form';
 import type { ActionHandlers, FormAction } from './runtime/actionExecutor';
 import SchemaRenderer from './components/SchemaRenderer.vue';
 import ListCategoryPanel from './components/ListCategoryPanel.vue';
@@ -72,17 +71,17 @@ import FormDataImportDialog from './components/FormDataImportDialog.vue';
 import { resolveListButtons } from './schema/listButtons';
 import { provideListButtonAdapter, defaultListButtons, listActionKey, declaredCustomActionButton, type ListButtonHandlers } from './runtime/listButtonHost';
 import type { ListButtonContext } from './runtime/listButtonExecutor';
-import type { FormListButton } from './schema/types';
-import { formatFieldValue, resolveFieldOptions, useSuppliedFieldOptions, presentationNodes, isDynamicFieldOptions } from './runtime/fieldPresentation';
+import type { FormListButton, FormSchemaNode } from './schema/types';
+import { formatFieldValue, resolveFieldOptions, useSuppliedFieldOptions, isDynamicFieldOptions } from './runtime/fieldPresentation';
 import { useUserStore } from '@/store/modules/user';
 import { mapFieldErrors } from './validation/asyncValidatorRegistry';
 import {
   buildSubmissionPayload,
   emptyRuntimeValues,
-  isSensitiveField,
   resolveSubmissionInclude,
   sanitizeRuntimeRecord
 } from './runtime/submissionPolicy';
+import { fieldNodes, isSensitiveNode, columnTypeOf } from './schema/fieldNodes';
 
 provideListButtonAdapter({ api: formDataApi, declaration: { catalogPermission: 'form:data:list-actions', executePermission: 'form:data:list-action' } });
 const { t } = useI18n();
@@ -160,19 +159,19 @@ const dialogValues = reactive<Record<string, unknown>>({});
 const fieldOptions = useSuppliedFieldOptions(rows);
 const filterOptions = useSuppliedFieldOptions(filters);
 const detailOptions = useSuppliedFieldOptions(() => detailVisible.value && detail.value ? [detail.value.row] : []);
-const optionNodes = computed(() => presentationNodes(formFields.value, meta.value?.schema.nodes));
-const optionNode = (field: FormFieldDef) => optionNodes.value.find(node => node.field === field.field_name)!;
 const loadOptions = () => {
-  void fieldOptions.load(formKey.value, optionNodes.value.filter(node => listFields.value.some(field => field.field_name === node.field)));
-  void filterOptions.load(formKey.value, optionNodes.value.filter(node => filterFields.value.some(field => field.field_name === node.field)));
-  void detailOptions.load(formKey.value, optionNodes.value.filter(node => readableFields.value.some(field => field.field_name === node.field)));
+  void fieldOptions.load(formKey.value, listFields.value);
+  void filterOptions.load(formKey.value, filterFields.value);
+  void detailOptions.load(formKey.value, readableFields.value);
 };
 const invalidateOptions = () => { fieldOptions.invalidate(); filterOptions.invalidate(); detailOptions.invalidate(); };
 const schemaRendererRef = ref<InstanceType<typeof SchemaRenderer>>();
-const formFields = computed<FormFieldDef[]>(() => meta.value?.fields ?? []);
-const readableFields = computed(() => formFields.value.filter(field => field.form_show !== 0 && !['password', 'hidden'].includes(field.type) && !field.control_props?.sensitive && !field.control_props?.writeOnly));
-const listFields = computed(() => formFields.value.filter(field => field.list_show === 1 && !isSensitiveField(field)));
-const filterFields = computed(() => formFields.value.filter(field => field.list_filter !== '' && field.type !== 'hidden' && !isSensitiveField(field)));
+const formFields = computed(() => fieldNodes(meta.value?.schema.nodes ?? []));
+const schemaNodes = computed(() => meta.value?.schema.nodes ?? []);
+const nameOf = (node: FormSchemaNode) => node.field ?? '';
+const readableFields = computed(() => formFields.value.filter(node => !node.hidden && node.type !== 'hidden' && !isSensitiveNode(node)));
+const listFields = computed(() => formFields.value.filter(node => node.list?.show === true && !isSensitiveNode(node)));
+const filterFields = computed(() => formFields.value.filter(node => !!node.list?.filter && node.type !== 'hidden' && !isSensitiveNode(node)));
 const primaryKey = computed(() => meta.value?.primaryKey.name || 'id');
 const treeEnabled = computed(() => meta.value?.schema.list?.tree?.enabled === true);
 const tableSchema = computed<PageSchema>(() => ({ pageSchemaVersion: 1, key: 'published_form', primaryKey: primaryKey.value, search: [], toolbar: [], rowActions: [],
@@ -180,7 +179,7 @@ const tableSchema = computed<PageSchema>(() => ({ pageSchemaVersion: 1, key: 'pu
   columns: [
     ...(toolbarButtons.value.some(button => button.action.type === 'registered' || listActionKey(button) === 'batchDelete') ? [{ key: 'selection', label: '', type: 'selection' as const, width: 48 }] : []),
     { key: 'primary', prop: primaryKey.value, label: 'ID', width: 100, sortable: true },
-    ...listFields.value.map(field => ({ key: field.field_name, prop: field.field_name, label: field.label, slot: field.field_name, ...(field.list_width ? { width: field.list_width } : {}), sortable: field.list_sort === 1 })),
+    ...listFields.value.map(node => ({ key: nameOf(node), prop: nameOf(node), label: node.title, slot: nameOf(node), ...(node.list?.width ? { width: node.list.width } : {}), sortable: node.list?.sort === true })),
     ...(rowButtons.value.some(button => !button.hidden && (buttonAllowed(button) || declaredCustomActionButton(button, meta.value?.schema))) ? [{ key: 'actions', label: t('common.operation', '操作'), slot: 'actions', width: 180, fixed: 'right' as const }] : [])
   ], pagination: { pageSize: 20, pageSizes: [10, 20, 50, 100], enabled: !treeEnabled.value }
 }));
@@ -201,7 +200,7 @@ const actionHandlers: Partial<ActionHandlers> = {
   navigate: async (action) => { if (action.route) await router.push({ name: String(action.route), params: action.params as Record<string, string> | undefined, query: action.query as Record<string, string> | undefined }); },
   openDialog: async () => { dialogVisible.value = true; },
   submit: async () => { /* Schema submit 动作由当前保存生命周期统一提交。 */ },
-  reset: async () => { Object.assign(dialogValues, emptyRuntimeValues(formFields.value)); }
+  reset: async () => { Object.assign(dialogValues, emptyRuntimeValues(schemaNodes.value)); }
 };
 
 let metaSequence = 0;
@@ -258,7 +257,7 @@ const onExport = async () => {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${formKey.value}.json`; anchor.click(); URL.revokeObjectURL(url);
 };
-const presentField = (field: FormFieldDef, row: Record<string, unknown>, state = fieldOptions) => state.placeholder(field.field_name, row) || formatFieldValue(row[field.field_name], resolveFieldOptions(optionNode(field), state.forContext(row)), field.list_formatter, 'published');
+const presentField = (node: FormSchemaNode, row: Record<string, unknown>, state = fieldOptions) => state.placeholder(node.id, row) || formatFieldValue(row[nameOf(node)], resolveFieldOptions(node, state.forContext(row)), node.list?.formatter, 'published');
 const formatDate = (value: unknown, type: string) => formatFieldValue(value, [], type, 'published');
 const formatJson = (value: unknown) => formatFieldValue(value, [], 'json', 'published');
 const formatLink = (type: string, value: unknown) => type === 'email' ? `mailto:${String(value ?? '')}` : type === 'phone' ? `tel:${String(value ?? '')}` : /^https?:\/\//.test(String(value ?? '')) ? String(value) : '#';
@@ -280,8 +279,8 @@ const refreshAfterWrite = async () => {
     if (identity === formKey.value && sequence === dataSequence) ElMessage.warning(t('formData.refreshFailed', '操作已成功，但列表刷新失败，请手动刷新，不要重复提交'));
   }
 };
-const decodeValue = (field: FormFieldDef, value: unknown) => {
-  if (field.column_type !== 'json' || typeof value !== 'string' || value === '') return value;
+const decodeValue = (node: FormSchemaNode, value: unknown) => {
+  if (columnTypeOf(node) !== 'json' || typeof value !== 'string' || value === '') return value;
   try {
     return JSON.parse(value);
   } catch {
@@ -298,10 +297,10 @@ const openDialog = async (row?: Record<string, unknown>, copyCreate = false) => 
   const source = identity.id !== null ? await (copyCreate ? formDataApi.detail(identity.formKey, identity.id, true, identity.schemaHash) : formDataApi.detail(identity.formKey, identity.id)) : null;
   if (sequence !== dialogSequence || identity.formKey !== formKey.value || identity.schemaHash !== meta.value?.schemaHash || (copyCreate && !copyAllowed())) return;
   editingId.value = copyCreate ? null : identity.id;
-  const record = sanitizeRuntimeRecord(formFields.value, source?.row ?? row ?? {});
-  const values = { ...emptyRuntimeValues(formFields.value), ...record };
+  const record = sanitizeRuntimeRecord(schemaNodes.value, source?.row ?? row ?? {});
+  const values = { ...emptyRuntimeValues(schemaNodes.value), ...record };
   if (!copyCreate) for (const [relation, child] of Object.entries(source?.children ?? {})) values[relation] = child.list;
-  for (const field of formFields.value) values[field.field_name] = decodeValue(field, values[field.field_name]);
+  for (const node of formFields.value) values[nameOf(node)] = decodeValue(node, values[nameOf(node)]);
   Object.keys(dialogValues).forEach((key) => delete dialogValues[key]);
   Object.assign(dialogValues, values);
   dialogVisible.value = true;
@@ -326,7 +325,7 @@ const saveRow = async () => {
     await schemaRendererRef.value?.submit();
     if (sequence !== dialogSequence || identity !== JSON.stringify([formKey.value, editingId.value, meta.value?.schemaHash]) || !dialogVisible.value || !hasPermission(editingId.value === null ? 'form:data:create' : 'form:data:update')) return;
     const include = resolveSubmissionInclude({ schema_document: meta.value.schema });
-    const payload = buildSubmissionPayload(formFields.value, dialogValues, include, hasPermission);
+    const payload = buildSubmissionPayload(schemaNodes.value, dialogValues, include, hasPermission);
     const schemaHash = meta.value.schemaHash;
     if (editingId.value !== null) await formDataApi.update(formKey.value, editingId.value, payload, include, schemaHash);
     else await formDataApi.create(formKey.value, payload, include, schemaHash);
