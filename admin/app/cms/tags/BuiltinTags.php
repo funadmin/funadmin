@@ -15,10 +15,11 @@ final class BuiltinTags
 {
     private ?array $pagination=null;
     private bool $paginationClaimed=false;
+    private bool $formScript=false;
     public function registry(RenderContext $context): TagRegistry
     {
         $registry=new TagRegistry();
-        $registry->onRender(function():void{$this->pagination=null;$this->paginationClaimed=false;});
+        $registry->onRender(function():void{$this->pagination=null;$this->paginationClaimed=false;$this->formScript=false;});
         $registry->register('config',new CallbackTag(['name'=>['type'=>'string','required'=>true],'limit'=>['type'=>'integer','default'=>100,'min'=>1,'max'=>100],'offset'=>['type'=>'integer','default'=>0,'min'=>0,'max'=>10000]],static function($p,RenderContext $c){
             $value=$c->page['config'][$p['name']]??(new \app\cms\service\SiteConfiguration())->resolve($c->siteId,$c->locale)[$p['name']]??'';
             if(is_array($value)&&array_is_list($value))return array_slice(array_values(array_filter($value,static fn($row)=>($row['enabled']??true)===true)),$p['offset'],$p['limit']);
@@ -85,6 +86,12 @@ final class BuiltinTags
             if(!$this->pagination)return new TrustedHtml('');$data=$this->pagination;$pages=(int)ceil($data['total']/$data['limit']);if($pages<=1)return new TrustedHtml('');$html='<nav aria-label="分页" class="pagination">';$basePath=$c->page['base_path']??$c->page['path']??'/';$base=rtrim($basePath,'/');
             for($page=max(1,$data['page']-3);$page<=min($pages,$data['page']+3);$page++){$url=$page===1?$basePath:$base.'/page/'.$page.'/';$url=RouteService::encoded($url);if(($c->page['target_type']??'')==='search')$url=RouteService::encoded($basePath).'?'.http_build_query(['q'=>$c->page['query']??'','page'=>$page],'','&',PHP_QUERY_RFC3986);$html.='<a href="'.htmlspecialchars($url,ENT_QUOTES,'UTF-8').'"'.($page===$data['page']?' aria-current="page"':'').'>'.$page.'</a>';}
             return new TrustedHtml($html.'</nav>');
+        },false));
+        // 表单定义只作为数据传入可信文件模板；脚本每页只输出一次。
+        $registry->register('form',new CallbackTag(['name'=>['type'=>'string','required'=>true]],function($p,RenderContext $c):TrustedHtml {
+            $html=(new \app\cms\service\FormRenderer())->render($p['name'],$c);
+            if($html!==''&&!$this->formScript){$this->formScript=true;$html.=\app\cms\service\FormRenderer::SCRIPT;}
+            return new TrustedHtml($html);
         },false));
         $configFile=dirname(__DIR__).'/config/app.php';$configuration=is_file($configFile)?require $configFile:[];
         foreach(($configuration['tag_providers']??[]) as $provider){$instance=new $provider();if(!method_exists($instance,'register'))throw new \InvalidArgumentException('标签扩展必须提供 register');$instance->register($registry);}

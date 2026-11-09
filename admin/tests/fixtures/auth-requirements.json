@@ -1019,6 +1019,11 @@
         "login": false,
         "permission": null
     },
+    "GET /cms/forms/{code}/captcha => app\\cms\\controller\\FormEndpoint::captcha": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
     "GET /cms/member/context => app\\cms\\controller\\MemberContent::context": {
         "guard": "self",
         "login": false,
@@ -1034,7 +1039,7 @@
         "login": false,
         "permission": null
     },
-    "GET /cms/{path:(?!member(?:/|$)).+} => app\\cms\\controller\\Index::index": {
+    "GET /cms/{path:(?!(?:member|forms)(?:/|$)).+} => app\\cms\\controller\\Index::index": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -1104,7 +1109,7 @@
         "login": false,
         "permission": null
     },
-    "HEAD /cms/{path:(?!member(?:/|$)).+} => app\\cms\\controller\\Index::index": {
+    "HEAD /cms/{path:(?!(?:member|forms)(?:/|$)).+} => app\\cms\\controller\\Index::index": {
         "guard": "self",
         "login": false,
         "permission": null
@@ -1896,6 +1901,16 @@
     },
     "POST /api/v2/token/refresh => app\\api\\controller\\v2\\Token::refresh": {
         "guard": "member",
+        "login": false,
+        "permission": null
+    },
+    "POST /cms/forms/{code} => app\\cms\\controller\\FormEndpoint::submit": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "POST /cms/forms/{code}/token => app\\cms\\controller\\FormEndpoint::token": {
+        "guard": "self",
         "login": false,
         "permission": null
     },
