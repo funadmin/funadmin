@@ -20,6 +20,8 @@ final class FormSubmissionService
     public const ERRORS = ['token_invalid', 'too_fast', 'token_expired', 'too_many_requests', 'captcha_invalid', 'invalid_file_type', 'file_too_large', 'files_too_large'];
     public const MAX_TOTAL_UPLOAD = 50 * 1024 * 1024;
     public const PAGE_SIZE = 20;
+    /** 同一来源对同一表单提交完全相同的内容，在该秒数内只保存一次并照常返回成功（双击、刷新重发、网络重试）。 */
+    public const DUPLICATE_WINDOW = 600;
     /** 参与关键词搜索与列表摘要的文本类字段。 */
     private const TEXT_TYPES = ['text', 'textarea', 'email', 'phone', 'hidden'];
     private const SEARCH_LIMIT = 20000;
@@ -57,7 +59,10 @@ final class FormSubmissionService
         $form = $this->forms->resolve($siteId, $code, $locale) ?? throw new InvalidArgumentException('表单不存在', 404);
         $ok = ['status' => 'ok', 'message' => $form['settings']['success_message']];
         $guard = $this->guard ??= new FormGuard();
-        if ($guard->isHoneypot($input)) return $ok;
+        if ($guard->isHoneypot($input)) {
+            \support\Log::warning('cms.form.rejected', ['reason' => 'honeypot', 'site_id' => $siteId, 'form' => $form['code'] ?? $code, 'source' => FormGuard::bucket(self::meta($meta, 'ip'))]);
+            return $ok;
+        }
         $ip = mb_substr(self::meta($meta, 'ip'), 0, 45);
         try {
             $guard->verify(self::meta($meta, 'token'), $siteId, $form['id']);
@@ -86,6 +91,8 @@ final class FormSubmissionService
             if (in_array($field['type'], self::TEXT_TYPES, true) && isset($values[$field['name']])) $search[] = (string)$values[$field['name']];
         }
         $memberId = $meta['member_id'] ?? null;
+        $memberId = $memberId === null || $memberId === '' ? null : Input::id($memberId);
+        $fingerprint = self::fingerprint($siteId, $form['id'], $memberId, $ip, $values, $inspected);
         $row = [
             'site_id' => $siteId,
             'form_id' => $form['id'],
@@ -97,7 +104,8 @@ final class FormSubmissionService
             'source_url' => mb_substr(self::meta($meta, 'source_url'), 0, 1024),
             'ip' => $ip,
             'user_agent' => mb_substr(self::meta($meta, 'user_agent'), 0, 255),
-            'member_id' => $memberId === null || $memberId === '' ? null : Input::id($memberId),
+            'member_id' => $memberId,
+            'fingerprint' => $fingerprint,
             'lock_version' => 0,
             'handled_at' => null,
         ];
@@ -108,6 +116,9 @@ final class FormSubmissionService
                 $current = Db::table('cms_form')->where('site_id', $siteId)->where('id', $form['id'])->lockForUpdate()->first();
                 if (!$current || (int)$current->status !== 1) throw new InvalidArgumentException('表单不存在', 404);
                 $now = Input::now();
+                // 已持有表单行锁，同表单的并发提交在此串行，查重与写入之间不会插入同指纹记录。
+                if (Db::table('cms_form_submission')->where('site_id', $siteId)->where('form_id', $form['id'])->where('fingerprint', $row['fingerprint'])
+                    ->where('created_at', '>=', gmdate('Y-m-d H:i:s', time() - self::DUPLICATE_WINDOW))->exists()) return;
                 $id = (string)Db::table('cms_form_submission')->insertGetId($row + ['created_at' => $now, 'updated_at' => $now]);
                 $this->event($siteId, $id, 'created', null, $now);
                 foreach ($inspected as [$name, $file]) {
@@ -396,6 +407,17 @@ final class FormSubmissionService
             }
         }
         return [$inspected, $fileErrors, $total];
+    }
+
+    /**
+     * 来源（会员优先，否则按限流同样的 IP 归并）+ 表单 + 规范化后的值 + 附件字段与内容哈希；文件名不参与，改名重传仍视为同一提交。
+     * @param list<array{0:string,1:array{tmp:string}}> $inspected
+     */
+    private static function fingerprint(string $siteId, string $formId, ?string $memberId, string $ip, array $values, array $inspected): string
+    {
+        $files = array_map(static fn(array $item): array => [$item[0], (string)hash_file('sha256', $item[1]['tmp'])], $inspected);
+        $source = $memberId !== null ? 'member:' . $memberId : 'ip:' . FormGuard::bucket($ip);
+        return hash('sha256', json_encode([$siteId, $formId, $source, $values, $files], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
     /** @param list<string> $paths */

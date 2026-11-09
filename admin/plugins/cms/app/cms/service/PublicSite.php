@@ -18,7 +18,7 @@ final class PublicSite
         try{$path=RouteService::normalize(substr($internal,4)?:'/',false);}catch(InvalidArgumentException){return $this->error(400);}
         if($site['domain']['host']!==$site['primary_host'])return $this->redirect($site,$path,$request->queryString());
         if($path==='/robots.txt')return new Response(200,['Content-Type'=>'text/plain; charset=utf-8'],($site['settings']['robots']??"User-agent: *\nAllow: /\n")."\nSitemap: https://".$site['primary_host']."/sitemap.xml\n");
-        if($path==='/sitemap.xml')return $this->sitemap($site);
+        if($path==='/sitemap.xml')return $this->cached($request,$site,(string)$site['default_locale'],'/sitemap.xml','sitemap|'.(string)($site['updated_at']??''),'application/xml',fn():string=>$this->sitemap($site));
         $pageNumber=1;$routes=new RouteService();$route=$routes->resolve($site['id'],$path);$search=false;$query='';
         if(!$route&&preg_match('~^(.*)/page/([1-9][0-9]*)/?$~',$path,$m)) { $pageNumber=(int)$m[2];if($pageNumber>10000)return $this->error(404);$route=$routes->resolve($site['id'],($m[1]?:'').'/');if($route&&!in_array($route['target_type'],['home','category'],true))$route=null; }
         if(!$route&&preg_match('~^(.*)/feed\.xml$~',$path,$m))return $this->feed($request,$site,($m[1]?:'').'/');
@@ -33,21 +33,10 @@ final class PublicSite
         if($search){$requestedPage=filter_var($request->get('page',1),FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>10000]]);if($requestedPage===false)return $this->error(404);$page['page']=$requestedPage;$page['base_path']=$path;$expected=$path;$page['robots']='noindex,follow';$page['title']='搜索：'.$query;$page['seo_title']=$page['title'];$page['target_type']='search';if(BuiltinThemes::get($site['theme'])){$template='search';$page['title']=ThemePresentation::labels($language['locale'])['search_results'].' · '.$query;$page['seo_title']=$page['title'];}}
         elseif($path!==$expected)return $this->redirect($site,$expected,$request->queryString());
         $page['path']=$expected;
-        // 搜索结果随查询变化不缓存；其余公开页按站点版本缓存，缓存不可用时降级为直接渲染。
-        $cache=!$search&&PublicPageCache::enabled()?new PublicPageCache():null;
+        // 搜索结果随查询变化不缓存；其余公开页按站点版本缓存。
         $variant=(string)($site['updated_at']??'').'|'.(string)($site['theme']??'').'|'.(string)($language['updated_at']??'');
-        $cached=null;if($cache){try{$cached=$cache->get((string)$site['id'],(string)$language['locale'],$expected,$variant);}catch(\Throwable){$cache=null;}}
-        if($cached){$html=$cached['body'];$etag=$cached['etag'];}
-        else{
-            $html=(new Renderer())->render($site,$language,$page,$template,$content,$category);$etag=null;
-            if($cache){$etag=$cache->etag($html);try{$cache->put((string)$site['id'],(string)$language['locale'],$expected,$html,$etag,null,$variant);}catch(\Throwable){}}
-        }
-        $headers=['Content-Type'=>'text/html; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'];
-        if($etag===null)return new Response(200,$headers,$html);
-        // no-cache：浏览器与 CDN 每次带 ETag 回源校验，发布后不会继续展示旧页面。
-        $headers=['Cache-Control'=>'public, no-cache','ETag'=>$etag]+$headers;
-        if(PublicPageCache::matches((string)$request->header('if-none-match',''),$etag)){unset($headers['Content-Type']);return new Response(304,$headers,'');}
-        return new Response(200,$headers,$html);
+        $render=fn():string=>(new Renderer())->render($site,$language,$page,$template,$content,$category);
+        return $search?new Response(200,['Content-Type'=>'text/html; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'],$render()):$this->cached($request,$site,(string)$language['locale'],$expected,$variant,'text/html',$render);
     }
     private function redirect(array $site,string $path,string $query=''): Response
     {
@@ -59,10 +48,7 @@ final class PublicSite
         $sites=new SiteService();$routes=new RouteService();$language=null;
         foreach($sites->locales($site['id'],true) as $candidate){$route=$routes->canonical($site['id'],'home',$candidate['id']);if($route&&rtrim($route['path'],'/').'/'===$home){$language=$sites->language($site['id'],$candidate['locale']);break;}}
         if(!$language)return $this->error(404);
-        $cache=PublicPageCache::enabled()?new PublicPageCache():null;$variant='rss|'.(string)($site['updated_at']??'').'|'.(string)($language['updated_at']??'');$cached=null;
-        if($cache){try{$cached=$cache->get((string)$site['id'],(string)$language['locale'],$home.'feed.xml',$variant);}catch(\Throwable){$cache=null;}}
-        if($cached){$xml=$cached['body'];$etag=$cached['etag'];}
-        else{
+        return $this->cached($request,$site,(string)$language['locale'],$home.'feed.xml','rss|'.(string)($site['updated_at']??'').'|'.(string)($language['updated_at']??''),'application/rss+xml',function()use($site,$language,$home):string{
             $x=fn(string $v):string=>htmlspecialchars($v,ENT_XML1|ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$origin='https://'.$site['primary_host'];$items='';$latest=null;
             $configuration=(new SiteConfiguration())->resolve($site['id'],$language['locale']);$name=(string)(($configuration['brand_name']??'')?:$language['name']);
             foreach((new ContentService())->listing($site['id'],$language['locale'],['limit'=>20,'order'=>'published_desc'])['items'] as $item){
@@ -71,15 +57,24 @@ final class PublicSite
             }
             $xml='<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>'.$x($name).'</title><link>'.$x($origin.RouteService::encoded($home)).'</link><description>'.$x((string)($language['seo_description']??'')).'</description><language>'.$x((string)$language['locale']).'</language>';
             $xml.='<atom:link href="'.$x($origin.RouteService::encoded($home.'feed.xml')).'" rel="self" type="application/rss+xml"/>'.($latest?'<lastBuildDate>'.gmdate(DATE_RSS,$latest).'</lastBuildDate>':'').$items.'</channel></rss>';
-            $etag=null;if($cache){$etag=$cache->etag($xml);try{$cache->put((string)$site['id'],(string)$language['locale'],$home.'feed.xml',$xml,$etag,null,$variant);}catch(\Throwable){}}
-        }
-        $headers=['Content-Type'=>'application/rss+xml; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'];
-        if($etag===null)return new Response(200,$headers,$xml);
+            return $xml;
+        });
+    }
+    /** 共享缓存 + ETag：命中时直接返回，If-None-Match 匹配返回 304；缓存不可用时降级为直接生成。 */
+    private function cached(Request $request,array $site,string $locale,string $path,string $variant,string $type,callable $build): Response
+    {
+        $cache=PublicPageCache::enabled()?new PublicPageCache():null;$cached=null;
+        if($cache){try{$cached=$cache->get((string)$site['id'],$locale,$path,$variant);}catch(\Throwable){$cache=null;}}
+        if($cached){$body=$cached['body'];$etag=$cached['etag'];}
+        else{$body=$build();$etag=null;if($cache){$etag=$cache->etag($body);try{$cache->put((string)$site['id'],$locale,$path,$body,$etag,null,$variant);}catch(\Throwable){}}}
+        $headers=['Content-Type'=>$type.'; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'];
+        if($etag===null)return new Response(200,$headers,$body);
+        // no-cache：浏览器与 CDN 每次带 ETag 回源校验，发布后不会继续展示旧内容。
         $headers=['Cache-Control'=>'public, no-cache','ETag'=>$etag]+$headers;
         if(PublicPageCache::matches((string)$request->header('if-none-match',''),$etag)){unset($headers['Content-Type']);return new Response(304,$headers,'');}
-        return new Response(200,$headers,$xml);
+        return new Response(200,$headers,$body);
     }
-    private function sitemap(array $site): Response
+    private function sitemap(array $site): string
     {
         $xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
         foreach(Db::table('cms_route')->where('site_id',$site['id'])->where('kind','page')->orderBy('id')->limit(50000)->cursor() as $route){
@@ -90,7 +85,7 @@ final class PublicSite
             if($detail)$xml.='<lastmod>'.gmdate('c',strtotime($detail['published_updated_at'].' UTC')).'</lastmod>';
             $xml.='</url>';
         }
-        return new Response(200,['Content-Type'=>'application/xml; charset=utf-8'],$xml.'</urlset>');
+        return $xml.'</urlset>';
     }
     private function error(int $status): Response
     {

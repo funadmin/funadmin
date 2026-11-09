@@ -62,6 +62,11 @@ final class FormEndpoint
             ]);
         } catch (FormValidationException $e) {
             $formError = $e->errors['_form'] ?? '';
+            // 防刷拒绝（令牌、过快、限流、验证码）记审计日志，便于发现攻击；普通字段校验错误不记，且从不记录提交内容。
+            $reason = $formError !== '' ? $formError : (($e->errors['captcha'] ?? '') === 'captcha_invalid' ? 'captcha_invalid' : '');
+            if (in_array($reason, ['token_invalid', 'token_expired', 'too_fast', 'too_many_requests', 'captcha_invalid'], true)) {
+                Log::warning('cms.form.rejected', ['reason' => $reason, 'site_id' => (string)$site['id'], 'form' => $code, 'source' => FormGuard::bucket($this->ip($request))]);
+            }
             $status = $e->getCode() === 429 ? 429 : (in_array($formError, ['token_invalid', 'token_expired'], true) ? 419 : 422);
             return $this->failure($json, $site, $locale, $status, $e->errors, $labels, $back);
         } catch (InvalidArgumentException $e) {

@@ -31,9 +31,9 @@
 - [x] Verify escaping, noindex search, multilingual alternates and public routes.
 
 ### Task 3: Form idempotency and audit
-- [ ] Write failing tests for submission fingerprint, retry behavior, rate limits and duplicate response.
-- [ ] Add short-lived idempotency token/fingerprint storage and audit fields using existing form submission service.
-- [ ] Verify JSON and no-JS responses, CSRF/captcha, site isolation.
+- [x] Write failing tests for submission fingerprint, retry behavior, rate limits and duplicate response.
+- [x] Add short-lived idempotency token/fingerprint storage and audit fields using existing form submission service.
+- [x] Verify JSON and no-JS responses, CSRF/captcha, site isolation.
 
 ### Task 4: Accessibility and mobile baseline
 - [ ] Add contract/browser checks for focus visibility, alt, heading order, reduced motion, drawer focus and contrast tokens.
