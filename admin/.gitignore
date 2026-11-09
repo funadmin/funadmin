@@ -16,3 +16,34 @@
 !/plugins/*/storage/.gitkeep
 /plugins/*/.env
 /plugins/*/.DS_Store
+
+# 代码生成器产物不入库：生成的插件（含安装副本）与生成的业务模块
+# app/ 顶层只保留核心目录与内置插件，生成插件发布到 app/<code>/ 的独立应用不提交。
+# 新增核心目录时需在此加入 ! 例外。
+/app/*
+!/app/.gitignore
+!/app/.htaccess
+!/app/AppService.php
+!/app/BaseController.php
+!/app/ExceptionHandle.php
+!/app/functions.php
+!/app/admin/
+!/app/api/
+!/app/common/
+!/app/install/
+!/app/middleware/
+!/app/process/
+!/app/runtime/
+!/app/view/
+!/app/cms/
+!/app/document/
+!/app/oss/
+!/app/qa/
+/app/admin/plugins/*
+!/app/admin/plugins/cms/
+!/app/admin/plugins/document/
+!/app/admin/plugins/oss/
+!/app/admin/plugins/qa/
+/app/admin/business/
+/database/business/
+/tests/business/
