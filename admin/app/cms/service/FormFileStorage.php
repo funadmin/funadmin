@@ -45,7 +45,7 @@ final class FormFileStorage
 
     /**
      * @param array{tmp?:mixed,name?:mixed,size?:mixed} $upload
-     * @return array{ext:string,mime:string,size:int,name:string}
+     * @return array{ext:string,mime:string,size:int,name:string,tmp:string} `tmp` 是被校验的文件，store 只会复制它。
      */
     public function inspect(array $field, array $upload): array
     {
@@ -58,23 +58,30 @@ final class FormFileStorage
         $max = is_int($max) && $max > 0 ? min($max, FormFieldCatalog::MAX_FILE_SIZE) : FormFieldCatalog::MAX_FILE_SIZE;
         if ($size > $max) throw self::rejected('file_too_large');
         $name = self::name($upload['name'] ?? '');
-        $segments = explode('.', strtolower($name));
+        $segments = explode('.', mb_strtolower($name));
         $ext = count($segments) > 1 ? end($segments) : '';
-        if ($ext === '' || array_intersect(array_slice($segments, 1), self::BLACKLIST) !== [] || !in_array($ext, self::allowed($field), true)) throw self::rejected('invalid_file_type');
+        $extensions = array_map(static fn(string $segment): string => preg_replace('/^[\s\p{Z}.]+|[\s\p{Z}.]+$/u', '', $segment) ?? $segment, array_slice($segments, 1));
+        if ($ext === '' || array_intersect($extensions, self::BLACKLIST) !== [] || !in_array($ext, self::allowed($field), true)) throw self::rejected('invalid_file_type');
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($tmp);
         if (!is_string($mime) || !in_array($mime, self::MIME[$ext], true) || self::scriptLike($tmp)) throw self::rejected('invalid_file_type');
-        return ['ext' => $ext, 'mime' => self::MIME[$ext][0], 'size' => $size, 'name' => $name];
+        return ['ext' => $ext, 'mime' => self::MIME[$ext][0], 'size' => $size, 'name' => $name, 'tmp' => $tmp];
     }
 
     /**
-     * 复制到 `{root}/{siteId}/{Ym}/{32 位随机 hex}`（目录 0700、文件 0600），返回相对 root 的路径。
+     * 把 inspect 校验过的文件（`$inspected['tmp']`）复制到 `{root}/{siteId}/{Ym}/{32 位随机 hex}`（目录 0700、文件 0600），返回相对 root 的路径。
+     * 文件大小必须仍等于校验时的大小。
      *
-     * @param array{ext:string,mime:string,size:int,name:string} $inspected
+     * @param array{ext:string,mime:string,size:int,name:string,tmp:string} $inspected inspect 的返回值
      * @return array{path:string,sha256:string}
      */
-    public function store(string $siteId, array $inspected, string $tmpPath): array
+    public function store(string $siteId, array $inspected): array
     {
         $siteId = Input::id($siteId);
+        $tmpPath = $inspected['tmp'] ?? null;
+        $size = $inspected['size'] ?? null;
+        if (!is_string($tmpPath) || $tmpPath === '' || !is_int($size)) throw new InvalidArgumentException('附件未经校验', 422);
+        clearstatcache(true, $tmpPath);
+        if (is_link($tmpPath) || !is_file($tmpPath) || filesize($tmpPath) !== $size) throw new RuntimeException('上传文件在校验后发生变化');
         $month = date('Ym');
         self::directory($this->root, root: true);
         self::directory($this->root . '/' . $siteId);
@@ -92,7 +99,7 @@ final class FormFileStorage
         $copied = stream_copy_to_stream($source, $out);
         fclose($source);
         $closed = fclose($out);
-        if ($copied === false || !$closed || $copied !== ($inspected['size'] ?? $copied)) {
+        if ($copied === false || !$closed || $copied !== $size) {
             @unlink($target);
             throw new RuntimeException('附件写入不完整');
         }
@@ -143,9 +150,11 @@ final class FormFileStorage
     private static function name(mixed $value): string
     {
         $name = is_string($value) ? mb_scrub($value, 'UTF-8') : '';
-        $name = str_replace('\\', '/', preg_replace('/\p{Cc}/u', '', $name) ?? '');
+        // 控制字符与格式字符（含 U+202E 等双向覆盖、零宽字符）会让后台显示的文件名与实际扩展名不一致
+        $name = str_replace('\\', '/', preg_replace('/[\p{Cc}\p{Cf}]/u', '', $name) ?? '');
         $slash = strrpos($name, '/');
-        $name = trim($slash === false ? $name : substr($name, $slash + 1));
+        $name = $slash === false ? $name : substr($name, $slash + 1);
+        $name = preg_replace('/^[\s\p{Z}]+|[\s\p{Z}]+$/u', '', $name) ?? '';
         if (mb_strlen($name) <= 255) return $name;
         $dot = strrpos($name, '.');
         $suffix = $dot === false ? '' : substr($name, $dot);

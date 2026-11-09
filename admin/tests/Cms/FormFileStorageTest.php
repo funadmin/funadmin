@@ -52,20 +52,29 @@ final class FormFileStorageTest extends TestCase
         $this->rejects(self::file(),$this->upload('notes.txt','<script>alert(1)</script>'),'invalid_file_type','script payload with txt extension');
         $this->rejects(self::file(),$this->upload('notes.txt',"\xEF\xBB\xBF  <svg onload=alert(1)>"),'invalid_file_type','svg payload behind BOM and whitespace');
         $this->rejects(self::file(),$this->upload('a.php.pdf',self::PDF),'invalid_file_type','double extension with blacklisted segment');
+        $this->rejects(self::file(),$this->upload('a.php .pdf',self::PDF),'invalid_file_type','blacklisted segment padded with a space');
+        $this->rejects(self::file(),$this->upload('a.php..pdf',self::PDF),'invalid_file_type','blacklisted segment followed by an empty segment');
+        $this->rejects(self::file(),$this->upload("a.php\u{3000}.pdf",self::PDF),'invalid_file_type','blacklisted segment padded with unicode whitespace');
+        $this->rejects(self::file(),$this->upload("a.ph\u{200B}p.pdf",self::PDF),'invalid_file_type','blacklisted segment split by a zero-width character');
         $this->rejects(self::file(),$this->upload('logo.svg','<svg xmlns="http://www.w3.org/2000/svg"/>'),'invalid_file_type','svg is blacklisted');
         $this->rejects(self::file(['accept'=>['php']]),$this->upload('x.php','<?php echo 1;'),'invalid_file_type','blacklist beats accept');
         $this->rejects(self::file(),$this->upload('photo.pdf',base64_decode(self::PNG)),'invalid_file_type','sniffed mime must match extension');
         $this->rejects(self::file(),$this->upload('README',"plain text\n"),'invalid_file_type','no extension');
         $this->rejects(self::file(['accept'=>['pdf']]),$this->upload('notes.txt',"hello\n"),'invalid_file_type','extension outside field accept');
-        $ok=$this->storage->inspect(self::file(['accept'=>['document']]),$this->upload('Report.PDF',self::PDF));
-        self::assertSame(['ext'=>'pdf','mime'=>'application/pdf','size'=>strlen(self::PDF),'name'=>'Report.PDF'],$ok);
+        $pdf=$this->upload('Report.PDF',self::PDF);
+        self::assertSame(['ext'=>'pdf','mime'=>'application/pdf','size'=>strlen(self::PDF),'name'=>'Report.PDF','tmp'=>$pdf['tmp']],$this->storage->inspect(self::file(['accept'=>['document']]),$pdf));
     }
     public function test_image_field_rejects_documents(): void
     {
         $this->rejects(self::image(),$this->upload('cv.pdf',self::PDF),'invalid_file_type','image field with default accept');
         $this->rejects(self::image(['accept'=>['document']]),$this->upload('cv.pdf',self::PDF),'invalid_file_type','image field never accepts documents');
         $png=base64_decode(self::PNG);
-        self::assertSame(['ext'=>'png','mime'=>'image/png','size'=>strlen($png),'name'=>'dot.png'],$this->storage->inspect(self::image(),$this->upload('dot.png',$png)));
+        $dot=$this->upload('dot.png',$png);
+        self::assertSame(['ext'=>'png','mime'=>'image/png','size'=>strlen($png),'name'=>'dot.png','tmp'=>$dot['tmp']],$this->storage->inspect(self::image(),$dot));
+        $bidi=$this->storage->inspect(self::file(),$this->upload("x\u{202E}fdp\u{200B}.docx",$this->zip('word/document.xml')))['name'];
+        self::assertSame('xfdp.docx',$bidi,'format characters (bidi overrides, zero-width) are stripped from the name');
+        self::assertStringNotContainsString("\u{202E}",$bidi);
+        self::assertStringNotContainsString("\u{200B}",$bidi);
         $zip=tempnam($this->scratch,'zip');$archive=new \ZipArchive();$archive->open($zip,\ZipArchive::OVERWRITE);$archive->addFromString('word/document.xml','<w/>');$archive->close();
         $info=$this->storage->inspect(self::file(),['tmp'=>$zip,'name'=>"..\\dir/\x07Letter.docx",'size'=>filesize($zip)]);
         self::assertSame('docx',$info['ext'],'office containers sniffed as zip are accepted');
@@ -87,7 +96,7 @@ final class FormFileStorageTest extends TestCase
     {
         $png=base64_decode(self::PNG);
         $upload=$this->upload('dot.png',$png);
-        $stored=$this->storage->store('7',$this->storage->inspect(self::image(),$upload),$upload['tmp']);
+        $stored=$this->storage->store('7',$this->storage->inspect(self::image(),$upload));
         self::assertMatchesRegularExpression('#^7/'.date('Ym').'/[0-9a-f]{32}$#D',$stored['path']);
         self::assertSame(hash('sha256',$png),$stored['sha256']);
         $absolute=$this->storage->absolute('7',$stored['path']);
@@ -102,17 +111,36 @@ final class FormFileStorageTest extends TestCase
         $default=(new FormFileStorage())->absolute('7','7/202611/'.str_repeat('a',32));
         self::assertSame(rtrim(runtime_path('plugins-data/cms/forms'),'/').'/7/202611/'.str_repeat('a',32),$default,'default root is the private runtime directory');
         self::assertStringStartsNotWith($public,$default);
-        $second=$this->storage->store('7',$this->storage->inspect(self::image(),$upload),$upload['tmp']);
+        $second=$this->storage->store('7',$this->storage->inspect(self::image(),$upload));
         self::assertNotSame($stored['path'],$second['path'],'every stored file gets a fresh random name');
         $this->storage->delete('7',$stored['path']);
         self::assertFileDoesNotExist($absolute);
         $this->storage->delete('7',$stored['path']);
         self::assertDirectoryExists($this->root.'/7','delete keeps the site directory');
     }
+    public function test_store_only_copies_the_inspected_file(): void
+    {
+        $inspected=$this->storage->inspect(self::file(),$this->upload('a.txt',"hello\n"));
+        foreach(['tmp','size'] as $key){
+            $partial=$inspected;unset($partial[$key]);
+            try{$this->storage->store('1',$partial);self::fail('store must require '.$key);}catch(\InvalidArgumentException){}
+        }
+        $other=$this->upload('evil.txt','<?php echo 1;');
+        try{$this->storage->store('1',['tmp'=>$other['tmp']]+$inspected);self::fail('a swapped tmp file with another size must be refused');}catch(\RuntimeException){}
+        file_put_contents($inspected['tmp'],"HELLO\n");
+        $stored=$this->storage->store('1',$inspected);
+        self::assertSame("HELLO\n",file_get_contents($this->storage->absolute('1',$stored['path'])),'store copies exactly the path inspect returned');
+        self::assertSame([],array_values(array_filter(glob($this->root.'/1/'.date('Ym').'/*'),fn($f)=>file_get_contents($f)==='<?php echo 1;')),'the swapped file never lands');
+    }
+    private function zip(string $entry): string
+    {
+        $zip=tempnam($this->scratch,'zip');$archive=new \ZipArchive();$archive->open($zip,\ZipArchive::OVERWRITE);$archive->addFromString($entry,'<w/>');$archive->close();
+        return file_get_contents($zip);
+    }
     public function test_absolute_refuses_traversal_and_foreign_site(): void
     {
         $upload=$this->upload('a.txt',"hi\n");
-        $stored=$this->storage->store('1',$this->storage->inspect(self::file(),$upload),$upload['tmp']);
+        $stored=$this->storage->store('1',$this->storage->inspect(self::file(),$upload));
         $name=basename($stored['path']);$month=date('Ym');
         foreach(['2/'.$month.'/'.$name,'1/../2/'.$month.'/'.$name,'../'.$name,'1/'.$month.'/../../../etc/passwd','/etc/passwd',$this->root.'/'.$stored['path'],'1/'.$month.'/'.$name.'/','1/'.$month.'/'.strtoupper($name),''] as $path){
             try{$this->storage->absolute('1',$path);self::fail('Expected refusal: '.$path);}
