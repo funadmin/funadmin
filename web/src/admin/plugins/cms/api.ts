@@ -1,9 +1,26 @@
 import http from '@/utils/http';
-import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy } from './types';
+import { adminApiUrl } from '@/utils/apiUrl';
+import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy, CmsForm, FormSubmissionList, FormSubmissionDetail } from './types';
 const base = '/plugins/cms';
 const get = <T>(path: string, params?: FormData) => http.get<T>(`${base}${path}`, params);
 const post = <T>(path: string, data: FormData) => http.post<T>(`${base}${path}`, data);
+/** 附件与 CSV 是文件响应：后台会话 Cookie 随 GET 链接发送，直接作为浏览器链接打开。 */
+const query = (params: FormData) => Object.entries(params).flatMap(([key, value]) => Array.isArray(value) ? value.map(item => `${key}[]=${encodeURIComponent(String(item))}`) : value === undefined || value === null || value === '' ? [] : [`${key}=${encodeURIComponent(String(value))}`]).join('&');
+const link = (path: string, params: FormData) => adminApiUrl(`${base}${path}?${query(params)}`);
 export const cmsApi = {
+  forms: (site_id: string) => get<CmsForm[]>('/forms', {site_id}),
+  formSummary: (site_id: string) => get<{new_count: number}>('/forms/summary', {site_id}),
+  saveForm: (data: FormData) => post<CmsForm>('/forms/save', data),
+  formStatus: (data: FormData) => post<CmsForm>('/forms/status', data),
+  deleteForm: (data: FormData) => post<null>('/forms/delete', data),
+  formSubmissions: (params: FormData) => get<FormSubmissionList>('/forms/submissions', params),
+  formSubmission: (site_id: string, id: string) => get<FormSubmissionDetail>('/forms/submissions/detail', {site_id, id}),
+  noteFormSubmission: (data: FormData) => post<FormSubmissionDetail>('/forms/submissions/note', data),
+  transitionFormSubmission: (data: FormData) => post<FormSubmissionDetail>('/forms/submissions/transition', data),
+  invalidateFormSubmissions: (data: FormData) => post<{count: number}>('/forms/submissions/invalidate', data),
+  removeFormSubmissions: (data: FormData) => post<{count: number}>('/forms/submissions/remove', data),
+  formExportUrl: (params: FormData) => link('/forms/submissions/export', params),
+  formFileUrl: (site_id: string, file_id: string, preview = false) => link('/forms/files/download', preview ? {site_id, id: file_id, preview: 1} : {site_id, id: file_id}),
   contributionSettings: (site_id:string) => get<ContributionPolicy>('/contributions/settings',{site_id}),
   saveContributionSettings: (data:FormData) => post<ContributionPolicy>('/contributions/settings/save',data),
   configuration: (site_id: string, locale?: string) => get<SiteConfiguration>('/configuration', locale ? {site_id, locale} : {site_id}),

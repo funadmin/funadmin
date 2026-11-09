@@ -31,3 +31,16 @@ export type ConfigurationScalar = string|number|boolean|null;
 export type ConfigurationRow = Record<string, ConfigurationScalar> & { enabled: boolean };
 export interface ConfigurationField { key: string; label: string; type: ConfigurationType; group: string; localized: boolean; default: ConfigurationScalar|ConfigurationRow[]; options?: string[]; fields?: ConfigurationField[] }
 export interface SiteConfiguration { fields: ConfigurationField[]; values: Record<string, any>; overrides: Record<string, any>; effective: Record<string, any>; locale: string }
+
+export type FormSubmissionStatus = 'new'|'processing'|'done'|'invalid';
+export interface CmsFormOption { value: string; label: string }
+export interface CmsFormField { name: string; type: string; label: string; width: 'full'|'half'; placeholder?: string; help?: string; required?: boolean; default?: unknown; min?: number|string|null; max?: number|string|null; integer?: boolean; options?: CmsFormOption[]; multiple?: boolean; html?: string; accept?: string[]; max_size?: number; max_files?: number; value?: string; from_query?: boolean }
+export interface CmsFormFieldText { label?: string; placeholder?: string; help?: string; options?: Record<string, string> }
+export interface CmsFormLocaleText { name?: string; success_message?: string; submit_text?: string; fields?: Record<string, CmsFormFieldText> }
+export interface CmsFormSettings { success_message: string; submit_text: string; captcha: boolean; rate_limit: number }
+export interface CmsForm { id: Id; site_id: Id; code: string; name: string; enabled: boolean; fields: CmsFormField[]; texts: Record<string, CmsFormLocaleText>; settings: CmsFormSettings; lock_version: number; created_at: string; updated_at: string; submission_count?: number; new_count?: number }
+export interface FormSubmissionRow { id: Id; form_id: Id; locale: string; status: FormSubmissionStatus; source_url: string; ip: string; user_agent: string; member_id: Id|null; lock_version: number; handled_at: string|null; created_at: string; form_code: string; form_name: string; summary: Array<{label: string; value: string}> }
+export interface FormSubmissionList { list: FormSubmissionRow[]; total: number; page: number; pageSize: number }
+export interface FormSubmissionFile { id: Id; field: string; name: string; mime: string; size: number; created_at: string }
+export interface FormSubmissionEvent { id: Id; type: string; admin_id: Id|null; body: string; from_status: FormSubmissionStatus|null; to_status: FormSubmissionStatus|null; created_at: string }
+export interface FormSubmissionDetail extends Omit<FormSubmissionRow, 'summary'> { fields: Array<{name: string; type: string; label: string; value: unknown; text: string; files?: FormSubmissionFile[]}>; files: FormSubmissionFile[]; events: FormSubmissionEvent[] }

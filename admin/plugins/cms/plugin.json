@@ -39,7 +39,8 @@
       "Tags": "pages/Tags.vue",
       "Models": "pages/Models.vue",
       "Access": "pages/Access.vue",
-      "Contributions": "pages/Contributions.vue"
+      "Contributions": "pages/Contributions.vue",
+      "Forms": "pages/Forms.vue"
     },
     "minFrontendVersion": "1.0.0",
     "permissions": [
@@ -204,6 +205,10 @@
         "name": "查看站点成员与角色"
       },
       {
+        "code": "cms:forms:index",
+        "name": "查看表单列表"
+      },
+      {
         "code": "cms:form:list",
         "name": "查看表单"
       },
@@ -270,6 +275,11 @@
             "name": "会员投稿",
             "path": "/plugins/cms/contributions",
             "permission": "cms:contributions:index"
+          },
+          {
+            "name": "表单",
+            "path": "/plugins/cms/forms",
+            "permission": "cms:forms:index"
           },
           {
             "name": "导航管理",
@@ -373,6 +383,15 @@
         "meta": {
           "title": "会员投稿",
           "permission": "cms:contributions:index"
+        }
+      },
+      {
+        "path": "/plugins/cms/forms",
+        "name": "Plugin_cms_Forms",
+        "component": "Forms",
+        "meta": {
+          "title": "表单",
+          "permission": "cms:forms:index"
         }
       }
     ]
