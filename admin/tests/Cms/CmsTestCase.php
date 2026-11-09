@@ -9,11 +9,13 @@ abstract class CmsTestCase extends \PHPUnit\Framework\TestCase
     {
         parent::setUp();
         self::assertTrue(class_exists(\app\cms\service\Schema::class),'CMS schema must exist');
+        foreach(array_reverse(\app\cms\service\FormSchema::tables()) as $table) Db::schema()->dropIfExists($table);
         foreach(array_reverse(\app\cms\service\SiteRoleSchema::tables()) as $table) Db::schema()->dropIfExists($table);
         foreach(array_reverse(\app\cms\service\Schema::tables()) as $table) Db::schema()->dropIfExists($table);
         \app\cms\service\Schema::install();
         \app\cms\service\SiteRoleSchema::install();
         \app\cms\service\TemplateTagRemarkSchema::install();
+        \app\cms\service\FormSchema::install();
         \app\cms\service\ModelService::seed();
     }
     /**

@@ -25,7 +25,9 @@ final class SchemaTest extends CmsTestCase
         self::assertSame($sql.\app\cms\service\SiteRoleSchema::mysql().\app\cms\service\ContributionSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/001_cms.sql'));
         // 1.3.1 新增：自定义标签备注列（独立迁移，已执行的 001 保持不变）。
         self::assertSame(\app\cms\service\TemplateTagRemarkSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/002_template_tag_remark.sql'));
-        self::assertSame(['001_cms.sql','002_template_tag_remark.sql','003_remove_legacy_site_role.sql'],array_map('basename',glob(dirname(__DIR__,2).'/plugins/cms/database/migrations/*.sql')));
+        // 1.4.0 新增：自定义表单四张表。
+        self::assertSame(\app\cms\service\FormSchema::mysql(),file_get_contents(dirname(__DIR__,2).'/plugins/cms/database/migrations/004_forms.sql'));
+        self::assertSame(['001_cms.sql','002_template_tag_remark.sql','003_remove_legacy_site_role.sql','004_forms.sql'],array_map('basename',glob(dirname(__DIR__,2).'/plugins/cms/database/migrations/*.sql')));
     }
     public function test_legacy_site_role_cleanup_removes_only_unused_legacy_roles(): void
     {
