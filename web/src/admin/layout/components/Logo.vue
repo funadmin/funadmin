@@ -47,7 +47,6 @@ function onClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 阴影由 LogoMark 内部承载，避免双重阴影与紫色串色 */
 }
 .app-logo__text {
   font-size: 17px;
