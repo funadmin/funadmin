@@ -60,10 +60,7 @@ pnpm-debug.log*
 /tests/router/*
 !/tests/router/*.spec.ts
 
-# CMS plugin integration tests.
-!/tests/cms/
-!/tests/qa/
-!/tests/document/
+# 插件相关测试（cms/qa/document/oss）不入库，随插件本地维护。
 
 # Composer conflict confirmation regression test.
 !/tests/api/

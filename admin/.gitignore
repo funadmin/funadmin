@@ -40,3 +40,11 @@
 /app/admin/business/
 /database/business/
 /tests/business/
+# 插件相关测试不入库
+/tests/Cms/
+/tests/Document/
+/tests/Oss/
+/tests/Qa/
+/tests/DocumentMigrationTest.php
+/tests/DocumentPluginLayoutTest.php
+/tests/ExamplePluginRuntimeTest.php
