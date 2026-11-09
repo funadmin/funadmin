@@ -11,7 +11,7 @@ final class RouteService
         $path=rawurldecode($path);
         if(!mb_check_encoding($path,'UTF-8')||mb_strlen($path)>512||str_contains($path,'//')||preg_match('~(?:^|/)\.{1,2}(?:/|$)|[\\\\\x00-\x20?#]~',$path)) throw new InvalidArgumentException('访问路径无效');
         $path=mb_strtolower($path,'UTF-8');
-        if($publishing&&(preg_match('~^/(?:admin|web|api|identity|install|cms|plugin-assets|uploads|storage|health)(?:/|$)~',$path)||in_array(rtrim($path,'/'),['/sitemap.xml','/robots.txt','/search'],true)||preg_match('~/(?:page/[0-9]+|search)/?$~',$path))) throw new InvalidArgumentException('访问路径属于系统保留空间');
+        if($publishing&&(preg_match('~^/(?:admin|web|api|identity|install|cms|member|forms|plugin-assets|uploads|storage|health)(?:/|$)~',$path)||in_array(rtrim($path,'/'),['/sitemap.xml','/robots.txt','/search'],true)||preg_match('~/(?:page/[0-9]+|search)/?$~',$path))) throw new InvalidArgumentException('访问路径属于系统保留空间');
         return $path;
     }
     public function publish(string $siteId,string $locale,string $type,string|int $targetId,string $path): string

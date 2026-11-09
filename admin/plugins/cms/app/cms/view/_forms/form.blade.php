@@ -3,7 +3,7 @@
 <input type="hidden" name="_token" value="{{ $token }}">
 <input type="hidden" name="_locale" value="{{ $locale }}">
 <input type="hidden" name="_source" value="{{ $source }}">
-<div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden"><label for="{{ $uid }}-hp">{{ $ui['honeypot'] }}</label><input type="text" id="{{ $uid }}-hp" name="_hp" value="" tabindex="-1" autocomplete="off"></div>
+<div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden"><label for="{{ $uid }}--hp">{{ $ui['honeypot'] }}</label><input type="text" id="{{ $uid }}--hp" name="_hp" value="" tabindex="-1" autocomplete="off"></div>
 @foreach($form['fields'] as $field)
 @php($type = $field['type'])
 @if($type === 'divider')
@@ -49,8 +49,8 @@
 @endforeach
 @if($captcha)
 <div class="cms-form-field cms-form-captcha" data-field="captcha">
-<label class="cms-form-label" for="{{ $uid }}-captcha">{{ $ui['captcha'] }}<span class="cms-form-required" title="{{ $ui['required'] }}">*</span></label>
-<div class="cms-form-captcha-row"><input class="cms-form-control" type="text" id="{{ $uid }}-captcha" name="_captcha" required autocomplete="off" inputmode="latin" maxlength="10"><img src="{{ $captcha['image'] }}" alt="{{ $ui['captcha'] }}" data-captcha-image><button type="button" class="cms-form-captcha-refresh" data-captcha-refresh>{{ $ui['captcha_refresh'] }}</button></div>
+<label class="cms-form-label" for="{{ $uid }}--captcha">{{ $ui['captcha'] }}<span class="cms-form-required" title="{{ $ui['required'] }}">*</span></label>
+<div class="cms-form-captcha-row"><input class="cms-form-control" type="text" id="{{ $uid }}--captcha" name="_captcha" required autocomplete="off" inputmode="latin" maxlength="10"><img src="{{ $captcha['image'] }}" alt="{{ $ui['captcha'] }}" data-captcha-image><button type="button" class="cms-form-captcha-refresh" data-captcha-refresh>{{ $ui['captcha_refresh'] }}</button></div>
 <input type="hidden" name="_captcha_id" value="{{ $captcha['id'] }}">
 <p class="cms-form-error" data-error role="alert" hidden></p>
 </div>

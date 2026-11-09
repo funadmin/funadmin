@@ -88,7 +88,7 @@ final class FormPublicTest extends CmsTestCase
         self::assertStringNotContainsString('<script>alert',$html);
         self::assertStringNotContainsString('<img src=x',$html);
         self::assertStringContainsString('{{ 7*7 }} @php echo 1; @endphp',$html,'admin text is data, never compiled');
-        self::assertStringNotContainsString('49',$html);
+        self::assertMatchesRegularExpression('~<small class="cms-form-help"[^>]*>\{\{ 7\*7 \}\} @php echo 1; @endphp</small>~',$html,'help text is not evaluated (random tokens may contain "49", so match the element)');
         self::assertStringContainsString('&lt;i&gt;A&lt;/i&gt;',$html);
         self::assertStringContainsString('value="a&quot;b"',$html);
         self::assertStringContainsString('&lt;b&gt;发送&lt;/b&gt;',$html);
@@ -208,7 +208,7 @@ final class FormPublicTest extends CmsTestCase
         self::assertSame(['code'=>0,'msg'=>'success','data'=>['message'=>'已收到']],self::data($response));
         $row=Db::table('cms_form_submission')->first();
         self::assertSame(['name'=>'张三','email'=>'a@example.com','topic'=>['sales','support']],json_decode($row->values,true));
-        self::assertSame('https://cms.test/contact?x=1',$row->source_url);
+        self::assertSame('/contact?x=1',$row->source_url,'same-host absolute sources are stored as site-relative paths');
         self::assertSame('PHPUnit',$row->user_agent);
         self::assertNotSame('',$row->ip);
         self::assertNull($row->member_id);
@@ -253,11 +253,36 @@ final class FormPublicTest extends CmsTestCase
         self::assertStringContainsString('邮箱',$body);self::assertStringContainsString(FormMessages::for('zh-cn')['errors']['invalid_email'],$body);
         self::assertStringContainsString(FormMessages::for('zh-cn')['back'],$body);
         self::assertStringNotContainsString('javascript:',$body,'unsafe return links are dropped');
+        foreach(['https://evil.com\\@cms.test/','https://user@cms.test/x','https://user:pw@cms.test/x','//evil.com/x','https://evil.com/x',"/x\r\nLocation: https://evil.com"] as $source){
+            $body=$endpoint->submit($this->request('contact',['_token'=>$this->token($site,$form),'_source'=>$source,'name'=>''],[],false),'contact')->rawBody();
+            self::assertStringContainsString('<a href="/">',$body,'unsafe source falls back to the site root: '.$source);
+            self::assertStringNotContainsString('evil.com',$body);
+        }
+        $body=$endpoint->submit($this->request('contact',['_token'=>$this->token($site,$form),'_source'=>'https://cms.test/contact.html?a=1&b=2#top','name'=>''],[],false),'contact')->rawBody();
+        self::assertStringContainsString('<a href="/contact.html?a=1&amp;b=2">',$body,'same-host absolute sources become relative path + query');
 
         $token=$this->guard->issue($site['id'],$form['id']);$this->now+=FormGuard::MAX_AGE+1;
         $response=$endpoint->submit($this->request('contact',['_token'=>$token,'name'=>'x'],[],false),'contact');
         self::assertSame(419,$response->getStatusCode());
         self::assertStringContainsString(FormMessages::for('zh-cn')['errors']['token_expired'],$response->rawBody());
+    }
+
+    public function test_uploads_are_limited_to_form_file_fields_and_capped(): void
+    {
+        $site=$this->site();$form=$this->form($site['id']);$endpoint=$this->endpoint();
+        $pdf=['a.pdf',self::PDF];
+        $response=$endpoint->submit($this->request('contact',['_token'=>$this->token($site,$form),'name'=>'张三'],['ghost'=>[$pdf,$pdf],'name'=>[$pdf]]),'contact');
+        self::assertSame(200,$response->getStatusCode(),$response->rawBody());
+        self::assertSame(0,Db::table('cms_form_file')->count(),'uploads under non-file field names are ignored');
+        $response=$endpoint->submit($this->request('contact',['_token'=>$this->token($site,$form),'name'=>'张三'],['resume'=>array_fill(0,15,$pdf)]),'contact');
+        self::assertSame(422,$response->getStatusCode());
+        self::assertSame(['resume'=>FormMessages::for('zh-cn')['errors']['too_many_files']],self::data($response)['data']['errors']);
+        $method=new \ReflectionMethod(FormEndpoint::class,'uploads');
+        $request=$this->request('contact',[],['resume'=>array_fill(0,15,$pdf),'ghost'=>[$pdf]]);
+        [$uploads,$errors]=$method->invoke($endpoint,$request,(new FormService())->resolve($site['id'],'contact','zh-cn')['fields']);
+        self::assertSame(['resume'],array_keys($uploads));
+        self::assertCount(3,$uploads['resume'],'entries are capped at max_files + 1');
+        self::assertSame([],$errors);
     }
 
     public function test_disabled_or_foreign_form_rejects_submission(): void

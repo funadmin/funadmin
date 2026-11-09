@@ -64,9 +64,12 @@ final class FoundationTest extends CmsTestCase
     }
     public function test_static_namespaces_and_reserved_slash_variants_cannot_be_published(): void
     {
-        foreach(['/storage/file','/sitemap.xml/','/robots.txt/'] as $path){
+        foreach(['/storage/file','/sitemap.xml/','/robots.txt/','/forms','/forms/','/forms/contact','/FORMS/x','/member','/member/center'] as $path){
             try{RouteService::normalize($path);self::fail('Reserved namespace accepted '.$path);}catch(\InvalidArgumentException){self::assertTrue(true);}
         }
+        self::assertSame('/formsets/',RouteService::normalize('/formsets/'));
+        $site=$this->site();
+        try{(new RouteService())->publish($site['id'],'zh-cn','category','1','/forms/');self::fail('Publishing under /forms must be rejected');}catch(\InvalidArgumentException $e){self::assertStringContainsString('保留',$e->getMessage());}
     }
 
     public function test_unsigned_bigint_ids_remain_lossless_strings(): void

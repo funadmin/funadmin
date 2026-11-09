@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\cms\controller;
 
-use app\cms\service\{FormCaptcha, FormFileStorage, FormGuard, FormMessages, FormRenderer, FormService, FormSubmissionService, FormValidationException, FormValueValidator, SiteService};
+use app\cms\service\{FormCaptcha, FormFileStorage, FormGuard, FormMessages, FormRenderer, FormService, FormSubmissionService, FormFieldCatalog, FormValidationException, SiteService};
 use app\common\service\authentication\BearerTokenExtractor;
 use app\common\service\member\MemberApiSessionService;
 use InvalidArgumentException;
@@ -48,7 +48,7 @@ final class FormEndpoint
         if ($form === null) return $this->failure($json, $site, $locale, 404, ['_form' => 'unavailable'], [], $back);
         $labels = array_column($form['fields'], 'label', 'name') + ['captcha' => $ui['captcha']];
         try {
-            [$uploads, $uploadErrors] = $this->uploads($request);
+            [$uploads, $uploadErrors] = $this->uploads($request, $form['fields']);
             if ($uploadErrors) throw new FormValidationException($uploadErrors);
             $post = $request->post();
             $result = $this->submissions->submit($site, $locale, $code, is_array($post) ? $post : [], $uploads, [
@@ -112,21 +112,29 @@ final class FormEndpoint
 
     /**
      * 把 `$request->file()` 转成 FormSubmissionService 需要的“字段名 → 文件列表”；同时支持 `name[]` 与单文件。
+     * 只映射表单中的文件字段，其他键一律忽略；每个字段最多收 max_files + 1 个，校验器仍能报告 too_many_files。
      * 未选择文件的空输入被跳过；其他上传错误转换为字段错误。
      *
+     * @param list<array<string,mixed>> $fields 已解析表单的字段
      * @return array{0:array<string,list<array{tmp:string,name:string,size:int}>>,1:array<string,string>}
      */
-    private function uploads(Request $request): array
+    private function uploads(Request $request, array $fields): array
     {
+        $limits = [];
+        foreach ($fields as $field) {
+            if (in_array($field['type'], FormFieldCatalog::FILE_TYPES, true)) $limits[$field['name']] = min((int)($field['max_files'] ?? 1), FormFieldCatalog::MAX_FILES) + 1;
+        }
         $uploads = [];
         $errors = [];
         foreach ($request->file() as $name => $files) {
-            if (!is_string($name)) continue;
+            if (!is_string($name) || !isset($limits[$name])) continue;
+            $seen = 0;
             foreach (is_array($files) ? $files : [$files] as $file) {
                 if (!$file instanceof UploadFile) continue;
                 $error = (int)$file->getUploadErrorCode();
                 // Workerman 对浏览器提交的空文件输入（filename="" 且无内容）仍标记为 UPLOAD_ERR_OK，这里一并按“未选择文件”跳过。
                 if ($error === UPLOAD_ERR_NO_FILE || ($error === UPLOAD_ERR_OK && (string)$file->getUploadName() === '' && (int)$file->getSize() === 0)) continue;
+                if (++$seen > $limits[$name]) break;
                 if ($error !== UPLOAD_ERR_OK) {
                     $errors[$name] = in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 'file_too_large' : 'invalid_file_type';
                     continue;
@@ -137,16 +145,29 @@ final class FormEndpoint
         return [$uploads, $errors];
     }
 
-    /** 只接受站内相对路径或与当前域名一致的 http(s) 地址，用作来源页面与结果页的返回链接。 */
+    /**
+     * 来源页面与结果页返回链接：只接受站内相对路径，或与当前域名一致的 http(s) 地址（不含反斜杠、控制字符与用户信息）。
+     * 结果一律重建为站内相对的“路径 + 查询”，返回链接和保存的来源都不会指向外站。
+     */
     private function source(Request $request): string
     {
         $host = strtolower((string)$request->host(true));
         foreach ([$request->post('_source'), $request->header('referer')] as $candidate) {
-            $url = FormValueValidator::clean(self::text($candidate), false) ?? '';
-            if ($url === '' || strlen($url) > 2048) continue;
-            if (str_starts_with($url, '/') && !str_starts_with($url, '//') && !str_contains($url, '\\')) return $url;
+            $url = trim(self::text($candidate));
+            if ($url === '' || strlen($url) > 2048 || str_contains($url, '\\') || preg_match('/[\x00-\x20\x7f]/', $url)) continue;
+            if (str_starts_with($url, '/')) {
+                if (!str_starts_with($url, '//')) return $url;
+                continue;
+            }
             $parts = parse_url($url);
-            if (is_array($parts) && in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true) && strtolower($parts['host'] ?? '') === $host) return $url;
+            if (!is_array($parts) || !in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)) continue;
+            if (isset($parts['user']) || isset($parts['pass']) || strtolower($parts['host'] ?? '') !== $host) continue;
+            $authority = substr($url, strlen($parts['scheme']) + 3);
+            $authority = substr($authority, 0, strcspn($authority, '/?#'));
+            if (str_contains($authority, '@')) continue;
+            $path = $parts['path'] ?? '/';
+            if (!str_starts_with($path, '/') || str_starts_with($path, '//')) continue;
+            return $path . (isset($parts['query']) ? '?' . $parts['query'] : '');
         }
         return '';
     }

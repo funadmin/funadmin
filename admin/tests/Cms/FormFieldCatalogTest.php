@@ -38,6 +38,11 @@ final class FormFieldCatalogTest extends TestCase
         $this->rejects(array_map(fn(int $i)=>['name'=>'f'.$i,'type'=>'text','label'=>'F'],range(1,101)),'more than 100 fields');
         $this->rejects(['x'=>['name'=>'a','type'=>'text','label'=>'A']],'fields must be a list');
     }
+    public function test_normalize_rejects_names_reserved_for_builtin_controls(): void
+    {
+        foreach(['captcha','captcha_id','hp','token','locale'] as $name) $this->rejects([['name'=>$name,'type'=>'text','label'=>'A']],'reserved name '.$name);
+        self::assertSame(['captchas','source'],array_column(FormFieldCatalog::normalize([['name'=>'captchas','type'=>'text','label'=>'A'],['name'=>'source','type'=>'hidden','from_query'=>true]]),'name'),'similar names and the common source channel field stay allowed');
+    }
     public function test_normalize_fills_defaults_names_display_fields_and_drops_unknown_keys(): void
     {
         $fields=FormFieldCatalog::normalize([

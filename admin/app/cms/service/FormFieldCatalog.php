@@ -14,6 +14,11 @@ final class FormFieldCatalog
         'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
         'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
     ];
+    /**
+     * 与内置表单控件（验证码块的 data-field/错误键、蜜罐、令牌与语言隐藏字段）冲突或易混淆的字段标识。
+     * `source` 不保留：内置来源字段是 `_source`，而以 `source` 作为“来源渠道”隐藏字段是常见用法。
+     */
+    public const RESERVED_NAMES = ['captcha', 'captcha_id', 'hp', 'token', 'locale'];
     public const MAX_FIELDS = 100;
     public const MAX_FILE_SIZE = 20 * 1024 * 1024;
     public const MAX_FILES = 10;
@@ -37,6 +42,7 @@ final class FormFieldCatalog
             } else {
                 $name = is_string($field['name'] ?? null) ? trim($field['name']) : '';
                 if (!preg_match('/^[a-z][a-z0-9_]{0,63}$/D', $name)) throw self::invalid('字段标识无效：只能使用小写字母、数字和下划线，并以字母开头');
+                if (in_array($name, self::RESERVED_NAMES, true)) throw self::invalid('字段标识为系统保留：' . $name);
                 if (isset($names[$name])) throw self::invalid('字段标识重复：' . $name);
             }
             $names[$name] = true;
