@@ -1,3 +1,0 @@
-<div class="container listing-body"><div class="listing-toolbar"><span>{{ $listing['total'] ?? '' }} {{ $ui['results'] ?? '' }}</span><div class="category-links">@foreach($cms->items('theme', ['name' => 'categories']) as $topic)<a href="{{ $topic['url'] ?? '' }}">{{ $topic['name'] ?? '' }}</a>@endforeach</div></div>@if(!empty($listing['has_items']))<div class="content-grid cms-el-grid-host"><el-row gutter="24" class="cms-el-grid">@foreach($cms->items('theme', ['name' => 'items']) as $item)<el-col xs="24" sm="12" md="12" lg="8">@include('partials.card')</el-col>@endforeach</el-row></div>@else
-@include('partials.empty')@endif
-@include('partials.pagination')</div>

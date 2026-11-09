@@ -70,11 +70,7 @@ pnpm-debug.log*
 /tests/api/*
 !/tests/api/plugin-composer-conflicts.spec.ts
 
-# 代码生成器产物不入库：生成插件的后台前端副本与生成的业务模块
-/src/admin/plugins/*
-!/src/admin/plugins/cms/
-!/src/admin/plugins/document/
-!/src/admin/plugins/oss/
-!/src/admin/plugins/qa/
+# 插件安装发布的后台前端副本与生成的业务模块不入库（插件源码在 admin/plugins/<code>/web/）
+/src/admin/plugins/
 /src/admin/api/business/
 /src/admin/views/business/
