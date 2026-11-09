@@ -95,6 +95,16 @@ The webman is open-sourced software licensed under the MIT.
 
 
 
+## 视图模板（Blade）
+
+服务端渲染的页面使用 Blade 模板，`config/view.php` 的处理器为 `app\common\view\Blade`。
+
+- 模板以 `.blade.php` 结尾，按 webman 规则定位：单应用在 `app/view/`，多应用在 `app/<应用>/view/`；以 `/` 开头的路径按项目相对路径定位。例如 `view('user/hello', ['name' => 'webman'])` 对应 `app/view/user/hello.blade.php`。
+- `{{ $value }}` 自动转义，`{!! $html !!}` 原样输出，只用于已清洗的内容。编译结果缓存在 `runtime/views`。
+- 处理器基于 `illuminate/view` 实现，因为 `webman/blade` 尚不支持 illuminate 13。自定义指令或组件在 `config/view.php` 的 `extension` 回调中通过 `BladeCompiler` 注册。
+- 插件独立应用的模板放在 `app/<插件>/view/**/*.blade.php`，不需要 PHP namespace，但不能在模板中声明类。
+- CMS 前台主题不使用 Blade，继续使用 CMS 自带的标签模板引擎：后台可编辑的模板必须在沙箱中渲染，不能执行 PHP。
+
 ## 数据库迁移目录
 
 - 核心 SQL：`admin/database/core/migrations/`，目前只有 `001_baseline.sql`（2026-11-06 由原基线与 002–028 增量重新 squash，结构与数据和逐个重放等价；剔除了软删除/停用的菜单与权限墓碑行，以及已移除本地市场的业务表，会员令牌仍使用的 `market_token` 保留）。新的结构或种子变更从 `002_` 起追加增量。

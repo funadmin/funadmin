@@ -56,9 +56,9 @@
     "webman/redis-queue": "^2.1",
     "defuse/php-encryption": "^2.4",
     "league/oauth2-server": "^8.5.5",
-    "topthink/think-template": "^3.0",
     "bacon/bacon-qr-code": "^3.0",
-    "casbin/casbin": "^4.6"
+    "casbin/casbin": "^4.6",
+    "illuminate/view": "^13.39"
   },
   "require-dev": {
     "phpunit/phpunit": "^13.0"

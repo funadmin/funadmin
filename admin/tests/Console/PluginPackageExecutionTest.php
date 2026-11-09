@@ -48,6 +48,10 @@ final class PluginPackageExecutionTest extends TestCase
 
     public function test_package_preserves_empty_canonical_application_directories(): void
     {
+        // 骨架不再预建空目录：这里手工创建，验证打包仍保留规范的空目录。
+        foreach (['app/admin/plugins/packagefixture/model', 'app/packagefixture/view', 'public/plugin-assets/packagefixture/public'] as $path) {
+            mkdir($this->root . '/plugins/packagefixture/' . $path, 0700, true);
+        }
         $command = new CommandTester(new PluginPackage($this->root));
         $output = $this->root . '/empty-directories.zip';
         self::assertSame(0, $command->execute(['name' => 'packagefixture', '--output' => $output]), $command->getDisplay());

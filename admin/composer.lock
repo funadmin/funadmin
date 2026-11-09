@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a209b5d86e3172592eb2219ff3b96227",
+    "content-hash": "3ce229d612e170b319aea8216e7d5f45",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -2319,6 +2319,62 @@
                 "source": "https://github.com/laravel/framework"
             },
             "time": "2026-10-26T13:39:06+00:00"
+        },
+        {
+            "name": "illuminate/view",
+            "version": "v13.40.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/illuminate/view.git",
+                "reference": "a29399b4a2f2a038297d327a243b825ba3cd4967"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/illuminate/view/zipball/a29399b4a2f2a038297d327a243b825ba3cd4967",
+                "reference": "a29399b4a2f2a038297d327a243b825ba3cd4967",
+                "shasum": ""
+            },
+            "require": {
+                "ext-tokenizer": "*",
+                "illuminate/collections": "^13.0",
+                "illuminate/conditionable": "^13.0",
+                "illuminate/container": "^13.0",
+                "illuminate/contracts": "^13.0",
+                "illuminate/events": "^13.0",
+                "illuminate/filesystem": "^13.0",
+                "illuminate/macroable": "^13.0",
+                "illuminate/reflection": "^13.0",
+                "illuminate/support": "^13.0",
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "13.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Illuminate\\View\\": ""
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Taylor Otwell",
+                    "email": "taylor@laravel.com"
+                }
+            ],
+            "description": "The Illuminate View package.",
+            "homepage": "https://laravel.com",
+            "support": {
+                "issues": "https://github.com/laravel/framework/issues",
+                "source": "https://github.com/laravel/framework"
+            },
+            "time": "2026-10-20T13:42:06+00:00"
         },
         {
             "name": "intervention/gif",
@@ -7460,47 +7516,6 @@
             "time": "2026-10-22T14:30:01+00:00"
         },
         {
-            "name": "topthink/think-template",
-            "version": "v3.0.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/top-think/think-template.git",
-                "reference": "0b88bd449f0f7626dd75b05f557c8bc208c08b0c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-template/zipball/0b88bd449f0f7626dd75b05f557c8bc208c08b0c",
-                "reference": "0b88bd449f0f7626dd75b05f557c8bc208c08b0c",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.0.0",
-                "psr/simple-cache": ">=1.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "think\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "Apache-2.0"
-            ],
-            "authors": [
-                {
-                    "name": "liu21st",
-                    "email": "liu21st@gmail.com"
-                }
-            ],
-            "description": "the php template engine",
-            "support": {
-                "issues": "https://github.com/top-think/think-template/issues",
-                "source": "https://github.com/top-think/think-template/tree/v3.0.2"
-            },
-            "time": "2024-10-16T03:41:06+00:00"
-        },
-        {
             "name": "vlucas/phpdotenv",
             "version": "v5.8.0",
             "source": {
@@ -10337,5 +10352,5 @@
         "ext-mbstring": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

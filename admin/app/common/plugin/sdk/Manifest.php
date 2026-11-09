@@ -367,8 +367,10 @@ final class Manifest
     private static function isApplicationConfigurationFile(string $root, string $file, string $source): bool
     {
         $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file, strlen($root) + 1));
+        // 配置文件与 view/ 下的 Blade 模板不是类文件，不需要 namespace；但都不得借此声明类。
         $allowed = in_array($relative, ['event.php', 'provider.php'], true)
-            || preg_match('~^(?:config|route|lang)/[A-Za-z0-9._-]+\.php$~', $relative) === 1;
+            || preg_match('~^(?:config|route|lang)/[A-Za-z0-9._-]+\.php$~', $relative) === 1
+            || preg_match('~^view/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.blade\.php$~', $relative) === 1;
         return $allowed && self::declaredClasses($source) === [];
     }
 

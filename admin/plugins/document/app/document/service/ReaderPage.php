@@ -77,8 +77,10 @@ final class ReaderPage
             if ($index !== false) { $previous = $sequence[$index-1] ?? null; $next = $sequence[$index+1] ?? null; }
         }
         $assetsVersion = substr(hash('sha256', (string)@file_get_contents(self::assetPath('reader.css')).(string)@file_get_contents(self::assetPath('reader.js'))), 0, 12);
-        ob_start();
-        try { require dirname(__DIR__).'/view/public/reader.php'; return (string)ob_get_contents(); }
-        finally { ob_end_clean(); }
+        // 模板为 Blade：app/document/view/public/reader.blade.php（{{ }} 自动转义，图标与已清洗的正文用 {!! !!}）。
+        return \app\common\view\Blade::render('public/reader', compact(
+            'title', 'document', 'error', 'assetsVersion', 'keyword', 'scope', 'categoryId', 'categories', 'depth',
+            'content', 'previous', 'next', 'listing', 'listingTitle', 'filters'
+        ), 'document', '');
     }
 }
