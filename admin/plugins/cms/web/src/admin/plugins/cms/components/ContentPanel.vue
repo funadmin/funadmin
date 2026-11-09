@@ -11,6 +11,7 @@ import RichTextEditor from '@/components/RichTextEditor/index.vue';
 import DataTableShell from '@/components/DataTable/DataTableShell.vue';
 import { planModelUpgrade } from './modelUpgrade';
 import { fieldDefaults, validateContentForm, compatibleCategories, contentFingerprint } from './contentForm';
+import { batchTargets, runBatch, type BatchAction, type BatchFailure } from './contentBatch';
 const { t } = useCmsI18n();
 const props = defineProps<{scope: Scope; can: (permission: string) => boolean; languages: Locale[]}>();
 const { busy, error, run } = useOperation();
@@ -134,6 +135,22 @@ async function publishEditor() { if (!(props.can('cms:content:publish'))) return
   await publish({id: form.value.id, draft_revision_id: form.value.draft_revision_id, lock_version: form.value.lock_version} as ContentRow);
 }
 async function offline(row: ContentRow) { if (!(props.can('cms:content:offline'))) return; await run(async () => { await cmsApi.offline({site_id: props.scope.site_id, id: row.id, draft_revision_id: row.draft_revision_id, lock_version: row.lock_version}); await load(); }); }
+const selection = ref<ContentRow[]>([]), batchFailures = ref<BatchFailure[]>([]), batchNotice = ref('');
+const publishTargets = computed(() => batchTargets(selection.value, 'publish')), offlineTargets = computed(() => batchTargets(selection.value, 'offline'));
+/** 批量发布/下架：逐条调用单条接口，结果汇总显示；失败条目（如版本已变化）列出原因，其余照常完成。 */
+async function batch(action: BatchAction) {
+  if (!props.can(action === 'publish' ? 'cms:content:publish' : 'cms:content:offline')) return;
+  const targets = action === 'publish' ? publishTargets.value : offlineTargets.value; if (!targets.length || busy.value) return;
+  batchFailures.value = []; batchNotice.value = '';
+  await run(async () => {
+    const result = await runBatch(targets, row => action === 'publish'
+      ? cmsApi.publishContent({site_id: props.scope.site_id, id: row.id, revision_id: row.draft_revision_id, lock_version: row.lock_version})
+      : cmsApi.offline({site_id: props.scope.site_id, id: row.id, draft_revision_id: row.draft_revision_id, lock_version: row.lock_version}), t('cms.labels.operationFailedCheckYourInputAndRetry'));
+    batchFailures.value = result.failed;
+    batchNotice.value = t(action === 'publish' ? 'cms.labels.batchPublishResult' : 'cms.labels.batchOfflineResult', {succeeded: result.succeeded.length, failed: result.failed.length});
+    await load();
+  });
+}
 async function showPreview(row?: ContentRow) { if (!(props.can('cms:content:preview'))) return; if(!row&&dirty.value){error.value=t('cms.labels.unsavedChangesSaveTheDraftBeforePreviewing');return;} await run(async () => { preview.value = (await cmsApi.previewContent({site_id: props.scope.site_id, id: row?.id || form.value.id})).html; }); }
 async function history(row?:ContentRow) { if (!props.can('cms:content:list')) return; const target=row||{id:form.value.id,draft_revision_id:form.value.draft_revision_id,lock_version:form.value.lock_version} as ContentRow; historyTarget.value=JSON.parse(JSON.stringify(target)); await run(async()=>{revisions.value=await cmsApi.revisions({site_id:props.scope.site_id,id:target.id});historyOpen.value=true;}); }
 async function restore(revision: Revision) { if (!(props.can('cms:content:publish'))) return; if(dirty.value){error.value=t('cms.labels.unsavedChangesSaveTheDraftBeforePublishingARevision');return;} if(!historyTarget.value)return;await publish(historyTarget.value,revision.id);historyOpen.value=false; }
@@ -149,9 +166,14 @@ onMounted(async () => { if (!props.can('cms:content:list')) return; await run(as
           <el-form-item><el-button type="primary" @click="page = 1; load()">{{ t('cms.labels.search') }}</el-button><el-button @click="query = ''; modelFilter = ''; page = 1; load()">{{ t('cms.labels.reset') }}</el-button></el-form-item>
         </el-form>
       </template>
-      <template #toolbar-left><el-button v-if="can('cms:content:create')" type="primary" plain :disabled="busy || !models.length" @click="open()"><i class="i-ep-plus" />{{ t('cms.labels.newContent') }}</el-button></template>
+      <template #toolbar-left><el-button v-if="can('cms:content:create')" type="primary" plain :disabled="busy || !models.length" @click="open()"><i class="i-ep-plus" />{{ t('cms.labels.newContent') }}</el-button>
+        <el-popconfirm v-if="can('cms:content:publish')" :title="t('cms.labels.batchPublishConfirm', {count: publishTargets.length})" width="320" @confirm="batch('publish')"><template #reference><el-button type="success" plain :disabled="busy || !publishTargets.length">{{ t('cms.labels.batchPublish', {count: publishTargets.length}) }}</el-button></template></el-popconfirm>
+        <el-popconfirm v-if="can('cms:content:offline')" :title="t('cms.labels.batchOfflineConfirm', {count: offlineTargets.length})" width="320" @confirm="batch('offline')"><template #reference><el-button type="warning" plain :disabled="busy || !offlineTargets.length">{{ t('cms.labels.batchOffline', {count: offlineTargets.length}) }}</el-button></template></el-popconfirm>
+        <span v-if="selection.length" class="muted">{{ t('cms.labels.batchSelected', {count: selection.length}) }}</span></template>
       <template #default="{ size, stripe, border, headerCellStyle }">
-        <el-table :data="rows" v-loading="busy" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle" :empty-text="t('cms.labels.noContent')">
+        <el-alert v-if="batchNotice" :title="batchNotice" :type="batchFailures.length ? 'warning' : 'success'" show-icon @close="batchNotice = ''; batchFailures = []"><ul v-if="batchFailures.length" class="batch-failures"><li v-for="item in batchFailures" :key="item.id">{{ t('cms.labels.batchFailureItem', {title: item.title, message: item.message}) }}</li></ul></el-alert>
+        <el-table :data="rows" row-key="id" v-loading="busy" :size="size" :stripe="stripe" :border="border" :header-cell-style="headerCellStyle" :empty-text="t('cms.labels.noContent')" @selection-change="selection = $event">
+          <el-table-column v-if="can('cms:content:publish') || can('cms:content:offline')" type="selection" width="44" />
           <el-table-column :label="t('cms.labels.title')" min-width="300" show-overflow-tooltip><template #default="{row}"><strong>{{ row.revision?.title }}</strong><div class="muted">{{ row.revision?.desired_path }}</div></template></el-table-column>
           <el-table-column prop="locale" :label="t('cms.labels.language')" width="110" />
           <el-table-column :label="t('cms.labels.status')" width="110" align="center"><template #default="{row}"><el-tag :type="row.status === 'published' ? 'success' : 'info'">{{ {published:t('cms.labels.published'),draft:t('cms.labels.draft'),offline:t('cms.labels.unpublished')}[row.status as string] }}</el-tag></template></el-table-column>
@@ -173,4 +195,4 @@ onMounted(async () => { if (!props.can('cms:content:list')) return; await run(as
     <el-dialog v-model="historyOpen" :title="t('cms.labels.revisionHistory')" width="min(800px, 94vw)"><el-alert v-if="error" :title="error" type="error" :closable="false" /><el-alert v-if="dirty" :title="t('cms.labels.thisContentHasUnsavedChangesSaveTheDraftBefore')" type="warning" :closable="false" /><el-table :data="revisions"><el-table-column prop="revision_no" :label="t('cms.labels.version')" /><el-table-column prop="title" :label="t('cms.labels.title')" /><el-table-column prop="created_at" :label="t('cms.labels.savedAt')" /><el-table-column :label="t('cms.labels.actions')"><template #default="{row}"><el-button v-if="can('cms:content:publish')" link :disabled="busy||dirty" @click="restore(row as Revision)">{{ t('cms.labels.publishThisRevision') }}</el-button></template></el-table-column></el-table></el-dialog>
   </div>
 </template>
-<style scoped>.panel{width:100%;min-width:0}.cms-search .el-form-item{margin-bottom:12px;margin-right:24px}.cms-search .el-input{width:240px}.cms-search .el-select{width:180px}.muted{color:var(--el-text-color-secondary);font-size:12px}.two-columns{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.field-help{display:block;width:100%;margin-top:6px}.dirty-notice{margin-bottom:16px}.editor-tabs :deep(.el-form-item__content){min-width:0}.editor-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.preview-frame{width:100%;height:65vh;border:1px solid var(--el-border-color)}.code-input :deep(textarea){font-family:monospace}@media(max-width:640px){.two-columns{grid-template-columns:1fr}.cms-search .el-form-item{margin-right:12px}.cms-search .el-input{width:190px}.cms-search .el-select{width:150px}}</style>
+<style scoped>.panel{width:100%;min-width:0}.cms-search .el-form-item{margin-bottom:12px;margin-right:24px}.cms-search .el-input{width:240px}.cms-search .el-select{width:180px}.muted{color:var(--el-text-color-secondary);font-size:12px}.batch-failures{margin:4px 0 0;padding-left:18px}.two-columns{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.field-help{display:block;width:100%;margin-top:6px}.dirty-notice{margin-bottom:16px}.editor-tabs :deep(.el-form-item__content){min-width:0}.editor-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.preview-frame{width:100%;height:65vh;border:1px solid var(--el-border-color)}.code-input :deep(textarea){font-family:monospace}@media(max-width:640px){.two-columns{grid-template-columns:1fr}.cms-search .el-form-item{margin-right:12px}.cms-search .el-input{width:190px}.cms-search .el-select{width:150px}}</style>
