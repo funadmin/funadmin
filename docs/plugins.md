@@ -1,6 +1,10 @@
 # 插件目录规范
 
-插件包按项目相对路径组织，开发路径、PHP 命名空间和安装路径保持一致。以下以 `demo` 为例，省略空目录中的 `.gitkeep`。
+插件包按项目相对路径组织，开发路径、PHP 命名空间和安装路径保持一致。以下以 `demo` 为例，列出完整目录结构。
+
+`plugin:make` 和插件中心的“插件开发工具”只生成用得到的文件：各模块的控制器、入口与配置文件，以及迁移目录的占位文件 `database/migrations/.gitkeep`。迁移目录要保留占位，因为代码生成器会把迁移写到这里，而空目录不会进入插件包。
+
+分层目录（`model/`、`service/`、`validate/`、`middleware/`、`view/`）在需要时直接新建文件即可。`storage/` 和公开资源目录是可选的：需要时在 `plugin.json` 中声明 `storage.path` 或 `resources.public`，并在目录中放入文件或 `.gitkeep`，否则打包后目录缺失，安装时会报“路径不存在”。
 
 后台管理模块为 `admin/app/admin/plugin/`；已安装插件的后台业务为同级的 `admin/app/admin/plugins/{code}/`。插件源码包保留在根目录 `admin/plugins/{code}/`，包内使用相同的 `app/admin/plugins/{code}/` 相对路径。
 

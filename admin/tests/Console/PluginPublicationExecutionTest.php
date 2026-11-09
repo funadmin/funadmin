@@ -181,6 +181,12 @@ class PluginPublicationExecutionTest extends TestCase
             (new PluginScaffolder($root . '/plugins'))->scaffold('publishfixture');
             file_put_contents($root . '/plugins/publishfixture/app/.DS_Store', 'finder metadata');
             file_put_contents($root . '/plugins/publishfixture/app/admin/plugins/publishfixture/.DS_Store', 'finder metadata');
+            // 骨架不再默认声明静态资源：测试自己声明 resources.public 并放入文件。
+            $manifestFile = $root . '/plugins/publishfixture/plugin.json';
+            $manifestData = json_decode((string) file_get_contents($manifestFile), true, flags: JSON_THROW_ON_ERROR);
+            $manifestData['resources'] = ['public' => ['source' => 'public/plugin-assets/publishfixture/public', 'target' => 'plugin-assets/publishfixture/public']];
+            file_put_contents($manifestFile, json_encode($manifestData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+            mkdir($root . '/plugins/publishfixture/public/plugin-assets/publishfixture/public', 0700, true);
             file_put_contents($root . '/plugins/publishfixture/public/plugin-assets/publishfixture/public/fixture.txt', 'public-payload');
             $manifest = Manifest::fromDirectory($root . '/plugins/publishfixture');
             $publisher = new PluginAppPublicationService($root . '/app', $root . '/runtime/plugins', new DatabasePluginAppPublicationRepository());

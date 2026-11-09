@@ -125,6 +125,8 @@ export default {
     devConfirmCreate: 'Confirm Creation', devCreateSuccess: 'Plugin created, audit ID: {id}', devAuditId: 'Audit ID', devValidateLabel: 'Validate', devValidateSuccess: 'Plugin validation passed', devManifestValid: 'Manifest v2 is valid',
     devPackageSuccess: 'Plugin packaged successfully', devDownloadPackage: 'Download Package', devDownloadPath: 'Download Path', devPlanPath: 'Target File', devSha256: 'SHA-256 Digest',
     devFileCreate: 'Create', devFileOverwrite: 'Overwrite', devFileUnchanged: 'Unchanged', devFileConflict: 'Conflict', devFilePending: 'Pending', devConflicts: 'Conflicts: {list}',
+    devModules: 'Generate', devModuleAppDesc: 'Front routes, controllers and language pack', devModuleAdminDesc: 'Admin API controllers (one permission per method)', devModuleAdminWebDesc: 'Admin pages and API client',
+    devPlanSummary: '{count} files will be created in {target}', devPlanEmpty: 'Enter a plugin code and click Preview to see the files', devGroupRoot: 'Plugin root', devPlanStale: 'The form changed; preview again',
     accountCapabilities: 'Cloud Marketplace Capabilities',
     accountCapabilitiesDesc: 'Your account has authorized the following plugin services',
     accountConnected: 'Connected',

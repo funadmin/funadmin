@@ -23,14 +23,14 @@ final class PluginScaffolder
         bool $adminWeb = true
     ): array {
         self::assertValidName($name);
-        $files = ['plugin.json', 'Plugin.php', 'config.php', 'database/migrations/.gitkeep', "public/plugin-assets/{$name}/public/.gitkeep", 'storage/.gitkeep'];
+        // 只生成用得到的文件：分层目录（model/service/...）需要时再建；存储与静态资源目录需要时在 plugin.json 声明后再建。
+        // 迁移目录保留占位：代码生成器把迁移写到这里，安装时只执行已声明的目录，而空目录不会进入插件包。
+        $files = ['plugin.json', 'Plugin.php', 'config.php', 'database/migrations/.gitkeep'];
         if ($application) {
             array_push($files, "app/{$name}/controller/Index.php", "app/{$name}/config/app.php", "app/{$name}/route/app.php", "app/{$name}/lang/zh-cn.php", "app/{$name}/event.php", "app/{$name}/provider.php");
-            foreach (['model', 'service', 'middleware', 'view'] as $layer) $files[] = "app/{$name}/{$layer}/.gitkeep";
         }
         if ($console) {
             $files[] = "app/admin/plugins/{$name}/controller/Index.php";
-            foreach (['model', 'service', 'validate', 'middleware'] as $layer) $files[] = "app/admin/plugins/{$name}/{$layer}/.gitkeep";
         }
         if ($adminWeb) array_push($files, "web/src/admin/plugins/{$name}/api.ts", "web/src/admin/plugins/{$name}/types.ts", "web/src/admin/plugins/{$name}/pages/Index.vue", "web/src/admin/plugins/{$name}/pages/components/EditDialog.vue");
         sort($files, SORT_STRING);
@@ -104,9 +104,7 @@ final class PluginScaffolder
             'version' => '1.0.0',
             'requires' => ['php' => '>=8.5', 'funadmin' => '>=1.0.0', 'plugins' => (object) []],
             'entry' => ['class' => 'plugins\\' . $name . '\\Plugin', 'file' => 'Plugin.php'],
-            'resources' => ['public' => ['source' => 'public/plugin-assets/' . $name . '/public', 'target' => 'plugin-assets/' . $name . '/public']],
             'migrations' => ['path' => 'database/migrations'],
-            'storage' => ['path' => 'storage'],
             'purge' => ['supported' => false],
         ];
         if ($adminWeb) {
@@ -139,15 +137,10 @@ final class PluginScaffolder
         $this->write($directory . '/Plugin.php', $this->entrySource($name));
         $this->write($directory . '/config.php', $this->pluginConfigSource());
         $this->keep($directory . '/database/migrations');
-        $this->keep($directory . '/public/plugin-assets/' . $name . '/public');
-        $this->keep($directory . '/storage');
 
         if ($application) {
             $applicationRoot = $directory . '/app/' . $name;
             $this->write($applicationRoot . '/controller/Index.php', $this->applicationControllerSource($name));
-            foreach (['model', 'service', 'middleware', 'view'] as $layer) {
-                $this->keep($applicationRoot . '/' . $layer);
-            }
             $this->write($applicationRoot . '/config/app.php', $this->returnArraySource());
             $this->write($applicationRoot . '/route/app.php', $this->returnArraySource());
             $this->write($applicationRoot . '/lang/zh-cn.php', $this->returnArraySource());
@@ -156,9 +149,6 @@ final class PluginScaffolder
         }
         if ($console) {
             $this->write($directory . '/app/admin/plugins/' . $name . '/controller/Index.php', $this->consoleControllerSource($name));
-            foreach (['model', 'service', 'validate', 'middleware'] as $layer) {
-                $this->keep($directory . '/app/admin/plugins/' . $name . '/' . $layer);
-            }
         }
         if ($adminWeb) {
             $adminWebRoot = $directory . '/web/src/admin/plugins/' . $name;

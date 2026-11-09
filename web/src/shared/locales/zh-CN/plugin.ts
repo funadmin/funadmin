@@ -30,6 +30,8 @@ export default {
     devConfirmCreate: '确认创建', devCreateSuccess: '插件已创建，审计编号：{id}', devAuditId: '审计编号', devValidateLabel: '校验', devValidateSuccess: '插件校验通过', devManifestValid: '清单协议 v2 有效',
     devPackageSuccess: '插件打包完成', devDownloadPackage: '下载插件包', devDownloadPath: '下载路径', devPlanPath: '目标文件', devSha256: 'SHA-256 摘要',
     devFileCreate: '新建', devFileOverwrite: '覆盖', devFileUnchanged: '未变化', devFileConflict: '冲突', devFilePending: '待处理', devConflicts: '冲突：{list}',
+    devModules: '生成内容', devModuleAppDesc: '前台路由、控制器与语言包', devModuleAdminDesc: '后台接口控制器（按方法登记权限）', devModuleAdminWebDesc: '后台管理页面与接口封装',
+    devPlanSummary: '将在 {target} 生成 {count} 个文件', devPlanEmpty: '填写插件标识后点击“预览”查看将生成的文件', devGroupRoot: '插件根目录', devPlanStale: '表单已修改，请重新预览',
     stateUnknown: '未知状态', sourceUnknown: '未知来源', operationUnknown: '未知操作', applicationUnknown: '其他能力', scopeUnknown: '其他范围',
     state: { discovered: '待安装', installing: '安装中', disabled: '已禁用', updating: '更新中', enabling: '启用中', enabled: '已启用', disabling: '禁用中', uninstalling: '卸载中', failed: '失败' },
     source: { installed: '已安装', local: '本地插件', cloud: '云市场' },

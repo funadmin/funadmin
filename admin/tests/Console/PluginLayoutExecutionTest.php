@@ -27,12 +27,12 @@ final class PluginLayoutExecutionTest extends TestCase
 
     public function test_scaffold_uses_the_same_relative_paths_as_published_projects(): void
     {
-        foreach (['app/admin/plugins/layoutfixture/controller/Index.php', 'web/src/admin/plugins/layoutfixture/pages/Index.vue', 'public/plugin-assets/layoutfixture/public/.gitkeep'] as $path) {
+        foreach (['app/admin/plugins/layoutfixture/controller/Index.php', 'web/src/admin/plugins/layoutfixture/pages/Index.vue', 'database/migrations/.gitkeep'] as $path) {
             self::assertFileExists($this->root . '/layoutfixture/' . $path);
         }
         $manifest = Manifest::fromDirectory($this->root . '/layoutfixture')->toArray();
         self::assertSame('web/src/admin/plugins/layoutfixture', $manifest['adminWeb']['source']);
-        self::assertSame('public/plugin-assets/layoutfixture/public', $manifest['resources']['public']['source']);
+        self::assertArrayNotHasKey('resources', $manifest, '静态资源目录按需声明，骨架不默认生成');
     }
 
     public function test_manifest_rejects_old_admin_layer_directories(): void
