@@ -48,7 +48,7 @@
    - 再按宿主启用流程逐步执行，只跳过资源发布（安装副本已与 1.4.0 源码逐字节一致）：
      - 插件启用钩子 `Plugin::enabled()`，包含 `FormPermissionUpgrade::backfill` 和 `FormSchema::install`；
      - `registerResources`，登记权限和菜单；
-     - 把插件记录改为 `lifecycle_state=enabled`、`status=1`；
+     - 直接在数据库中把插件记录改为 `lifecycle_state=enabled`、`status=1`。说明：宿主没有“跳过资源发布”的启用入口，所以启用标记是用 SQL 直接写入的，并非经由宿主启用流程；
      - `refreshActivationCache` 重建激活缓存；
      - `WorkerReloader::production()->reload()`，即 SIGUSR1 平滑重载。
    - CMS 从约 17:54:50 停用到 17:58:35 恢复启用，期间公开站点不可用约 4 分钟。

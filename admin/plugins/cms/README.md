@@ -54,10 +54,13 @@ server {
         proxy_pass http://127.0.0.1:8787/cms/;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
     }
 }
 ```
+
+`X-Real-IP` 和 `X-Forwarded-For` 必须用 `$remote_addr` 覆盖，不要用 `$proxy_add_x_forwarded_for`：后者会把客户端自带的 `X-Forwarded-For` 原样保留在前面，访客就能自己决定“来源 IP”，绕过表单的按 IP 限流。CMS 只在直连地址是内网/回环地址（即本机或内网的反向代理）时才读取这两个头，优先 `X-Real-IP`，其次 `X-Forwarded-For` 的最后一段；公网直连时一律使用直连地址。Nginx 前面还有 CDN 或负载均衡时，先用 `real_ip_header`/`set_real_ip_from` 还原真实 `$remote_addr`，再按上面覆盖。
 
 先配置 A/AAAA 或 CNAME、证书和服务器入口，再检查站点。每个站点可以使用单独的 Nginx server 块；同一入口也可以接收多个明确列出的域名，CMS 按 Host 查找站点。未知或停用的域名返回 404，不自动转到第一个站点。
 
@@ -322,7 +325,7 @@ PHP 输出完整正文与链接。浏览器挂载不使用 Vue 模板编译器�
 
 ### 升级
 
-已安装 1.3.x 的站点：在插件中心停用 CMS → 更新（执行 `004_forms.sql`，只新增 `cms_form`、`cms_form_submission`、`cms_form_file`、`cms_form_event` 四张表）→ 启用 → 按部署流程重载 Webman，再执行 `npm run build:webman`。启用时只给各站点已有的 `administrator`（站点管理员）角色补齐全部表单权限；只读、编辑、发布及自定义角色不会自动变化，需要在“站点权限”中按需勾选。每次重新启用都会再补齐站点管理员缺少的表单权限。
+已安装 1.3.x 的站点：在插件中心停用 CMS → 更新（执行 `004_forms.sql`，只新增 `cms_form`、`cms_form_submission`、`cms_form_file`、`cms_form_event` 四张表）→ 启用 → 按部署流程重载 Webman，再执行 `npm run build:webman`。升级后第一次启用时，只给各站点已有的 `administrator`（站点管理员）角色补齐全部表单权限；只读、编辑、发布及自定义角色不会自动变化，需要在“站点权限”中按需勾选。补齐对每个站点只做一次：完成后在该站点的 `cms_site.settings` 中记下 `form_permissions_backfilled_at`（与补齐在同一事务中写入），之后的停用→启用、更新都不会再补；1.4.0 之后新建的站点在创建时已按预设授权并直接记下该标记。因此站点有意收回的表单权限（例如站点管理员的导出或删除）会保持收回。
 
 | 权限码 | 含义 | 新站点预置角色 |
 |---|---|---|
@@ -343,7 +346,7 @@ PHP 输出完整正文与链接。浏览器挂载不使用 Vue 模板编译器�
 
 Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值是可信 HTML，`{{ }}` 不会再次转义；不要写成 `{!! !!}`，那样会报错），旧 HTML 主题和后台展示片段使用 `{cms:form name="contact" /}`。表单不存在或已停用时输出空字符串。主题如何覆盖表单结构见 [CMS Blade](../../../docs/cms-blade.md) 的“自定义表单”。
 
-浏览器提交到 `POST /forms/{code}`。另有 `POST /forms/{code}/token` 刷新令牌、`GET /forms/{code}/captcha` 获取验证码图片。按“域名入口配置”，Nginx 把 `/` 转发到内部 `/cms/`，所以后端实际路由是 `/cms/forms/...`。站点只由请求域名确定，表单代码只在该站点内查找。
+浏览器提交到 `POST /forms/{code}`。另有 `POST /forms/{code}/token` 刷新令牌、`GET /forms/{code}/captcha` 获取验证码图片。开启验证码的表单在页面渲染时不签发验证码（避免每次匿名访问都生成图片和缓存），而是由 `cms-form.js` 在页面加载后请求受限流的 `/captcha` 接口获取；关闭 JavaScript 的访客会看到“需要启用 JavaScript 才能显示验证码”的提示，无法完成带验证码的提交。按“域名入口配置”，Nginx 把 `/` 转发到内部 `/cms/`，所以后端实际路由是 `/cms/forms/...`。站点只由请求域名确定，表单代码只在该站点内查找。
 
 请求头带 `Accept: application/json` 时返回 JSON：成功为 `{"code":0,"data":{"message":"…"}}`；失败时 HTTP 状态与 `code` 一致，`data.errors` 是“字段标识 → 错误文字”（表单级错误的键为 `_form`）。状态码含义：404 表示表单不存在或已停用，419 表示令牌无效或过期（`cms-form.js` 会自动刷新令牌重试一次），422 表示校验失败或提交过快，429 表示超过频率限制。不带该请求头的普通表单提交（关闭 JavaScript）返回独立的结果页，页面显示成功提示或错误列表，并提供返回来源页的链接。来源页只接受站内相对地址。
 
@@ -351,14 +354,14 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
 
 - 蜜罐：隐藏字段 `_hp` 一旦被填写，接口仍返回成功，但不保存提交。
 - 签名令牌：渲染时签发，绑定站点与表单。签发 3 秒内提交视为过快；超过 7200 秒（2 小时）后令牌过期。
-- 频率限制：按站点 + 表单 + IP 计数，窗口 600 秒，默认 5 次，可在表单设置中调整，最多 60 次。验证码接口另按站点 + IP 限制为每 600 秒 30 次。
+- 频率限制：按站点 + 表单 + IP 计数，窗口 600 秒，默认 5 次，可在表单设置中调整，最多 60 次。验证码接口另按站点 + IP 限制为每 600 秒 30 次。两处限流中 IPv6 地址都按 /64 前缀归并计数，轮换同一 /64 内的地址不能绕过限制。
 - 验证码：可选，在表单设置中开启。答案缓存 300 秒，校验一次即失效。
 - 密钥：令牌与验证码 ID 的签名优先使用环境变量 `CMS_FORM_SECRET`；未配置时自动生成 `runtime/plugins-data/cms/form.secret`（目录 0700、文件 0600）。多台服务器部署时应配置相同的 `CMS_FORM_SECRET`。
 
-频率限制复用 `webman/limiter`。`config/plugin/webman/limiter/app.php` 的 `driver` 为 `auto` 时，装有 APCu 则用 APCu，否则退回每个 worker 进程独立的内存计数，实际上限会变成“设定次数 × worker 数”。生产环境建议安装 APCu，或把 `driver` 设为 `redis`。限流使用 `getRealIp()` 取得的访客 IP，反向代理需传递 `X-Forwarded-For` 或 `X-Real-IP`。
+频率限制复用 `webman/limiter`。`config/plugin/webman/limiter/app.php` 的 `driver` 为 `auto` 时，装有 APCu 则用 APCu，否则退回每个 worker 进程独立的内存计数，实际上限会变成“设定次数 × worker 数”。生产环境建议安装 APCu，或把 `driver` 设为 `redis`。访客 IP 不使用 `getRealIp()`（它信任 `X-Forwarded-For` 的第一段，可被伪造）：直连地址为内网/回环时取 `X-Real-IP`，其次取 `X-Forwarded-For` 的最后一段，否则使用直连地址。反向代理必须按“域名入口配置”中的写法用 `$remote_addr` 覆盖这两个头。
 
 ### 附件
 
-上传限制为单个文件 20MB、单次提交合计 50MB、每个字段 10 个文件。扩展名白名单与 `finfo` 嗅探的 MIME 必须同时通过校验，可执行或可被浏览器执行的类型一律拒绝。文件以随机名私有保存在 `runtime/plugins-data/cms/forms/`，原文件名只记在数据库中，不能通过公开地址访问；只能在后台经 `/admin/plugins/cms/forms/files/download` 下载，需要“查看提交”权限，下载响应强制 `attachment` 与 `nosniff`。
+上传限制为单个文件 20MB、单次提交合计 50MB、每个字段 10 个文件。扩展名白名单与 `finfo` 嗅探的 MIME 必须同时通过校验，可执行或可被浏览器执行的类型一律拒绝。文件以随机名私有保存在 `runtime/plugins-data/cms/forms/`，原文件名只记在数据库中，不能通过公开地址访问；只能在后台经 `/admin/plugins/cms/forms/files/download` 下载，需要“查看提交”权限。下载默认以 `attachment` 返回；只有 JPEG、PNG、GIF、WebP、BMP 图片在后台预览（`preview=1`）时以 `inline` 返回。所有下载响应都带 `X-Content-Type-Options: nosniff` 与 `Content-Security-Policy: default-src 'none'; sandbox`。
 
 宿主 `config/server.php` 的 `max_package_size` 默认为 10MB，超过它的请求会被 Workerman 直接拒绝。需要接收大附件时，把它调到 50MB 以上并留出余量（例如 64MB），Nginx 也要设置对应的 `client_max_body_size`（Nginx 默认只允许 1MB）。

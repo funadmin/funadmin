@@ -85,7 +85,7 @@ Blade 循环序号是 `$loop->iteration`，父循环是 `$loop->parent`；旧片
 ```
 
 与其他 `$cms->tag()` 相同，返回值是可信 HTML，用 `{{ }}` 输出即可，不会被二次转义；写成 `{!! !!}` 会报错。
-旧 HTML 主题和后台展示片段写作 `{cms:form name="contact" /}`。表单不存在或已停用时输出空字符串，模板无需额外判断。页面中第一个表单之后会自动追加一次 `/plugin-assets/cms/public/cms-form.js`，用于 fetch 提交、令牌过期时刷新重试、字段旁显示错误、刷新验证码。脚本不依赖 Vue 或 Element Plus；关闭 JavaScript 时，原生表单提交仍然可用，服务端返回独立的结果页。
+旧 HTML 主题和后台展示片段写作 `{cms:form name="contact" /}`。表单不存在或已停用时输出空字符串，模板无需额外判断。页面中第一个表单之后会自动追加一次 `/plugin-assets/cms/public/cms-form.js`，用于 fetch 提交、令牌过期时刷新重试、字段旁显示错误、加载与刷新验证码。开启验证码时，页面渲染不签发验证码，脚本在加载后从受限流的 `/forms/{code}/captcha` 接口取得第一张；关闭 JavaScript 的访客看到 `$ui['captcha_noscript']` 提示。脚本不依赖 Vue 或 Element Plus；关闭 JavaScript 时，原生表单提交仍然可用，服务端返回独立的结果页。
 
 默认结构来自内置的 `_forms/form.blade.php`。如果当前主题目录中存在 `partials/form.blade.php`，就改用主题的版本。表单定义只作为数据传入，后台填写的文字不会被编译为 Blade。主题模板可用的变量：
 
@@ -95,18 +95,19 @@ Blade 循环序号是 `$loop->iteration`，父循环是 `$loop->parent`；旧片
 | `$action` | 提交地址 `/forms/{code}` |
 | `$token` | 签名令牌，放入隐藏字段 `_token` |
 | `$uid` | 本次渲染的唯一前缀；同一页面多次嵌入时用于区分 id |
-| `$captcha` | 未开启时为 `null`，开启时为 `['id' => …, 'image' => data URI]` |
-| `$ui` | 当前语言的界面文字，例如 `submit`、`required`、`captcha`、`network` |
+| `$captcha` | 未开启时为 `null`；开启时为 `['id' => '', 'image' => '']` 空占位（渲染时不签发，由 `cms-form.js` 加载后填入） |
+| `$ui` | 当前语言的界面文字，例如 `submit`、`required`、`captcha`、`captcha_noscript`、`network` |
 | `$locale` | 当前语言，放入隐藏字段 `_locale` |
 | `$source` | 当前页面路径，放入隐藏字段 `_source` |
 
 覆盖时需保留以下约定，否则提交或错误显示会失效：
 
-- `<form>` 使用 `method="post"`、`enctype="multipart/form-data"`、`action="{{ $action }}"`，并带 `data-cms-form` 属性。
+- `<form>` 使用 `method="post"`、`enctype="multipart/form-data"`、`action="{{ $action }}"`，并带 `data-cms-form` 属性，以及 `data-network-error="{{ $ui['network'] }}"`（网络异常或响应无法解析时显示的文字）。
 - 包含隐藏字段 `_token`、`_locale`、`_source`，以及放在屏幕外的蜜罐输入 `name="_hp"`（不要用 `type="hidden"`）。
 - 输入框的 `name` 使用字段标识；多选、多选下拉和多文件字段在标识后加 `[]`。
 - 每个字段的外层元素带 `data-field="字段标识"`，内部放一个 `data-error` 元素用于显示该字段的错误；表单级错误显示在 `data-form-error` 元素中。
-- 开启验证码时，提交 `_captcha` 和 `_captcha_id`，外层元素写 `data-field="captcha"`，图片带 `data-captcha-image`，刷新按钮带 `data-captcha-refresh`。需要从网址参数预填的隐藏字段带 `data-from-query="字段标识"`。
+- 开启验证码时，提交 `_captcha` 和 `_captcha_id`，外层元素写 `data-field="captcha"`，图片带 `data-captcha-image`（脚本据此在加载时获取验证码，图片初始可不写 `src`），刷新按钮带 `data-captcha-refresh`，并建议用 `<noscript>` 输出 `$ui['captcha_noscript']`。
+- 脚本在提交中给 `<form>` 加 `aria-busy="true"`，在出错字段的 `data-field` 元素上加 `data-invalid`；内置样式（`cms.css` 的 `.cms-form*` 规则）依赖这些标记显示发送中和错误状态。需要从网址参数预填的隐藏字段带 `data-from-query="字段标识"`。
 
 所有后台文字都用 `{{ }}` 转义输出。只有 `$field['html']`（说明段落和同意条款）已经在保存时清洗过，可以用 `{!! !!}` 原样输出。接口、防刷与附件规则见插件 README 的“1.4.0 自定义表单”。
 
