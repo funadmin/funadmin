@@ -138,8 +138,8 @@ final class FormPublicTest extends CmsTestCase
         $normalize=static fn(string $html): string=>preg_replace(['~cms-form-[0-9a-f]{8}~','~(name="_token" value=")[^"]+~','~(name="_captcha_id" value=")[^"]+~','~src="data:image/[^"]+"~'],['UID','$1T','$1C','src="IMG"'],$html);
         self::assertStringContainsString('<input type="hidden" name="_captcha_id" value="">',$database,'captcha is not issued at render; cms-form.js fetches the throttled endpoint');
         self::assertStringNotContainsString('data:image/',$database);
-        self::assertMatchesRegularExpression('~<img[^>]*data-captcha-image~',$database);
-        self::assertStringContainsString('data-captcha-refresh',$database);
+        self::assertMatchesRegularExpression('~<img (?![^>]*\bsrc=)[^>]*\bhidden\b[^>]*data-captcha-image>~',$database,'the image stays hidden until cms-form.js gives it a src, so no broken-image alt text shows');
+        self::assertMatchesRegularExpression('~<button [^>]*data-captcha-refresh hidden>~',$database,'without JavaScript only the noscript note shows; cms-form.js reveals the refresh control');
         self::assertStringContainsString('<noscript><p class="cms-form-noscript">'.FormMessages::for('zh-cn')['captcha_noscript'].'</p></noscript>',$database);
         self::assertStringContainsString('name="_captcha"',$database);
         self::assertStringContainsString(FormMessages::for('en-us')['captcha_noscript'],$this->tag($site['id'],'{cms:form name="contact" /}','en-us'));
@@ -150,7 +150,7 @@ final class FormPublicTest extends CmsTestCase
     {
         $root=dirname(__DIR__,2).'/plugins/cms';
         $css=file_get_contents($root.'/public/plugin-assets/cms/public/cms.css');
-        foreach(['.cms-form{','.cms-form>.cms-form-field--half{','.cms-form-label{','.cms-form-control{','.cms-form-help{','.cms-form-error{','.cms-form-field[data-invalid] .cms-form-control{','.cms-form-message{','.cms-form-success{','.cms-form-captcha-row{','.cms-form-option,.cms-form-consent{','.cms-form-submit{','.cms-form-submit:disabled,.cms-form[aria-busy=true] .cms-form-submit{','.cms-form [hidden]{'] as $selector) self::assertStringContainsString($selector,$css);
+        foreach(['.cms-form{','.cms-form>.cms-form-field--half{','.cms-form-label{','.cms-form-control{','.cms-form-help{','.cms-form-error{','.cms-form-field[data-invalid] .cms-form-control{','.cms-form-message{','.cms-form-success{','.cms-form-captcha-row{','.cms-form-option,.cms-form-consent{','.cms-form-submit{','.cms-form-submit:disabled,.cms-form[aria-busy=true] .cms-form-submit{','.cms-form [hidden]{','.cms-form-field[data-invalid] .cms-form-group>.cms-form-label,.cms-form-field[data-invalid] .cms-form-option,.cms-form-field[data-invalid] .cms-form-consent{','.cms-form-field[data-invalid] .cms-form-option input,.cms-form-field[data-invalid] .cms-form-consent input{'] as $selector) self::assertStringContainsString($selector,$css);
         self::assertMatchesRegularExpression('~@media \(max-width:\d+px\)\{\.cms-form\{grid-template-columns:minmax\(0,1fr\)\}~',$css,'half-width fields collapse to one column on narrow screens');
         $template=file_get_contents($root.'/app/cms/view/_forms/form.blade.php').file_get_contents($root.'/public/plugin-assets/cms/public/cms-form.js');
         preg_match_all('~\bcms-form-[a-z-]+~',$template,$used);

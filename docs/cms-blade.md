@@ -85,7 +85,7 @@ Blade 循环序号是 `$loop->iteration`，父循环是 `$loop->parent`；旧片
 ```
 
 与其他 `$cms->tag()` 相同，返回值是可信 HTML，用 `{{ }}` 输出即可，不会被二次转义；写成 `{!! !!}` 会报错。
-旧 HTML 主题和后台展示片段写作 `{cms:form name="contact" /}`。表单不存在或已停用时输出空字符串，模板无需额外判断。页面中第一个表单之后会自动追加一次 `/plugin-assets/cms/public/cms-form.js`，用于 fetch 提交、令牌过期时刷新重试、字段旁显示错误、加载与刷新验证码。开启验证码时，页面渲染不签发验证码，脚本在加载后从受限流的 `/forms/{code}/captcha` 接口取得第一张；关闭 JavaScript 的访客看到 `$ui['captcha_noscript']` 提示。脚本不依赖 Vue 或 Element Plus；关闭 JavaScript 时，原生表单提交仍然可用，服务端返回独立的结果页。
+旧 HTML 主题和后台展示片段写作 `{cms:form name="contact" /}`。表单不存在或已停用时输出空字符串，模板无需额外判断。页面中第一个表单之后会自动追加一次 `/plugin-assets/cms/public/cms-form.js`，用于 fetch 提交、令牌过期时刷新重试、字段旁显示错误、加载与刷新验证码。开启验证码时，页面渲染不签发验证码，脚本初始化时也不请求，访客第一次聚焦或点按该表单（或尚未取到验证码就提交）时，才从受限流的 `/forms/{code}/captcha` 接口取得第一张，避免每次浏览页面都占用签发额度；获取失败（429、网络异常、响应无法解析）时在表单级错误槽显示接口返回的提示或 `data-network-error`，可点“换一张”重试。关闭 JavaScript 的访客看到 `$ui['captcha_noscript']` 提示。脚本不依赖 Vue 或 Element Plus；关闭 JavaScript 时，原生表单提交仍然可用，服务端返回独立的结果页。
 
 默认结构来自内置的 `_forms/form.blade.php`。如果当前主题目录中存在 `partials/form.blade.php`，就改用主题的版本。表单定义只作为数据传入，后台填写的文字不会被编译为 Blade。主题模板可用的变量：
 
@@ -106,7 +106,7 @@ Blade 循环序号是 `$loop->iteration`，父循环是 `$loop->parent`；旧片
 - 包含隐藏字段 `_token`、`_locale`、`_source`，以及放在屏幕外的蜜罐输入 `name="_hp"`（不要用 `type="hidden"`）。
 - 输入框的 `name` 使用字段标识；多选、多选下拉和多文件字段在标识后加 `[]`。
 - 每个字段的外层元素带 `data-field="字段标识"`，内部放一个 `data-error` 元素用于显示该字段的错误；表单级错误显示在 `data-form-error` 元素中。
-- 开启验证码时，提交 `_captcha` 和 `_captcha_id`，外层元素写 `data-field="captcha"`，图片带 `data-captcha-image`（脚本据此在加载时获取验证码，图片初始可不写 `src`），刷新按钮带 `data-captcha-refresh`，并建议用 `<noscript>` 输出 `$ui['captcha_noscript']`。
+- 开启验证码时，提交 `_captcha` 和 `_captcha_id`，外层元素写 `data-field="captcha"`，图片带 `data-captcha-image`（脚本据此按需获取验证码；图片初始不写 `src` 时应加 `hidden`，脚本设置 `src` 后再显示，避免出现破图和替代文字），刷新按钮带 `data-captcha-refresh`（可初始 `hidden`，脚本启用后显示），并建议用 `<noscript>` 输出 `$ui['captcha_noscript']`。
 - 脚本在提交中给 `<form>` 加 `aria-busy="true"`，在出错字段的 `data-field` 元素上加 `data-invalid`；内置样式（`cms.css` 的 `.cms-form*` 规则）依赖这些标记显示发送中和错误状态。需要从网址参数预填的隐藏字段带 `data-from-query="字段标识"`。
 
 所有后台文字都用 `{{ }}` 转义输出。只有 `$field['html']`（说明段落和同意条款）已经在保存时清洗过，可以用 `{!! !!}` 原样输出。接口、防刷与附件规则见插件 README 的“1.4.0 自定义表单”。

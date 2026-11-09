@@ -1,4 +1,4 @@
-/* CMS 公开表单的渐进增强：初始化时从限流接口获取验证码、fetch 提交、419 时刷新令牌重试一次、错误显示到字段旁、成功后替换为提示。无框架依赖。 */
+/* CMS 公开表单的渐进增强：首次聚焦或点按表单时才从限流接口获取验证码（失败时在表单级提示）、fetch 提交、419 时刷新令牌重试一次、错误显示到字段旁、成功后替换为提示。无框架依赖。 */
 (function () {
   'use strict';
 
@@ -68,19 +68,53 @@
     return action + '/captcha' + (locale && locale.value ? '?locale=' + encodeURIComponent(locale.value) : '');
   }
 
-  function refreshCaptcha(form, action) {
+  /** 验证码失败的提示放在表单级错误槽：429 用接口返回的翻译文字，网络异常或响应无法解析时用 data-network-error。 */
+  function captchaFailure(form, result) {
+    var body = result && result.body ? result.body : {};
+    var errors = body.data && body.data.errors;
+    var text = result && result.status === 429 ? String((errors && errors._form) || body.msg || '') : '';
+    return text || form.getAttribute('data-network-error') || '';
+  }
+
+  /**
+   * 获取一张新验证码。成功时显示图片并清掉此前的验证码失败提示；失败时提示，刷新按钮保持可用以便重试。
+   * consumed：旧验证码已被一次提交校验并删除，失败时一并清空，下次提交会先重新获取而不是再报“验证码错误”。
+   */
+  function refreshCaptcha(form, action, consumed) {
     var image = form.querySelector('[data-captcha-image]');
     var id = form.querySelector('input[name="_captcha_id"]');
-    if (!image || !id) return Promise.resolve();
+    if (!image || !id) return Promise.resolve(false);
+    if (form.cmsCaptchaPending) return form.cmsCaptchaPending;
     var answer = form.querySelector('input[name="_captcha"]');
     if (answer) answer.value = '';
-    return request(captchaUrl(form, action), { method: 'GET' }).then(function (result) {
+    var formSlot = form.querySelector('[data-form-error]');
+    var pending = request(captchaUrl(form, action), { method: 'GET' }).then(function (result) {
       var data = result.body && result.body.data;
       if (result.status === 200 && data && data.id && data.image) {
         image.setAttribute('src', data.image);
+        image.hidden = false;
         id.value = data.id;
+        if (form.cmsCaptchaError && formSlot && formSlot.textContent === form.cmsCaptchaError) setText(formSlot, '');
+        form.cmsCaptchaError = '';
+        return true;
       }
-    }).catch(function () {});
+      return Promise.reject(result);
+    }).catch(function (result) {
+      var text = captchaFailure(form, result);
+      form.cmsCaptchaError = text;
+      setText(formSlot, text);
+      if (consumed) {
+        id.value = '';
+        image.removeAttribute('src');
+        image.hidden = true;
+      }
+      return false;
+    }).then(function (loaded) {
+      form.cmsCaptchaPending = null;
+      return loaded;
+    });
+    form.cmsCaptchaPending = pending;
+    return pending;
   }
 
   function prefill(form) {
@@ -101,9 +135,21 @@
     prefill(form);
 
     var refresh = form.querySelector('[data-captcha-refresh]');
-    if (refresh) refresh.addEventListener('click', function () { refreshCaptcha(form, action); });
-    // 页面渲染时不签发验证码（避免每次匿名访问都生成图片与缓存）；有验证码块时从受限流的接口获取第一张。
-    if (form.querySelector('[data-captcha-image]')) refreshCaptcha(form, action);
+    var hasCaptcha = !!form.querySelector('[data-captcha-image]');
+    var captchaRequested = false;
+    if (refresh) {
+      refresh.hidden = false;
+      refresh.addEventListener('click', function () { captchaRequested = true; refreshCaptcha(form, action); });
+    }
+    // 页面渲染与脚本初始化都不签发验证码：每张验证码都占用按 IP 与按站点的签发额度，只在访客开始填写（首次聚焦或点按表单）时取第一张。
+    // 首次尝试之后不再因聚焦重复请求，失败时由“换一张”或提交重试。
+    function firstCaptcha() {
+      if (!hasCaptcha || captchaRequested) return;
+      captchaRequested = true;
+      refreshCaptcha(form, action);
+    }
+    form.addEventListener('focusin', firstCaptcha);
+    form.addEventListener('pointerdown', firstCaptcha);
 
     function renewToken() {
       var body = new FormData();
@@ -128,6 +174,13 @@
     form.addEventListener('submit', function (event) {
       event.preventDefault();
       if (busy) return;
+      var captchaId = form.querySelector('input[name="_captcha_id"]');
+      if (hasCaptcha && captchaId && captchaId.value === '') {
+        // 还没有验证码（从未获取或上次失败）：先取一张让访客填写，本次不发送。
+        captchaRequested = true;
+        refreshCaptcha(form, action);
+        return;
+      }
       busy = true;
       form.setAttribute('aria-busy', 'true');
       var buttons = Array.prototype.slice.call(form.querySelectorAll('button[type="submit"], input[type="submit"]'));
@@ -144,7 +197,7 @@
           return;
         }
         showErrors(form, data.errors && typeof data.errors === 'object' ? data.errors : { _form: result.body.msg || form.getAttribute('data-network-error') || '' });
-        return refreshCaptcha(form, action);
+        return refreshCaptcha(form, action, true);
       }).catch(function () {
         showErrors(form, { _form: form.getAttribute('data-network-error') || '' });
       }).then(function () {
