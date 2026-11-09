@@ -7,9 +7,9 @@ vi.mock('@/api/formData', () => ({ formDataApi: {} }));
 vi.mock('./SchemaRenderer.vue', () => ({ default: defineComponent({ props: ['values'], setup(_, { expose }) { expose({ submit: async () => {} }); }, template: '<input :value="values.title" @input="values.title = $event.target.value" />' }) }));
 const button = defineComponent({ props: ['disabled'], emits: ['click'], template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>' });
 const box = defineComponent({ template: '<div><slot /><slot name="footer" /></div>' });
-function render(parent = '', grants = true) {
-  const api = { leftTree: vi.fn().mockResolvedValue({ nodes: [{ id: 1, value: 1, label: '分类' }], schemaHash: 'source-hash', actions: { create: true, addChild: true, edit: true, delete: true } }), leftTreeForm: vi.fn().mockResolvedValue({ meta: { form: { form_key: 'categories' }, schema: { nodes: [{ id: 'node_title', kind: 'field', type: 'input', field: 'title', title: '标题', children: [] }] }, schemaHash: 'source-hash' }, row: { title: '旧分类' } }), mutateLeftTree: vi.fn().mockResolvedValue({}) };
-  const wrapper = mount(Tree, { props: { formKey: 'orders', schemaHash: 'target-hash', config: { enabled: true, source: { type: 'module', module: 'categories' }, mapping: { valueField: 'id', labelField: 'title', targetField: 'category_id', parentField: parent } }, canReadForm: grants, canMutate: grants, api }, global: { plugins: [ElementPlus], stubs: { ElButton: button, ElDialog: box, ElAlert: true, ElTree: defineComponent({ props: ['data'], setup(_, { expose }) { expose({ setCheckedKeys() {}, setCurrentKey() {} }); }, template: '<div><slot v-for="node in data" :data="node" /></div>' }) } } });
+function render(parent = '', grants = true, titleNode: Record<string, unknown> = {}, permissionCheck?: (code: string) => boolean) {
+  const api = { leftTree: vi.fn().mockResolvedValue({ nodes: [{ id: 1, value: 1, label: '分类' }], schemaHash: 'source-hash', actions: { create: true, addChild: true, edit: true, delete: true } }), leftTreeForm: vi.fn().mockResolvedValue({ meta: { form: { form_key: 'categories' }, schema: { nodes: [{ id: 'node_title', kind: 'field', type: 'input', field: 'title', title: '标题', children: [], ...titleNode }] }, schemaHash: 'source-hash' }, row: { title: '旧分类' } }), mutateLeftTree: vi.fn().mockResolvedValue({}) };
+  const wrapper = mount(Tree, { props: { ...(permissionCheck ? { permissionCheck } : {}), formKey: 'orders', schemaHash: 'target-hash', config: { enabled: true, source: { type: 'module', module: 'categories' }, mapping: { valueField: 'id', labelField: 'title', targetField: 'category_id', parentField: parent } }, canReadForm: grants, canMutate: grants, api }, global: { plugins: [ElementPlus], stubs: { ElButton: button, ElDialog: box, ElAlert: true, ElTree: defineComponent({ props: ['data'], setup(_, { expose }) { expose({ setCheckedKeys() {}, setCurrentKey() {} }); }, template: '<div><slot v-for="node in data" :data="node" /></div>' }) } } });
   return { wrapper, api };
 }
 describe('来源分类动作与来源表单', () => {
@@ -49,4 +49,15 @@ describe('来源分类动作与来源表单', () => {
   it('分类按钮显式空集合隐藏所有管理入口', async () => { const { wrapper } = render('parent_id'); await wrapper.setProps({ list: { buttons: { categoryToolbar: [], categoryNode: [] } } } as never); await flushPromises(); for (const label of ['新增', '加子级', '编辑', '删除']) expect(wrapper.findAll('button').some(button => button.text() === label)).toBe(false); wrapper.unmount(); });
   it('入口无权限时不显示四个写操作', async () => { const { wrapper } = render('parent_id', false); await flushPromises(); for (const label of ['新增', '加子级', '编辑', '删除']) expect(wrapper.findAll('button').some(button => button.text() === label)).toBe(false); wrapper.unmount(); });
   it('来源表单编辑值保存到既有接口并携带双 hash，成功刷新来源和右表', async () => { const { wrapper, api } = render('parent_id'); await flushPromises(); await (wrapper.vm as any).$.setupState.open('edit', 1); await flushPromises(); await wrapper.get('input').setValue('更新分类'); await (wrapper.vm as any).$.setupState.save(); expect(api.mutateLeftTree).toHaveBeenCalledWith('orders', 'edit', 1, { title: '更新分类' }, 'target-hash', 'source-hash'); expect(wrapper.emitted('mutated')).toHaveLength(1); expect(api.leftTree).toHaveBeenCalledTimes(2); wrapper.unmount(); });
+  it('来源表单提交按宿主权限保留受 access.write 约束的字段', async () => {
+    for (const [granted, expected] of [[true, { title: '更新分类' }], [false, {}]] as const) {
+      const { wrapper, api } = render('parent_id', true, { access: { write: ['source:title:write'] } }, (code) => granted && code === 'source:title:write');
+      await flushPromises();
+      await (wrapper.vm as any).$.setupState.open('edit', 1); await flushPromises();
+      await wrapper.get('input').setValue('更新分类');
+      await (wrapper.vm as any).$.setupState.save();
+      expect(api.mutateLeftTree).toHaveBeenCalledWith('orders', 'edit', 1, expected, 'target-hash', 'source-hash');
+      wrapper.unmount();
+    }
+  });
 });

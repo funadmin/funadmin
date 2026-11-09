@@ -100,7 +100,9 @@ final class DocumentService
         }
         $total = (clone $builder)->count();
         $rows = $builder->orderByDesc('updated_at')->orderByDesc('id')->forPage($page, $pageSize)->get();
-        return ['list' => $rows->map(fn ($row) => $this->dto($row, false))->all(), 'total' => $total, 'page' => $page, 'pageSize' => $pageSize];
+        $feedback = (new FeedbackService())->counts($rows->pluck('id')->all());
+        $list = $rows->map(fn ($row) => $this->dto($row, false) + ['feedback' => $feedback[(int) $row->id] ?? ['helpful' => 0, 'unhelpful' => 0]])->all();
+        return ['list' => $list, 'total' => $total, 'page' => $page, 'pageSize' => $pageSize];
     }
 
     /** @internal 供版本服务在事务内复用。 */

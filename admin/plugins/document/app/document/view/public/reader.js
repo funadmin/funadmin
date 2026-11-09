@@ -16,12 +16,29 @@
     try { window.localStorage.setItem('FUNADMIN_DOCS_THEME', next); } catch {}
   });
 
-  const search = document.querySelector('#docs-search');
+  const sidebarToggle = document.querySelector('[data-sidebar-toggle]');
+  const setSidebar = (collapsed) => {
+    if (collapsed) root.dataset.sidebar = 'collapsed'; else delete root.dataset.sidebar;
+    sidebarToggle?.setAttribute('aria-expanded', String(!collapsed));
+    sidebarToggle?.setAttribute('aria-label', collapsed ? '展开目录' : '收起目录');
+  };
+  let savedSidebar;
+  try { savedSidebar = window.localStorage.getItem('FUNADMIN_DOCS_SIDEBAR'); } catch {}
+  setSidebar(savedSidebar === 'collapsed');
+  sidebarToggle?.addEventListener('click', () => {
+    const collapsed = root.dataset.sidebar !== 'collapsed';
+    setSidebar(collapsed);
+    try { window.localStorage.setItem('FUNADMIN_DOCS_SIDEBAR', collapsed ? 'collapsed' : 'open'); } catch {}
+  });
+
+  const searches = [...document.querySelectorAll('[data-docs-search], #docs-search')];
+  const search = document.querySelector('#docs-search') ?? searches[0];
   const focusSearch = () => {
-    if (!search) return;
+    if (!searches.length) return;
     const navigation = document.querySelector('[data-navigation]');
     if (navigation) navigation.open = true;
-    search.focus(); search.select();
+    const target = searches.find((input) => input.getClientRects().length > 0) ?? search;
+    target.focus(); target.select();
   };
   document.querySelector('[data-open-search]')?.addEventListener('click', focusSearch);
   document.addEventListener('keydown', (event) => {
@@ -86,6 +103,88 @@
     if (code) void copy(button, code.textContent ?? '');
   }));
   document.querySelectorAll('[data-copy-page]').forEach(button => button.addEventListener('click', () => void copy(button, window.location.href)));
+
+  // —— 读者反馈：有帮助直接提交；无帮助展开原因与说明。右栏与文末两处组件状态同步。——
+  const feedbackWidgets = [...document.querySelectorAll('[data-feedback]')];
+  if (feedbackWidgets.length) {
+    const slug = feedbackWidgets[0].dataset.slug ?? '';
+    const storage = (() => { try { return window.localStorage; } catch { return null; } })();
+    const read = (key) => { try { return storage?.getItem(key) ?? null; } catch { return null; } };
+    const write = (key, value) => { try { storage?.setItem(key, value); } catch {} };
+    const visitor = (() => {
+      let id = read('FUNADMIN_DOCS_VISITOR');
+      if (!id || !/^[A-Za-z0-9_-]{16,64}$/.test(id)) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        id = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+        write('FUNADMIN_DOCS_VISITOR', id);
+      }
+      return id;
+    })();
+    const votesKey = 'FUNADMIN_DOCS_FEEDBACK';
+    const votes = (() => { try { const v = JSON.parse(read(votesKey) ?? '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch { return {}; } })();
+    const setStatus = (message, tone = '') => feedbackWidgets.forEach((widget) => {
+      const status = widget.querySelector('[data-feedback-status]');
+      if (!status) return;
+      status.textContent = message;
+      if (tone) status.dataset.tone = tone; else delete status.dataset.tone;
+    });
+    const markVote = (value) => feedbackWidgets.forEach((widget) => widget.querySelectorAll('[data-feedback-vote]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(value !== null && button.dataset.feedbackVote === value));
+    }));
+    const setBusy = (busy) => feedbackWidgets.forEach((widget) => widget.querySelectorAll('button').forEach((button) => { button.disabled = busy; }));
+    const closeForms = () => feedbackWidgets.forEach((widget) => { const form = widget.querySelector('[data-feedback-form]'); if (form) form.hidden = true; });
+
+    if (votes[slug] === '1' || votes[slug] === '0') {
+      markVote(votes[slug]);
+      setStatus('你已反馈过，可以随时修改选择。');
+    }
+
+    const send = async (payload) => {
+      setBusy(true);
+      setStatus('正在提交…');
+      try {
+        const response = await fetch(`/docs/${encodeURIComponent(slug)}/feedback`, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ visitor, ...payload }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(result?.msg || '反馈暂时无法提交，请稍后重试');
+        const value = payload.helpful ? '1' : '0';
+        votes[slug] = value;
+        write(votesKey, JSON.stringify(votes));
+        markVote(value);
+        closeForms();
+        setStatus(payload.helpful ? '感谢你的反馈！' : '感谢反馈，我们会尽快完善这篇文档。', 'success');
+        return true;
+      } catch (error) {
+        setStatus(error instanceof Error && error.message !== 'Failed to fetch' ? error.message : '网络异常，反馈未提交，请稍后重试', 'error');
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    feedbackWidgets.forEach((widget) => {
+      const form = widget.querySelector('[data-feedback-form]');
+      widget.querySelectorAll('[data-feedback-vote]').forEach((button) => button.addEventListener('click', () => {
+        if (button.dataset.feedbackVote === '1') { void send({ helpful: true }); return; }
+        if (!form) { void send({ helpful: false, reasons: [], comment: '' }); return; }
+        closeForms();
+        form.hidden = false;
+        setStatus('');
+        form.querySelector('input,textarea')?.focus();
+      }));
+      widget.querySelector('[data-feedback-cancel]')?.addEventListener('click', () => { if (form) form.hidden = true; });
+      form?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const reasons = [...form.querySelectorAll('input[name="reasons"]:checked')].map((input) => input.value);
+        const comment = form.querySelector('textarea[name="comment"]')?.value.trim() ?? '';
+        void send({ helpful: false, reasons, comment }).then((ok) => { if (ok) form.reset(); });
+      });
+    });
+  }
 
   const headings = document.querySelectorAll('[data-reader-content] :is(h1,h2,h3,h4,h5,h6)[id]');
   const tocLinks = [...document.querySelectorAll('[data-toc-link]')];

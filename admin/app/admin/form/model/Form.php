@@ -20,15 +20,10 @@ class Form extends BaseModel
     protected $name = 'form';
 
     /** @var array */
-    protected $casts = ['list_config' => 'array', 'form_config' => 'array', 'publish_config' => 'array', 'schema_document' => 'array'];
+    protected $casts = ['publish_config' => 'array', 'schema_document' => 'array'];
 
     /** @var bool */
     protected $guarded = [];
-
-    public function fields()
-    {
-        return $this->hasMany(FormField::class, 'form_id', 'id');
-    }
 
     public function businessModule()
     {

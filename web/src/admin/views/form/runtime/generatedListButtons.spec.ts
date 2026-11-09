@@ -100,7 +100,7 @@ describe('PHP 真实生成页面消费正式宿主', () => {
     }
   });
   it('安全元数据不重新引入敏感字段或关闭的列表详情字段', () => {
-    for (const presentation of [{ component: 'password' }, { controlProps: { sensitive: true } }, { controlProps: { writeOnly: true } }, { controlProps: { schemaAccess: 'private' } }]) {
+    for (const presentation of [{ component: 'password' }, { controlProps: { sensitive: true } }, { controlProps: { writeOnly: true } }, { access: { read: ['x'] } }]) {
       const generated = generate(false, true, true, false, true, presentation);
       for (const content of [generated.viewContent, generated.detailContent]) {
         const { descriptor } = parse(content);

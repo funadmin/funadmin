@@ -113,9 +113,4 @@ describe('表单运行时提交与敏感字段治理', () => {
     expect(resolveSubmissionInclude(null)).toEqual([]);
     expect(resolveSubmissionInclude({ schema_document: null })).toEqual([]);
   });
-
-  it('resolveSubmissionInclude ignores form_config', () => {
-    const legacy = { form_config: { submitInclude: ['readonly'] } } as unknown as Parameters<typeof resolveSubmissionInclude>[0];
-    expect(resolveSubmissionInclude(legacy)).toEqual([]);
-  });
 });

@@ -1503,7 +1503,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
 
     private static function sensitiveField(array $field): bool
     {
-        return ($field['component'] ?? '') === 'password' || !empty($field['controlProps']['sensitive']) || !empty($field['controlProps']['writeOnly']) || !empty($field['controlProps']['schemaAccess']);
+        return ($field['component'] ?? '') === 'password' || !empty($field['controlProps']['sensitive']) || !empty($field['controlProps']['writeOnly']) || !empty($field['access']);
     }
 
     private static function detail(array $data, string $class): string

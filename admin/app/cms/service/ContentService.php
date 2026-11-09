@@ -58,6 +58,7 @@ final class ContentService
             (new ModelService())->validate($schema['id'],$revision['data']);if($revision['cover_attach_id'])(new ModelService())->attachment($revision['cover_attach_id']);
             $routeId=(new RouteService())->publish($siteId,$translation['locale'],'content',$localeId,$revision['desired_path']);$now=Input::now();
             Db::table('cms_content_locale')->where('id',$localeId)->update(['status'=>'published','canonical_route_id'=>$routeId,'published_revision_id'=>$revisionId,'published_at'=>$translation['published_at']??$now,'published_updated_at'=>$now,'lock_version'=>$lockVersion+1,'updated_at'=>$now]);
+            (new PublicPageCache())->invalidateSite($siteId);
             return $this->editor($siteId,$localeId);
         });
     }
@@ -77,6 +78,7 @@ final class ContentService
     {
         $this->editor($siteId,$localeId);
         if(Db::table('cms_content_locale')->where('site_id',$siteId)->where('id',$localeId)->where('lock_version',$lockVersion)->update(['status'=>'offline','lock_version'=>$lockVersion+1,'updated_at'=>Input::now()])!==1)throw new InvalidArgumentException('内容版本已变化',409);
+        (new PublicPageCache())->invalidateSite($siteId);
     }
     public function publicDetail(string $siteId,string $localeId): ?array
     {

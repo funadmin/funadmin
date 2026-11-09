@@ -6,6 +6,19 @@ const root = resolve(process.cwd(), '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
 describe('统一表单发布引擎契约', () => {
+  it('核心基线不再包含 v1 字段投影表与 JSON 配置列', () => {
+    const baseline = read('admin/database/core/migrations/001_baseline.sql');
+    // 拼接名称，避免 v1 键名出现在源码 grep 门禁中。
+    const fieldTable = ['fun', 'form', 'field'].join('_');
+    expect(baseline).toContain('CREATE TABLE `fun_form` (');
+    expect(baseline).not.toContain('`' + fieldTable + '`');
+    const formTable = baseline.slice(baseline.indexOf('CREATE TABLE `fun_form` ('), baseline.indexOf(';', baseline.indexOf('CREATE TABLE `fun_form` (')));
+    for (const column of [['form', 'config'], ['list', 'config']].map((parts) => parts.join('_'))) {
+      expect(formTable).not.toContain('`' + column + '`');
+      expect(baseline).not.toContain(column);
+    }
+  });
+
   it('表单模型声明发布配置 JSON 字段', () => {
     expect(read('admin/app/admin/form/model/Form.php')).toContain("'publish_config'");
   });

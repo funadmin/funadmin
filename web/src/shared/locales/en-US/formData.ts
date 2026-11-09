@@ -52,7 +52,6 @@ export default {
     addRow: 'Add a row',
     unregisteredComponent: 'Unregistered form component: {type}',
     fieldRequiredWithLabel: '{label} is required',
-    fieldInvalid: '{label} has an invalid format or length',
     gridColumn: 'Column {n}',
     collapseContent: 'Collapse area content',
     tabContent: 'Tab content',

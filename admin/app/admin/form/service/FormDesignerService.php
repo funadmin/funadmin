@@ -12,7 +12,6 @@ use app\common\form\schema\FormSchema;
 use app\common\form\schema\FormSchemaException;
 use app\admin\form\exception\FormMigrationException;
 use app\admin\form\model\Form;
-use app\admin\form\model\FormField;
 use app\admin\form\repository\FormSchemaRepository;
 use InvalidArgumentException;
 use support\Db;
@@ -57,15 +56,14 @@ final class FormDesignerService
         $this->fieldCapabilities = $fieldCapabilities ?? $this->schemas->fieldCapabilities();
     }
 
-    /** 表单详情（含按 sort_order 排序的字段）。 */
+    /** 表单详情；字段只存在于 schema_document。 */
     public function detail(int $id): array
     {
         $form = Form::find($id);
         if (!$form) {
             throw new InvalidArgumentException('表单不存在');
         }
-        $fields = FormField::where('form_id', $id)->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
-        return ['form' => $form, 'fields' => $fields];
+        return ['form' => $form];
     }
 
     /** 服务端字段校验：按编译后的字段视图逐个校验，不合法抛 InvalidArgumentException。 */
@@ -154,22 +152,22 @@ final class FormDesignerService
             if ($id === 0 && Form::where('form_key', $identity['form_key'])->first()) {
                 throw new InvalidArgumentException('表单标识已存在');
             }
+            // 只写身份与非派生列；schema_*、publish_status 与 name 由 saveCompiledVersion() → persistCurrent() 写入。
+            // 更新时载荷缺省的管理列（status/remark/sort_order）保持原值，避免动态发布重置它们。
+            $keep = static fn (string $key, mixed $default): mixed => array_key_exists($key, $payload) ? $payload[$key] : ($id > 0 ? $form->{$key} : $default);
             $form->fill([
                 'form_key' => $identity['form_key'],
-                'name' => $identity['name'],
                 'table_name' => $identity['table_name'],
                 'connection' => $identity['connection'],
                 'source_type' => $identity['source_type'],
-                'status' => (int) ($payload['status'] ?? 1),
-                'schema_version' => $compiled->version(),
-                'schema_document' => $compiled->document(),
-                'schema_hash' => $compiled->hash(),
-                'schema_origin' => (string) ($payload['schema_origin'] ?? 'designer'),
+                'status' => (int) $keep('status', 1),
                 'publish_config' => $payload['publish_config'] ?? null,
-                'publish_status' => $compiled->hash() !== ($form->schema_hash ?? null) ? 'draft' : ($form->publish_status ?? 'draft'),
-                'remark' => trim((string) ($payload['remark'] ?? '')),
-                'sort_order' => (int) ($payload['sort_order'] ?? 0),
-            ])->save();
+                'remark' => trim((string) $keep('remark', '')),
+                'sort_order' => (int) $keep('sort_order', 0),
+            ]);
+            // 新建行在 persistCurrent() 之前就要落库，name 为 NOT NULL 列，此处先写入文档 title。
+            if ($id === 0) $form->name = $identity['name'];
+            $form->save();
             $this->schemas->saveCompiledVersion(
                 (int) $form->id,
                 $compiled,
@@ -353,7 +351,7 @@ final class FormDesignerService
         $lines = ['  `id` bigint unsigned NOT NULL AUTO_INCREMENT'];
         $indexes = [];
         foreach ($fields as $field) {
-            if ($this->isVirtualField($field)) {
+            if ($field->isVirtual()) {
                 continue;
             }
             $lines[] = '  ' . $this->columnDdl($field);
@@ -388,7 +386,7 @@ final class FormDesignerService
         $existingIndexes = array_column($metadata['indexes'], 'name');
         $parts = [];
         foreach ($fields as $field) {
-            if ($this->isVirtualField($field)) {
+            if ($field->isVirtual()) {
                 continue;
             }
             $name = trim($field->name());
@@ -403,11 +401,6 @@ final class FormDesignerService
             }
         }
         return $parts === [] ? '' : 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n";
-    }
-
-    private function isVirtualField(FormFieldView $field): bool
-    {
-        return $field->isVirtual();
     }
 
     private function columnDdl(FormFieldView $field): string

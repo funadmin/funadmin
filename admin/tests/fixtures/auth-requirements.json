@@ -624,6 +624,11 @@
         "login": true,
         "permission": "document:document:revision"
     },
+    "GET /admin/plugins/document/feedback => app\\admin\\plugins\\document\\controller\\FeedbackController::index": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:feedback:index"
+    },
     "GET /admin/plugins/example/index => app\\admin\\plugins\\example\\controller\\Index::index": {
         "guard": "plugin",
         "login": true,
@@ -1920,6 +1925,11 @@
         "permission": null
     },
     "POST /cms/member/submissions/{id}/withdraw => app\\cms\\controller\\MemberContent::withdraw": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "POST /docs/{slug:[a-z0-9][a-z0-9-]{0,119}}/feedback => app\\document\\controller\\Reader::feedback": {
         "guard": "self",
         "login": false,
         "permission": null

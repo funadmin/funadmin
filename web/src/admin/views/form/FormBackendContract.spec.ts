@@ -10,7 +10,7 @@ describe('表单后端领域契约', () => {
     const source = formDataService();
     expect(source).toContain('$connection->transaction');
     expect(source).toContain('子表数据不属于当前父记录');
-    expect(source).toContain("relation_type !== 'has_many'");
+    expect(source).toContain("relationType() !== 'has_many'");
   });
 
   it('数据列表支持完整筛选操作符', () => {

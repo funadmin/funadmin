@@ -25,6 +25,41 @@ final class PublicTest extends CmsTestCase
         self::assertStringNotContainsString('Company A',$this->request('other.test','/about.html')->rawBody());
         self::assertSame(404,$this->request('unknown.test','/about.html')->getStatusCode());
     }
+    public function test_public_page_cache_returns_etag_and_honors_if_none_match(): void
+    {
+        $site=$this->site();$this->publish($site['id'],'Cached page');
+        $first=$this->request('cms.test','/about.html');
+        self::assertSame(200,$first->getStatusCode());self::assertSame('public, no-cache',$first->getHeader('Cache-Control'));
+        $etag=(string)$first->getHeader('ETag');self::assertMatchesRegularExpression('/^"[0-9a-f]{40}"$/',$etag);
+        foreach([$etag,'W/'.$etag,'"other", '.$etag] as $header){
+            $second=(new PublicSite())->handle(new Request("GET /cms/about.html HTTP/1.1\r\nHost: cms.test\r\nIf-None-Match: $header\r\n\r\n"));
+            self::assertSame(304,$second->getStatusCode());self::assertSame('',$second->rawBody());self::assertSame($etag,$second->getHeader('ETag'));
+        }
+        $other=(new PublicSite())->handle(new Request("GET /cms/about.html HTTP/1.1\r\nHost: cms.test\r\nIf-None-Match: \"stale\"\r\n\r\n"));
+        self::assertSame(200,$other->getStatusCode());self::assertStringContainsString('Cached page',$other->rawBody());
+    }
+    public function test_public_page_cache_is_invalidated_by_republish_and_offline_and_isolated_by_site(): void
+    {
+        $a=$this->site();$b=$this->site('other','other.test');
+        $page=$this->publish($a['id'],'Version one');$this->publish($b['id'],'Other site');
+        self::assertStringContainsString('Version one',$this->request('cms.test','/about.html')->rawBody());
+        self::assertStringContainsString('Other site',$this->request('other.test','/about.html')->rawBody());
+        $etag=(string)$this->request('cms.test','/about.html')->getHeader('ETag');
+        $service=new ContentService();
+        $draft=$service->save($a['id'],'zh-cn',['content_id'=>$page['content_id'],'lock_version'=>$page['lock_version'],'title'=>'Version two','desired_path'=>'/about.html','body_html'=>'<p>Complete server rendered body</p>','data'=>[]],'1');
+        $page=$service->publish($a['id'],$draft['id'],$draft['draft_revision_id'],$draft['lock_version']);
+        $fresh=$this->request('cms.test','/about.html');
+        self::assertStringContainsString('Version two',$fresh->rawBody());self::assertNotSame($etag,$fresh->getHeader('ETag'));
+        $service->offline($a['id'],$page['id'],(int)$page['lock_version']);
+        self::assertSame(404,$this->request('cms.test','/about.html')->getStatusCode());
+        self::assertStringContainsString('Other site',$this->request('other.test','/about.html')->rawBody());
+    }
+    public function test_search_results_are_not_cached(): void
+    {
+        $site=$this->site();$this->publish($site['id'],'Searchable');
+        $response=$this->request('cms.test','/search/?q=Searchable');
+        self::assertSame('no-cache',$response->getHeader('Cache-Control'));self::assertNull($response->getHeader('ETag'));
+    }
     public function test_hreflang_contains_only_published_translations_and_head_has_no_body(): void
     {
         $a=$this->site();$zh=$this->publish($a['id'],'中文');(new SiteService())->saveLocale($a['id'],['locale'=>'en-us','url_prefix'=>'en']);

@@ -116,6 +116,19 @@ final class FormFieldViewTest extends TestCase
         self::assertSame('varchar(32)', $schema->field('a')?->columnType());
     }
 
+    public function test_sensitive_uses_strict_truthy_rule(): void
+    {
+        $view = static fn (array $node): \app\common\form\schema\FormFieldView => \app\common\form\schema\FormFieldView::fromNode($node + ['field' => 'x']);
+        self::assertTrue($view(['type' => 'password'])->sensitive());
+        foreach ([true, 1, '1'] as $value) {
+            self::assertTrue($view(['type' => 'input', 'props' => ['sensitive' => $value]])->sensitive());
+            self::assertTrue($view(['type' => 'input', 'props' => ['writeOnly' => $value]])->sensitive());
+        }
+        foreach ([false, 0, '0', '', 'false', 'true', 'yes', 'on', null] as $value) {
+            self::assertFalse($view(['type' => 'input', 'props' => ['sensitive' => $value, 'writeOnly' => $value]])->sensitive(), var_export($value, true));
+        }
+    }
+
     private function node(string $field, array $extra = []): array
     {
         return ['id' => 'node_' . $field, 'kind' => 'field', 'type' => 'input', 'field' => $field, 'title' => '标题 ' . $field] + $extra;

@@ -115,6 +115,7 @@ final class SiteConfiguration
                 self::reconcileLocales($siteId,$fields);
                 $settings=array_replace($site['settings']??[],['configuration'=>['fields'=>$fields,'values'=>$values]]);Db::table('cms_site')->where('id',$siteId)->update(['settings'=>Input::json($settings),'updated_at'=>Input::now()]);
             }
+            (new PublicPageCache())->invalidateSite($siteId);
             return $this->read($siteId,$locale);
         });
     }

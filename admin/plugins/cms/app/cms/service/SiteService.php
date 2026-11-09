@@ -52,6 +52,7 @@ final class SiteService
                 Db::table('cms_site')->where('id',$id)->update(['primary_domain_id'=>$domain->id]);
             }
             if(!$old)SiteRoleSchema::seedSite($id);
+            (new PublicPageCache())->invalidateSite($id);
             return $this->get($id);
         });
     }
@@ -75,6 +76,7 @@ final class SiteService
             if($old) { $id=$old['id'];Db::table('cms_site_locale')->where('id',$id)->update($data); }
             else { $id=(string)Db::table('cms_site_locale')->insertGetId($data+['created_at'=>$now]);(new RouteService())->publish($siteId,$locale,'home',$id,$prefix===''?'/':'/'.$prefix.'/'); }
             if(isset($input['home_path'])&&$input['home_path']!=='')(new RouteService())->publish($siteId,$locale,'home',$id,(string)$input['home_path']);
+            (new PublicPageCache())->invalidateSite($siteId);
             return Input::row(Db::table('cms_site_locale')->where('id',$id)->first());
         });
     }
@@ -94,6 +96,7 @@ final class SiteService
             if($old) { $id=$old['id'];Db::table('cms_domain')->where('id',$id)->update($data); }
             else $id=(string)Db::table('cms_domain')->insertGetId($data+['verification_status'=>'pending','created_at'=>$now]);
             if(($input['primary']??false)||(!$site['primary_domain_id']&&$status===1)) Db::table('cms_site')->where('id',$siteId)->update(['primary_domain_id'=>$id]);
+            (new PublicPageCache())->invalidateSite($siteId);
             return Input::row(Db::table('cms_domain')->where('id',$id)->first());
         });
     }

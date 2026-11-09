@@ -98,6 +98,10 @@ final class FormSchemaValidator
         if (array_key_exists('title', $schema) && (!is_string($schema['title']) || trim($schema['title']) === '')) {
             throw new FormSchemaException('title 必须为非空字符串', '/title');
         }
+        // 与 FormDesignerService::identity() 一致：title 落入 fun_form.name varchar(100)。
+        if (is_string($schema['title'] ?? null) && mb_strlen(trim($schema['title'])) > 100) {
+            throw new FormSchemaException('title 不能超过 100 个字符', '/title');
+        }
         foreach (['model', 'layout', 'form', 'submit', 'list', 'database', 'extensions'] as $key) {
             if (array_key_exists($key, $schema) && (!is_array($schema[$key]) || array_is_list($schema[$key]) && $schema[$key] !== [])) {
                 throw new FormSchemaException($key . ' 必须为对象', '/' . $key);
@@ -230,7 +234,7 @@ final class FormSchemaValidator
             $node = is_string($name) ? ($fields[$name] ?? null) : null;
             if (!$node || empty($node['database']['columnType']) || in_array($node['type'] ?? '', ['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
                 || in_array($node['valueType'] ?? '', ['array', 'object'], true)
-                || ($node['props']['multiple'] ?? false) || ($node['props']['sensitive'] ?? false) || ($node['props']['writeOnly'] ?? false)
+                || ($node['props']['multiple'] ?? false) || FormFieldView::fromNode($node)->sensitive()
                 || ($node['access'] ?? []) !== [] || ($node['database']['relation']['type'] ?? 'none') !== 'none') {
                 throw new FormSchemaException('必须选择当前表可读的非敏感标量字段', '/list/' . $kind . '/' . $binding);
             }
@@ -349,7 +353,7 @@ final class FormSchemaValidator
             $node = $fields[$field] ?? null;
             if (!$node || empty($node['database']['columnType']) || in_array($node['type'] ?? '', ['password', 'repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
                 || in_array($node['valueType'] ?? '', ['array', 'object'], true) || ($node['props']['multiple'] ?? false)
-                || ($node['props']['sensitive'] ?? false) || ($node['props']['writeOnly'] ?? false)) {
+                || FormFieldView::fromNode($node)->sensitive()) {
                 throw new FormSchemaException('映射必须引用可读标量字段', '/list/leftTree/mapping/' . $name);
             }
         }
@@ -409,6 +413,11 @@ final class FormSchemaValidator
                 $capability = $this->fieldCapabilities->get($type);
                 $this->validateComponentProps((array) ($node['props'] ?? []), $capability, $nodePath . '/props');
                 $this->validateComponentAttrs((array) ($node['attrs'] ?? []), $nodePath . '/attrs');
+            }
+            // kind 是字段/布局的唯一判定，必须与控件能力的 kind 一致。
+            $layoutCapability = (string) (($pluginComponent ?? $capability)['kind'] ?? '') === 'layout';
+            if ($layoutCapability !== ($kind === 'layout')) {
+                throw new FormSchemaException('节点 kind 与控件类型不一致', $nodePath . '/kind');
             }
             $field = (string) ($node['field'] ?? '');
             if ($kind === 'field') {

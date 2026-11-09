@@ -52,7 +52,6 @@ export default {
     addRow: '新增一行',
     unregisteredComponent: '未注册的表单组件：{type}',
     fieldRequiredWithLabel: '{label}不能为空',
-    fieldInvalid: '{label}格式或长度不正确',
     gridColumn: '栅格 {n}',
     collapseContent: '折叠区域内容',
     tabContent: '标签页内容',

@@ -36,6 +36,6 @@ final class MemberFormDefinition
         ])->span(12);
         $form->image('avatar', $t('头像', 'Avatar'))->default('')->rule('maxLength', 255)->prop('maxSize', 2)->prop('bizType', 'avatar');
         $compiled = $form->compile();
-        return ['schema' => $compiled->document(), 'fields' => $compiled->fieldProjection()];
+        return ['schema' => $compiled->document()];
     }
 }

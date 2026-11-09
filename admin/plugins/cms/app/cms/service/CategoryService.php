@@ -25,6 +25,7 @@ final class CategoryService
             $existing=Db::table('cms_category_locale')->where('category_id',$id)->where('locale',$locale)->first();
             if($existing){$localeId=(string)$existing->id;Db::table('cms_category_locale')->where('id',$localeId)->update($translated);}else $localeId=(string)Db::table('cms_category_locale')->insertGetId($translated+['created_at'=>$now]);
             (new RouteService())->publish($siteId,$locale,'category',$localeId,(string)($input['desired_path']??''));
+            (new PublicPageCache())->invalidateSite($siteId);
             return $this->detail($siteId,$localeId,false)??throw new InvalidArgumentException('栏目保存失败');
         });
     }

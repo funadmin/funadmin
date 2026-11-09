@@ -11,8 +11,7 @@ final class FormSchema
 
     public function __construct(
         private readonly array $document,
-        private readonly string $canonicalJson,
-        private readonly array $fieldProjection
+        private readonly string $canonicalJson
     ) {
     }
 
@@ -39,11 +38,6 @@ final class FormSchema
     public function hash(): string
     {
         return hash('sha256', $this->canonicalJson);
-    }
-
-    public function fieldProjection(): array
-    {
-        return $this->fieldProjection;
     }
 
     /**

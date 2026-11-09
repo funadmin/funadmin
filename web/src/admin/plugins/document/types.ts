@@ -38,6 +38,8 @@ export interface DocumentSummary {
   metaVersion: number;
   categoryIds: number[];
   updatedAt: string;
+  /** 读者反馈计数（仅列表接口返回） */
+  feedback?: FeedbackCounts;
 }
 
 export interface DocumentDetail extends DocumentSummary {
@@ -73,6 +75,43 @@ export interface DocumentMetaInput {
   pluginCode?: string;
   appliesTo?: string;
   categoryIds?: number[];
+}
+
+export interface FeedbackCounts {
+  helpful: number;
+  unhelpful: number;
+}
+
+export type FeedbackReason = 'incomplete' | 'unclear' | 'outdated' | 'broken' | 'missing' | 'other';
+
+export interface FeedbackItem {
+  id: number;
+  documentId: number;
+  title: string;
+  slug: string;
+  revisionNo: number;
+  helpful: boolean;
+  reasons: FeedbackReason[];
+  comment: string;
+  updatedAt: string;
+}
+
+export interface FeedbackQuery {
+  documentId?: number;
+  /** '1' 有帮助、'0' 无帮助、'' 全部 */
+  helpful?: '' | '1' | '0';
+  withComment?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface FeedbackPage {
+  list: FeedbackItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  /** 当前文档范围内的汇总，不受 helpful / withComment 筛选影响 */
+  summary: FeedbackCounts;
 }
 
 export interface RevisionSummary {

@@ -7,13 +7,13 @@ namespace app\admin\form\service;
 use app\common\form\action\FormActionRegistry;
 use app\common\form\component\PluginFormComponentRegistry;
 use app\common\form\dataSource\FormDataSourceRegistry;
+use app\common\form\schema\FormFieldView;
 use app\common\form\validation\FormAsyncValidationException;
 use app\common\form\validation\FormAsyncValidatorRegistry;
 use app\common\form\validation\FormSchemaDataValidator;
 use app\common\model\DictItem;
 use app\common\model\DictType;
 use app\admin\form\model\Form;
-use app\admin\form\model\FormField;
 use app\admin\form\model\FormSchemaVersion;
 use app\admin\form\repository\FormSchemaRepository;
 use app\admin\development\model\BusinessModule;
@@ -51,7 +51,6 @@ final class FormDataService
 
     private const SORT_WHITELIST_EXTRA = ['id', 'created_at', 'updated_at'];
     private const EXPORT_LIMIT = 5000;
-    private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
 
     /** 表单元数据只使用不可变的已发布 FormSchema 快照，禁止当前草稿污染运行态。 */
     public function meta(string $key): array
@@ -59,16 +58,10 @@ final class FormDataService
         $form = $this->form($key);
         $published = $this->publishedRuntime($form);
         $schema = $this->tableFields(Db::connection((string) $form->connection), (string) $form->table_name);
-        $safeFields = array_map(function ($field): array {
-            $row = $field->toArray();
-            if ($this->isSensitiveField($row)) $row['default_value'] = '';
-            return $row;
-        }, $published['fields']->all());
         $formData = $form->toArray();
         unset($formData['schema_document'], $formData['schema_hash']);
         return [
             'form' => $formData,
-            'fields' => $safeFields,
             'primaryKey' => $this->primaryKey($schema),
             'schema' => $published['schema'],
             'schemaHash' => $published['schemaHash'],
@@ -89,12 +82,11 @@ final class FormDataService
         }
         $fields = [];
         foreach ($runtime['fields'] as $field) {
-            $row = $field->toArray();
-            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')
-                || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none'
-                || in_array($row['type'] ?? '', ['repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
-                || !empty($row['control_props']['multiple'])) continue;
-            $fields[] = ['field' => (string) $row['field_name'], 'title' => (string) ($row['label'] ?? '')];
+            if ($field->sensitive() || !$this->fieldAccessAllowed($field, 'read')
+                || $field->columnType() === '' || $field->relationType() !== 'none'
+                || in_array($field->type(), ['repeatable', 'subform', 'json', 'checkbox', 'transfer'], true)
+                || !empty($field->props()['multiple'])) continue;
+            $fields[] = ['field' => $field->name(), 'title' => $field->title()];
         }
         // 独立白名单 DTO，不复用运行态 meta，避免 AST、默认值及选项查询旁路泄露。
         return [
@@ -171,7 +163,7 @@ final class FormDataService
     }
 
     /** 列表与导出共用分类、普通过滤及基础权限查询，不绑定展示读取策略。 */
-    private function filteredQuery(Form $form, $fields, array $list, array $filters, bool $recycled = false)
+    private function filteredQuery(Form $form, array $fields, array $list, array $filters, bool $recycled = false)
     {
         $query = $this->baseQuery($form, $fields, $recycled);
         if (($list['leftTree']['enabled'] ?? false) === true && array_key_exists('__leftTree', $filters)) {
@@ -190,8 +182,10 @@ final class FormDataService
             $query->where($this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $list['category']['field'], '=', $filters['__category']);
         }
         foreach ($fields as $field) {
-            $filterType = (string) $field->list_filter;
-            $name = (string) $field->field_name;
+            // 敏感或无读权限字段不参与筛选，避免形成数据探测通道。
+            if ($field->sensitive() || !$this->fieldAccessAllowed($field, 'read')) continue;
+            $filterType = $field->listFilter();
+            $name = $field->name();
             $value = $filters[$name] ?? '';
             if ($filterType === 'eq' && $value !== '') {
                 $query->where($name, $value);
@@ -273,12 +267,11 @@ final class FormDataService
             $boundFields = $binding === 'targetField' ? $targetRuntime['fields'] : $runtime['fields'];
             $boundForm = $binding === 'targetField' ? $target : $source;
             $columns = $this->tableFields(Db::connection((string) $boundForm->connection), (string) $boundForm->table_name);
-            $field = null;
-            foreach ($boundFields as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+            $field = $this->findField($boundFields, $name);
             if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
-            if (!$field || !isset($columns[$name]) || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'read')
-                || in_array($field['type'] ?? '', ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
-                || ($field['control_props']['multiple'] ?? false)) throw new InvalidArgumentException('左树映射字段不存在或无读取权限');
+            if (!$field || !isset($columns[$name]) || $field->sensitive() || !$this->fieldAccessAllowed($field, 'read')
+                || in_array($field->type(), ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
+                || ($field->props()['multiple'] ?? false)) throw new InvalidArgumentException('左树映射字段不存在或无读取权限');
         }
         if ($mapping['valueField'] !== $primary['name']) throw new InvalidArgumentException('左树节点值必须映射来源业务主键');
         $query = $this->baseQuery($source, $runtime['fields']);
@@ -321,9 +314,8 @@ final class FormDataService
         $this->assertPublishedSchemaHash($tree['schemaHash'], $meta['schemaHash']);
         $result = ['meta' => $meta, 'row' => $action === 'edit' ? $row : []];
         if ($optionField !== '') {
-            $field = null;
-            foreach ($meta['fields'] as $candidate) if ($candidate['field_name'] === $optionField) $field = $candidate;
-            if (!$field || !$this->fieldAccessAllowed($field, 'read') || !$this->fieldSubmissionAllowed($field, []) || $this->isSensitiveField($field)) throw new InvalidArgumentException('来源选项字段不可访问');
+            $field = $this->findField($this->fields($tree['sourceKey']), $optionField);
+            if (!$field || !$this->fieldAccessAllowed($field, 'read') || !$this->fieldSubmissionAllowed($field, []) || $field->sensitive()) throw new InvalidArgumentException('来源选项字段不可访问');
             $result += $this->paginateOptions($this->options($tree['sourceKey'], $optionField, $context), (string) ($context['keyword'] ?? ''), max(1, (int) ($context['page'] ?? 1)), min(100, max(1, (int) ($context['pageSize'] ?? 20))));
         }
         return $result;
@@ -373,8 +365,7 @@ final class FormDataService
             if ($updating && array_key_exists($primary, $data) && (string) $data[$primary] !== (string) $id) throw new InvalidArgumentException('不能修改节点主键');
             if ($updating) unset($data[$primary]);
             foreach ($data as $name => $_value) {
-                $field = null;
-                foreach ($runtime['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+                $field = $this->findField($runtime['fields'], (string) $name);
                 if (!$field || !$this->fieldSubmissionAllowed($field, [])) throw new InvalidArgumentException('字段不可写：' . $name);
             }
             if ($parent !== '' && array_key_exists($parent, $data) && $data[$parent] !== null && $data[$parent] !== '' && (string) $data[$parent] !== '0') {
@@ -454,17 +445,17 @@ final class FormDataService
                     $references[] = $left['mapping']['targetField'];
                 }
             }
-            foreach ($compiled->fieldProjection() as $field) {
-                if ($table === (string) $source->table_name && $connectionName === (string) $source->connection && ($field['relation_type'] ?? '') === 'has_many') {
-                    $childTable = (string) ($field['relation_table'] ?? '');
-                    $childField = (string) ($field['relation_value_field'] ?? '');
+            foreach ($compiled->fields() as $field) {
+                if ($table === (string) $source->table_name && $connectionName === (string) $source->connection && $field->relationType() === 'has_many') {
+                    $childTable = $field->relationTable();
+                    $childField = $field->relationValueField();
                     $this->assertIdentifier($childTable, '引用表');
                     $this->assertIdentifier($childField, '引用字段');
                     if (Db::connection($connectionName)->table($this->logicalTable(Db::connection($connectionName), $childTable))->where($childField, $id)->lockForUpdate()->first()) {
                         throw new InvalidArgumentException('节点仍被关联子表引用，不能删除');
                     }
                 }
-                if (($field['relation_type'] ?? '') === 'belongs_to' && ($field['relation_table'] ?? '') === (string) $source->table_name && ($field['relation_value_field'] ?? '') === $primary) $references[] = $field['field_name'];
+                if ($field->relationType() === 'belongs_to' && $field->relationTable() === (string) $source->table_name && $field->relationValueField() === $primary) $references[] = $field->name();
             }
             if ($references === []) continue;
             if ($connectionName !== (string) $source->connection) throw new InvalidArgumentException('跨连接引用无法原子检查，拒绝删除');
@@ -543,26 +534,27 @@ final class FormDataService
             throw new InvalidArgumentException('数据不存在');
         }
         if ($copyCreate) {
-            return ['row' => $this->copyCreateValues(array_map(static fn ($field): array => $field->toArray(), $fields->all()), $this->sanitizeRecord($fields, $row), $primary['name']), 'children' => []];
+            return ['row' => $this->copyCreateValues($fields, $this->sanitizeRecord($fields, $row), $primary['name']), 'children' => []];
         }
         $children = [];
         foreach ($fields as $field) {
-            if ((string) $field->relation_type === 'has_many' && $this->relationReadable($field)) {
-                $children[(string) $field->field_name] = $this->subRows($field, $id, 1, 20);
+            if ($field->relationType() === 'has_many' && $this->relationReadable($field)) {
+                $children[$field->name()] = $this->subRows($field, $id, 1, 20);
             }
         }
         return ['row' => $this->sanitizeRecord($fields, $row), 'children' => $children];
     }
 
     /** 复制新增预填：仅复制当前授权下可创建的普通字段，主键、审计、关系、敏感和唯一值必须重新生成。 */
-    public function copyCreateValues(array $fields, array $record, string $primary = 'id'): array
+    /** @param list<FormFieldView> $fields */
+    private function copyCreateValues(array $fields, array $record, string $primary = 'id'): array
     {
         $result = [];
         foreach ($fields as $field) {
-            $name = (string) ($field['field_name'] ?? '');
+            $name = $field->name();
             if ($name === '' || $name === $primary || in_array($name, ['created_at', 'updated_at', 'deleted_at'], true)
-                || ($field['relation_type'] ?? 'none') !== 'none' || ($field['index_type'] ?? 'none') === 'unique'
-                || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'write') || $this->isExcludedFromSubmission($field)) continue;
+                || $field->relationType() !== 'none' || $field->index() === 'unique'
+                || $field->sensitive() || !$this->fieldAccessAllowed($field, 'write') || $this->isExcludedFromSubmission($field)) continue;
             if (array_key_exists($name, $record)) $result[$name] = $record[$name];
         }
         return $result;
@@ -765,20 +757,17 @@ final class FormDataService
         });
     }
 
-    /** 选项源：static / 关联表（belongs_to 或 options_source.mode=relation）。 */
+    /** 选项源：static / 关联表（belongs_to 或 dataSource.kind=relation）。 */
     public function options(string $key, string $fieldName, array $context = []): array
     {
         // 设计器预览传 draft=1：选项按草稿 Schema 解析，避免未发布字段报“字段不存在”。
         $draft = (bool) ($context['draft'] ?? false);
-        $field = null;
-        foreach ($this->fields($key, $draft) as $candidate) {
-            if ((string) $candidate->field_name === $fieldName) { $field = $candidate; break; }
-        }
+        $field = $this->findField($this->fields($key, $draft), $fieldName);
         if (!$field) {
             throw new InvalidArgumentException('字段不存在：' . $fieldName);
         }
-        $source = is_array($field->options_source) ? $field->options_source : [];
-        $mode = (string) ($source['kind'] ?? ((string) $field->relation_type === 'belongs_to' ? 'relation' : 'static'));
+        $source = $field->dataSource() ?? [];
+        $mode = (string) ($source['kind'] ?? ($field->relationType() === 'belongs_to' ? 'relation' : 'static'));
         $source['kind'] = $mode;
         if (in_array($mode, ['endpoint', 'computed'], true)) {
             return $this->executeOptionsSource($source, [
@@ -822,9 +811,9 @@ final class FormDataService
             return Admin::where('status', 1)->whereIn('id', $ids ?: [0])->orderBy('id', 'asc')->select(['id as value', 'nickname as label'])->limit(500)->get()->toArray();
         }
         if ($mode === 'relation') {
-            $table = (string) ($source['table'] ?? $field->relation_table);
-            $label = (string) ($source['label_field'] ?? $field->relation_label_field);
-            $value = (string) ($source['value_field'] ?? $field->relation_value_field);
+            $table = (string) ($source['table'] ?? $field->relationTable());
+            $label = (string) ($source['label_field'] ?? $field->relationLabelField());
+            $value = (string) ($source['value_field'] ?? $field->relationValueField());
             if ($table === '' || $label === '' || $value === '') {
                 throw new InvalidArgumentException('关联选项源配置不完整');
             }
@@ -862,7 +851,7 @@ final class FormDataService
      *
      */
     /** 树形表格父级选择：选项为当前表授权记录树，上限 1000 条。 */
-    private function selfTreeOptions(string $key, FormField $parentField): array
+    private function selfTreeOptions(string $key, FormFieldView $parentField): array
     {
         $form = $this->form($key);
         $connection = Db::connection((string) $form->connection);
@@ -871,13 +860,13 @@ final class FormDataService
         $primary = $this->primaryKey($schema);
         $labelField = (string) $primary['name'];
         foreach ($this->publishedRuntime($form)['fields'] as $candidate) {
-            $name = (string) $candidate->field_name;
-            if ($name === $primary['name'] || in_array($candidate->type, ['password', 'file', 'files', 'image', 'images', 'json', 'richtext', 'repeatable', 'subform'], true)
-                || $this->isSensitiveField($candidate->toArray()) || !$this->fieldAccessAllowed($candidate->toArray(), 'read')) continue;
+            $name = $candidate->name();
+            if ($name === $primary['name'] || in_array($candidate->type(), ['password', 'file', 'files', 'image', 'images', 'json', 'richtext', 'repeatable', 'subform'], true)
+                || $candidate->sensitive() || !$this->fieldAccessAllowed($candidate, 'read')) continue;
             $labelField = $name;
             break;
         }
-        $parentName = (string) $parentField->field_name;
+        $parentName = $parentField->name();
         $query = $this->applyDataScope($connection->table($table), $form, array_keys($schema), $table);
         if (isset($schema['deleted_at'])) $query->whereNull($table . '.deleted_at');
         $rows = array_map(static fn (object $row): array => (array) $row, $query->select([$primary['name'], $parentName, $labelField])->orderBy($primary['name'])->limit(1001)->get()->all());
@@ -1041,13 +1030,12 @@ final class FormDataService
             if ($name === '') continue;
             $bound = $binding === 'targetField' ? $host : $source;
             $columns = $this->tableFields(Db::connection((string) $bound['form']->connection), (string) $bound['form']->table_name);
-            $field = null;
-            foreach ($bound['fields'] as $candidate) if ((string) $candidate->field_name === $name) $field = $candidate->toArray();
+            $field = $this->findField($bound['fields'], $name);
             if (!$field && $binding === 'valueField' && $name === $primary['name']) continue;
-            if (!$field || !isset($columns[$name]) || $this->isSensitiveField($field) || !$this->fieldAccessAllowed($field, 'read')
-                || ($field['relation_type'] ?? 'none') !== 'none' || empty($field['column_type'])
-                || in_array($field['type'] ?? '', ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
-                || !empty($field['control_props']['multiple'])) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
+            if (!$field || !isset($columns[$name]) || $field->sensitive() || !$this->fieldAccessAllowed($field, 'read')
+                || $field->relationType() !== 'none' || $field->columnType() === ''
+                || in_array($field->type(), ['json', 'checkbox', 'transfer', 'repeatable', 'subform'], true)
+                || !empty($field->props()['multiple'])) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
         }
         $source['writePermissions'] = ['categoryToolbar' => [], 'categoryNode' => []];
         foreach (['create' => 'create', 'addChild' => 'create', 'edit' => 'update', 'delete' => 'remove'] as $action => $operation) {
@@ -1058,16 +1046,16 @@ final class FormDataService
         return $source;
     }
 
-    private function listActionRecord(iterable $fields, array $record, array $primary): array
+    /** @param list<FormFieldView> $fields */
+    private function listActionRecord(array $fields, array $record, array $primary): array
     {
         $allowed = [$primary['name'] => true];
         foreach ($fields as $field) {
-            $row = is_array($field) ? $field : $field->toArray();
-            $name = $row['field_name'];
-            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')) {
+            $name = $field->name();
+            if ($field->sensitive() || !$this->fieldAccessAllowed($field, 'read')) {
                 unset($allowed[$name]);
                 if ($name === $primary['name']) throw new InvalidArgumentException('FORM_LIST_FIELD_FORBIDDEN');
-            } elseif (($row['relation_type'] ?? 'none') === 'none' && !empty($row['column_type'])) $allowed[$name] = true;
+            } elseif ($field->relationType() === 'none' && $field->columnType() !== '') $allowed[$name] = true;
         }
         $safe = array_intersect_key($record, $allowed);
         $safe['id'] = $record[$primary['name']];
@@ -1075,27 +1063,27 @@ final class FormDataService
     }
 
     /** 仅接受已发布可读标量筛选；操作符来自快照，不来自请求。 */
-    private function normalizeListActionFilter(iterable $fields, mixed $filter): array
+    /** @param list<FormFieldView> $fields */
+    private function normalizeListActionFilter(array $fields, mixed $filter): array
     {
         if (!is_array($filter) || ($filter !== [] && array_is_list($filter)) || count($filter) > 100) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
         $allowed = [];
         foreach ($fields as $field) {
-            $row = is_array($field) ? $field : $field->toArray();
-            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read') || empty($row['column_type']) || ($row['relation_type'] ?? 'none') !== 'none') continue;
-            $op = $row['list_filter'] ?? '';
-            $name = $row['field_name'];
+            if ($field->sensitive() || !$this->fieldAccessAllowed($field, 'read') || $field->columnType() === '' || $field->relationType() !== 'none') continue;
+            $op = $field->listFilter();
+            $name = $field->name();
             if (in_array($op, ['range', 'date'], true)) {
-                $allowed[$name . '_from'] = $row;
-                $allowed[$name . '_to'] = $row;
-            } elseif (in_array($op, ['eq', 'ne', 'like', 'not_like', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in', 'is_null', 'not_null'], true)) $allowed[$name] = $row;
+                $allowed[$name . '_from'] = $field;
+                $allowed[$name . '_to'] = $field;
+            } elseif (in_array($op, ['eq', 'ne', 'like', 'not_like', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in', 'is_null', 'not_null'], true)) $allowed[$name] = $field;
         }
         $result = [];
         foreach ($filter as $name => $value) {
             if (!isset($allowed[$name])) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
             if ($value === '' || $value === null) continue;
             if ((!is_scalar($value)) || (is_float($value) && !is_finite($value)) || (is_string($value) && strlen($value) > 10000)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
-            $row = $allowed[$name];
-            $op = $row['list_filter'];
+            $field = $allowed[$name];
+            $op = $field->listFilter();
             if (in_array($op, ['is_null', 'not_null'], true)) {
                 if (!in_array($value, [true, false, 0, 1, '0', '1'], true)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
                 $value = in_array($value, [true, 1, '1'], true);
@@ -1103,10 +1091,10 @@ final class FormDataService
                 if (!is_string($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
                 $value = array_values(array_unique(array_filter(array_map('trim', explode(',', $value)), static fn ($v) => $v !== '')));
                 if (count($value) > 200) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
-            } elseif (preg_match('/^(tinyint|smallint|mediumint|int|bigint)\b/', $row['column_type'])) {
+            } elseif (preg_match('/^(tinyint|smallint|mediumint|int|bigint)\b/', $field->columnType())) {
                 if (is_string($value) && preg_match('/^-?(0|[1-9][0-9]*)$/D', $value) && filter_var($value, FILTER_VALIDATE_INT) !== false) $value = (int) $value;
                 if (!is_int($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
-            } elseif (preg_match('/^(decimal|float|double)/', $row['column_type'])) {
+            } elseif (preg_match('/^(decimal|float|double)/', $field->columnType())) {
                 if (is_string($value) && is_numeric($value)) $value = (float) $value;
                 if ((!is_int($value) && !is_float($value)) || !is_finite((float) $value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
             } elseif (!is_string($value)) throw new InvalidArgumentException('FORM_LIST_FILTER_INVALID');
@@ -1197,38 +1185,38 @@ final class FormDataService
         $primary = $this->primaryKey($schema);
         $parent = $this->baseQuery($form, $fields)->where($this->logicalTable(Db::connection((string) $form->connection), (string) $form->table_name) . '.' . $primary['name'], $id)->first();
         if (!$parent) throw new InvalidArgumentException('父数据不存在或无访问权限');
-        $field = null;
-        foreach ($fields as $candidate) {
-            if ((string) $candidate->field_name === $relation) {
-                $field = $candidate;
-                break;
-            }
-        }
-        if (!$field || (string) $field->relation_type !== 'has_many') {
+        $field = $this->findField($fields, $relation);
+        if (!$field || $field->relationType() !== 'has_many') {
             throw new InvalidArgumentException('子表不存在：' . $relation);
         }
         return $this->subRows($field, $id, $page, $pageSize);
     }
 
-    /** 动态校验规则构建（纯函数，供契约测试）。 */
-    public function buildRules(array $fieldRows): array
+    /**
+     * 动态校验规则构建。
+     *
+     * @param list<FormFieldView> $fields
+     */
+    private function buildRules(array $fields): array
     {
         $rules = [];
         $messages = [];
-        foreach ($fieldRows as $field) {
-            if ($this->isLayoutField($field)) {
-                continue;
-            }
-            $name = (string) ($field['field_name'] ?? '');
-            $label = (string) ($field['label'] ?? $name);
+        foreach ($fields as $field) {
+            $name = $field->name();
+            $label = $field->title();
             $parts = [];
-            if ((int) ($field['form_required'] ?? 0) === 1) {
+            if ($field->required()) {
                 $parts[] = 'required';
                 $messages[$name . '.required'] = $label . '不能为空';
             }
-            $type = (string) ($field['type'] ?? 'input');
-            $columnType = (string) ($field['column_type'] ?? '');
-            if ($type === 'number' || preg_match('/^(int|bigint|decimal)/', $columnType)) {
+            $type = $field->type();
+            $columnType = $field->columnType();
+            if ($field->relationMultiple()) {
+                // 多选关联提交数组：列类型规则逐元素校验，不对整体套用标量规则。
+                if ($type === 'number' || preg_match('/^(int|bigint|decimal)/', $columnType)) {
+                    $rules[$name . '.*'] = ['numeric'];
+                }
+            } elseif ($type === 'number' || preg_match('/^(int|bigint|decimal)/', $columnType)) {
                 $parts[] = 'numeric';
             } elseif ($type === 'switch') {
                 $parts[] = 'in:0,1';
@@ -1237,7 +1225,7 @@ final class FormDataService
                     ? 'date_format:Y-m-d H:i:s'
                     : 'date_format:Y-m-d';
             }
-            $extra = is_array($field['validate_rules'] ?? null) ? $field['validate_rules'] : [];
+            $extra = $field->rules();
             if (isset($extra['minlen'], $extra['maxlen'])) {
                 $parts[] = 'string';
                 $parts[] = 'min:' . (int) $extra['minlen'];
@@ -1256,51 +1244,11 @@ final class FormDataService
                 $parts[] = 'regex:' . $extra['pattern'];
             }
             if ($parts !== []) {
-                if ((int) ($field['form_required'] ?? 0) !== 1) array_unshift($parts, 'nullable');
+                if (!$field->required()) array_unshift($parts, 'nullable');
                 $rules[$name] = $parts;
             }
         }
         return ['rules' => $rules, 'messages' => $messages];
-    }
-
-    /**
-     * 服务端复验字段声明的异步验证器。
-     *
-     * @param iterable<int, mixed> $fieldRows
-     * @param array<string, mixed> $data
-     * @return array<int, array{path: string, message: string}>
-     */
-    public function revalidateAsync(iterable $fieldRows, array $data): array
-    {
-        $errors = [];
-        foreach ($fieldRows as $field) {
-            $row = is_array($field) ? $field : $field->toArray();
-            $name = (string) ($row['field_name'] ?? '');
-            $rules = is_array($row['validate_rules'] ?? null) ? $row['validate_rules'] : [];
-            $declarations = $rules['async'] ?? [];
-            if (isset($declarations['key'])) {
-                $declarations = [$declarations];
-            }
-            if ($name === '' || !is_array($declarations) || !array_key_exists($name, $data)) {
-                continue;
-            }
-            foreach ($declarations as $declaration) {
-                if (!is_array($declaration)) {
-                    continue;
-                }
-                $message = $this->asyncValidators->validate(
-                    (string) ($declaration['key'] ?? ''),
-                    $data[$name],
-                    $data,
-                    is_array($declaration['params'] ?? null) ? $declaration['params'] : []
-                );
-                if ($message !== null) {
-                    $errors[] = ['path' => $name, 'message' => $message];
-                    break;
-                }
-            }
-        }
-        return $errors;
     }
 
     /** 返回已发布 FormSchema AST 中字段声明的全部同 key 异步规则。 */
@@ -1389,29 +1337,33 @@ final class FormDataService
         return ['valid' => $errors === [], 'fieldErrors' => $errors];
     }
 
-    /** 白名单过滤写入载荷（纯函数，供契约测试）。 */
-    public function splitPayload($fieldRows, array $data, bool $isUpdate, array $include = []): array
+    /**
+     * 白名单过滤写入载荷。
+     *
+     * @param list<FormFieldView> $fields
+     */
+    private function splitPayload(array $fields, array $data, bool $isUpdate, array $include = []): array
     {
-        $rows = array_map(static fn ($field): array => is_array($field) ? $field : $field->toArray(), is_array($fieldRows) ? $fieldRows : $fieldRows->all());
         $relations = [];
-        foreach ($rows as $field) {
-            if ((string) ($field['relation_type'] ?? 'none') !== 'has_many') continue;
-            $name = (string) ($field['field_name'] ?? '');
+        foreach ($fields as $field) {
+            if ($field->relationType() !== 'has_many') continue;
+            $name = $field->name();
             if (!array_key_exists($name, $data) || !$this->fieldSubmissionAllowed($field, $include)) continue;
             if (!is_array($data[$name]) || !array_is_list($data[$name])) throw new InvalidArgumentException($name . ' 必须为子表行数组');
             $relations[$name] = $data[$name];
         }
-        return ['parent' => $this->filterPayload($rows, $data, $isUpdate, $include), 'relations' => $relations];
+        return ['parent' => $this->filterPayload($fields, $data, $isUpdate, $include), 'relations' => $relations];
     }
 
-    public function filterPayload(array $fieldRows, array $data, bool $isUpdate, array $include = []): array
+    /** @param list<FormFieldView> $fields */
+    private function filterPayload(array $fields, array $data, bool $isUpdate, array $include = []): array
     {
         $payload = [];
-        foreach ($fieldRows as $field) {
-            if ($this->isLayoutField($field) || (string) ($field['relation_type'] ?? 'none') === 'has_many') {
+        foreach ($fields as $field) {
+            if ($field->relationType() === 'has_many') {
                 continue;
             }
-            $name = (string) ($field['field_name'] ?? '');
+            $name = $field->name();
             if ($name === '' || !array_key_exists($name, $data)) {
                 continue;
             }
@@ -1419,17 +1371,17 @@ final class FormDataService
                 continue;
             }
             $value = $data[$name];
-            $type = (string) ($field['type'] ?? '');
+            $type = $field->type();
             if (str_contains($type, ':')) {
-                $message = $this->pluginComponents->validateValue($type, $value, $data, (array) ($field['control_props'] ?? []));
+                $message = $this->pluginComponents->validateValue($type, $value, $data, $field->props());
                 if ($message !== null) {
                     throw new InvalidArgumentException($message);
                 }
                 $value = $this->pluginComponents->encode($type, $value);
             }
-            if ((int) ($field['relation_multiple'] ?? 0) === 1 && is_array($value)) {
+            if ($field->relationMultiple() && is_array($value)) {
                 $value = implode(',', array_map('strval', $value));
-            } elseif (strtolower((string) ($field['column_type'] ?? '')) === 'json' && (is_array($value) || is_object($value))) {
+            } elseif (strtolower($field->columnType()) === 'json' && (is_array($value) || is_object($value))) {
                 $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             }
             $payload[$name] = $value;
@@ -1440,20 +1392,19 @@ final class FormDataService
     /**
      * 移除任何不能回显到列表、详情、默认值或客户端缓存的敏感字段。
      *
-     * @param iterable<int, mixed> $fieldRows
+     * @param list<FormFieldView> $fields
      * @param array<string, mixed> $record
      * @return array<string, mixed>
      */
-    public function sanitizeRecord(iterable $fieldRows, array $record): array
+    private function sanitizeRecord(array $fields, array $record): array
     {
-        foreach ($fieldRows as $field) {
-            $row = is_array($field) ? $field : $field->toArray();
-            $name = (string) ($row['field_name'] ?? '');
-            if ($this->isSensitiveField($row) || !$this->fieldAccessAllowed($row, 'read')) {
-                unset($record[$name]);
+        foreach ($fields as $field) {
+            $name = $field->name();
+            if ($field->sensitive() || !$this->fieldAccessAllowed($field, 'read')) {
+                unset($record[$name], $record['__label_' . $name]);
                 continue;
             }
-            $type = (string) ($row['type'] ?? '');
+            $type = $field->type();
             if ($name !== '' && array_key_exists($name, $record) && str_contains($type, ':')) {
                 $record[$name] = $this->pluginComponents->decode($type, $record[$name]);
             }
@@ -1465,9 +1416,8 @@ final class FormDataService
     public function redactRequestPayload(string $key, array $data): array
     {
         foreach ($this->fields($key) as $field) {
-            $row = $field->toArray();
-            $name = (string) ($row['field_name'] ?? '');
-            if ($name !== '' && array_key_exists($name, $data) && $this->isSensitiveField($row)) {
+            $name = $field->name();
+            if ($name !== '' && array_key_exists($name, $data) && $field->sensitive()) {
                 $data[$name] = '[REDACTED]';
             }
         }
@@ -1489,7 +1439,8 @@ final class FormDataService
         return $form;
     }
 
-    private function fields(string $key, bool $draft = false)
+    /** @return list<FormFieldView> */
+    private function fields(string $key, bool $draft = false): array
     {
         if ($draft) {
             // 草稿解析不能走 form()（其用发布态 schema 水合表名），直接读 Form 行。
@@ -1497,18 +1448,14 @@ final class FormDataService
             if (!$form) {
                 throw new InvalidArgumentException('表单不存在或已禁用：' . $key);
             }
-            $compiled = (new FormSchemaRepository())->draft((int) $form->id);
-            return new \Illuminate\Support\Collection(array_map(
-                static fn (array $row): FormField => new FormField($row),
-                $compiled->fieldProjection()
-            ));
+            return (new FormSchemaRepository())->draft((int) $form->id)->fields();
         }
         $form = $this->form($key);
         return $this->publishedRuntime($form)['fields'];
     }
 
     /**
-     * @return array{schema: array<string, mixed>, schemaHash: string, fields: \Illuminate\Support\Collection<int, FormField>, module: BusinessModule}
+     * @return array{schema: array<string, mixed>, schemaHash: string, fields: list<FormFieldView>, module: BusinessModule}
      */
     private function publishedRuntime(Form $form): array
     {
@@ -1538,14 +1485,11 @@ final class FormDataService
         if (!hash_equals($publishedHash, $compiled->hash())) {
             throw new InvalidArgumentException('已发布表单快照校验失败');
         }
-        $fields = new \Illuminate\Support\Collection(array_map(
-            static fn (array $field): FormField => new FormField($field),
-            $compiled->fieldProjection()
-        ));
-        return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $fields, 'module' => $module];
+        return ['schema' => $compiled->document(), 'schemaHash' => $compiled->hash(), 'fields' => $compiled->fields(), 'module' => $module];
     }
 
-    private function baseQuery(Form $form, $fields, bool $recycled = false)
+    /** @param list<FormFieldView> $fields */
+    private function baseQuery(Form $form, array $fields, bool $recycled = false)
     {
         $connection = Db::connection((string) $form->connection);
         $table = $this->logicalTable($connection, (string) $form->table_name);
@@ -1555,12 +1499,11 @@ final class FormDataService
         $primary = $this->primaryKey($schema);
         $readable = array_values(array_intersect([$primary['name'], 'created_at', 'updated_at'], $columns));
         foreach ($fields as $field) {
-            if (in_array((string) $field->type, self::LAYOUT_TYPES, true)
-                || $this->isSensitiveField($field->toArray())
-                || !$this->fieldAccessAllowed($field->toArray(), 'read')) {
+            if ($field->sensitive()
+                || !$this->fieldAccessAllowed($field, 'read')) {
                 continue;
             }
-            $name = (string) $field->field_name;
+            $name = $field->name();
             $this->assertIdentifier($name, '表单字段');
             if (in_array($name, $columns, true)) {
                 $readable[] = $name;
@@ -1576,12 +1519,13 @@ final class FormDataService
         $query = $this->applyDataScope($query, $form, $columns, $table);
         $aliasIndex = 0;
         foreach ($fields as $field) {
-            if ((string) $field->relation_type !== 'belongs_to' || (int) $field->list_show !== 1 || $this->isSensitiveField($field->toArray())) {
+            if ($field->relationType() !== 'belongs_to' || !$field->listShow() || $field->sensitive() || !$this->fieldAccessAllowed($field, 'read')) {
                 continue;
             }
-            $relationTable = (string) $field->relation_table;
-            $label = (string) $field->relation_label_field;
-            $value = (string) $field->relation_value_field;
+            $name = $field->name();
+            $relationTable = $field->relationTable();
+            $label = $field->relationLabelField();
+            $value = $field->relationValueField();
             if ($relationTable === '' || $label === '' || $value === '') {
                 continue;
             }
@@ -1590,8 +1534,8 @@ final class FormDataService
             $this->assertIdentifier($value, '关联值字段');
             $alias = 'rel_' . $aliasIndex;
             $aliasIndex++;
-            $query->leftJoin($this->logicalTable($connection, $relationTable) . ' as ' . $alias, $alias . '.' . $value, '=', $table . '.' . $field->field_name);
-            $query->addSelect($alias . '.' . $label . ' as __label_' . $field->field_name);
+            $query->leftJoin($this->logicalTable($connection, $relationTable) . ' as ' . $alias, $alias . '.' . $value, '=', $table . '.' . $name);
+            $query->addSelect($alias . '.' . $label . ' as __label_' . $name);
         }
         return $query;
     }
@@ -1665,28 +1609,28 @@ final class FormDataService
         return ['name' => $name, 'type' => preg_match('/(?:tinyint|smallint|mediumint|bigint|int)/', $type) ? 'integer' : 'string'];
     }
 
-    private function sortableColumns($fields): array
+    /** @param list<FormFieldView> $fields */
+    private function sortableColumns(array $fields): array
     {
         $columns = self::SORT_WHITELIST_EXTRA;
         foreach ($fields as $field) {
-            if ((int) $field->list_sort === 1) {
-                $columns[] = (string) $field->field_name;
+            if ($field->listSort() && !$field->sensitive() && $this->fieldAccessAllowed($field, 'read')) {
+                $columns[] = $field->name();
             }
         }
         return $columns;
     }
 
-    private function subRows(FormField $field, int|string $id, int $page, int $pageSize): array
+    private function subRows(FormFieldView $field, int|string $id, int $page, int $pageSize): array
     {
         if (!$this->relationReadable($field)) throw new InvalidArgumentException('无子表读取权限');
         $context = $this->childContext($field);
         $columns = array_keys($context['schema']);
         $readable = array_values(array_intersect([$context['primary']['name'], $context['foreignKey'], 'created_at', 'updated_at'], $columns));
-        $configured = array_values(array_filter(
-            array_map(static fn ($field): array => $field->toArray(), $context['fields']->all()),
-            fn (array $field): bool => !$this->isSensitiveField($field) && $this->fieldAccessAllowed($field, 'read')
-        ));
-        $configuredNames = array_column($configured, 'field_name');
+        $configuredNames = [];
+        foreach ($context['fields'] as $child) {
+            if (!$child->sensitive() && $this->fieldAccessAllowed($child, 'read')) $configuredNames[] = $child->name();
+        }
         $readable = array_values(array_unique(array_merge($readable, array_intersect($configuredNames, $columns))));
         $query = $this->childQuery(Db::connection((string) $context['form']->connection), $context)
             ->select($readable)->where($context['foreignKey'], $id);
@@ -1696,11 +1640,12 @@ final class FormDataService
         return ['list' => $rows, 'total' => (int) $total];
     }
 
-    private function syncRelations($connection, Form $parentForm, $fields, int|string $parentId, array $relations, bool $isUpdate): void
+    /** @param list<FormFieldView> $fields */
+    private function syncRelations($connection, Form $parentForm, array $fields, int|string $parentId, array $relations, bool $isUpdate): void
     {
         foreach ($fields as $field) {
-            $name = (string) $field->field_name;
-            if ((string) $field->relation_type !== 'has_many' || !array_key_exists($name, $relations)) continue;
+            $name = $field->name();
+            if ($field->relationType() !== 'has_many' || !array_key_exists($name, $relations)) continue;
             $context = $this->childContext($field);
             if ((string) $context['form']->connection !== (string) $parentForm->connection) throw new InvalidArgumentException('父子表必须使用同一数据库连接');
             $primaryName = $context['primary']['name'];
@@ -1755,10 +1700,10 @@ final class FormDataService
         return $query;
     }
 
-    private function childContext(FormField $field): array
+    private function childContext(FormFieldView $field): array
     {
-        $table = (string) $field->relation_table;
-        $foreignKey = (string) $field->relation_value_field;
+        $table = $field->relationTable();
+        $foreignKey = $field->relationValueField();
         $this->assertIdentifier($table, '子表');
         $this->assertIdentifier($foreignKey, '子表外键字段');
         $form = Form::where('table_name', $table)->where('status', 1)->first();
@@ -1779,10 +1724,10 @@ final class FormDataService
         ];
     }
 
-    private function filterChildPayload($fields, array $row, bool $isUpdate): array
+    /** @param list<FormFieldView> $fields */
+    private function filterChildPayload(array $fields, array $row, bool $isUpdate): array
     {
-        $payload = $this->filterPayload(array_map(static fn ($field): array => $field->toArray(), $fields->all()), $row, $isUpdate);
-        return $payload;
+        return $this->filterPayload($fields, $row, $isUpdate);
     }
 
     private function findActionReference(array $actions, string $actionKey, string $nodeId, int $depth): ?array
@@ -1803,32 +1748,33 @@ final class FormDataService
         return null;
     }
 
-    private function isLayoutField(array $field): bool
+    /** @param iterable<FormFieldView> $fields */
+    private function findField(iterable $fields, string $name): ?FormFieldView
     {
-        return in_array((string) ($field['type'] ?? ''), self::LAYOUT_TYPES, true);
+        foreach ($fields as $field) {
+            if ($field->name() === $name) return $field;
+        }
+        return null;
     }
 
     /** 普通字段和关系集合遵循同一提交规则，显式 include 不得越过写权限。 */
-    private function fieldSubmissionAllowed(array $field, array $include): bool
+    private function fieldSubmissionAllowed(FormFieldView $field, array $include): bool
     {
         if (!$this->fieldAccessAllowed($field, 'write')) return false;
-        $access = (array) ($field['control_props']['schemaAccess'] ?? []);
         return !$this->isExcludedFromSubmission($field)
-            || ($access['include'] ?? 'auto') === 'always'
-            || in_array((string) ($field['field_name'] ?? ''), array_map('strval', $include), true);
+            || ($field->access()['include'] ?? 'auto') === 'always'
+            || in_array($field->name(), array_map('strval', $include), true);
     }
 
     /** 详情和分页必须先校验父关系，不能只过滤子表自身字段。 */
-    private function relationReadable(FormField $field): bool
+    private function relationReadable(FormFieldView $field): bool
     {
-        $row = $field->toArray();
-        return !$this->isSensitiveField($row) && $this->fieldAccessAllowed($row, 'read');
+        return !$field->sensitive() && $this->fieldAccessAllowed($field, 'read');
     }
 
-    private function fieldAccessAllowed(array $field, string $operation): bool
+    private function fieldAccessAllowed(FormFieldView $field, string $operation): bool
     {
-        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
-        $access = is_array($props['schemaAccess'] ?? null) ? $props['schemaAccess'] : [];
+        $access = $field->access();
         if ($operation === 'write' && ($access['include'] ?? 'auto') === 'never') return false;
         $permissions = is_array($access[$operation] ?? null) ? $access[$operation] : [];
         foreach ($permissions as $permission) {
@@ -1837,25 +1783,16 @@ final class FormDataService
         return true;
     }
 
-    private function isExcludedFromSubmission(array $field): bool
+    private function isExcludedFromSubmission(FormFieldView $field): bool
     {
-        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
-        $source = is_array($field['options_source'] ?? null) ? $field['options_source'] : [];
-        return (string) ($field['type'] ?? '') === 'hidden'
-            || filter_var($props['disabled'] ?? false, FILTER_VALIDATE_BOOL)
-            || (int) ($field['form_readonly'] ?? 0) === 1
-            || (string) ($source['kind'] ?? '') === 'computed'
-            || filter_var($props['computed'] ?? false, FILTER_VALIDATE_BOOL)
-            || filter_var($props['primary'] ?? false, FILTER_VALIDATE_BOOL)
-            || filter_var($props['system'] ?? false, FILTER_VALIDATE_BOOL);
-    }
-
-    private function isSensitiveField(array $field): bool
-    {
-        $props = is_array($field['control_props'] ?? null) ? $field['control_props'] : [];
-        return (string) ($field['type'] ?? '') === 'password'
-            || filter_var($props['sensitive'] ?? false, FILTER_VALIDATE_BOOL)
-            || filter_var($props['writeOnly'] ?? false, FILTER_VALIDATE_BOOL);
+        $props = $field->props();
+        return $field->type() === 'hidden'
+            || FormFieldView::truthy($props['disabled'] ?? null)
+            || $field->disabled()
+            || $field->dataSourceKind() === 'computed'
+            || FormFieldView::truthy($props['computed'] ?? null)
+            || FormFieldView::truthy($props['primary'] ?? null)
+            || FormFieldView::truthy($props['system'] ?? null);
     }
 
     private function assertIdentifier(string $identifier, string $label): void
@@ -1894,10 +1831,10 @@ final class FormDataService
         }
     }
 
-    private function assertValid($fields, array $data, bool $isUpdate): void
+    /** @param list<FormFieldView> $fields */
+    private function assertValid(array $fields, array $data, bool $isUpdate): void
     {
-        $rows = array_map(static fn ($field): array => is_array($field) ? $field : $field->toArray(), is_array($fields) ? $fields : $fields->all());
-        $built = $this->buildRules($rows);
+        $built = $this->buildRules($fields);
         if ($built['rules'] === []) {
             return;
         }

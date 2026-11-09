@@ -527,7 +527,7 @@ final class BusinessDevelopmentService
         $nodes = $source === 'adopted' ? self::adoptedFieldNodes($fields) : [];
         return [
             'business_target' => $target, 'form_key' => $code, 'name' => $name, 'table_name' => $table, 'connection' => $connection,
-            'source_type' => $source, 'status' => (int) $status, 'list_config' => $listConfig, 'form_config' => $formConfig, 'remark' => $remark,
+            'source_type' => $source, 'status' => (int) $status, 'remark' => $remark,
             'schema_document' => self::creationDocument($code, $name, $table, $connection, $source, $listConfig, $formConfig, $nodes),
         ];
     }

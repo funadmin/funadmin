@@ -14,12 +14,14 @@ final class Schema
 {
     public static function tables(): array
     {
-        return ['document_categories', 'documents', 'document_category_links', 'document_revisions', 'document_events', 'document_seed_entries'];
+        return ['document_categories', 'documents', 'document_category_links', 'document_revisions', 'document_events', 'document_seed_entries', 'document_feedback'];
     }
 
+    /** 按迁移顺序建全部表：基线（001）+ 读者反馈（002）。 */
     public static function install(): void
     {
         self::create(Db::schema());
+        self::feedback(Db::schema());
     }
 
     public static function drop(): void
@@ -29,12 +31,41 @@ final class Schema
         }
     }
 
+    /** 基线迁移 001 的 SQL；后续版本的表各自导出。 */
     public static function mysql(): string
     {
         $connection = new MySqlConnection(static fn () => throw new \RuntimeException('Schema export must not connect'), '', 'fun_', ['driver' => 'mysql', 'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'engine' => 'InnoDB']);
         $queries = $connection->pretend(static fn () => self::create($connection->getSchemaBuilder()));
         return "-- Document schema; generated from app/document/service/Schema.php. Prefix rewritten by host migration runner.\n"
             . implode(";\n", array_map(static fn ($q) => $q['query'], $queries)) . ";\n";
+    }
+
+    /** 1.4.0 新增的读者反馈表，对应 database/migrations/002_document_feedback.sql。 */
+    public static function feedbackMysql(): string
+    {
+        $connection = new MySqlConnection(static fn () => throw new \RuntimeException('Schema export must not connect'), '', 'fun_', ['driver' => 'mysql', 'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'engine' => 'InnoDB']);
+        $queries = $connection->pretend(static fn () => self::feedback($connection->getSchemaBuilder()));
+        return "-- Document 1.4.0 reader feedback; generated from Schema::feedback(). Prefix rewritten by host migration runner.\n"
+            . implode(";\n", array_map(static fn ($q) => $q['query'], $queries)) . ";\n";
+    }
+
+    /** 读者「有帮助 / 无帮助」反馈：同一访客对同一文档只保留最后一次选择。 */
+    private static function feedback(Builder $s): void
+    {
+        $s->create('document_feedback', static function (Blueprint $t): void {
+            $t->id();
+            $t->unsignedBigInteger('document_id');
+            $t->unsignedInteger('revision_no')->default(0);
+            $t->boolean('helpful');
+            $t->json('reasons');
+            $t->string('comment', 500)->default('');
+            // 浏览器生成的访客标识的 SHA-256，不保存原值与 IP。
+            $t->char('voter', 64);
+            $t->timestamps();
+            $t->unique(['document_id', 'voter']);
+            $t->index(['document_id', 'helpful']);
+            $t->index('updated_at');
+        });
     }
 
     private static function create(Builder $s): void

@@ -124,7 +124,7 @@ final class BusinessModuleService
         $module = BusinessModule::find($id);
         if (!$module) throw new BusinessResourceGoneException('业务模块不存在或已删除');
         $form = $module->form_id ? Form::find((int) $module->form_id) : null;
-        return ['module' => $module->toArray(), 'form' => $form?->toArray(), 'fields' => $form ? $form->fields()->orderBy('sort_order')->get()->toArray() : []];
+        return ['module' => $module->toArray(), 'form' => $form?->toArray()];
     }
 
     public function createWithForm(array $formPayload, string $origin, string $actor, FormDesignerService $forms): array

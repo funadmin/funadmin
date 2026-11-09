@@ -13,6 +13,7 @@ import DocumentSidebar from './components/DocumentSidebar.vue';
 import DocumentList from './components/DocumentList.vue';
 import DocumentMetaDialog from './components/DocumentMetaDialog.vue';
 import DocumentVersionDrawer from './components/DocumentVersionDrawer.vue';
+import DocumentFeedbackDrawer from './components/DocumentFeedbackDrawer.vue';
 import DocumentCategoryDialog from './components/DocumentCategoryDialog.vue';
 import DocumentEditor from './editor/DocumentEditor.vue';
 import DocumentPreview from './editor/DocumentPreview.vue';
@@ -34,6 +35,7 @@ const can = {
   archive: computed(() => hasPermission('document:document:archive')),
   restore: computed(() => hasPermission('document:document:restore')),
   remove: computed(() => hasPermission('document:document:delete')),
+  feedback: computed(() => hasPermission('document:feedback:index')),
   manageCategories: computed(() => hasPermission(['document:category:create', 'document:category:update', 'document:category:delete']))
 };
 
@@ -41,6 +43,17 @@ const keyword = ref('');
 const metaOpen = ref(false);
 const metaRow = ref<typeof store.current>(null);
 const versionsOpen = ref(false);
+const feedbackOpen = ref(false);
+/** null 表示全部文档的反馈 */
+const feedbackDocumentId = ref<number | null>(null);
+function openFeedback(documentId: number | null) {
+  feedbackDocumentId.value = documentId;
+  feedbackOpen.value = true;
+}
+async function openFromFeedback(id: number) {
+  feedbackOpen.value = false;
+  await open(id);
+}
 const categoriesOpen = ref(false);
 /** 空字符串表示默认：草稿与已发布（不含归档）。 */
 const statusFilter = ref<'' | 'draft' | 'published' | 'archived'>('');
@@ -194,7 +207,7 @@ function jumpTo(index: number) {
         </el-select>
         <el-button v-if="can.manageCategories.value" size="small" data-testid="manage-categories" @click="categoriesOpen = true">{{ t('pluginDocument.categories.manage') }}</el-button>
       </div>
-      <div class="doc-list-count"><span>{{ t('pluginDocument.count', { n: store.total }) }}</span><a href="/docs" target="_blank" rel="noopener noreferrer" class="doc-public-link">{{ t('pluginDocument.publicHome') }} ↗</a></div>
+      <div class="doc-list-count"><span>{{ t('pluginDocument.count', { n: store.total }) }}</span><span class="doc-list-links"><button v-if="can.feedback.value" type="button" class="doc-public-link doc-link-button" @click="openFeedback(null)">{{ t('pluginDocument.feedback.title') }}</button><a href="/docs" target="_blank" rel="noopener noreferrer" class="doc-public-link">{{ t('pluginDocument.publicHome') }} ↗</a></span></div>
       <DocumentList :documents="store.documents" :current-id="store.current?.id ?? null" :loading="store.loadingList" @open="open" />
       <TablePagination
         v-if="store.total > store.query.pageSize"
@@ -233,6 +246,7 @@ function jumpTo(index: number) {
                 <el-dropdown-menu>
                   <el-dropdown-item v-if="can.editMeta.value" @click="openMeta(store.current)">{{ t('pluginDocument.info') }}</el-dropdown-item>
                   <el-dropdown-item @click="versionsOpen = true">{{ t('pluginDocument.history') }}</el-dropdown-item>
+                  <el-dropdown-item v-if="can.feedback.value" @click="openFeedback(store.current.id)">{{ t('pluginDocument.feedback.title') }}</el-dropdown-item>
                   <el-dropdown-item v-if="can.edit.value" @click="importInput?.click()">{{ t('pluginDocument.importMd') }}</el-dropdown-item>
                   <el-dropdown-item @click="exportAs('markdown')">{{ t('pluginDocument.exportMd') }}</el-dropdown-item>
                   <el-dropdown-item @click="exportAs('html')">{{ t('pluginDocument.exportHtml') }}</el-dropdown-item>
@@ -269,6 +283,7 @@ function jumpTo(index: number) {
 
     <DocumentMetaDialog v-model="metaOpen" :row="metaRow" :tree="store.tree" :default-scope="store.selectedScope" :default-category-id="store.selectedCategoryId" @submit="submitMeta" />
     <DocumentCategoryDialog v-model="categoriesOpen" :tree="store.tree" @changed="categoriesChanged" />
+    <DocumentFeedbackDrawer v-model="feedbackOpen" :document-id="feedbackDocumentId" :document-title="feedbackDocumentId === store.current?.id ? store.current?.title : ''" @open="openFromFeedback" />
     <DocumentVersionDrawer v-if="store.current" v-model="versionsOpen" :document-id="store.current.id" :can-restore="can.restore.value" @restore="restore" />
   </div>
 </template>
@@ -316,4 +331,6 @@ function jumpTo(index: number) {
 .doc-list-count { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .doc-public-link { color: var(--el-color-primary); font-size: 13px; white-space: nowrap; text-decoration: none; }
 .doc-public-link:hover { text-decoration: underline; }
+.doc-list-links { display: inline-flex; align-items: center; gap: 12px; }
+.doc-link-button { padding: 0; border: 0; background: none; font: inherit; font-size: 13px; cursor: pointer; }
 </style>

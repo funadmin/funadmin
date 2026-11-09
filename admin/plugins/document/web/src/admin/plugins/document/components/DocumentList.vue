@@ -30,7 +30,14 @@ const time = (value: string) => value.slice(0, 16);
         <span>· {{ doc.pluginCode || t(`pluginDocument.scope.${doc.scope}`) }}</span>
         <span v-if="doc.appliesTo">· {{ doc.appliesTo }}</span>
       </span>
-      <span class="doc-card-time">{{ time(doc.updatedAt) }}</span>
+      <span class="doc-card-foot">
+        <span class="doc-card-time">{{ time(doc.updatedAt) }}</span>
+        <span
+          v-if="doc.feedback && doc.feedback.helpful + doc.feedback.unhelpful > 0"
+          class="doc-card-feedback"
+          :title="`${t('pluginDocument.feedback.helpful')} ${doc.feedback.helpful} · ${t('pluginDocument.feedback.unhelpful')} ${doc.feedback.unhelpful}`"
+        >👍 {{ doc.feedback.helpful }}<span :class="{ 'is-warn': doc.feedback.unhelpful > 0 }">👎 {{ doc.feedback.unhelpful }}</span></span>
+      </span>
     </button>
   </div>
 </template>
@@ -43,4 +50,7 @@ const time = (value: string) => value.slice(0, 16);
 .doc-card-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .doc-card-meta { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--el-text-color-secondary); flex-wrap: wrap; }
 .doc-card-time { font-size: 11px; color: var(--el-text-color-placeholder); }
+.doc-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.doc-card-feedback { display: inline-flex; gap: 8px; font-size: 11px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.doc-card-feedback .is-warn { color: var(--el-color-danger); }
 </style>

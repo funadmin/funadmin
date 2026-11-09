@@ -87,4 +87,24 @@ describe('共享字段展示运行时', () => {
     expect(formatFieldValue(7, resolveFieldOptions(node, state.supplied.value), node.list?.formatter)).toBe('张三');
     host.unmount();
   });
+  it('生成页面节点 id（驼峰）与字段名不同时，占位、加载态与选项均按生成页传入的 id 命中', async () => {
+    const node = { id: 'field1', field: 'field_1', dataSource: { kind: 'remote' } } as presentation.PresentationNode;
+    let release!: () => void;
+    let fail = false;
+    const request = vi.fn((_key: string, _field: string) => new Promise<{ options: { label: string; value: number }[] }>((resolve, reject) => { release = () => fail ? reject(new Error('x')) : resolve({ options: [{ label: '甲', value: 1 }] }); }));
+    let state!: ReturnType<typeof presentation.useSuppliedFieldOptions>;
+    const host = mount(defineComponent({ setup() { state = presentation.useSuppliedFieldOptions({}); return () => h('div'); } }));
+    const loading = state.load('order', [node], request);
+    expect(request).toHaveBeenCalledWith('order', 'field_1', {}, expect.any(AbortSignal));
+    expect(state.pending.value.field1).toBe(true);
+    expect(state.placeholder('field1')).not.toBe('');
+    release(); await loading; await flushPromises();
+    expect(state.placeholder('field1')).toBe('');
+    expect(state.supplied.value.field1).toEqual([{ label: '甲', value: 1 }]);
+    fail = true;
+    const failing = state.load('order', [{ ...node, dataSource: { kind: 'remote', params: { a: 1 } } }], request);
+    release(); await failing; await flushPromises();
+    expect(state.placeholder('field1')).not.toBe('');
+    host.unmount();
+  });
 });

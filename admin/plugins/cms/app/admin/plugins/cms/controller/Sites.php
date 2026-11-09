@@ -14,6 +14,12 @@ use app\cms\service\PermissionCatalog;
 #[RouteGroup('/admin/plugins/cms')]
 final class Sites extends Base
 {
+    /** 站点保存以 id 指定站点，其余接口仍用 site_id。 */
+    protected function invalidatePublicPages(): void
+    {
+        parent::invalidatePublicPages();$id=(string)($this->input()['id']??'');
+        if(($this->input()['site_id']??'')===''&&$id!=='')try{(new \app\cms\service\PublicPageCache())->invalidateSite($id);}catch(\Throwable){}
+    }
     #[Get('/context')]
     public function context(): Response { return $this->action(function():array {
         $menu=(string)($this->input()['menu']??'');if($menu!==''&&!in_array($menu,PermissionCatalog::menus(),true))throw new \InvalidArgumentException('未知菜单',422);

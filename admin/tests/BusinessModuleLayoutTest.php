@@ -233,8 +233,8 @@ final class BusinessModuleLayoutTest extends TestCase
     {
         $options = ['groups' => [['id' => 2, 'name' => 'G']], 'levels' => [['id' => 3, 'name' => 'L']], 'tags' => [['id' => 4, 'name' => 'T']]];
         foreach ([
-            'zh-cn' => ['MemberFormDefinition' => '9b380e66154489471c0d715d73077ad030fe80a67a8618e0ea539dc871598461', 'MemberPageDefinition' => '86438ed90e766cb9b6a7d669f14a807ceb04b8ff4d9ca8a443e0a42fe42fd8cf'],
-            'en-us' => ['MemberFormDefinition' => '06e93976c5ee265d9c90229d5701543b5ded99f213e6a3652134446f2e811f69', 'MemberPageDefinition' => '9038f8b7e0b22f90fe5b3b46f2b10ea1a3f764b1bb0fe4777f35ec7c16221d7c'],
+            'zh-cn' => ['MemberFormDefinition' => '2ea7a4f94f87060bd30ab836497cbd0ef5df0bb2e3a932246f22044b927e6b62', 'MemberPageDefinition' => '86438ed90e766cb9b6a7d669f14a807ceb04b8ff4d9ca8a443e0a42fe42fd8cf'],
+            'en-us' => ['MemberFormDefinition' => 'ad7490130c55065bd1330fad5e62015fefb79abcb6029bf0ffde0e46fb734d33', 'MemberPageDefinition' => '9038f8b7e0b22f90fe5b3b46f2b10ea1a3f764b1bb0fe4777f35ec7c16221d7c'],
         ] as $locale => $definitions) {
             foreach ($definitions as $name => $hash) {
                 $class = 'app\\admin\\system\\service\\' . $name;

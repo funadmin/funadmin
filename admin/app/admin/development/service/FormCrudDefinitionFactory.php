@@ -12,8 +12,6 @@ use InvalidArgumentException;
 /** 将表单设计元数据确定性转换为统一 CRUD Definition。 */
 final class FormCrudDefinitionFactory
 {
-    private const LAYOUT_TYPES = ['group', 'grid', 'divider', 'text', 'collapse', 'tabs'];
-
     private const COMPONENTS = [
         'input' => 'input', 'password' => 'password', 'textarea' => 'textarea', 'mention' => 'mention',
         'number' => 'inputNumber', 'select' => 'select', 'selectV2' => 'selectV2', 'treeSelect' => 'treeSelect',
@@ -50,7 +48,6 @@ final class FormCrudDefinitionFactory
 
         foreach ($formSchema->fields() as $field) {
             if ($adopted && $field->name() === $primaryKey) continue;
-            if (in_array($field->type(), self::LAYOUT_TYPES, true)) continue;
             if ($field->relationType() === 'has_many') {
                 $relations[] = [
                     'name' => $field->name(), 'type' => 'hasMany',
@@ -183,8 +180,9 @@ final class FormCrudDefinitionFactory
             'listWidth' => $field->listWidth(),
             // 占位文案随 formSchema 节点 props 渲染；生成器行保持空串，生成结果不变。
             'placeholder' => '',
-            // schemaAccess 供生成器把受访问控制的字段视为敏感字段（ProductionTemplateContext::sensitiveField）。
-            'controlProps' => array_replace($field->props(), ['schemaAccess' => $field->access()]),
+            'controlProps' => $field->props(),
+            // 静态生成代码无法按字段权限求值：声明了 access 的字段由 ProductionTemplateContext::sensitiveField 视为敏感字段。
+            'access' => $field->access(),
         ];
         $default = $field->defaultValue();
         if ($default !== null && $default !== '') $row['default'] = $default;

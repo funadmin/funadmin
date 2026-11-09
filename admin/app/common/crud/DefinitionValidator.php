@@ -40,7 +40,7 @@ final class DefinitionValidator
         'valueType', 'cast', 'managed', 'writable', 'options', 'optionsSource', 'relation', 'references',
         'inferredBy', 'list', 'search', 'searchOperator', 'sortable', 'form', 'detail', 'rules',
         'required', 'minLength', 'maxLength', 'min', 'max', 'enum', 'format', 'unique', 'dictionary',
-        'upload', 'precision', 'scale', 'indexMissing', 'listFormatter', 'listWidth', 'placeholder', 'controlProps',
+        'upload', 'precision', 'scale', 'indexMissing', 'listFormatter', 'listWidth', 'placeholder', 'controlProps', 'access',
     ];
     private const RELATION_KEYS = [
         'name', 'type', 'field', 'target', 'targetField', 'pivotTable', 'pivotLocalKey',
@@ -143,7 +143,7 @@ final class DefinitionValidator
             }
             $listNodes[] = ['kind' => 'field', 'field' => $name, 'type' => $field['component'] ?? 'input',
                 'database' => ['columnType' => $field['dbType']], 'valueType' => $field['valueType'] ?? 'string',
-                'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['controlProps']['sensitive'] ?? false) || ($field['detail'] ?? true) === false]), 'dataSource' => $source];
+                'props' => array_merge($field['controlProps'] ?? [], ['sensitive' => ($field['controlProps']['sensitive'] ?? false) || ($field['detail'] ?? true) === false]), 'access' => $field['access'] ?? [], 'dataSource' => $source];
         }
         (new \app\common\form\schema\FormSchemaValidator())->validateListConfiguration($data['list'], $listNodes, isset($data['formSchema']['key']) ? (string) $data['formSchema']['key'] : null);
         $this->customActions($data, $target['type']);
@@ -413,6 +413,9 @@ final class DefinitionValidator
             }
             if (isset($field['controlProps']) && !is_array($field['controlProps'])) {
                 throw new InvalidArgumentException('字段 controlProps 必须为对象');
+            }
+            if (isset($field['access']) && !is_array($field['access'])) {
+                throw new InvalidArgumentException('字段 access 必须为对象');
             }
             if (isset($field['rules']) && (!is_array($field['rules']) || array_filter($field['rules'], static fn ($rule): bool => !is_string($rule) || trim($rule) === '') !== [])) {
                 throw new InvalidArgumentException('字段 rules 必须是非空字符串数组');

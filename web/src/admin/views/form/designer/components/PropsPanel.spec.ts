@@ -463,6 +463,20 @@ describe('每个控件写回对应的节点切片', () => {
     wrapper.unmount();
   });
 
+  it('关联表列加载期间切换到其他节点，不把旧表的显示/值字段写到新节点', async () => {
+    let resolve!: (value: unknown) => void;
+    vi.mocked(businessDevelopmentApi.databaseTableSchema).mockReturnValue(new Promise((done) => { resolve = done; }) as never);
+    const wrapper = render(patchRelation(make('input'), { type: 'belongs_to', table: '' }));
+    await flushPromises();
+    wrapper.get('[data-prop="relation_table"]').findComponent(selectStub).vm.$emit('update:modelValue', 'fa_user');
+    const before = (wrapper.emitted('update') ?? []).length;
+    await wrapper.setProps({ node: patchRelation(make('input', { id: 'node_other' }), { type: 'belongs_to', table: '' }) });
+    resolve({ columns: [{ name: 'id', type: 'int', primary: true }, { name: 'name', type: 'varchar' }] });
+    await flushPromises();
+    expect((wrapper.emitted('update') ?? []).length).toBe(before);
+    wrapper.unmount();
+  });
+
   it('源码不再出现 v1 字段键的写回', () => {
     for (const source of [propsPanelSource, propsFoldsSource]) {
       const script = source.slice(source.indexOf('<script'), source.indexOf('</script>'));

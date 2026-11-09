@@ -6,12 +6,15 @@ import type {
   DocumentMetaInput,
   DocumentPage,
   DocumentQuery,
+  FeedbackPage,
+  FeedbackQuery,
   RevisionDetail,
   RevisionSummary
 } from './types';
 
 const docs = '/plugins/document/documents';
 const categories = '/plugins/document/categories';
+const feedback = '/plugins/document/feedback';
 
 /** 业务错误（409 冲突、422 校验）由页面自行提示，不弹全局消息。 */
 const quiet = { requestOptions: { showErrorMsg: false } };
@@ -35,5 +38,7 @@ export const documentApi = {
   revisions: (id: number, page = 1) => http.get<{ list: RevisionSummary[]; total: number }>(`${docs}/${id}/revisions`, { page }),
   revision: (id: number, revisionNo: number) => http.get<RevisionDetail>(`${docs}/${id}/revisions/${revisionNo}`),
   restore: (id: number, revisionNo: number, lockVersion: number) =>
-    http.post<DocumentDetail>(`${docs}/${id}/revisions/${revisionNo}/restore`, { lockVersion }, quiet)
+    http.post<DocumentDetail>(`${docs}/${id}/revisions/${revisionNo}/restore`, { lockVersion }, quiet),
+
+  feedback: (query: FeedbackQuery) => http.get<FeedbackPage>(feedback, { ...query, withComment: query.withComment ? 1 : undefined })
 };

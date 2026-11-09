@@ -3,7 +3,7 @@
   "code": "document",
   "name": "技术文档",
   "description": "FunAdmin 简约官方文档站，支持章节化内容、后台编辑与公开阅读",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
@@ -88,6 +88,10 @@
       {
         "code": "document:category:delete",
         "name": "删除文档目录"
+      },
+      {
+        "code": "document:feedback:index",
+        "name": "查看读者反馈"
       }
     ],
     "menu": [

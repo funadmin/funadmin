@@ -400,10 +400,13 @@ const loadRelationColumns = async (visible = true, selectedTable?: string) => {
   }
 };
 const onRelationTableChange = async (table: string) => {
+  const nodeId = props.node.id;
   loadedRelationTable.value = '';
   relationColumns.value = [];
   emitNode(patchRelation(props.node, { table, labelField: '', valueField: 'id' }));
   await loadRelationColumns(true, table);
+  // 加载期间已切换到其他节点：不把旧表的字段写到新节点上。
+  if (props.node.id !== nodeId) return;
   const primary = relationColumns.value.find((column) => column.primary)?.name;
   const display = relationColumns.value.find((column) => ['name', 'title', 'label', 'username', 'nickname'].includes(column.name))?.name;
   // 第二次补丁带上 table：父组件可能尚未把第一次补丁写回 props.node。

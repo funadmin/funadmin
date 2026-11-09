@@ -59,6 +59,14 @@ final class PublicDocumentService
         ];
     }
 
+    /** 读者反馈的目标：已发布公开文档的内部 ID 与当前修订号；不存在或不公开时返回 null。 */
+    public function target(string $slug): ?array
+    {
+        if (preg_match('/\A[a-z0-9][a-z0-9-]{0,118}[a-z0-9]?\z/D', $slug) !== 1) return null;
+        $row = $this->published()->where('d.slug', $slug)->first(['d.id', 'd.current_revision_no']);
+        return $row ? ['id'=>(int)$row->id, 'revisionNo'=>(int)$row->current_revision_no] : null;
+    }
+
     /** 只公开关联到公开文档的目录及其祖先，不泄漏仅后台目录名称。 */
     public function categories(): array
     {

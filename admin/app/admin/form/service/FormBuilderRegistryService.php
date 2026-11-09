@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace app\admin\form\service;
 
 use app\common\form\builder\Form;
-use app\common\form\schema\FormSchema;
-use app\admin\form\model\Form as FormModel;
 use app\admin\form\model\FormSchemaVersion;
 use app\admin\form\repository\FormSchemaRepository;
 
@@ -29,29 +27,6 @@ final class FormBuilderRegistryService
         string $summary = ''
     ): FormSchemaVersion {
         $message = $summary !== '' ? $summary : 'PHP Builder 注册';
-        $compiled = $builder->compile();
-        $version = $this->schemas->saveVersion($formId, $compiled->document(), 'php', $actor, $message);
-        $this->compatiblePayload($formId, $compiled);
-        return $version;
-    }
-
-    /** 将 canonical 文档同步为发布服务可直接消费的 v1 兼容元数据。 */
-    private function compatiblePayload(int $formId, FormSchema $compiled): void
-    {
-        $document = $compiled->document();
-        $database = (array) ($document['database'] ?? []);
-        $form = FormModel::find($formId);
-        if (!$form) {
-            return;
-        }
-        $form->fill([
-            'form_key' => $compiled->key(),
-            'name' => (string) ($document['title'] ?? ''),
-            'table_name' => (string) ($database['table'] ?? ''),
-            'connection' => (string) ($database['connection'] ?? 'mysql'),
-            'source_type' => (string) ($database['source'] ?? 'created'),
-            'form_config' => (array) ($document['form'] ?? []),
-            'list_config' => (array) ($document['list'] ?? []),
-        ])->save();
+        return $this->schemas->saveVersion($formId, $builder->compile()->document(), 'php', $actor, $message);
     }
 }

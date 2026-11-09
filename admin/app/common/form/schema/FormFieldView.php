@@ -192,6 +192,19 @@ final class FormFieldView
         return (int) ($this->list()['width'] ?? 0);
     }
 
+    /** 敏感字段：password 控件，或 props.sensitive / props.writeOnly 为 true | 1 | '1'（与前端 isSensitiveNode 一致）。 */
+    public function sensitive(): bool
+    {
+        $props = $this->props();
+        return $this->type() === 'password' || self::truthy($props['sensitive'] ?? null) || self::truthy($props['writeOnly'] ?? null);
+    }
+
+    /** 节点标志位的唯一真值规则：true | 1 | '1'。 */
+    public static function truthy(mixed $value): bool
+    {
+        return $value === true || $value === 1 || $value === '1';
+    }
+
     public function hidden(): bool
     {
         return (bool) ($this->node['hidden'] ?? false);

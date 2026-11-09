@@ -8,6 +8,8 @@ abstract class CmsTestCase extends \PHPUnit\Framework\TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // 每个用例重建表后站点 ID 会重复，公开页缓存必须隔离到进程内并清空，避免跨用例命中旧页面。
+        \app\cms\service\PublicPageCache::useStore('array');\support\Cache::store('array')->clear();
         self::assertTrue(class_exists(\app\cms\service\Schema::class),'CMS schema must exist');
         foreach(array_reverse(\app\cms\service\FormSchema::tables()) as $table) Db::schema()->dropIfExists($table);
         foreach(array_reverse(\app\cms\service\SiteRoleSchema::tables()) as $table) Db::schema()->dropIfExists($table);

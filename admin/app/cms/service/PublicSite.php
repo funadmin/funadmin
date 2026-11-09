@@ -32,8 +32,21 @@ final class PublicSite
         if($search){$requestedPage=filter_var($request->get('page',1),FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>10000]]);if($requestedPage===false)return $this->error(404);$page['page']=$requestedPage;$page['base_path']=$path;$expected=$path;$page['robots']='noindex,follow';$page['title']='搜索：'.$query;$page['seo_title']=$page['title'];$page['target_type']='search';if(BuiltinThemes::get($site['theme'])){$template='search';$page['title']=ThemePresentation::labels($language['locale'])['search_results'].' · '.$query;$page['seo_title']=$page['title'];}}
         elseif($path!==$expected)return $this->redirect($site,$expected,$request->queryString());
         $page['path']=$expected;
-        $html=(new Renderer())->render($site,$language,$page,$template,$content,$category);
-        return new Response(200,['Content-Type'=>'text/html; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'],$html);
+        // 搜索结果随查询变化不缓存；其余公开页按站点版本缓存，缓存不可用时降级为直接渲染。
+        $cache=!$search&&PublicPageCache::enabled()?new PublicPageCache():null;
+        $variant=(string)($site['updated_at']??'').'|'.(string)($site['theme']??'').'|'.(string)($language['updated_at']??'');
+        $cached=null;if($cache){try{$cached=$cache->get((string)$site['id'],(string)$language['locale'],$expected,$variant);}catch(\Throwable){$cache=null;}}
+        if($cached){$html=$cached['body'];$etag=$cached['etag'];}
+        else{
+            $html=(new Renderer())->render($site,$language,$page,$template,$content,$category);$etag=null;
+            if($cache){$etag=$cache->etag($html);try{$cache->put((string)$site['id'],(string)$language['locale'],$expected,$html,$etag,null,$variant);}catch(\Throwable){}}
+        }
+        $headers=['Content-Type'=>'text/html; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'];
+        if($etag===null)return new Response(200,$headers,$html);
+        // no-cache：浏览器与 CDN 每次带 ETag 回源校验，发布后不会继续展示旧页面。
+        $headers=['Cache-Control'=>'public, no-cache','ETag'=>$etag]+$headers;
+        if(PublicPageCache::matches((string)$request->header('if-none-match',''),$etag)){unset($headers['Content-Type']);return new Response(304,$headers,'');}
+        return new Response(200,$headers,$html);
     }
     private function redirect(array $site,string $path,string $query=''): Response
     {

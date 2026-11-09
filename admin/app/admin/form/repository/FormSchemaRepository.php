@@ -13,7 +13,6 @@ use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaException;
 use app\common\form\schema\FormSchemaValidator;
 use app\admin\form\model\Form;
-use app\admin\form\model\FormField;
 use app\admin\form\model\FormSchemaVersion;
 use InvalidArgumentException;
 use JsonException;
@@ -71,7 +70,6 @@ final class FormSchemaRepository
         return [
             'document' => $compiled->document(),
             'hash' => $compiled->hash(),
-            'projection' => $compiled->fieldProjection(),
         ];
     }
 
@@ -298,8 +296,11 @@ final class FormSchemaRepository
         }
     }
 
+    /** 唯一写入 fun_form 派生列的位置：name 取自文档 title（文档无 title 时保留原名称）。 */
     private function persistCurrent(Form $form, FormSchema $compiled, string $origin): void
     {
+        $title = trim((string) ($compiled->document()['title'] ?? ''));
+        if ($title !== '') $form->name = $title;
         $form->fill([
             'schema_version' => $compiled->version(),
             'schema_document' => $compiled->document(),
@@ -307,30 +308,6 @@ final class FormSchemaRepository
             'schema_origin' => $origin,
             'publish_status' => (string) ($form->published_schema_hash ?? '') === $compiled->hash() ? 'published' : 'draft',
         ])->save();
-        FormField::where('form_id', (int) $form->id)->delete();
-        foreach ($compiled->fieldProjection() as $sort => $field) {
-            FormField::create($this->projectionRow((int) $form->id, $field, $sort));
-        }
-    }
-
-    private function projectionRow(int $formId, array $field, int $sort): array
-    {
-        return array_replace([
-            'form_id' => $formId, 'field_name' => '', 'label' => '', 'type' => 'input', 'column_type' => '',
-            'nullable' => 1, 'default_value' => '', 'comment' => '', 'unsigned' => 0, 'index_type' => 'none',
-            'placeholder' => '', 'options_source' => null, 'control_props' => null, 'validate_rules' => null,
-            'link_rules' => null, 'relation_type' => 'none', 'relation_table' => '', 'relation_label_field' => '',
-            'relation_value_field' => 'id', 'relation_multiple' => 0, 'relation_on_delete' => 'restrict',
-            'list_show' => 0, 'list_sort' => 0, 'list_filter' => '', 'list_formatter' => '', 'list_width' => 0,
-            'form_show' => 1, 'form_required' => 0, 'form_group' => '', 'form_span' => 24,
-            'form_readonly' => 0, 'sort_order' => $sort,
-        ], array_intersect_key($field, array_flip([
-            'field_name', 'label', 'type', 'column_type', 'nullable', 'default_value', 'comment', 'unsigned',
-            'index_type', 'placeholder', 'options_source', 'control_props', 'validate_rules', 'link_rules',
-            'relation_type', 'relation_table', 'relation_label_field', 'relation_value_field', 'relation_multiple',
-            'relation_on_delete', 'list_show', 'list_sort', 'list_filter', 'list_formatter', 'list_width', 'form_show',
-            'form_required', 'form_group', 'form_span', 'form_readonly', 'sort_order',
-        ])));
     }
 
     private function collectChanges(mixed $from, mixed $to, string $path, array &$changes): void

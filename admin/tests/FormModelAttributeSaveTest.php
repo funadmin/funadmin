@@ -50,13 +50,13 @@ final class FormModelAttributeSaveTest extends TestCase
         self::assertSame($expected, $stored);
     }
 
-    public function testBuilderRegistrySyncsCompatibleFormColumns(): void
+    public function testBuilderRegistrySyncsName(): void
     {
         $table = Db::connection()->getTablePrefix() . 'builder_fixture';
         $connection = (string) config('database.default');
         $form = FormModel::create([
             'form_key' => 'builder_fixture', 'name' => '旧名称', 'table_name' => $table, 'connection' => $connection,
-            'source_type' => 'created', 'form_config' => [], 'list_config' => [],
+            'source_type' => 'created',
         ]);
         $builder = Form::make('builder_fixture')->title('新名称')->table($table, $connection);
         $builder->input('title', '标题');
@@ -66,6 +66,6 @@ final class FormModelAttributeSaveTest extends TestCase
 
         $fresh = $form->fresh();
         self::assertSame('新名称', $fresh->name);
-        self::assertSame(50, $fresh->list_config['pageSize'] ?? null);
+        self::assertSame(50, $fresh->schema_document['list']['pageSize'] ?? null);
     }
 }

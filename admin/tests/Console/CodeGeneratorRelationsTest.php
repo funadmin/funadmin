@@ -27,7 +27,7 @@ final class CodeGeneratorRelationsTest extends TestCase
     /** 修改关联生成前记录的无关联模块基准（definitionHash 与全部生成文件 sha256）。 */
     private const PLAIN_BASELINE = [
         'core' => [
-            'definitionHash' => '3bd6f00fb003a0aa5c571b99dc722023d2b0f2577d066103c16899be69e69cae',
+            'definitionHash' => 'a07a1978d3f33bbb5613816efb7dbfc350de42b05ad5717c19267b9a48ccb82c',
             'files' => [
                 'app/admin/business/shop_plain/controller/ShopPlainController.php' => 'd5bdfe07b1fcf59b23783a47bd38d138e6a15862985bec2227ae29da5e5e7672',
                 'app/admin/business/shop_plain/lang/en-us.php' => 'cf6264058cd19ba878b3828997d7bd5f0a93e6307ad7e9a8790311790c9acee4',
@@ -47,7 +47,7 @@ final class CodeGeneratorRelationsTest extends TestCase
             ],
         ],
         'plugin' => [
-            'definitionHash' => 'f679b6610da6e308f93672c05abc322797431b4d8b2f573389d86b4aa92c0a60',
+            'definitionHash' => 'a75fb744e94ec91a812164be753df213a21468629d1fe3d2d862755dd08322c5',
             'files' => [
                 'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => '6f43e2318ad4976cee5a929ea898111b4cb942ca69f846c89be54a7fa34e5c27',
                 'plugins/shopkit/app/admin/plugins/shopkit/model/ShopPlain.php' => '735cbf06dc88f65462099000fa3e0f4536f4f0550e04d89ac3be3867c044e193',
@@ -327,6 +327,22 @@ final class CodeGeneratorRelationsTest extends TestCase
             ksort($files);
             self::assertSame(self::PLAIN_BASELINE[$name], ['definitionHash' => $definition->hash(), 'files' => $files], $name);
         }
+    }
+
+    public function test_field_access_travels_in_access_key_and_marks_field_sensitive(): void
+    {
+        $definition = $this->definition('shop_secure', [
+            $this->node('title', 'input', 'varchar(120)', ['list' => ['show' => true, 'filter' => 'like']]),
+            $this->node('secret', 'input', 'varchar(120)', ['access' => ['read' => ['shop:secret:read']], 'list' => ['show' => true, 'filter' => 'like']]),
+        ]);
+        $fields = array_column($definition->toArray()['fields'], null, 'name');
+        self::assertSame(['read' => ['shop:secret:read']], $fields['secret']['access']);
+        self::assertSame([], $fields['title']['access']);
+        self::assertSame([], $fields['secret']['controlProps']);
+        $bundle = $this->generator()->renderManagedBundle($definition);
+        $controller = (string) current(array_filter($bundle, static fn (string $path): bool => str_ends_with($path, 'Controller.php'), ARRAY_FILTER_USE_KEY));
+        self::assertStringContainsString("'title' =>", $controller);
+        self::assertStringNotContainsString("'secret' =>", $controller);
     }
 
     public function test_definition_has_no_layout_schema(): void

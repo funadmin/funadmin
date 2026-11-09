@@ -30,6 +30,7 @@ final class MenuService
                     if(!empty($item['children']))$insert($item['children'],$itemId,$depth+1);
                 }
             };$insert($items,null,0);
+            (new PublicPageCache())->invalidateSite($siteId);
             return Input::row(Db::table('cms_menu')->where('id',$id)->first());
         });
     }

@@ -167,9 +167,8 @@ final class ListButtonSchemaValidator
         if (str_contains($name, '.') || str_contains($name, '-')) $this->fail('必须使用数据库字段名，不支持属性路径', $path);
         if ($name === 'id' && !isset($fields[$name])) return;
         $node = $fields[$name] ?? null;
-        if (!$node || empty($node['database']['columnType']) || ($node['type'] ?? '') === 'password'
-            || ($node['props']['sensitive'] ?? false) || ($node['props']['writeOnly'] ?? false)
-            || ($node['access'] ?? $node['props']['schemaAccess'] ?? []) !== []
+        if (!$node || empty($node['database']['columnType']) || FormFieldView::fromNode($node)->sensitive()
+            || ($node['access'] ?? []) !== []
             || in_array($node['valueType'] ?? '', ['array', 'object'], true)
             || ($node['database']['relation']['type'] ?? 'none') !== 'none') $this->fail('必须引用可读非敏感数据库字段', $path);
     }
