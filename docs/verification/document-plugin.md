@@ -46,7 +46,6 @@
 
 ## 已知问题（未在本次修复）
 
-- **宿主缺陷，启用任一插件都会出现**：插件中心「启用」接口返回 500，但插件实际已启用。原因是 `admin/app/common/plugin/marketplace/MarketplaceTelemetry.php` 的 `pluginRecord()` 对 Eloquent 模型调用了 ThinkPHP 写法 `->field()->find()`（`BadMethodCallException`），来自提交 `2504215f`，不属于本插件。
 - 安装后需 `php start.php reload` 才能加载新路由（安装接口返回 `rebuildRequired: true`，与 `docs/plugins.md` 一致）。
 - 编辑器工具栏、文档信息对话框、版本历史抽屉的文案仍为中文；工作台主体与全部提示已支持中英文。
 - 没有目录管理界面（接口与权限已就绪，目前只能使用内置目录或直接调用接口）。

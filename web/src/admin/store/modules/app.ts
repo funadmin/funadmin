@@ -311,10 +311,6 @@ export const useAppStore = defineStore('app', {
 
     /** 应用主题（明/暗 + 灰/色弱 + 主色派生 + preset 钩子） */
     applyTheme() {
-      // 老版本持久化值兼容：'brand' 已被 'fresh' 取代
-      if ((this.menuTheme as string) === 'brand') {
-        this.menuTheme = 'fresh';
-      }
       const html = document.documentElement;
       const isDark =
         this.themeMode === 'dark' ||
@@ -329,20 +325,6 @@ export const useAppStore = defineStore('app', {
       this.applySidebarWidth();
       this.applyRadiusScale();
       this.applyWatermark();
-    },
-
-    /**
-     * 历史默认主色自动迁移：避免老用户被 localStorage 卡死在旧默认色。
-     * 仅当用户当前主色 == 某个历史默认值时才替换，自定义过的颜色不受影响。
-     */
-    migrateLegacyPrimary() {
-      const LEGACY_DEFAULT_PRIMARIES = [0x2c7be5, 0x165dff, 0x8b5cf6, 0x6366f1, 0xa78bfa];
-      const current = parseInt((this.primaryColor || '').replace('#', ''), 16);
-      // #1677ff 是雅致预设的上一代默认色；经典、暗夜预设仍以它为主色，只迁移雅致预设。
-      const previousElegantDefault = this.preset === 'elegant' && current === 0x1677ff;
-      if (LEGACY_DEFAULT_PRIMARIES.includes(current) || previousElegantDefault) {
-        this.primaryColor = PRESET_THEMES.find((item) => item.value === this.preset)?.primaryColor || '#5D87FF';
-      }
     },
 
     /** 重置为出厂设置（默认雅致方案） */

@@ -96,7 +96,7 @@ export default {
     "profileSaved": "资料已保存",
     "enterANickname": "请输入昵称",
     "changePassword": "修改密码",
-    "changingYourPasswordInvalidatesTheCurrentMemberTokenYou": "修改密码后当前会员令牌会失效，需要重新登录。",
+    "changingYourPasswordInvalidatesTheCurrentMemberTokenYou": "修改密码后所有设备上的会员登录都会失效，需要重新登录。",
     "confirmNewPassword": "确认新密码",
     "newPassword": "新密码",
     "currentPassword": "当前密码",

@@ -11,7 +11,7 @@ export function checkPermission(
 ): boolean {
   if (required == null || required === '') return true;
   const permissions = granted ?? [];
-  if (permissions.includes('*') || permissions.includes('*:*:*')) return true;
+  if (permissions.includes('*')) return true;
   const requirements = typeof required === 'string' ? [required] : required;
   return mode === 'all'
     ? requirements.every(permission => permissions.includes(permission))

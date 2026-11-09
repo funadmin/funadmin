@@ -9,7 +9,7 @@ export const isSensitiveField = (field: FormFieldDef): boolean => {
 
 const isExcludedByDefault = (field: FormFieldDef): boolean => {
   const props = field.control_props ?? {};
-  const sourceKind = String(field.options_source?.kind ?? field.options_source?.mode ?? '');
+  const sourceKind = String(field.options_source?.kind ?? '');
   return field.type === 'hidden'
     || truthy(props.disabled)
     || field.form_readonly === 1

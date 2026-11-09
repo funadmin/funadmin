@@ -50,6 +50,36 @@ final class PublicReaderTest extends DocumentTestCase
         self::assertStringContainsString('篇文档', $search->rawBody(), '搜索仍然显示结果列表');
     }
 
+    public function test_child_categories_are_nested_inside_their_parent_so_collapsing_hides_them(): void
+    {
+        $categories = new \app\document\service\DocumentCategoryService();
+        $parent = $categories->create(['scope'=>'framework','name'=>'主框架','slug'=>'main']);
+        $child = $categories->create(['scope'=>'framework','name'=>'架构设计','slug'=>'architecture','parentId'=>$parent['id']]);
+        $sibling = $categories->create(['scope'=>'framework','name'=>'插件开发','slug'=>'plugins']);
+        foreach (['overview'=>$child, 'plugin-intro'=>$sibling] as $slug => $category) {
+            $row = (new DocumentService())->create(['title'=>$slug,'slug'=>$slug,'scope'=>'framework','visibility'=>'public','categoryIds'=>[$category['id']],'content'=>$this->doc($slug)]);
+            (new DocumentVersionService())->publish($row['id'], '', 1);
+        }
+        Context::destroy();
+        $html = (new Reader())->detail(new Request("GET /docs/overview HTTP/1.1\r\nHost: localhost\r\n\r\n"), 'overview')->rawBody();
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="utf-8"?>' . $html);
+        $xpath = new \DOMXPath($dom);
+        $group = static fn (int $id): \DOMElement => $xpath->query('//details[@data-category-id="' . $id . '"]')->item(0);
+        $childGroup = $group((int)$child['id']);
+        self::assertSame((string)$parent['id'], $childGroup->parentNode->getAttribute('data-category-id'), '子目录必须放在父目录的折叠块内');
+        self::assertSame('nav', $group((int)$sibling['id'])->parentNode->nodeName, '同级目录不能被嵌进上一个目录');
+        self::assertSame(1, $xpath->query('//details[@data-category-id="' . $child['id'] . '"]/a[@href="/docs/overview"]')->length);
+    }
+
+    public function test_category_headings_use_the_theme_text_color_instead_of_gray(): void
+    {
+        $css = (string) file_get_contents(\app\document\service\ReaderPage::assetPath('reader.css'));
+        preg_match('/\.category-group > summary \{[^}]*\}/', $css, $summary);
+        self::assertStringNotContainsString('var(--muted)', $summary[0], '目录标题不使用灰色');
+        self::assertMatchesRegularExpression('/\.category-group:has\(\.chapter-link\.active\) > summary[^{]*\{[^}]*var\(--accent\)/', $css, '当前文档所在目录使用主题色');
+    }
+
     public function test_reader_layout_uses_the_full_width(): void
     {
         $css = (string) file_get_contents(\app\document\service\ReaderPage::assetPath('reader.css'));
@@ -78,8 +108,7 @@ final class PublicReaderTest extends DocumentTestCase
                 {
                     return [
                         'activation'=>\app\common\plugin\sdk\PluginActivationSnapshot::trusted(['document'=>[
-                            'code'=>'document','state'=>$this->enabled?'enabled':'disabled','enabled'=>$this->enabled,
-                            'needs_reinstall'=>false,'operation_token'=>null,'dependencies'=>[], 'applications'=>['app'=>true],
+                            'code'=>'document','state'=>$this->enabled?'enabled':'disabled','enabled'=>$this->enabled,'operation_token'=>null,'dependencies'=>[], 'applications'=>['app'=>true],
                         ]]),
                         'ownership'=>\app\common\plugin\sdk\PluginOwnershipSnapshot::trusted(['document'=>['applications'=>['app'=>true]]]),
                     ];

@@ -20,7 +20,7 @@ final class LifecycleTest extends TestCase
             foreach (['config', 'manifest', 'last_error', 'recovery_path'] as $name) $table->text($name)->nullable();
             foreach (['db_version', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'requires'] as $name) $table->string($name)->nullable();
             $table->string('composer_conflict_ack', 64)->default(''); $table->string('lifecycle_state')->default('discovered'); $table->boolean('status')->default(false);
-            $table->boolean('migration_pending')->default(false); $table->boolean('needs_reinstall')->default(false);
+            $table->boolean('migration_pending')->default(false);
             $table->unsignedBigInteger('state_changed_at')->nullable(); $table->unsignedBigInteger('installed_at')->nullable();
             $table->timestamps(); $table->softDeletes();
         });

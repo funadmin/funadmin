@@ -74,12 +74,7 @@ final class CrudDefinition implements JsonSerializable
         $data['routePath'] ??= (string) $data['apiPrefix'];
         $data['primaryKey'] ??= (string) (($primary[0]['name'] ?? ''));
         $data['timestamps'] ??= in_array('created_at', $fieldNames, true) && in_array('updated_at', $fieldNames, true);
-        $legacyFeatures = is_array($data['features'] ?? null) ? $data['features'] : [];
-        $data['softDeletes'] ??= array_key_exists('softDelete', $legacyFeatures) ? (bool) $legacyFeatures['softDelete'] : true;
-        unset($legacyFeatures['softDelete']);
-        if (isset($data['features'])) {
-            $data['features'] = $legacyFeatures;
-        }
+        $data['softDeletes'] ??= true;
         $data['target'] = is_array($data['target'] ?? null) ? $data['target'] : ['type' => 'core'];
         $isPlugin = ($data['target']['type'] ?? 'core') === 'plugin';
         if (!$isPlugin) {
@@ -107,14 +102,11 @@ final class CrudDefinition implements JsonSerializable
         }
         $data['menu'] = self::normalizeMenu($data);
         $data['permission'] = self::normalizePermission($data);
-        // 仅在声明时规范化：未启用前台接口的定义保持原结构，历史生成审计中的 definitionHash 不变。
-        if (array_key_exists('memberApi', $data)) {
-            $memberApi = is_array($data['memberApi']) ? $data['memberApi'] : [];
-            $data['memberApi'] = [
-                'enabled' => ($memberApi['enabled'] ?? false) === true,
-                'ownerField' => (string) ($memberApi['ownerField'] ?? 'member_id'),
-            ];
-        }
+        $memberApi = is_array($data['memberApi'] ?? null) ? $data['memberApi'] : [];
+        $data['memberApi'] = [
+            'enabled' => ($memberApi['enabled'] ?? false) === true,
+            'ownerField' => (string) ($memberApi['ownerField'] ?? 'member_id'),
+        ];
         unset($data['name'], $data['paths'], $data['metadata']);
         return $data;
     }
@@ -147,25 +139,13 @@ final class CrudDefinition implements JsonSerializable
         }
         $actions = [];
         foreach (self::resourceActions($data) as [$action, $suffix, $defaultLabel]) {
-            $actions[] = ['action' => $action, 'codeSuffix' => self::codeSuffix($suffix), 'label' => $labels[$action] ?? $defaultLabel];
+            $actions[] = ['action' => $action, 'codeSuffix' => $suffix, 'label' => $labels[$action] ?? $defaultLabel];
         }
         return [
             'enabled' => (bool) ($permission['enabled'] ?? true),
             'groupName' => (string) ($permission['groupName'] ?? $data['title'] ?? ''),
             'actions' => $actions,
         ];
-    }
-
-    /**
-     * 后台权限码由控制器方法推导（{模块}:{资源}:{方法 kebab}），生成的权限码后缀即方法名的 kebab 形式。
-     * 这里把历史上的后缀名称换算为对应方法的推导后缀。
-     */
-    public static function codeSuffix(string $legacy): string
-    {
-        return [
-            'list' => 'index', 'delete' => 'remove', 'batch-delete' => 'recycle',
-            'batch-restore' => 'restore-many', 'batch-destroy' => 'destroy-many', 'left-tree-mutate' => 'mutate-left-tree',
-        ][$legacy] ?? $legacy;
     }
 
     private static function resourceActions(array $data): array
@@ -179,26 +159,26 @@ final class CrudDefinition implements JsonSerializable
         $append = static function (bool $condition, string $action, string $suffix, string $label) use (&$actions): void {
             if ($condition) $actions[] = [$action, $suffix, $label];
         };
-        $append($enabled('list'), 'index', 'list', '查看列表');
+        $append($enabled('list'), 'index', 'index', '查看列表');
         $listActions = $enabled('list') && !empty($data['formSchema']['key']) && ($data['target']['type'] ?? 'core') === 'core';
         $append($listActions, 'listactions', 'list-actions', '读取列表动作目录');
         $append($listActions, 'listaction', 'list-action', '执行列表动作');
         $leftTree = $enabled('list') && ($data['list']['leftTree']['enabled'] ?? false) === true;
         $append($leftTree, 'lefttree', 'left-tree', '读取来源树');
         $append($leftTree, 'lefttreeform', 'left-tree-form', '读取来源表单');
-        $append($leftTree, 'mutatelefttree', 'left-tree-mutate', '操作来源树');
+        $append($leftTree, 'mutatelefttree', 'mutate-left-tree', '操作来源树');
         $append($enabled('detail') && ($features['detail'] ?? true), 'detail', 'detail', '查看详情');
         $append($enabled('create'), 'create', 'create', '新增');
         $append($enabled('update'), 'update', 'update', '编辑');
         $append($enabled('update') && ($features['status'] ?? false), 'status', 'status', '切换状态');
         $hasOptions = ($enabled('form') || ($enabled('list') && ($data['list']['category']['enabled'] ?? false))) && (array) ($data['optionsSource'] ?? []) !== [];
         $append($hasOptions, 'options', 'options', '读取选项');
-        $append($delete, 'remove', 'delete', '删除');
+        $append($delete, 'remove', 'remove', '删除');
         $append($softDelete, 'restore', 'restore', '恢复');
         $append($softDelete, 'destroy', 'destroy', '永久删除');
-        $append($delete && ($features['batchDelete'] ?? false), 'recycle', 'batch-delete', '批量删除');
-        $append($softDelete && ($features['batchDelete'] ?? false), 'restoreMany', 'batch-restore', '批量恢复');
-        $append($softDelete && ($features['batchDelete'] ?? false), 'destroyMany', 'batch-destroy', '批量永久删除');
+        $append($delete && ($features['batchDelete'] ?? false), 'recycle', 'recycle', '批量删除');
+        $append($softDelete && ($features['batchDelete'] ?? false), 'restoreMany', 'restore-many', '批量恢复');
+        $append($softDelete && ($features['batchDelete'] ?? false), 'destroyMany', 'destroy-many', '批量永久删除');
         $append($enabled('import') && ($features['import'] ?? false), 'import', 'import', '导入');
         $append($enabled('export') && ($features['export'] ?? false), 'export', 'export', '导出');
         // 设计器自定义动作：每个动作一条权限（business:{实体}:action-{kebab}），经列表动作宿主执行。

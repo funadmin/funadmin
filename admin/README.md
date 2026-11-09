@@ -107,11 +107,11 @@ The webman is open-sourced software licensed under the MIT.
 
 ## 数据库迁移目录
 
-- 核心 SQL：`admin/database/core/migrations/`，目前只有 `001_baseline.sql`（2026-11-06 由原基线与 002–028 增量重新 squash，结构与数据和逐个重放等价；剔除了软删除/停用的菜单与权限墓碑行，以及已移除本地市场的业务表，会员令牌仍使用的 `market_token` 保留）。新的结构或种子变更从 `002_` 起追加增量。
+- 核心 SQL：`admin/database/core/migrations/`，目前只有 `001_baseline.sql`（2026-11-06 由原基线与 002–028 增量重新 squash，结构与数据和逐个重放等价；剔除了软删除/停用的菜单与权限墓碑行，以及已移除本地市场的业务表与旧会员 opaque 令牌表）。新的结构或种子变更从 `002_` 起追加增量。
 - 历史归档位于 `archive/`，归档不直接执行：根目录是第一次 squash 前的 001–136，`archive/baseline-2026-11-06/` 是第二次 squash 前的旧基线和 002–028。
 - PHP 迁移：`admin/database/migrations/`，目前只有 `001_baseline.php`（2026-11-07 由 001–037 合并，结构与种子和原链路终态等价，同样剔除停用权限）。末尾按当前代码同步宿主与插件权限，新增控制器方法在全新安装时也会登记。旧文件在 `archive/`，不执行。不与核心 SQL 混用。
 - 插件迁移：CMS 合并为单个 `plugins/cms/database/migrations/001_cms.sql`，内容依次由 `Schema`、`SiteRoleSchema`、`ContributionSchema` 导出。
-- 权限按方法细分的升级工具（`PermissionGrantMigration`、`HostPermissionMigration`、`PermissionMigrationPlan`、`tools/permission-migrations/`）已随基线合并移除；`database/permission-maps/host-per-method.php` 仍保留，供运行时把旧资源路径换算为新权限码。
+- 权限按方法细分的升级工具（`PermissionGrantMigration`、`HostPermissionMigration`、`PermissionMigrationPlan`、`tools/permission-migrations/`）已随基线合并移除；旧资源路径到新权限码的换算表也已删除，运行时只按权限码判断。
 - 权限资源树由权限码推导：模块分组 → 资源分组 → 接口/能力权限，由 `PermissionTreeService` 在同步权限和插件登记资源后自动整理。管理员手工创建的权限保持原位，被菜单引用的分组不删除。两份基线都已按这个结构整理，并删除了没有对应后台方法的旧格式权限码。
 - 只向前守卫没有白名单：迁移 SQL 中任何 `DROP` / `TRUNCATE` / `RENAME` 都会被拒绝。
 - `CORE_DATABASE_PATH` 可覆盖核心 SQL 的父目录（其下必须有 `migrations/001_baseline.sql`）；未设置时默认 `admin/database/core/`。
@@ -124,9 +124,9 @@ The webman is open-sourced software licensed under the MIT.
 
 框架只保留插件市场客户端：后台插件中心、云端账号、远程分类/搜索/授权/下载、更新检查、签名验签及安装流程。通过 `.env` 的 `PLUGIN_MARKETPLACE_URL`（市场根地址，不含 `/api/v3`）和 `PLUGIN_MARKETPLACE_PUBLIC_KEY` 配置线上市场。
 
-本地运营市场的 `web/src/admin/plugins/market/`、`app/admin/plugins/market/` 和 `app/market/` 已移除，不再提供本地商城、订单支付、插件上架及市场服务端接口。核心基线（MySQL 与 PHP）不再包含本地市场的权限、菜单和业务表（原 `026_remove_local_market.sql`、`035_remove_local_market.php` 见归档）；会员令牌仍沿用 `market_token` 表。
+本地运营市场的 `web/src/admin/plugins/market/`、`app/admin/plugins/market/` 和 `app/market/` 已移除，不再提供本地商城、订单支付、插件上架及市场服务端接口。核心基线（MySQL 与 PHP）不再包含本地市场的权限、菜单和业务表（原 `026_remove_local_market.sql`、`035_remove_local_market.php` 见归档）。
 
-通用会员注册、资料、改密与 opaque 令牌服务已移到 `app/common/service/member/`，公开会员入口继续使用 `/api/v3/auth/*`，CMS/QA 鉴权使用相同的公共令牌服务。为兼容已有会员登录，仍沿用历史 `market_token` 表、会话键和限流键；这不提供商城功能。新令牌有效期可通过 `MEMBER_OPAQUE_ACCESS_TOKEN_TTL`、`MEMBER_OPAQUE_REFRESH_TOKEN_TTL` 设置。
+通用会员注册、资料与改密服务位于 `app/common/service/member/`。公开会员只走会员 API v2：`POST /api/v2/token` 登录、`POST /api/v2/token/refresh` 刷新、`POST /api/v2/logout` 登出、`POST /api/v2/member` 注册、`GET|PUT /api/v2/member/profile` 资料、`PUT /api/v2/member/password` 改密（吊销该会员全部会话）。会话存于 `member_api_session`，CMS/QA 通过 `MemberApiSessionService::authenticate()` 识别同一会员。令牌有效期由 `MEMBER_ACCESS_TOKEN_TTL`、`MEMBER_REFRESH_TOKEN_TTL` 设置。
 
 ## 本地开发
 

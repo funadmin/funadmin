@@ -25,17 +25,6 @@ describe('默认配色对齐 SaiAdmin', () => {
     expect(app.primaryColor.toLowerCase()).toBe(SAI_PRIMARY);
   });
 
-  it('仍停在旧默认蓝的老用户迁移到新主色，自定义颜色保持不变', () => {
-    const app = useAppStore();
-    app.preset = 'elegant';
-    app.primaryColor = '#1677ff';
-    app.migrateLegacyPrimary();
-    expect(app.primaryColor.toLowerCase()).toBe(SAI_PRIMARY);
-    app.primaryColor = '#e11d48';
-    app.migrateLegacyPrimary();
-    expect(app.primaryColor).toBe('#e11d48');
-  });
-
   it('只改默认雅致预设，其它预设主色不变', () => {
     const colors = Object.fromEntries(PRESET_THEMES.map(item => [item.value, item.primaryColor.toLowerCase()]));
     expect(colors).toMatchObject({ fresh: '#13c2c2', classic: '#1677ff', minimal: '#0f172a', vibrant: '#2f80ed', sunset: '#f97316', midnight: '#1677ff' });

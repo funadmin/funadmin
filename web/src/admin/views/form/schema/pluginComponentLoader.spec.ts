@@ -25,7 +25,7 @@ describe('受信插件表单组件加载', () => {
     const loader = vi.fn(async () => ({ default: { name: 'Rating' } }));
 
     const result = registerPluginFormComponents(catalog, registry, {
-      '../../../modules/demo/Rating.vue': loader
+      '../../../plugins/demo/Rating.vue': loader
     });
 
     expect(result).toEqual<PluginCatalogRegistration>({ registered: ['demo:rating'], diagnostics: [] });
@@ -36,12 +36,20 @@ describe('受信插件表单组件加载', () => {
     expect(loader).toHaveBeenCalledOnce();
   });
 
+  it('默认从 src/admin/plugins 构建期 glob 解析插件组件', () => {
+    const result = registerPluginFormComponents({
+      ...catalog,
+      components: [{ ...catalog.components[0], type: 'document:index', namespace: 'document', component: 'Index' }]
+    }, createFormComponentRegistry());
+    expect(result).toEqual<PluginCatalogRegistration>({ registered: ['document:index'], diagnostics: [] });
+  });
+
   it('把 catalog 命名空间越界和未进入 glob 白名单记录为诊断', () => {
     const namespaceResult = registerPluginFormComponents({
       ...catalog,
       components: [{ ...catalog.components[0], namespace: 'other' }]
     }, createFormComponentRegistry(), {
-      '../../../modules/demo/Rating.vue': async () => ({ default: {} })
+      '../../../plugins/demo/Rating.vue': async () => ({ default: {} })
     });
     expect(namespaceResult.registered).toEqual([]);
     expect(namespaceResult.diagnostics[0]).toMatchObject({ code: 'namespace-mismatch', type: 'demo:rating' });

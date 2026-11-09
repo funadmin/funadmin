@@ -1,12 +1,12 @@
-// 拥有 development:business:modules 的账号会被旧路由跳到代码生成页（见 codegen/legacyRoutes.spec.ts）；这里验证原页面本身。
+// 代码生成页「生成记录」页签：独立挂载 RecordsPanel。
 vi.mock('@/utils/permission', () => ({ hasPermission: (required: unknown) => required !== 'development:business:modules' }));
 import { defineComponent, h, inject, nextTick, provide, reactive, ref, type Ref } from 'vue';
 import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import zhCN from '@/locales/zh-CN';
-import Records from './records.vue';
-import GenerationDetailDrawer from './components/GenerationDetailDrawer.vue';
+import Records from './RecordsPanel.vue';
+import GenerationDetailDrawer from '../components/GenerationDetailDrawer.vue';
 
 const route = reactive<{ query: Record<string, string | undefined> }>({ query: {} });
 const mocks = vi.hoisted(() => ({
@@ -106,7 +106,7 @@ const render = async () => {
 
 const findComponentByName = (wrapper: VueWrapper, name: string) => wrapper.findAllComponents({ name })[0];
 
-describe('BusinessRecords', () => {
+describe('BusinessRecordsPanel', () => {
   beforeEach(() => {
     route.query = {};
     vi.clearAllMocks();
@@ -126,7 +126,6 @@ describe('BusinessRecords', () => {
     await nextTick();
     await flushPromises();
     expect(mocks.generations).toHaveBeenLastCalledWith({ page: 1, pageSize: 50, moduleId: 7, status: 'failed' });
-    expect(wrapper.text()).toContain('生成记录');
   });
 
   it('筛选与 URL 双向同步，非法 moduleId 显示校验错误且不请求列表', async () => {

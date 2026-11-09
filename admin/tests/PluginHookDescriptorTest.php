@@ -14,8 +14,7 @@ final class PluginHookDescriptorTest extends TestCase
                 return [
                     'activation' => PluginActivationSnapshot::trusted([
                         'plugins' => [
-                            'code' => 'plugins', 'enabled' => false, 'state' => 'disabled',
-                            'needs_reinstall' => false, 'operation_token' => null, 'dependencies' => [],
+                            'code' => 'plugins', 'enabled' => false, 'state' => 'disabled', 'operation_token' => null, 'dependencies' => [],
                             'applications' => ['app' => false, 'admin' => false],
                         ],
                     ]),
@@ -33,7 +32,7 @@ final class PluginHookDescriptorTest extends TestCase
 
     public function test_exact_audience_permissions_and_no_application_required(): void {
         $reader=new class('unused') extends PluginActivationReader {
-            public function read(): PluginActivationSnapshot { return PluginActivationSnapshot::trusted(['demo'=>['code'=>'demo','enabled'=>true,'state'=>'enabled','needs_reinstall'=>false,'operation_token'=>null,'dependencies'=>[],'version'=>'1.0.0','applications'=>['app'=>false,'admin'=>false]]]); }
+            public function read(): PluginActivationSnapshot { return PluginActivationSnapshot::trusted(['demo'=>['code'=>'demo','enabled'=>true,'state'=>'enabled','operation_token'=>null,'dependencies'=>[],'version'=>'1.0.0','applications'=>['app'=>false,'admin'=>false]]]); }
             public function activeGeneration(): ?string {return str_repeat('a',32);}
         };
         $manifest=Manifest::fromCompiled('/unused/demo',['code'=>'demo','version'=>'1.0.0','adminWeb'=>['components'=>['Card'=>'Card.vue']], 'clientHooks'=>[

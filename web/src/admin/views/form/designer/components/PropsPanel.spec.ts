@@ -41,9 +41,9 @@ describe('字典控件数据源配置', () => {
     });
   });
 
-  it('字典控件显示字典选择器并加载字典分类，选择后收敛写入 kind 与 dictionary', async () => {
+  it('字典控件显示字典选择器并加载字典分类，选择后写入 kind 与 dictionary', async () => {
     const field = createField('dictionary', 1);
-    expect(field.options_source).toMatchObject({ mode: 'dictionary', dictionary: '' });
+    expect(field.options_source).toMatchObject({ kind: 'dictionary', dictionary: '' });
     const wrapper = render(field);
     await flushPromises();
     expect(dictTypeApi.list).toHaveBeenCalled();
@@ -56,15 +56,11 @@ describe('字典控件数据源配置', () => {
     wrapper.unmount();
   });
 
-  it('回显已保存的字典编码（兼容 kind 与旧 mode 键）', async () => {
+  it('回显已保存的字典编码（kind 键）', async () => {
     const byKind = render({ ...createField('dictionary', 1), options_source: { kind: 'dictionary', dictionary: 'pay_channel', options: [] } });
     await flushPromises();
     expect(byKind.get('[data-testid="dictionary-code-select"]').element).toHaveProperty('value', 'pay_channel');
     byKind.unmount();
-    const legacy = render({ ...createField('dictionary', 1), options_source: { mode: 'dictionary', dictionary: 'order_status', options: [] } });
-    await flushPromises();
-    expect(legacy.get('[data-testid="dictionary-code-select"]').element).toHaveProperty('value', 'order_status');
-    legacy.unmount();
   });
 
   it('非字典控件不渲染字典选择器', async () => {

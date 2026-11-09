@@ -20,11 +20,9 @@ final class ProductionTemplateContext
         $data['_namespace'] = (string) ($target['namespace'] ?? 'app\\admin');
         $apiPrefix = '/' . ltrim((string) $data['apiPrefix'], '/');
         $adminApi = ($target['consoleController'] ?? true) === true;
-        $hasAdminPrefix = $apiPrefix === '/admin' || str_starts_with($apiPrefix, '/admin/');
-        $controllerPrefix = $adminApi && !$hasAdminPrefix ? '/admin' . $apiPrefix : $apiPrefix;
+        $controllerPrefix = $adminApi ? '/admin' . $apiPrefix : $apiPrefix;
         $data['_controllerGroup'] = (string) ($target['controllerGroup'] ?? ltrim($controllerPrefix, '/'));
-        // 管理前端的 HTTP 客户端已带 /admin，兼容显式包含该前缀的旧 Definition。
-        $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? ($adminApi && $hasAdminPrefix ? (substr($apiPrefix, 6) ?: '/') : $apiPrefix));
+        $data['_apiPrefix'] = (string) ($target['apiPrefix'] ?? $apiPrefix);
         $data['_frontendApiImport'] = (string) ($target['frontendApiImport'] ?? "@/api/business/{$data['entity']}");
         $data['_frontendComponentApiImport'] = (string) ($target['frontendComponentApiImport'] ?? $data['_frontendApiImport']);
         $data['_modelBaseImport'] = (string) ($target['modelBaseImport'] ?? '');
@@ -628,7 +626,7 @@ final class ProductionTemplateContext
         $methods = $leftMethods === '' ? [] : [$leftMethods];
         if ($data['_listActionHost']) {
             $key = $data['formSchema']['key'];
-            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => 'admin/business.' . strtolower($class) . 'controller', 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
+            $binding = self::phpArray(['formKey' => $key, 'schemaHash' => $data['formSchemaHash'], 'route' => self::businessPermissionPrefix((string) $key), 'table' => $data['table'], 'connection' => $data['connection'] ?? 'mysql']);
             $methods[] = "    private function listButtonService(): \\app\\admin\\form\\service\\FormDataService\n    {\n        return new \\app\\admin\\form\\service\\FormDataService(permissionChecker: fn (string \$route): bool => (new \\app\\admin\\authorization\\service\\AdminAuthorizationService())->nodeAccess(\$route), productionBinding: {$binding});\n    }\n"
                 . "    #[Get('/list-actions')]\n    public function listActions(): Response\n    {\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->listActionCatalog('{$key}', (string) \$this->request->get('location', 'row'), \\app\\common\\form\\registry\\FormRegistryFactory::production()->actions()));\n    }\n"
                 . "    #[Post('/list-action')]\n    public function listAction(): Response\n    {\n        \$payload = \$this->request->post();\n        \$this->request->setPost(['buttonId' => \$payload['buttonId'] ?? '', 'input' => '[REDACTED]']);\n        return \$this->listButtonResponse(fn (): array => \$this->listButtonService()->executeListButton('{$key}', \$payload));\n    }\n"
@@ -1038,7 +1036,7 @@ final class ProductionTemplateContext
             $listSetup .= 'const leftTreeConfig = ' . self::json($data['list']['leftTree']) . " as const;\n";
             $listSetup .= "const leftSelection = ref<Array<string | number>>([]);\nfunction onLeftTree(values: Array<string | number>) { leftSelection.value = values; query.__leftTree = JSON.stringify(values); query.page = 1; void loadData(); }\n";
             $permissionPrefix = htmlspecialchars($data['permissionPrefix'], ENT_QUOTES);
-            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':' . CrudDefinition::codeSuffix('left-tree-mutate') . '\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
+            $categoryPanel .= '<ListSourceTree v-if="treePermission(\'' . $permissionPrefix . ':left-tree\')" :can-read-form="treePermission(\'' . $permissionPrefix . ':left-tree-form\')" :can-mutate="treePermission(\'' . $permissionPrefix . ':mutate-left-tree\')" form-key="' . $key . '" schema-hash="' . $hash . '" :config="leftTreeConfig" :model-value="leftSelection" :api="' . $camel . 'Api" @change="onLeftTree" @mutated="loadData" />';
         }
         // 生成层只声明宿主适配；交互、锁定及类型分派由共享组件处理。
         $listImports .= "import ListButtonBar from '@/views/form/components/ListButtonBar.vue';\nimport { resolveListButtons, buildListFieldMap } from '@/views/form/schema/listButtons';\nimport { provideListButtonAdapter, listButtonAdapterAllowed, listActionKey, type ListButtonHandlers } from '@/views/form/runtime/listButtonHost';\nimport type { ListButtonContext } from '@/views/form/runtime/listButtonExecutor';\nimport type { FormListConfiguration, FormListButton } from '@/views/form/schema/types';\n";
@@ -1240,8 +1238,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
     }
 
     /**
-     * 表单容器尺寸属性。未配置 formWidth/formFullscreen 时保持历史输出 width="720px"（哈希稳定）；
-     * dialog 用 width 与 :fullscreen，drawer 用 size，全屏即 size="100%"。
+     * 表单容器尺寸属性，未配置 formWidth 时默认 720px：dialog 用 width 与 :fullscreen，drawer 用 size，全屏即 size="100%"。
      */
     private static function formSizeAttributes(array $features): string
     {
@@ -1249,7 +1246,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $fullscreen = ($features['formFullscreen'] ?? false) === true;
         if ($features['formMode'] === 'drawer') {
             if ($fullscreen) return 'size="100%"';
-            return $width === null ? 'width="720px"' : 'size="' . (int) $width . 'px"';
+            return 'size="' . ($width === null ? 720 : (int) $width) . 'px"';
         }
         return 'width="' . ($width === null ? 720 : (int) $width) . 'px"' . ($fullscreen ? ' :fullscreen="true"' : '');
     }
@@ -1283,7 +1280,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
                     if ($field === null) continue;
                     $sourceName = $field['optionsSource'] ?? '';
                     $source = $sources[$sourceName] ?? null;
-                    $kind = $node['dataSource']['kind'] ?? $node['dataSource']['mode'] ?? '';
+                    $kind = $node['dataSource']['kind'] ?? '';
                     $dictionaryDisabled = !$enabled['dictionary'] && (($source['type'] ?? '') === 'dictionary' || in_array($kind, ['dictionary', 'dict'], true) || $node['type'] === 'dictionary');
                     if ($dictionaryDisabled) {
                         $node['type'] = 'input';
@@ -1774,6 +1771,15 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         if (preg_match('/(?:tinyint|smallint|mediumint|bigint|int|float|double)/', $type)) return 'number';
         if (str_contains($type, 'json')) return 'Record<string, unknown> | unknown[]';
         return 'string';
+    }
+
+    /** productionBinding.route：生成控制器权限码前缀 business:{资源}，与 FormDataService 的绑定校验同一推导。 */
+    private static function businessPermissionPrefix(string $formKey): string
+    {
+        $class = str_replace(' ', '', ucwords(str_replace('_', ' ', $formKey))) . 'Controller';
+        $code = \app\admin\authorization\service\PermissionCode::derive('app\\admin\\business\\' . $formKey . '\\controller\\' . $class, 'index');
+        if ($code === null) throw new \InvalidArgumentException('表单键无法推导生成控制器权限码：' . $formKey);
+        return substr($code, 0, -strlen(':index'));
     }
 
     private static function phpArray(array $value): string

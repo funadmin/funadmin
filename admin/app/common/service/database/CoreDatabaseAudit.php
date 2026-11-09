@@ -150,7 +150,7 @@ final class CoreDatabaseAudit
         foreach (['admin', 'auth_group', 'casbin_rule', 'permission', 'permission_field', 'admin_menu', 'admin_department', 'auth_group_department', 'auth_group_inherit', 'auth_group_field_permission'] as $logical) {
             if (!isset($schema[$prefix . $logical])) continue;
             $hashes = [];
-            foreach ($connection->table($logical)->cursor() as $row) $hashes[] = CoreSchemaPlan::fingerprint((array) $row);
+            foreach ($connection->table($logical)->cursor() as $row) $hashes[] = self::fingerprint((array) $row);
             sort($hashes, SORT_STRING);
             $protectedRowHashes[$logical] = hash('sha256', implode('', $hashes));
         }
@@ -174,5 +174,16 @@ final class CoreDatabaseAudit
         ];
         $report['digest'] = hash('sha256', json_encode($report, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         return $report;
+    }
+
+    /** 与键顺序无关的行指纹。 */
+    private static function fingerprint(array $value): string
+    {
+        $sort = static function (mixed $item) use (&$sort): mixed {
+            if (!is_array($item)) return $item;
+            if (!array_is_list($item)) ksort($item, SORT_STRING);
+            return array_map($sort, $item);
+        };
+        return hash('sha256', json_encode($sort(array_diff_key($value, ['digest' => true])), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 }

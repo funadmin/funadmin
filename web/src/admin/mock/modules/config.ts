@@ -16,8 +16,7 @@ const rows: ConfigModel[] = [
   { id: 1, code: 'site_name', group: 'site', type: 'text', verify: '', value: 'FunAdmin管理系统', extra: '', remark: '网站名称', status: 1, isSystem: 1, createdAt: '', updatedAt: '' },
   { id: 3, code: 'site_state', group: 'site', type: 'radio', verify: '', value: '1', extra: '0:关闭\n1:开启', remark: '网站状态', status: 1, isSystem: 1, createdAt: '', updatedAt: '' },
   { id: 4, code: 'site_logo', group: 'site', type: 'image', verify: '', value: '', extra: '', remark: '网站 Logo', status: 1, isSystem: 1, createdAt: '', updatedAt: '' },
-  { id: 31, code: 'upload_file_type', group: 'upload', type: 'text', verify: '', value: 'png,jpg,jpeg,webp,zip', extra: '', remark: '允许上传类型', status: 1, isSystem: 1, createdAt: '', updatedAt: '' },
-  { id: 44, code: 'upload_editor', group: 'upload', type: 'select', verify: '', value: 'tinymce', extra: 'tinymce:tinymce\nckeditor:ckeditor', remark: '默认编辑器', status: 1, isSystem: 1, createdAt: '', updatedAt: '' }
+  { id: 31, code: 'upload_file_type', group: 'upload', type: 'text', verify: '', value: 'png,jpg,jpeg,webp,zip', extra: '', remark: '允许上传类型', status: 1, isSystem: 1, createdAt: '', updatedAt: '' }
 ];
 
 const types = [

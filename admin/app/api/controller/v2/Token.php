@@ -60,17 +60,17 @@ class Token extends ApiController
         $account = trim((string) $request->post('username', ''));
         $password = (string) $request->post('password', '');
         if ($account === '' || mb_strlen($account) > 100 || strlen($password) < 6 || strlen($password) > 255) {
-            return $this->fail(msg: __('Invalid parameters'), code: 400);
+            return $this->fail(msg: trans('Invalid parameters'), code: 400);
         }
         // 按账号限流：分散 IP 的撞库也会被同一账号的配额挡住。
         if ($limited = $this->throttle('account:' . hash('sha256', mb_strtolower($account)), self::ACCOUNT_LIMIT)) return $limited;
 
         $member = $this->memberAuthService->authenticate($account, $password);
         if (!$member) {
-            return $this->fail(msg: __('Account or password is incorrect'), code: 401);
+            return $this->fail(msg: trans('Account or password is incorrect'), code: 401);
         }
 
-        return $this->ok(__('Tokens generated successfully'), $this->sessions->open((int) $member['id'], (string) $request->getRemoteIp()));
+        return $this->ok(trans('Tokens generated successfully'), $this->sessions->open((int) $member['id'], (string) $request->getRemoteIp()));
     }
 
     /**
@@ -101,15 +101,15 @@ class Token extends ApiController
         if ($limited = $this->throttle('ip:' . $request->path() . ':' . hash('sha256', $request->getRemoteIp()), self::IP_LIMIT)) return $limited;
         $refreshToken = trim((string) $request->post('refresh_token', ''));
         if ($refreshToken === '') {
-            return $this->fail(msg: __('Invalid parameters'), code: 400);
+            return $this->fail(msg: trans('Invalid parameters'), code: 400);
         }
 
         $tokens = $this->sessions->rotate($refreshToken);
         if ($tokens === null) {
-            return $this->fail(msg: __('Invalid refresh token'), code: 401);
+            return $this->fail(msg: trans('Invalid refresh token'), code: 401);
         }
 
-        return $this->ok(__('Access token refreshed successfully'), $tokens);
+        return $this->ok(trans('Access token refreshed successfully'), $tokens);
     }
 
     /**
@@ -132,13 +132,13 @@ class Token extends ApiController
     public function logout(Request $request): Response
     {
         $this->sessions->revoke((string) $request->member_session_id);
-        return $this->ok(__('Logged out successfully'));
+        return $this->ok(trans('Logged out successfully'));
     }
 
     private function throttle(string $key, int $limit): ?Response
     {
         if (Limiter::attempt('member_token:' . $key, $limit, self::WINDOW)) return null;
-        return $this->fail(msg: __('Too many requests, please try again later'), code: 429)
+        return $this->fail(msg: trans('Too many requests, please try again later'), code: 429)
             ->withHeaders(['Retry-After' => (string) self::WINDOW, 'Cache-Control' => 'no-store']);
     }
 }

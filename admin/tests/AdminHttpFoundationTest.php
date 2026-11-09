@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\BaseController;
 use app\admin\authentication\service\BrowserAuthService;
-use app\admin\authorization\service\PermissionResource;
 use app\common\controller\AdminController;
 use app\admin\common\http\AdminResponse;
 use app\admin\middleware\CheckAdminApiCsrfMiddleware;
@@ -149,66 +148,6 @@ final class AdminHttpFoundationTest extends TestCase
         self::assertArrayNotHasKey('admin', $request->context);
     }
 
-    public function test_permission_mapping_uses_matched_controller_and_not_requested_path(): void
-    {
-        $request = new Request("GET /admin/profile HTTP/1.1\r\n\r\n");
-        $request->controller = 'app\\admin\\authorization\\controller\\SystemRole';
-        $request->action = 'saveAuthorization';
-        self::assertSame(PermissionResource::fromParts('admin', 'authorization.SystemRole', 'saveAuthorization'), PermissionResource::fromRequest($request));
-        $request->controller = 'app\\admin\\ai\\controller\\Ai';
-        $request->action = 'conversationGroupUpdate';
-        self::assertSame('development.ai:conversationupdate', PermissionResource::fromRequest($request)['code']);
-    }
-
-    public function test_relocated_system_controllers_keep_existing_permission_resources(): void
-    {
-        $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
-        foreach ([
-            'SystemDict' => ['types', 'systemdict:types'],
-            'SystemLanguage' => ['pack', 'systemlanguage:pack'],
-            'SystemMemberLevel' => ['index', 'systemmemberlevel:index'],
-            'SystemOperationLog' => ['clear', 'systemoperationlog:delete'],
-        ] as $controller => [$action, $code]) {
-            $request->controller = 'app\\admin\\system\\controller\\' . $controller;
-            $request->action = $action;
-            $resource = PermissionResource::fromRequest($request);
-            self::assertSame($code, $resource['code']);
-            self::assertSame('admin/' . explode(':', $code)[0], $resource['obj']);
-            self::assertSame(explode(':', $code)[1], $resource['act']);
-        }
-    }
-
-    public function test_relocated_plugin_controllers_keep_existing_permission_resources(): void
-    {
-        $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
-        foreach ([
-            ['market', 'CategoryController', 'index'],
-            ['market', 'OrderController', 'update'],
-            ['example', 'Index', 'index'],
-        ] as [$plugin, $controller, $action]) {
-            $request->controller = 'app\\admin\\plugins\\' . $plugin . '\\controller\\' . $controller;
-            $request->action = $action;
-            self::assertSame(
-                PermissionResource::fromParts('admin', 'plugin.' . $plugin . '.' . $controller, $action),
-                PermissionResource::fromRequest($request)
-            );
-        }
-        $request->controller = 'app\\admin\\plugin\\controller\\SystemPlugin';
-        $request->action = 'index';
-        self::assertSame(PermissionResource::fromParts('admin', 'plugin.SystemPlugin', 'index'), PermissionResource::fromRequest($request));
-    }
-
-    public function test_generated_entity_controller_keeps_legacy_permission_identity(): void
-    {
-        $request = new Request("GET /admin/untrusted-path HTTP/1.1\r\n\r\n");
-        $request->controller = 'app\\admin\\business\\layout_example\\controller\\LayoutExampleController';
-        $request->action = 'index';
-        self::assertSame(
-            PermissionResource::fromParts('admin', 'business.LayoutExampleController', 'index'),
-            PermissionResource::fromRequest($request)
-        );
-    }
-
     public function test_csrf_rejects_missing_and_wrong_tokens_and_accepts_session_token(): void
     {
         (new MigrationService())->run();
@@ -269,7 +208,7 @@ final class AdminHttpFoundationTest extends TestCase
         $row = Db::table('admin_log')->first();
         self::assertNotNull($row);
         self::assertSame(7, $row->admin_id);
-        self::assertSame('systemrole', $row->controller);
+        self::assertSame('authorization/role', $row->controller);
         self::assertSame(0, $row->status);
         $data = json_decode($row->post_data, true, flags: JSON_THROW_ON_ERROR);
         self::assertSame('[REDACTED]', $data['password']);

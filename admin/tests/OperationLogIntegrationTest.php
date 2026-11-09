@@ -59,7 +59,7 @@ final class OperationLogIntegrationTest extends TestCase
         self::assertStringNotContainsString('must-not-store', json_encode($row));
         self::assertStringContainsString('[REDACTED]', $row->post_data);
         self::assertSame(12, (int) $row->duration_ms);
-        self::assertSame('systemdict', $row->controller);
+        self::assertSame('system/dict', $row->controller);
         self::assertSame(1, (int) $row->status);
     }
 

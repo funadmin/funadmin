@@ -16,7 +16,7 @@ use app\common\service\AbstractService;
 use app\common\service\member\MemberInput;
 use app\admin\system\model\AdminLog;
 use app\admin\authorization\model\Permission;
-use app\admin\authorization\service\PermissionResource;
+use app\admin\authorization\service\PermissionCode;
 use Webman\Http\Request;
 use Webman\Http\Response;
 
@@ -33,12 +33,15 @@ class AdminLogService extends AbstractService
         $appName = 'admin';
         $sourceType = $pluginCode === '' ? 'system' : 'plugin';
         $sourceName = $pluginCode === '' ? 'core' : $pluginCode;
-        $resource = PermissionResource::fromRequest($request, $appName);
-        $controller = substr($resource['obj'], strlen($appName) + 1);
-        $action = $resource['act'];
+        // 资源与日志标题都按方法推导的权限码（{模块}:{资源}:{操作}）；不可推导时记录控制器短类名与方法名。
+        $derived = PermissionCode::derive((string) ($request->controller ?? ''), (string) ($request->action ?? ''));
+        if ($derived !== null) {
+            ['obj' => $controller, 'act' => $action] = PermissionCode::resource($derived);
+        } else {
+            $controller = strtolower(basename(str_replace('\\', '/', (string) ($request->controller ?? ''))));
+            $action = strtolower((string) ($request->action ?: 'index'));
+        }
         $url = $request->path();
-        // 日志标题取该方法权限的名称（权限码按控制器方法推导）。
-        $derived = \app\admin\authorization\service\PermissionCode::derive((string) ($request->controller ?? ''), (string) ($request->action ?? ''));
         $title = (string) (($derived === null ? null : Permission::where('code', $derived)->value('name')) ?: '');
         if ($title === '') {
             $title = $controller . '/' . $action;
@@ -64,7 +67,7 @@ class AdminLogService extends AbstractService
         }
 
         $postData = $this->sanitize($request->post());
-        if ($resource['obj'] === 'admin/systemconfig' && array_key_exists('value', $postData)) {
+        if ($controller === 'system/config' && array_key_exists('value', $postData)) {
             $postData['value'] = '[REDACTED]';
         }
         $log = new AdminLog();

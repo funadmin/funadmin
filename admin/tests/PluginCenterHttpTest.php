@@ -103,7 +103,7 @@ final class PluginCenterHttpTest extends TestCase
         $manifest['adminWeb']['routes'][] = ['path' => '/plugins/' . $code . '/manage', 'name' => 'Plugin_' . $code . '_Manage', 'component' => 'Index', 'meta' => ['permission' => $code . ':item:manage']];
             file_put_contents($directory . '/plugin.json', json_encode($manifest, JSON_THROW_ON_ERROR));
             Db::table('plugin')->insert(['code' => $code, 'name' => '目录测试', 'version' => '1.0.0', 'lifecycle_state' => 'enabled', 'status' => 1, 'manifest' => json_encode($manifest, JSON_THROW_ON_ERROR)]);
-            (new \app\common\plugin\sdk\PluginActivationCompiler($activation, $parent))->compile([$code => ['code'=>$code,'status'=>1,'lifecycle_state'=>'enabled','needs_reinstall'=>false,'version'=>'1.0.0']], [$code=>$manifest]);
+            (new \app\common\plugin\sdk\PluginActivationCompiler($activation, $parent))->compile([$code => ['code'=>$code,'status'=>1,'lifecycle_state'=>'enabled','version'=>'1.0.0']], [$code=>$manifest]);
             \app\admin\authorization\service\ResourceRegistryService::instance()->registerPermissions($manifest['adminWeb']['permissions'], 'plugin', $code);
             (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', ['plugin:plugin:installed', 'plugin:plugin:discovered', $code . ':index:index'])->pluck('id')->all());
             self::assertSame(401, $this->call('GET', '/admin/system/plugin/modules/enabled', authenticated: false)->getStatusCode());
@@ -138,7 +138,7 @@ final class PluginCenterHttpTest extends TestCase
         $reader = new class('unused') extends \app\common\plugin\sdk\PluginActivationReader {
             public function activeGeneration(): ?string { return str_repeat('a',32); }
             public function read(): \app\common\plugin\sdk\PluginActivationSnapshot {
-                $base=['enabled'=>true,'state'=>'enabled','needs_reinstall'=>false,'operation_token'=>null,'version'=>'1.0.0','applications'=>['app'=>false,'admin'=>false]];
+                $base=['enabled'=>true,'state'=>'enabled','operation_token'=>null,'version'=>'1.0.0','applications'=>['app'=>false,'admin'=>false]];
                 return \app\common\plugin\sdk\PluginActivationSnapshot::trusted([
                     'hookdemo'=>$base+['code'=>'hookdemo','dependencies'=>[]],
                     'blocked'=>$base+['code'=>'blocked','dependencies'=>['missing']],

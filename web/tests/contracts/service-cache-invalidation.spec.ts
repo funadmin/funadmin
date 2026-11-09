@@ -34,7 +34,7 @@ describe('Service 公共缓存失效能力', () => {
   });
 
   it('PluginService 复用公共缓存清理能力', () => {
-    const source = readProject('admin/app/admin/plugins/service/PluginService.php');
+    const source = readProject('admin/app/admin/plugin/service/PluginService.php');
     expect(source).not.toContain('Cache::clear();');
     expect(source).not.toContain('use think\\facade\\Cache;');
     expect(source).not.toContain('ClearsApplicationCache');

@@ -58,7 +58,7 @@ final class FormDataSourceRegistry
 
     public function resolve(array $definition, array $context = []): array
     {
-        $kind = (string) ($definition['kind'] ?? $definition['mode'] ?? '');
+        $kind = (string) ($definition['kind'] ?? '');
         if (!in_array($kind, self::KINDS, true)) {
             throw new FormDataSourceException('数据源类型未注册：' . $kind, 'FORM_DATA_SOURCE_NOT_REGISTERED');
         }
@@ -79,7 +79,7 @@ final class FormDataSourceRegistry
             'computed' => $this->resolveComputed($definition, $context),
         };
 
-        return [...$resolved, 'kind' => $kind, 'mode' => $kind, 'staleValue' => $staleValue];
+        return [...$resolved, 'kind' => $kind, 'staleValue' => $staleValue];
     }
 
     /**

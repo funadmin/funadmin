@@ -516,10 +516,10 @@ use OpenApi\Annotations as OA;
  * @OA\Schema(
  *     schema="AiMessageInput",
  *     type="object",
- *     required={"content"},
+ *     required={"content", "idempotency_key"},
  *     @OA\Property(property="role", type="string", enum={"user"}),
  *     @OA\Property(property="content", type="array", @OA\Items(ref="#/components/schemas/AiMessagePart")),
- *     @OA\Property(property="idempotency_key", type="string", description="可省略以兼容旧客户端；新客户端应为每条逻辑消息提交稳定键。", pattern="^[A-Za-z0-9_-]{1,128}$")
+ *     @OA\Property(property="idempotency_key", type="string", description="必填；每条逻辑消息提交稳定键，重试时复用以保证幂等。", pattern="^[A-Za-z0-9_-]{1,128}$")
  * )
  *
  * @OA\Schema(
@@ -1386,7 +1386,7 @@ use OpenApi\Annotations as OA;
  *     schema="MemberApiEnvelope",
  *     type="object",
  *     required={"code", "msg", "time", "data"},
- *     @OA\Property(property="code", type="integer", description="业务码，与 HTTP 状态一致：成功 200，失败为 400/401/429。", example=200),
+ *     @OA\Property(property="code", type="integer", description="业务码，与 HTTP 状态一致：成功 200，失败为 400/401/422/429。", example=200),
  *     @OA\Property(property="msg", type="string", description="提示信息，按当前语言翻译。", example="登录成功"),
  *     @OA\Property(property="time", type="integer", description="Unix 时间戳，单位秒。", example=0),
  *     @OA\Property(property="data", description="成功时为业务数据；失败时为 null。")
@@ -1443,6 +1443,70 @@ use OpenApi\Annotations as OA;
  *             @OA\Property(property="data", type="object", required={"user"}, @OA\Property(property="user", ref="#/components/schemas/MemberApiProfile"))
  *         )
  *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiAccount",
+ *     type="object",
+ *     required={"id", "username", "nickname", "email", "mobile", "avatar", "motto"},
+ *     description="当前会员本人可见的资料；只输出白名单字段。",
+ *     @OA\Property(property="id", type="integer", minimum=1, example=1),
+ *     @OA\Property(property="username", type="string", example="member"),
+ *     @OA\Property(property="nickname", type="string", example="会员昵称"),
+ *     @OA\Property(property="email", type="string", example="member@example.com"),
+ *     @OA\Property(property="mobile", type="string", example=""),
+ *     @OA\Property(property="avatar", type="string", example="https://example.com/avatar.png"),
+ *     @OA\Property(property="motto", type="string", example=""),
+ *     @OA\Property(property="created_at", type="string", nullable=true),
+ *     @OA\Property(property="last_login", nullable=true, description="最后登录时间；MySQL 为 Unix 时间戳。")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiAccountResult",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/MemberApiEnvelope"),
+ *         @OA\Schema(type="object", @OA\Property(property="data", type="object", required={"user"}, @OA\Property(property="user", ref="#/components/schemas/MemberApiAccount")))
+ *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiRegisterInput",
+ *     type="object",
+ *     required={"username", "email", "password", "password_confirm"},
+ *     @OA\Property(property="username", type="string", description="字母开头，4 到 20 位字母、数字或下划线。", pattern="^[A-Za-z][A-Za-z0-9_]{3,19}$"),
+ *     @OA\Property(property="email", type="string", format="email", maxLength=60),
+ *     @OA\Property(property="nickname", type="string", maxLength=50, description="可选，默认为用户名。"),
+ *     @OA\Property(property="password", type="string", format="password", minLength=8, maxLength=64, description="同时包含字母和数字。", writeOnly=true),
+ *     @OA\Property(property="password_confirm", type="string", format="password", writeOnly=true)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiRegisterResult",
+ *     allOf={
+ *         @OA\Schema(ref="#/components/schemas/MemberApiEnvelope"),
+ *         @OA\Schema(type="object", @OA\Property(property="data", allOf={
+ *             @OA\Schema(ref="#/components/schemas/MemberApiTokenPair"),
+ *             @OA\Schema(type="object", required={"user"}, @OA\Property(property="user", ref="#/components/schemas/MemberApiAccount"))
+ *         }))
+ *     }
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiProfileInput",
+ *     type="object",
+ *     required={"nickname"},
+ *     @OA\Property(property="nickname", type="string", minLength=1, maxLength=50),
+ *     @OA\Property(property="motto", type="string", maxLength=255),
+ *     @OA\Property(property="avatar", type="string", maxLength=255, description="https 开头的图片地址，或空字符串。")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MemberApiPasswordInput",
+ *     type="object",
+ *     required={"current", "password", "password_confirm"},
+ *     @OA\Property(property="current", type="string", format="password", writeOnly=true),
+ *     @OA\Property(property="password", type="string", format="password", minLength=8, maxLength=64, writeOnly=true),
+ *     @OA\Property(property="password_confirm", type="string", format="password", writeOnly=true)
  * )
  *
  * @OA\Schema(

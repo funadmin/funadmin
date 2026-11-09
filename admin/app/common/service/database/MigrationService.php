@@ -156,11 +156,6 @@ class MigrationService extends AbstractService
     {
         $validatedFiles = [];
         $repositoryReady = $this->repositoryExists();
-        $adopted = $scope === 'core' ? $this->adoptedCoreSources() : [];
-        if ($completeDirectory && $adopted !== []) {
-            $available = array_map('basename', $files);
-            if (array_diff(array_keys($adopted), $available) !== []) throw new RuntimeException('已接管的核心 migration 文件缺失');
-        }
         if ($completeDirectory && $repositoryReady) {
             $versions = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
             $missing = array_diff(SystemMigration::where('scope', $scope)->pluck('version')->all(), $versions);
@@ -174,7 +169,6 @@ class MigrationService extends AbstractService
             $this->assertForwardOnly($sql, $file);
             $checksum = hash('sha256', $sql);
             $version = pathinfo($file, PATHINFO_FILENAME);
-            if (isset($adopted[basename($file)]) && !hash_equals($adopted[basename($file)], $checksum)) throw new RuntimeException('已接管的核心 migration checksum 漂移：' . basename($file));
             if ($repositoryReady) {
                 $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
                 if ($record !== null && !hash_equals((string) $record->checksum, $checksum)) {
@@ -190,7 +184,6 @@ class MigrationService extends AbstractService
         foreach ($files as $file) {
             $version = pathinfo($file, PATHINFO_FILENAME);
             $checksum = $validatedFiles[$file]['checksum'];
-            if (isset($adopted[basename($file)])) continue;
             $repositoryReady = $this->repositoryExists();
             if ($repositoryReady) {
                 $record = SystemMigration::where('scope', $scope)->where('version', $version)->first();
@@ -239,27 +232,6 @@ class MigrationService extends AbstractService
             $executed[] = $version;
         }
         return $executed;
-    }
-
-    private function adoptedCoreSources(): array
-    {
-        $connection = Db::connection();
-        if (!Db::schema()->hasTable('core_database_adoption')) return [];
-        $records = $connection->table('core_database_adoption')->where('stage', 'complete')->orderBy('id')->get();
-        $sources = [];
-        if ($records->isEmpty()) return $sources;
-        $server = (string) $connection->selectOne('SELECT @@server_uuid uuid')->uuid;
-        foreach ($records as $record) {
-            if ($record->database_name !== $connection->getDatabaseName() || $record->table_prefix !== $connection->getTablePrefix()
-                || $record->server_uuid !== $server) throw new RuntimeException('核心接管登记目标实例漂移');
-            $checksums = json_decode($record->source_checksums, true, 512, JSON_THROW_ON_ERROR);
-            foreach ($checksums as $name => $checksum) {
-                if (preg_match('/^[0-9]+_[A-Za-z0-9_]+\.sql$/D', $name) !== 1 || preg_match('/^[a-f0-9]{64}$/D', $checksum) !== 1
-                    || (isset($sources[$name]) && !hash_equals($sources[$name], $checksum))) throw new RuntimeException('核心接管登记 checksum 冲突');
-                $sources[$name] = $checksum;
-            }
-        }
-        return $sources;
     }
 
     /**

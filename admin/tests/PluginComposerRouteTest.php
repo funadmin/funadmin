@@ -18,7 +18,7 @@ final class PluginComposerRouteTest extends TestCase
         foreach ($it as $file) $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname()); rmdir($this->root);
     }
     private function reader(string $code, bool $enabled, bool $trusted = true): PluginActivationReader {
-        $plugins = [$code=>['code'=>$code,'enabled'=>$enabled,'state'=>$enabled?'enabled':'disabled','needs_reinstall'=>false,'operation_token'=>null,'dependencies'=>[],'applications'=>['admin'=>true,'app'=>true]]];
+        $plugins = [$code=>['code'=>$code,'enabled'=>$enabled,'state'=>$enabled?'enabled':'disabled','operation_token'=>null,'dependencies'=>[],'applications'=>['admin'=>true,'app'=>true]]];
         return new class($plugins, $trusted) extends PluginActivationReader {
             public function __construct(private array $plugins, private bool $trusted) {}
             public function readBundle(): array { return ['activation'=>$this->trusted ? PluginActivationSnapshot::trusted($this->plugins) : PluginActivationSnapshot::untrusted(), 'ownership'=>PluginOwnershipSnapshot::trusted($this->plugins)]; }

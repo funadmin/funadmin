@@ -173,7 +173,6 @@ class SystemAdmin extends AdminController
                     'dept_id' => $data['deptId'],
                     'status' => $data['status'],
                     'avatar' => '',
-                    'token' => '',
                 ]);
                 $departmentIds = array_merge([$data['deptId']], $data['departmentIds']);
                 $this->syncDepartments((int) $admin->id, $departmentIds);
@@ -394,7 +393,7 @@ class SystemAdmin extends AdminController
                 }
             }
             Db::transaction(function () use ($admin, $password): void {
-                $admin->update(['password' => password_hash($password, PASSWORD_DEFAULT), 'token' => '']);
+                $admin->update(['password' => password_hash($password, PASSWORD_DEFAULT)]);
                 (new AdminSessionService())->revokeAll((int) $admin->id);
             });
             return $this->ok('密码已重置');

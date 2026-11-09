@@ -33,9 +33,6 @@ final class DependencyValidator
             if (!is_array($dependency)) {
                 throw new RuntimeException('依赖插件未安装：' . $code);
             }
-            if ((int) ($dependency['needs_reinstall'] ?? 0) !== 0) {
-                throw new RuntimeException('依赖插件需要重新安装：' . $code);
-            }
             if (($dependency['lifecycle_state'] ?? '') !== 'enabled') {
                 throw new RuntimeException('依赖插件未启用：' . $code);
             }

@@ -131,7 +131,7 @@ final class PluginComposerTest extends TestCase
     }
 
     public function testStartupLoadsOnlyEnabledPluginsFromTrustedSnapshotInStableOrder(): void {
-        $base = ['enabled'=>true, 'state'=>'enabled', 'needs_reinstall'=>false, 'operation_token'=>null, 'dependencies'=>[]];
+        $base = ['enabled'=>true, 'state'=>'enabled', 'operation_token'=>null, 'dependencies'=>[]];
         foreach (['beta','alpha','disabledfixture'] as $code) {
             mkdir($this->dir . '/' . $code . '/vendor', 0755, true);
             file_put_contents($this->dir . '/' . $code . '/vendor/autoload.php', '<?php $GLOBALS["startup_vendor_codes"][] = ' . var_export($code, true) . '; $l = new \\Composer\\Autoload\\ClassLoader(__DIR__); $l->register(true); return $l;');

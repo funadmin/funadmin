@@ -7,6 +7,7 @@ namespace app\admin\form\service;
 use app\common\crud\SchemaInspector;
 use app\common\crud\SqlLiteral;
 use app\common\form\registry\FieldCapabilityRegistry;
+use app\common\form\schema\FormSchemaException;
 use app\admin\form\exception\FormMigrationException;
 use app\admin\form\model\Form;
 use app\admin\form\model\FormField;
@@ -190,7 +191,6 @@ final class FormDesignerService
             $formKey = $this->normalizeIdentifier((string) ($payload['table_name'] ?? ''), true, (string) ($payload['connection'] ?? 'mysql'));
         }
         $payload['form_key'] = $formKey;
-        $this->validateDefinition($payload, true);
         $id = (int) ($payload['id'] ?? 0);
         $expectedUpdatedAt = (string) ($payload['updated_at'] ?? '');
         $expectedSchemaHash = trim((string) ($payload['expected_schema_hash'] ?? ''));
@@ -208,6 +208,8 @@ final class FormDesignerService
             'schema_document' => $document,
             'schema_hash' => $compiled->hash(),
         ]);
+        // 字段校验以编译后的投影为准（与发布、生成读取的字段一致）。
+        $this->validateDefinition($payload, true);
         return Db::transaction(function () use ($payload, $id, $expectedUpdatedAt, $expectedSchemaHash, $compiled): array {
             $form = $id > 0 ? Form::lockForUpdate()->firstWhere('id', $id) : new Form();
             if ($id > 0 && !$form) {
@@ -409,27 +411,21 @@ final class FormDesignerService
         return $actions;
     }
 
+    /** 只接受 FormSchema v2 文档（schema_document.schemaVersion = 2）。 */
     private function schemaPayload(array $payload): array
     {
-        $schema = $payload['schema_document'] ?? null;
-        $isV2 = is_array($schema) && (int) ($schema['schemaVersion'] ?? 0) === 2;
-        $document = $isV2 ? $schema : $payload;
-        $database = $isV2 ? (array) ($document['database'] ?? []) : [
-            'connection' => $payload['connection'] ?? 'mysql',
-            'table' => $payload['table_name'] ?? '',
-            'source' => $payload['source_type'] ?? 'created',
-        ];
+        $document = $payload['schema_document'] ?? null;
+        if (!is_array($document) || ($document['schemaVersion'] ?? null) !== 2) {
+            throw new FormSchemaException('schema_document 必须为 FormSchema v2 文档', '/schemaVersion', 'FORM_SCHEMA_VERSION_UNSUPPORTED');
+        }
         // 只归一化新建身份，已有记录与采纳表不得随配置变化重命名。
+        $database = (array) ($document['database'] ?? []);
         if ((int) ($payload['id'] ?? 0) === 0 && ($database['source'] ?? 'created') === 'created') {
             $connection = (string) ($database['connection'] ?? 'mysql');
             $prefix = (string) (\app\common\service\database\DatabaseConnections::settings($connection)['prefix'] ?? '');
             $table = trim((string) ($database['table'] ?? ''));
             if ($table !== '' && $prefix !== '' && !str_starts_with($table, $prefix)) {
-                if ($isV2) {
-                    $document['database']['table'] = $prefix . $table;
-                } else {
-                    $document['table_name'] = $prefix . $table;
-                }
+                $document['database']['table'] = $prefix . $table;
             }
         }
         return $document;
@@ -588,7 +584,7 @@ final class FormDesignerService
         if (!is_array($source)) {
             throw new InvalidArgumentException($label . '选项来源必须为对象');
         }
-        if (($source['mode'] ?? '') !== 'relation') {
+        if (($source['kind'] ?? '') !== 'relation') {
             return;
         }
         $this->assertIdentifier((string) ($source['table'] ?? ''), $label . '选项关联表');

@@ -230,7 +230,7 @@ class PluginService extends AbstractService
     {
         return $this->operate($code, function (string $token) use ($operation, $code, $callback, $context): mixed {
             $record = $this->isInstall($code);
-            $installed = $record && $record->deleted_at === null && (int) ($record->needs_reinstall ?? 0) === 0;
+            $installed = $record && $record->deleted_at === null;
             if ($operation === 'install' && $installed) {
                 throw new PluginPreconditionException(sprintf('插件 %s 已安装', $code));
             }
@@ -273,7 +273,7 @@ class PluginService extends AbstractService
             $this->infrastructure()->assertExternalTables($manifest);
             $pluginInfo = array_merge($this->manifestInfo($manifest), $this->packageContext($code));
             $record = $this->isInstall($code);
-            if ($record && $record->deleted_at === null && (int) ($record->needs_reinstall ?? 0) === 0
+            if ($record && $record->deleted_at === null
                 && (string) $record->lifecycle_state !== 'installing') {
                 throw new PluginPreconditionException(sprintf('插件 %s 已安装', $code));
             }
@@ -335,7 +335,6 @@ class PluginService extends AbstractService
         return $this->operate($code, function (string $token) use ($code, $migrate, $allowCodeDowngrade): bool {
             $this->deploymentRollbackAllowed = true;
             $record = $this->installedRecord($code);
-            $this->assertRunnableRecord($record);
             if ((string) $record->lifecycle_state !== 'updating') {
                 $this->assertDisabled($record, $code);
             }
@@ -394,7 +393,6 @@ class PluginService extends AbstractService
     {
         return $this->operate($code, function (string $token) use ($code): array {
             $record = $this->installedRecord($code);
-            $this->assertRunnableRecord($record);
             $this->assertDisabled($record, $code);
             $manifest = $this->validatedManifest($code);
             $this->infrastructure()->assertExternalTables($manifest);
@@ -450,7 +448,6 @@ class PluginService extends AbstractService
     {
         return $this->operate($code, function (string $token) use ($code): bool {
             $record = $this->installedRecord($code);
-            $this->assertRunnableRecord($record);
             $this->assertDisabled($record, $code);
             $this->assertNoEnabledDependents($code);
             (new PluginFormReferenceGuard())->assertNotReferenced($code);
@@ -522,7 +519,6 @@ class PluginService extends AbstractService
     {
         return $this->operate($code, function (string $token) use ($code, $enabled): bool {
             $record = $this->installedRecord($code);
-            $this->assertRunnableRecord($record);
             $current = (string) $record->lifecycle_state;
             if (($enabled && $current === 'enabled') || (!$enabled && $current === 'disabled')) {
                 return true;
@@ -596,12 +592,4 @@ class PluginService extends AbstractService
             throw new PluginPreconditionException('请先禁用插件：' . $code);
         }
     }
-
-    private function assertRunnableRecord(Plugin $record): void
-    {
-        if ((int) ($record->needs_reinstall ?? 0) === 1) {
-            throw new PluginPreconditionException('旧插件必须通过可信 plugin.json 包重新安装后才能运行生命周期操作');
-        }
-    }
-
 }

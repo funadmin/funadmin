@@ -559,16 +559,6 @@ html.dark .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-b
   border-radius: 4px;
 }
 
-/* 旧 chips 样式保留兼容（plain 按钮分组） */
-.app-table-actions--chips {
-  gap: 6px;
-}
-.app-table-actions--chips .el-button.is-plain {
-  padding: 4px 10px;
-  min-height: 28px;
-  font-weight: 500;
-}
-
 /* link/text 单独使用时（不在 --link 容器内）的通用样式 */
 .app-table-actions .el-button.is-link,
 .app-table-actions .el-button.is-text {

@@ -16,7 +16,7 @@ const descriptor = (code: string): EnabledPluginModule => ({
 });
 
 const modules = (names: string[]): Record<string, Component> => Object.fromEntries(
-  names.map((name) => [`../modules/${name}/Index.vue`, {} as Component])
+  names.map((name) => [`../plugins/${name}/Index.vue`, {} as Component])
 );
 
 function routerStub(existing: Array<Partial<RouteRecordNormalized>> = []) {

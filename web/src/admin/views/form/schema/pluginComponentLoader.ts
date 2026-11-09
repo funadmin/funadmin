@@ -11,7 +11,7 @@ const tNamed = (key: string, named: Record<string, unknown>, fallback: string): 
 type ComponentModule = { default: Component };
 type ComponentLoader = () => Promise<ComponentModule>;
 
-const sourceModules = import.meta.glob<ComponentModule>('../../../modules/**/*.{vue,tsx}');
+const sourceModules = import.meta.glob<ComponentModule>('../../../plugins/**/*.{vue,tsx}');
 const identityCodec: FormValueCodec = {
   encode: (value: unknown) => value,
   decode: (value: unknown) => value
@@ -33,8 +33,8 @@ export const registerPluginFormComponents = (
       diagnostics.push({ code: 'namespace-mismatch', type: definition.type, message: tNamed('formDesigner.pluginNamespaceMismatch', { type: definition.type }, '插件组件命名空间不一致：{type}') });
       continue;
     }
-    const key = `../../../modules/${definition.namespace}/${definition.component}.vue`;
-    const fallbackKey = `../../../modules/${definition.namespace}/${definition.component}.tsx`;
+    const key = `../../../plugins/${definition.namespace}/${definition.component}.vue`;
+    const fallbackKey = `../../../plugins/${definition.namespace}/${definition.component}.tsx`;
     const loader = modules[key] ?? modules[fallbackKey];
     if (!loader) {
       diagnostics.push({ code: 'missing-plugin', type: definition.type, message: tNamed('formDesigner.pluginNotInBuild', { type: definition.type }, '插件表单组件未包含在当前构建中：{type}') });

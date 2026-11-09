@@ -242,7 +242,7 @@ const previewRenderer = ref<{ setFieldErrors: (errors: Record<string, string>) =
 const previewOptionsRequest: FormDataSourceRequest = async (formKey, field, params, signal) => {
   const node = flattenSchemaNodes(store.schemaDocument.value.nodes).map(({ node }) => node).find((item) => item.field === field);
   const source = (node?.dataSource ?? {}) as Record<string, unknown>;
-  const kind = String(source.kind ?? source.mode ?? '');
+  const kind = String(source.kind ?? '');
   if (kind === 'static') {
     const options = Array.isArray(source.options) ? (source.options as Array<Record<string, unknown>>) : [];
     return { options: options.map((option) => ({ label: String(option.label ?? ''), value: option.value as string | number })) };

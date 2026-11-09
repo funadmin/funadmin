@@ -30,7 +30,6 @@ const profileSource = readProjectFile('admin/app/admin/authentication/controller
 const uploadSource = readProjectFile('admin/app/admin/system/controller/AdminUpload.php');
 const roleSource = readProjectFile('admin/app/admin/authorization/controller/SystemRole.php');
 const dictSource = readProjectFile('admin/app/admin/system/controller/SystemDict.php');
-const permissionSource = readProjectFile('admin/app/admin/authorization/service/PermissionResource.php');
 
 describe('后台控制器目录重组源码契约', () => {
   it('已移动控制器仅存在于对应子目录', () => {
@@ -65,12 +64,5 @@ describe('后台控制器目录重组源码契约', () => {
     expect(uploadSource).toContain("#[Post('/upload')]");
     expect(roleSource).toContain("#[RouteGroup('/admin/system/role')]");
     expect(dictSource).toContain("#[Get('/{code:[A-Za-z][A-Za-z0-9_]{0,59}}/options')]");
-  });
-
-  it('权限资源将新目录控制器稳定映射为既有控制器名', () => {
-    expect(permissionSource).toMatch(/auth\.adminprofile[\s\S]*adminprofile/);
-    expect(permissionSource).toMatch(/auth\.adminauth[\s\S]*adminauth/);
-    expect(permissionSource).toMatch(/system\.adminupload[\s\S]*adminupload/);
-    expect(permissionSource).toContain("preg_replace('/^(?:system|authorization)\\.(system[a-z0-9_]+)$/', '$1', $normalized)");
   });
 });

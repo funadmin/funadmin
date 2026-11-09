@@ -72,14 +72,11 @@ final class FormDynamicDdlTest extends TestCase
             ], 'test:1');
             $form = Form::findOrFail($detail['module']['form_id']);
             self::assertSame('fun_dynamic_order', $form->table_name);
+            $document = \app\common\form\builder\Form::make($form->form_key)->title($form->name)->table($form->table_name, $form->connection, $form->source_type);
+            $document->input('field_1', '标题')->column('varchar(255)');
+            $document->number('field_2', '数量')->column('int');
             (new FormDesignerService(base_path()))->save([
-                'id' => $form->id, 'form_key' => $form->form_key, 'name' => $form->name,
-                'table_name' => $form->table_name, 'connection' => $form->connection,
-                'source_type' => $form->source_type, 'expected_schema_hash' => $form->schema_hash,
-                'fields' => [
-                    ['field_name' => 'field_1', 'label' => '标题', 'type' => 'input', 'column_type' => 'varchar(255)'],
-                    ['field_name' => 'field_2', 'label' => '数量', 'type' => 'number', 'column_type' => 'int'],
-                ],
+                'id' => $form->id, 'expected_schema_hash' => $form->schema_hash, 'schema_document' => $document->compile()->document(),
             ]);
             $form = $form->fresh();
             $hash = (string) $form->schema_hash;

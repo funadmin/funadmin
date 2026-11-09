@@ -32,7 +32,6 @@ export interface FormSchemaValidationRule {
 export interface FormSchemaDataSource {
   [key: string]: unknown;
   kind?: string;
-  mode?: string;
   options?: unknown[];
   dependsOn?: string[];
   params?: Record<string, unknown>;

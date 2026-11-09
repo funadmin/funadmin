@@ -176,7 +176,6 @@ final class PluginCenterService extends AbstractService
             'migrationPending' => (bool) ($record?->migration_pending ?? false),
             'lastError' => (string) ($record?->last_error ?? ''),
             'source' => $source,
-            'needsReinstall' => (bool) ($record?->needs_reinstall ?? false),
             'operation' => (string) ($record?->operation_token ?? '') !== '' ? (string) ($operation?->operation ?? 'unknown') : '',
             'progress' => (int) ($operation?->progress ?? 0),
             'disabledReason' => $this->disabledReason($record, $dependencies),
@@ -237,9 +236,6 @@ final class PluginCenterService extends AbstractService
         if (!$record) {
             return '';
         }
-        if ((int) ($record->needs_reinstall ?? 0) === 1) {
-            return '必须使用可信插件包重新安装';
-        }
         if ((string) ($record->operation_token ?? '') !== '') {
             return '插件生命周期操作进行中';
         }
@@ -263,7 +259,7 @@ final class PluginCenterService extends AbstractService
             if (!$dependency) {
                 return '依赖插件未安装：' . $code;
             }
-            if ((string) $dependency->lifecycle_state !== 'enabled' || (int) ($dependency->needs_reinstall ?? 0) === 1) {
+            if ((string) $dependency->lifecycle_state !== 'enabled') {
                 return '依赖插件未启用：' . $code;
             }
             if (!$this->matchesVersion((string) $dependency->version, (string) $constraint)) {

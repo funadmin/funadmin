@@ -9,7 +9,7 @@ use RuntimeException;
 /** 将数据库生命周期记录与已验证 Manifest v2 快照编译为可信激活清单。 */
 final class PluginActivationCompiler
 {
-    public const SCHEMA_VERSION = 2;
+    public const SCHEMA_VERSION = 3;
 
     public function __construct(
         private readonly string $runtimePath,
@@ -100,7 +100,6 @@ final class PluginActivationCompiler
                 'code' => $code,
                 'state' => $deleted ? 'deleted' : (string) ($record['lifecycle_state'] ?? 'discovered'),
                 'enabled' => !$deleted && (int) ($record['status'] ?? 0) === 1,
-                'needs_reinstall' => (int) ($record['needs_reinstall'] ?? 0) === 1,
                 'operation_token' => $this->token($record['operation_token'] ?? null),
                 'version' => (string) ($record['version'] ?? ''),
                 'package_hash' => (string) ($record['package_hash'] ?? ''),

@@ -24,7 +24,6 @@ export interface PluginItem {
   migrationPending: boolean;
   lastError: string;
   source: 'installed' | 'local' | 'cloud';
-  needsReinstall: boolean;
   operation: string;
   progress: number;
   modified: boolean;

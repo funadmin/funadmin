@@ -9,7 +9,7 @@ use support\Db;
 /**
  * PHP 迁移基线（非 MySQL 驱动与 SQLite 测试使用；MySQL 走 database/core/migrations/001_baseline.sql）。
  * 2026-11-07 由原 001-037 合并：结构为最终态，种子为当时链路终态（已剔除停用的权限墓碑行），
- * 末尾按当前代码同步宿主与插件权限，后续新增的控制器方法仍会在全新安装时登记。旧文件见 archive/。
+ * 末尾按当前代码同步宿主与插件权限，后续新增的控制器方法仍会在全新安装时登记。
  */
 return static function (): void {
     $schema = Db::schema();
@@ -28,7 +28,6 @@ return static function (): void {
         $table->string('mobile', 30)->nullable();
         $table->string('ip', 45)->nullable();
         $table->string('last_login_ip', 45)->default('');
-        $table->string('token', 100)->nullable();
         $table->boolean('status')->default(true);
         $table->string('avatar', 255)->default('');
         $table->timestamps();
@@ -360,7 +359,7 @@ return static function (): void {
     // 插件
     $create('plugin', static function (Blueprint $table): void {
         $table->id(); $table->string('code', 64)->unique(); $table->string('name', 120)->default(''); $table->string('version', 64)->default(''); $table->boolean('status')->default(false);
-        $table->string('lifecycle_state', 40)->default('discovered'); $table->boolean('needs_reinstall')->default(false); $table->string('operation_token', 128)->nullable(); $table->text('manifest')->nullable(); $table->text('config')->nullable(); $table->string('source', 20)->default('local'); $table->string('code_version', 64)->default(''); $table->string('requires', 255)->default(''); $table->string('last_error', 500)->default(''); $table->string('error_stage', 80)->default(''); $table->string('recovery_path', 1024)->default(''); $table->dateTime('installed_at')->nullable(); $table->dateTime('state_changed_at')->nullable(); $table->timestamps(); $table->softDeletes();
+        $table->string('lifecycle_state', 40)->default('discovered'); $table->string('operation_token', 128)->nullable(); $table->text('manifest')->nullable(); $table->text('config')->nullable(); $table->string('source', 20)->default('local'); $table->string('code_version', 64)->default(''); $table->string('requires', 255)->default(''); $table->string('last_error', 500)->default(''); $table->string('error_stage', 80)->default(''); $table->string('recovery_path', 1024)->default(''); $table->dateTime('installed_at')->nullable(); $table->dateTime('state_changed_at')->nullable(); $table->timestamps(); $table->softDeletes();
         $table->string('composer_conflict_ack', 64)->default('');
         $table->index(['lifecycle_state', 'status']);
     });

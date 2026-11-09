@@ -17,7 +17,7 @@ hasPermission(['authorization:admin:create', 'authorization:admin:update']);
 hasPermission(['development:business:generate', 'development:business:apply-resources'], 'all');
 ```
 
-`hasPermission()` 每次读取当前账号权限，可用于模板、computed 和事件处理器。`*`、`*:*:*` 是现有超级权限，其余权限精确匹配。`undefined`、`null`、空字符串表示可选权限未声明；需要保护的业务动作必须传入真实权限码。
+`hasPermission()` 每次读取当前账号权限，可用于模板、computed 和事件处理器。`*` 是唯一的超级权限，其余权限（包括 `*:*:*`）精确匹配。`undefined`、`null`、空字符串表示可选权限未声明；需要保护的业务动作必须传入真实权限码。
 
 纯 Schema 执行器已经持有明确权限上下文时，使用 `checkPermission(context.permissions, required, mode)` 复用相同规则；不要再复制 `permissions.some/includes` 判断。
 
@@ -58,7 +58,7 @@ useCrud({
 });
 ```
 
-`permissions` 是可选配置，兼容已有由动态动作宿主管理权限的页面。声明后，新增/编辑入口和删除确认前后均检查对应权限。自定义保存、启停、上传等动作仍在其实际处理器检查。
+`permissions` 是可选配置；由动态动作宿主管理权限的页面可以不声明。声明后，新增/编辑入口和删除确认前后均检查对应权限。自定义保存、启停、上传等动作仍在其实际处理器检查。
 
 ## 权限码来源与范围（前后端同码）
 

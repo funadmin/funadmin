@@ -27,7 +27,7 @@ final class DevPlugin extends AdminController
     public function __construct()
     {
         parent::__construct();
-        $this->plugins = new DevPluginService(root_path());
+        $this->plugins = new DevPluginService(base_path() . DIRECTORY_SEPARATOR);
     }
 
     /**

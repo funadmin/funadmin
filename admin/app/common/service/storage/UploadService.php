@@ -103,7 +103,6 @@ class UploadService extends AbstractService
         $type = input('type', 'file');
         $savePath = input('path', 'uploads');
         $this->saveFilePath = ($savePath === 'undefined' || $savePath === '') ? 'uploads' : $this->sanitizeSavePath($savePath);
-        $editor = input('editor', '');
         $files = request()->file();
         foreach ($files as $k => $file) {
             if(is_array($file)){
@@ -119,10 +118,7 @@ class UploadService extends AbstractService
                     }catch (Exception $e){
                         throw new Exception($e->getMessage());
                     }
-                    $result['data'][$k][$index] = $attach->path; //兼容wangeditor
-                    $result['uploaded'] = true; //兼容ckeditorditor
-                    $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
-                    $result['success'] = 1; //兼容editormd
+                    $result['data'][$k][$index] = $attach->path;
                     $result['id'][$k][$index] = $attach->id;
                     $result['fileType'] = $type;
                     $result["url"][$k][$index] = $attach->path;
@@ -139,36 +135,15 @@ class UploadService extends AbstractService
                 }catch (Exception $e){
                     throw new Exception($e->getMessage());
                 }
-                $result['data'][] = $attach->path; //兼容wangeditor
-                $result['uploaded'] = true; //兼容ckeditorditor
-                $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
-                $result['success'] = 1; //兼容editormd
+                $result['data'][] = $attach->path;
                 $result['id'] = $attach->id;
                 $result['reused'] = $this->lastReused;
                 $result['fileType'] = $type;
                 $result["url"] = $attach->path;
             }
         }
-        $result['state'] = 'SUCCESS'; //兼容百度
-        $result['errno'] = 0; //兼容wangeditor
-        $result['uploaded'] = true; //兼容ckeditorditor
-        $result['error'] = ["message"=> "ok"]; //兼容ckeditorditor
-        $result['success'] = 1; //兼容editormd
-        $result['code'] = 1;//默认
-        $result['msg'] = lang('upload success');
-        if($editor=='tinymce'){
-            $result['code'] = 0;
-            $result['location'] = $result['data'][0];
-        }
-        if($editor=='vditor'){
-            $result['code'] = 0;
-            $result['data'] = [
-                'errFiles'          =>[],
-                'succMap'          =>[
-                    $result['data']['file'][0]=>$result['data']['file'][0],
-                ]
-            ];
-        }
+        $result['code'] = 1;
+        $result['msg'] = trans('upload success');
         return $result;
     }
 
@@ -219,7 +194,7 @@ class UploadService extends AbstractService
         $directory = $this->chunkDirectory($chunkId, $chunkCount, $owner);
         $ext = $this->safeExt($fileExt);
         if ($ext === '' || $ext !== $this->safeExt(pathinfo($fileName, PATHINFO_EXTENSION)) || in_array($ext, $this->blockedExtensions(), true) || !in_array($ext, explode(',', $this->fileExt), true)) {
-            throw new Exception(lang('File type is limited'));
+            throw new Exception(trans('File type is limited'));
         }
         $total = 0;
         for ($index = 0; $index < $chunkCount; $index++) {
@@ -281,10 +256,10 @@ class UploadService extends AbstractService
         $this->checkFile();
         $ext = $this->safeExt((string) $this->file->getUploadExtension());
         if (in_array($ext, $this->blockedExtensions(), true)) {
-            throw new Exception(lang('File format is limited'));
+            throw new Exception(trans('File format is limited'));
         }
         if ($this->fileExt != '*' && ($ext === '' || !in_array($ext, explode(',', $this->fileExt), true))) {
-            throw new Exception(lang('File type is limited'));
+            throw new Exception(trans('File type is limited'));
         }
         $source = $this->file->getPathname();
         $metadata = [
@@ -377,20 +352,20 @@ class UploadService extends AbstractService
         }
         $ext = $this->safeExt((string) $this->file->getUploadExtension());
         if (in_array($ext, $this->blockedExtensions(), true)) {
-            throw new Exception(lang('File format is limited'));
+            throw new Exception(trans('File format is limited'));
         }
         //文件大小限制
         if ($this->file->getSize() > $this->fileMaxsize) {
-            throw new Exception(lang('File size is limited'));
+            throw new Exception(trans('File size is limited'));
         }
         //文件类型限制
         if ($this->fileExt != '*' && ($ext === '' || !in_array($ext, explode(',', $this->fileExt), true))) {
-            throw new Exception(lang('File type is limited'));
+            throw new Exception(trans('File type is limited'));
         }
         if (in_array((new \finfo(FILEINFO_MIME_TYPE))->file($this->file->getPathname()), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
             $imgInfo = @getimagesize($this->file->getPathname());
             if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
-                throw new Exception(lang('Uploaded file is not a valid image'));
+                throw new Exception(trans('Uploaded file is not a valid image'));
             }
             $this->width = isset($imgInfo[0]) ? $imgInfo[0] : 0;
             $this->height = isset($imgInfo[1]) ? $imgInfo[1] : 0;
@@ -429,11 +404,11 @@ class UploadService extends AbstractService
     {
         $path = str_replace('\\', '/', $path);
         if (str_contains($path, '..') || !preg_match('#^[A-Za-z0-9_/-]*$#D', $path)) {
-            throw new Exception(lang('file name not right'));
+            throw new Exception(trans('file name not right'));
         }
         $segments = array_values(array_filter(explode('/', $path), static fn (string $s): bool => $s !== '' && $s !== '.'));
         if (in_array('..', $segments, true)) {
-            throw new Exception(lang('file name not right'));
+            throw new Exception(trans('file name not right'));
         }
         return $segments ? implode('/', $segments) : 'uploads';
     }

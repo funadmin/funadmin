@@ -283,7 +283,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "查看插件中心的 migration_pending、last_error 和 needs_reinstall。"
+                                        "text": "查看插件中心的 migration_pending 和 last_error。"
                                     }
                                 ]
                             }

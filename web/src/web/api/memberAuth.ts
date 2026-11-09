@@ -11,7 +11,7 @@ const service = axios.create({
 service.interceptors.request.use((config) => {
   config.headers['X-Locale'] = i18n.global.locale.value;
   const token = memberSession.accessToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token && !config.headers.Authorization) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -27,7 +27,7 @@ service.interceptors.response.use(
   }
 );
 
-const PREFIX = '/v3/auth';
+const PREFIX = '/v2';
 
 const requestData = async <T>(request: Promise<{ data: API.Response<T> }>): Promise<T> => {
   const response = await request;
@@ -35,8 +35,6 @@ const requestData = async <T>(request: Promise<{ data: API.Response<T> }>): Prom
   if (body.code !== 200) throw body;
   return body.data;
 };
-
-
 
 export interface MemberAccount {
   id: number;
@@ -50,11 +48,13 @@ export interface MemberAccount {
   last_login?: number | string;
 }
 
-export interface MemberTokenResult {
+export interface MemberTokenPair {
   access_token: string;
   refresh_token: string;
   expires_in: number;
-  expires_at?: number;
+}
+
+export interface MemberTokenResult extends MemberTokenPair {
   account: MemberAccount;
 }
 
@@ -71,12 +71,24 @@ export interface MemberRegisterParams {
   password_confirm: string;
 }
 
+const profile = (accessToken?: string) => requestData(service.get<API.Response<{ user: MemberAccount }>>(
+  `${PREFIX}/member/profile`,
+  accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined
+)).then(({ user }) => ({ account: user }));
+
 export const memberAuthApi = {
-  login: (payload: MemberLoginParams) => requestData(service.post<API.Response<MemberTokenResult>>(`${PREFIX}/login`, payload)),
-  register: (payload: MemberRegisterParams) => requestData(service.post<API.Response<MemberTokenResult>>(`${PREFIX}/register`, payload)),
-  refresh: (refreshToken: string) => requestData(service.post<API.Response<Omit<MemberTokenResult, 'account'>>>(`${PREFIX}/refresh`, { refresh_token: refreshToken })),
-  me: () => requestData(service.post<API.Response<{ account: MemberAccount }>>(`${PREFIX}/me`)),
-  updateProfile: (payload: Pick<MemberAccount, 'nickname' | 'avatar' | 'motto'>) => requestData(service.put<API.Response<{ account: MemberAccount }>>(`${PREFIX}/profile`, payload)),
-  changePassword: (payload: { current: string; password: string; password_confirm: string }) => requestData(service.post<API.Response<{ logged_out: boolean }>>(`${PREFIX}/password`, payload)),
-  logout: () => requestData(service.post<API.Response<{ logged_out: boolean }>>(`${PREFIX}/logout`))
+  /** v2 登录只签发令牌；随后用新 access token 读取本人资料，组成会员会话。 */
+  login: async ({ account, password }: MemberLoginParams): Promise<MemberTokenResult> => {
+    const tokens = await requestData(service.post<API.Response<MemberTokenPair>>(`${PREFIX}/token`, { username: account, password }));
+    return { ...tokens, account: (await profile(tokens.access_token)).account };
+  },
+  register: async (payload: MemberRegisterParams): Promise<MemberTokenResult> => {
+    const { user, ...tokens } = await requestData(service.post<API.Response<MemberTokenPair & { user: MemberAccount }>>(`${PREFIX}/member`, payload));
+    return { ...tokens, account: user };
+  },
+  refresh: (refreshToken: string) => requestData(service.post<API.Response<MemberTokenPair>>(`${PREFIX}/token/refresh`, { refresh_token: refreshToken })),
+  me: () => profile(),
+  updateProfile: (payload: Pick<MemberAccount, 'nickname' | 'avatar' | 'motto'>) => requestData(service.put<API.Response<{ user: MemberAccount }>>(`${PREFIX}/member/profile`, payload)).then(({ user }) => ({ account: user })),
+  changePassword: (payload: { current: string; password: string; password_confirm: string }) => requestData(service.put<API.Response<null>>(`${PREFIX}/member/password`, payload)),
+  logout: () => requestData(service.post<API.Response<null>>(`${PREFIX}/logout`))
 };

@@ -14,7 +14,7 @@ final class FormSchemaCompiler
 
     public function compile(array $schema): FormSchema
     {
-        $schema = $this->normalizeOrigin($this->validator->normalize($schema));
+        $schema = $this->normalizeOrigin($schema);
         $this->validator->validate($schema);
         $schema = $this->applyTreeControl($schema);
         // 空 relations 不进入 canonical 文档，保证未配置关联的 schemaHash 不变。
@@ -85,7 +85,6 @@ final class FormSchemaCompiler
     {
         $result = [];
         foreach ($nodes as $node) {
-            $legacy = (array) (($node['extensions']['legacy'] ?? []));
             $database = (array) ($node['database'] ?? []);
             $relation = (array) ($database['relation'] ?? []);
             $list = (array) ($node['list'] ?? []);
@@ -98,7 +97,7 @@ final class FormSchemaCompiler
                 if ($type !== '' && $type !== 'required') $rules[$type] = $rule['value'] ?? true;
             }
             $relationContainer = in_array((string) ($node['type'] ?? ''), ['repeatable', 'subform'], true);
-            $result[] = array_merge($legacy, [
+            $result[] = [
                 'field_name' => (string) ($node['field'] ?? $node['id']),
                 'label' => (string) ($node['title'] ?? ''),
                 'type' => (string) ($node['type'] ?? 'input'),
@@ -132,7 +131,7 @@ final class FormSchemaCompiler
                 'form_span' => (int) ($layout['span'] ?? 24),
                 'form_readonly' => ($node['disabled'] ?? false) ? 1 : 0,
                 'sort_order' => count($result),
-            ]);
+            ];
             if (!$relationContainer) {
                 $result = array_merge($result, $this->projection((array) ($node['children'] ?? [])));
             }

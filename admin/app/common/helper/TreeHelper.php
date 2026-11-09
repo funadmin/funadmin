@@ -22,7 +22,7 @@ class TreeHelper
                 $refer[$data[$pk]] =& $list[$key];
             }
             foreach ($list as $key => $data) {
-                $list[$key][$title] = lang($list[$key][$title]);
+                $list[$key][$title] = trans((string) $list[$key][$title]);
                 // 判断是否存在parent
                 $parentId = $data[$parentField];
                 if ($pid == $parentId) {
@@ -53,7 +53,7 @@ class TreeHelper
         $list =array();
         foreach ($arr as $k=>$v){
             if ($v[$parentField] == $pid){
-                $v[$title] = lang($v[$title]);
+                $v[$title] = trans((string) $v[$title]);
                 $v[$children] = self::getTree($arr,$title,$v['id'],$parentField);
                 $list[] = $v;
             }
@@ -74,7 +74,7 @@ class TreeHelper
             if ($v['pid'] == $pid) {
                 $v['level']      = $level + 1;
                 $v['lefthtml'] = str_repeat($lefthtml,$level);
-                $v['l'.$name]   = $v['lefthtml'].lang($v[$name]);
+                $v['l'.$name]   = $v['lefthtml'].trans((string) $v[$name]);
                 $arr[] = $v;
                 $arr = array_merge($arr, self::cateTree($cate,$name, $lefthtml, $v['id'], $level+1));
             }

@@ -25,7 +25,6 @@ final class CrudCoreTargetPathTest extends TestCase
             'wrong dir' => ['model', 'app/admin/business/other_dir/model/CorePath.php', 'app/admin/business/core_path/model/CorePath.php'],
             'wrong layer' => ['service', 'app/admin/business/core_path/model/CorePathService.php', 'app/admin/business/core_path/service/CorePathService.php'],
             'wrong class' => ['controller', 'app/admin/business/core_path/controller/OtherController.php', 'app/admin/business/core_path/controller/CorePathController.php'],
-            'legacy generated' => ['validate', 'app/admin/generated/core_path/validate/CorePathValidate.php', 'app/admin/business/core_path/validate/CorePathValidate.php'],
             'member api' => ['memberApiController', 'app/api/controller/generated/CorePathController.php', 'app/api/controller/business/CorePathController.php'],
         ];
     }
@@ -56,7 +55,6 @@ final class CrudCoreTargetPathTest extends TestCase
     {
         return [
             'other module dir' => ['app/admin/business/other_dir/model/relation/CoreCategory.php'],
-            'legacy generated' => ['app/admin/generated/core_path/model/relation/CoreCategory.php'],
             'outside business' => ['app/custom/model/relation/CoreCategory.php'],
         ];
     }

@@ -64,9 +64,11 @@ final class BundledLanguageTest extends TestCase
             $counts[] = $resources->getValue($translator);
             self::assertSame($locale === 'zh-cn' ? '权限名' : 'Permission name', $translator->trans('AuthName'));
             self::assertSame($locale === 'zh-cn' ? '首页' : 'Home', $translator->trans('Home'));
-            self::assertSame($translator->trans('AuthName'), __('AuthName'));
-            self::assertSame($translator->trans('AuthName'), lang('AuthName'));
+            self::assertSame($translator->trans('AuthName'), trans('AuthName'));
         }
+        // 只保留 trans()，不再提供 __() / lang() 别名。
+        self::assertFalse(function_exists('__'));
+        self::assertFalse(function_exists('lang'));
         self::assertSame($counts[0],$counts[1]);
         self::assertSame($counts[0],$counts[2]);
     }

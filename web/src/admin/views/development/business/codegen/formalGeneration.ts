@@ -24,17 +24,13 @@ export const isPreviewBlocked = (preview: BusinessFormalGenerationPreview): bool
   Boolean(preview.plan.blocked || previewConflictCount(preview) > 0);
 
 /**
- * 正式生成读取「已发布」的 Schema；从未发布过的表单预览会被后端拒绝（FormSchemaRepository::published）。
- * 后端 BusinessApiErrorMapper 目前把 FormSchemaException 统一映射为 VALIDATION_ERROR 并透出原文「表单尚未发布」，
- * 这里同时兼容将来直接透传的 FORM_SCHEMA_NOT_PUBLISHED 错误码。
+ * 正式生成读取「已发布」的 Schema；从未发布过的表单预览会被后端拒绝（FormSchemaRepository::published），
+ * BusinessApiErrorMapper 返回稳定错误码 FORM_SCHEMA_NOT_PUBLISHED。
  */
 export const FORM_SCHEMA_NOT_PUBLISHED = 'FORM_SCHEMA_NOT_PUBLISHED';
-const FORM_SCHEMA_NOT_PUBLISHED_MESSAGE = '表单尚未发布';
 
 export function isFormNotPublishedError(error: unknown): boolean {
-  if (!isBusinessApiError(error)) return false;
-  const code = error.data.error.code;
-  return code === FORM_SCHEMA_NOT_PUBLISHED || (code === 'VALIDATION_ERROR' && error.msg.trim() === FORM_SCHEMA_NOT_PUBLISHED_MESSAGE);
+  return isBusinessApiError(error) && error.data.error.code === FORM_SCHEMA_NOT_PUBLISHED;
 }
 
 export type FormalGenerationOutcome =

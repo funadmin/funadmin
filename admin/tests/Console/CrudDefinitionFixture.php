@@ -32,7 +32,7 @@ final class CrudDefinitionFixture
         ];
         return CrudDefinition::fromArray([
             'schemaVersion' => '1.0', 'connection' => $connection, 'entity' => $entity, 'table' => str_replace('-', '_', $entity),
-            'title' => '测试数据', 'apiPrefix' => '/admin/business/' . $entity, 'routePath' => '/business/' . $entity,
+            'title' => '测试数据', 'apiPrefix' => '/business/' . $entity, 'routePath' => '/business/' . $entity,
             'permissionPrefix' => 'business:' . $entity, 'timestamps' => true, 'softDeletes' => true,
             'fields' => [
                 ['name' => 'id', 'label' => 'ID', 'dbType' => 'bigint', 'nullable' => false, 'primary' => true, 'component' => 'input', 'writable' => false],

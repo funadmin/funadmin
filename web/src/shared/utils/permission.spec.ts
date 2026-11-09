@@ -21,9 +21,13 @@ describe('公共操作权限判断', () => {
     expect(checkPermission(['system:user:*'], 'authorization:admin:update')).toBe(false);
   });
 
-  it.each(['*', '*:*:*'])('%s 允许所有已声明的操作', wildcard => {
-    expect(checkPermission([wildcard], 'authorization:admin:update')).toBe(true);
-    expect(checkPermission([wildcard], ['authorization:admin:update', 'authorization:admin:delete'], 'all')).toBe(true);
+  it('* 允许所有已声明的操作', () => {
+    expect(checkPermission(['*'], 'authorization:admin:update')).toBe(true);
+    expect(checkPermission(['*'], ['authorization:admin:update', 'authorization:admin:delete'], 'all')).toBe(true);
+  });
+
+  it('*:*:* 不是超级权限，只按字面权限码精确匹配', () => {
+    expect(checkPermission(['*:*:*'], 'authorization:admin:update')).toBe(false);
   });
 
   it('数组支持任一和全部权限判断', () => {

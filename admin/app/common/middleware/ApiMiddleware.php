@@ -47,10 +47,10 @@ class ApiMiddleware implements MiddlewareInterface
 
         if (!$public) {
             if ($token === null) {
-                return $this->fail(__('Unauthorized'), code: 401);
+                return $this->fail(trans('Unauthorized'), code: 401);
             }
             if ($member === null) {
-                return $this->fail(__('Invalid token'), code: 401);
+                return $this->fail(trans('Invalid token'), code: 401);
             }
         }
 

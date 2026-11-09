@@ -34,16 +34,20 @@ final class LocalMarketplaceRemovalTest extends TestCase
         self::assertTrue(class_exists(\app\admin\plugin\service\PluginMarketplaceService::class));
     }
 
-    public function test_public_member_auth_remains_at_its_existing_urls_without_market_classes(): void
+    public function test_public_member_auth_lives_only_on_the_v2_member_api(): void
     {
         Route::load([config_path()]);
-        foreach (['login','register','refresh','me','password','logout'] as $action) {
-            $route=Route::dispatch('POST','/api/v3/auth/'.$action);
-            self::assertSame(\FastRoute\Dispatcher::FOUND,$route[0]);
-            self::assertSame(['app\\api\\controller\\v3\\Auth',$action],$route[1]['callback']);
+        foreach ([['POST','/api/v2/token','Token','build'],['POST','/api/v2/token/refresh','Token','refresh'],['POST','/api/v2/logout','Token','logout'],['POST','/api/v2/member','Member','register'],['GET','/api/v2/member/profile','Member','profile'],['PUT','/api/v2/member/profile','Member','updateProfile'],['PUT','/api/v2/member/password','Member','password']] as [$method,$path,$controller,$action]) {
+            $route=Route::dispatch($method,$path);
+            self::assertSame(\FastRoute\Dispatcher::FOUND,$route[0],$path);
+            self::assertSame(['app\\api\\controller\\v2\\'.$controller,$action],$route[1]['callback']);
         }
+        foreach (['login','register','refresh','me','password','logout'] as $action) {
+            self::assertSame(\FastRoute\Dispatcher::NOT_FOUND,Route::dispatch('POST','/api/v3/auth/'.$action)[0],'旧会员 v3 接口已删除：'.$action);
+        }
+        self::assertFalse(class_exists('app\\api\\controller\\v3\\Auth'));
+        self::assertFalse(class_exists('app\\common\\service\\member\\MemberTokenService'));
         self::assertTrue(class_exists(\app\common\service\member\MemberAccountService::class));
-        self::assertTrue(class_exists(\app\common\service\member\MemberTokenService::class));
     }
 
     public function test_baseline_carries_no_local_market_permissions_and_keeps_client_resources(): void

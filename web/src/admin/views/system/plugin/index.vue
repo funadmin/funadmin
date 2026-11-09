@@ -48,7 +48,7 @@
           <el-button v-if="row.migrationPending" type="warning" link v-perm="'plugin:plugin:migrate'" :disabled="Boolean(actionReason(row as PluginItem, 'migrate'))" :title="actionReason(row as PluginItem, 'migrate')" @click="operate(row as PluginItem, 'migrate')">{{ t('plugin.migrate', '迁移') }}</el-button>
           <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'plugin:plugin:enable'" :disabled="Boolean(actionReason(row as PluginItem, 'enable'))" :title="actionReason(row as PluginItem, 'enable')" @click="operate(row as PluginItem, 'enable')">{{ t('plugin.enable', '启用') }}</el-button>
           <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'plugin:plugin:disable'" :disabled="Boolean(actionReason(row as PluginItem, 'disable'))" :title="actionReason(row as PluginItem, 'disable')" @click="operate(row as PluginItem, 'disable')">{{ t('plugin.disable', '禁用') }}</el-button>
-          <el-button type="primary" link v-perm="['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save']" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || t('plugin.businessTip', '进入统一业务设计器，目标可用性由服务端再次校验')" @click="developBusiness(row as PluginItem)">{{ t('plugin.developBusiness', '开发业务') }}</el-button>
+          <el-button type="primary" link v-perm="['development:business:create-visual', 'development:business:create-from-database']" :disabled="Boolean(businessReason(row as PluginItem))" :title="businessReason(row as PluginItem) || t('plugin.businessTip', '进入统一业务设计器，目标可用性由服务端再次校验')" @click="developBusiness(row as PluginItem)">{{ t('plugin.developBusiness', '开发业务') }}</el-button>
           <el-button type="primary" link v-perm="'plugin:plugin:get-config'" @click="openConfig(row as PluginItem)">{{ t('plugin.config', '配置') }}</el-button>
           <el-button type="info" link v-perm="['plugin:plugin:history', 'plugin:plugin:operations']" @click="openHistory(row as PluginItem)">{{ t('plugin.history', '历史') }}</el-button>
           <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'plugin:plugin:uninstall'" :disabled="Boolean(actionReason(row as PluginItem, 'uninstall'))" :title="actionReason(row as PluginItem, 'uninstall')" @click="uninstall(row as PluginItem)">{{ t('plugin.uninstall', '卸载') }}</el-button>
@@ -124,9 +124,12 @@ function businessReason(row: PluginItem) {
   if (row.operation || !['discovered', 'enabled', 'disabled'].includes(row.state)) return row.disabledReason || t('plugin.businessReason', '插件正在发布、恢复或当前状态不可开发');
   return '';
 }
-function developBusiness(row: PluginItem) { if (!(hasPermission(['development:business:create-visual', 'development:business:create-from-database', 'development:business:validate-schema', 'development:business:save-schema', 'development:business:compile-schema', 'development:business:rollback-schema', 'development:business:adopt-resolved-baseline', 'development:business:save']))) return;
+// 业务开发入口：代码生成页（菜单权限 development:business:modules）预选插件并打开新建表（或装载数据表）弹窗。
+function developBusiness(row: PluginItem) {
+  const intent = hasPermission('development:business:create-visual') ? 'create' : hasPermission('development:business:create-from-database') ? 'load' : '';
+  if (!hasPermission('development:business:modules') || !intent) return;
   if (businessReason(row)) return;
-  void router.push({ path: '/admin/development/business/visual', query: { plugin: row.code } });
+  void router.push({ path: '/admin/development/business/mine', query: { plugin: row.code, [intent]: '1' } });
 }
 function openDevelopment(mode: 'create' | 'maintain') { if (!(hasPermission(mode === 'create' ? 'plugin:dev-plugin:create' : ['plugin:dev-plugin:validate', 'plugin:dev-plugin:package']))) return;
   developmentMode.value = mode;
@@ -150,7 +153,6 @@ function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' 
   if (row.operation) return row.disabledReason || t('plugin.running', { label: opLabel(row.operation), progress: row.progress }, { default: '插件正在执行{label}（{progress}%）' });
   if (action === 'update' && row.modified) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || t('plugin.needMerge', '检测到本地修改，需要人工合并');
   if (action === 'update' && (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason) return (row as PluginItem & { updateBlockedReason?: string }).updateBlockedReason || '';
-  if (row.needsReinstall && action !== 'purge') return t('plugin.needReinstall', '插件需要重新安装后才能执行此操作');
   if (action === 'enable' && row.migrationPending) return t('plugin.pendingMigration', '存在待执行数据库迁移，完成迁移后才能启用');
   if (action === 'enable' && Object.keys(row.dependencies || {}).length > 0 && row.disabledReason) return row.disabledReason;
   if (['update', 'migrate', 'enable', 'uninstall'].includes(action) && row.state !== 'disabled') return t('plugin.stateNotAllowed', { state: stateLabel(row.state) }, { default: '当前状态“{state}”不允许执行此操作' });

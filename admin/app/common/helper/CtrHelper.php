@@ -47,7 +47,7 @@ class CtrHelper
     public static function analyzeController($appName,$filePath)
     {
         if (file_exists($filePath)) require_once $filePath;//插件类需要加载进来
-        $className = str_replace([root_path(),DS,'.php'],['','\\',''],$filePath);
+        $className = str_replace([base_path() . DIRECTORY_SEPARATOR,DS,'.php'],['','\\',''],$filePath);
         if (!class_exists($className)) {
             return null;
         }

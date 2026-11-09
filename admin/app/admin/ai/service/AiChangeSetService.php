@@ -345,83 +345,52 @@ final class AiChangeSetService
             $encodedBytes += strlen($firstLine);
             hash_update($hash, $firstLine);
             $header = json_decode($firstLine, true, 512, JSON_THROW_ON_ERROR);
-            if (($header['encoding'] ?? '') !== 'base64-ndjson') {
-                $legacy = $firstLine;
-                while (!feof($handle)) {
-                    $chunk = fread($handle, 8192);
-                    if ($chunk === false) throw new RuntimeException('无法读取 ' . $label);
-                    if ($chunk === '') continue;
-                    $encodedBytes += strlen($chunk);
-                    if ($encodedBytes > self::MAX_BUNDLE_BYTES * 2) throw new RuntimeException('bundle 超过资源上限');
-                    hash_update($hash, $chunk);
-                    $legacy .= $chunk;
-                }
-                $files = $this->decodeBundle(json_decode($legacy, true, 512, JSON_THROW_ON_ERROR), $paths);
-            } else {
-                if (($header['version'] ?? null) !== 1) throw new RuntimeException('bundle 版本不合法');
-                $files = [];
-                $seen = [];
-                $entryCount = 0;
-                $bytes = 0;
-                while (($lineHandle = $this->readBundleLineToTemp($handle, self::MAX_BUNDLE_LINE_BYTES)) !== null) {
-                    $lineBytes = (int) $lineHandle['bytes'];
-                    $encodedBytes += $lineBytes;
-                    if ($encodedBytes > self::MAX_BUNDLE_BYTES * 2 || ++$entryCount > self::MAX_BUNDLE_FILES) {
-                        fclose($lineHandle['handle']);
-                        throw new RuntimeException('bundle 超过资源上限');
-                    }
-                    rewind($lineHandle['handle']);
-                    hash_update_stream($hash, $lineHandle['handle']);
-                    $prefix = $this->readBundlePathPrefix($lineHandle['handle']);
-                    $relative = $prefix['path'];
-                    if (!is_string($relative) || $relative === '' || isset($seen[$relative])) {
-                        fclose($lineHandle['handle']);
-                        throw new RuntimeException('bundle 文件编码不合法：' . (string) $relative);
-                    }
-                    $seen[$relative] = true;
-                    if (!isset($paths[$relative])) {
-                        fclose($lineHandle['handle']);
-                        continue;
-                    }
-                    rewind($lineHandle['handle']);
-                    $entry = json_decode((string) stream_get_contents($lineHandle['handle']), true, 512, JSON_THROW_ON_ERROR);
+            if (($header['encoding'] ?? '') !== 'base64-ndjson') throw new RuntimeException('bundle 编码不合法');
+            if (($header['version'] ?? null) !== 1) throw new RuntimeException('bundle 版本不合法');
+            $files = [];
+            $seen = [];
+            $entryCount = 0;
+            $bytes = 0;
+            while (($lineHandle = $this->readBundleLineToTemp($handle, self::MAX_BUNDLE_LINE_BYTES)) !== null) {
+                $lineBytes = (int) $lineHandle['bytes'];
+                $encodedBytes += $lineBytes;
+                if ($encodedBytes > self::MAX_BUNDLE_BYTES * 2 || ++$entryCount > self::MAX_BUNDLE_FILES) {
                     fclose($lineHandle['handle']);
-                    $content = $entry['content'] ?? null;
-                    if (!is_string($content) || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
-                        || ($value = base64_decode($content, true)) === false) {
-                        throw new RuntimeException('bundle 文件编码不合法：' . $relative);
-                    }
-                    $size = strlen($value);
-                    if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size || count($files) >= self::MAX_BUNDLE_FILES) {
-                        throw new RuntimeException('bundle 超过资源上限');
-                    }
-                    $bytes += $size;
-                    $files[$relative] = $value;
+                    throw new RuntimeException('bundle 超过资源上限');
                 }
+                rewind($lineHandle['handle']);
+                hash_update_stream($hash, $lineHandle['handle']);
+                $prefix = $this->readBundlePathPrefix($lineHandle['handle']);
+                $relative = $prefix['path'];
+                if (!is_string($relative) || $relative === '' || isset($seen[$relative])) {
+                    fclose($lineHandle['handle']);
+                    throw new RuntimeException('bundle 文件编码不合法：' . (string) $relative);
+                }
+                $seen[$relative] = true;
+                if (!isset($paths[$relative])) {
+                    fclose($lineHandle['handle']);
+                    continue;
+                }
+                rewind($lineHandle['handle']);
+                $entry = json_decode((string) stream_get_contents($lineHandle['handle']), true, 512, JSON_THROW_ON_ERROR);
+                fclose($lineHandle['handle']);
+                $content = $entry['content'] ?? null;
+                if (!is_string($content) || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
+                    || ($value = base64_decode($content, true)) === false) {
+                    throw new RuntimeException('bundle 文件编码不合法：' . $relative);
+                }
+                $size = strlen($value);
+                if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size || count($files) >= self::MAX_BUNDLE_FILES) {
+                    throw new RuntimeException('bundle 超过资源上限');
+                }
+                $bytes += $size;
+                $files[$relative] = $value;
             }
             if (!hash_equals($expectedHash, hash_final($hash))) throw new RuntimeException($label . ' sha256 校验失败');
             return $files;
         } finally {
             fclose($handle);
         }
-    }
-
-    private function decodeBundle(array $bundle, array $paths): array
-    {
-        if (($bundle['encoding'] ?? '') !== 'base64' || !is_array($bundle['files'] ?? null) || count($bundle['files']) > self::MAX_BUNDLE_FILES) {
-            throw new RuntimeException('bundle 编码不合法');
-        }
-        $decoded = [];
-        $bytes = 0;
-        foreach ($bundle['files'] as $path => $content) {
-            if (!is_string($content) || strlen($content) > (int) ceil(self::MAX_BUNDLE_FILE_BYTES / 3) * 4
-                || ($value = base64_decode($content, true)) === false) throw new RuntimeException('bundle 文件编码不合法：' . $path);
-            $size = strlen($value);
-            if ($size > self::MAX_BUNDLE_FILE_BYTES || $bytes > self::MAX_BUNDLE_BYTES - $size) throw new RuntimeException('bundle 超过资源上限');
-            $bytes += $size;
-            if ($paths === [] || isset($paths[(string) $path])) $decoded[(string)$path] = $value;
-        }
-        return $decoded;
     }
 
     private function readBundleLine($handle, int $maxBytes): ?string

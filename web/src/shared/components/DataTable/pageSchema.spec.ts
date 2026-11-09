@@ -128,7 +128,7 @@ describe('公共页面声明', () => {
     const c = context(); const a = parsePageSchema(page()).toolbar[0]!;
     c.permissions = []; delete a.permission;
     expect(actionState(a, c).visible).toBe(false);
-    c.permissions = ['*:*:*']; a.disabledWhen = { field: 'selectionCount', op: 'eq', value: 0 };
+    c.permissions = ['*']; a.disabledWhen = { field: 'selectionCount', op: 'eq', value: 0 };
     expect(actionState(a, c)).toMatchObject({ visible: true, disabled: true });
     await executePageAction(a, c); expect(c.handlers.edit.run).not.toHaveBeenCalled();
     a.visibleWhen = { field: 'recycled', op: 'eq', value: true };

@@ -11,7 +11,6 @@ use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\CasbinService;
-use app\admin\authorization\service\PermissionResource;
 use app\admin\authorization\service\RoleScopeService;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -367,7 +366,7 @@ class SystemPermission extends AdminController
         if (in_array($resourceType, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) && $objInput !== '' && $actionInput !== '') {
             $obj = strtolower($objInput);
             $act = strtolower($actionInput);
-            $code = PermissionResource::canonicalCode(str_replace('/', ':', $obj) . ':' . $act);
+            $code = str_replace('/', ':', $obj) . ':' . $act;
         }
 
         return [

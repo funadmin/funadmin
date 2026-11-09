@@ -76,7 +76,7 @@ class DateHelper
                 break;
             }
         }
-        return lang("%d {$name}%s ago", $count, ($count > 1 ? 's' : ''));
+        return sprintf(trans("%d {$name}%s ago"), $count, $count > 1 ? 's' : '');
     }
 }
 

@@ -118,7 +118,7 @@ export const controlChange = (node: FormSchemaNode, type: string): FormSchemaNod
   return next;
 };
 
-export const dataSourceKind = (source: Record<string, unknown> | null | undefined): string => String(source?.kind ?? source?.mode ?? '');
+export const dataSourceKind = (source: Record<string, unknown> | null | undefined): string => String(source?.kind ?? '');
 
 const nodeToRow = ({ node, path, parentPath, groupTitle }: FieldNodeEntry): FieldRow => {
   const list = node.list ?? {};
@@ -164,10 +164,9 @@ const applyRowPatch = (node: FormSchemaNode, row: FieldRow, patch: FieldRowPatch
   if (Object.keys(list).length) next = { ...next, list: { ...next.list, ...list } };
   if (patch.dictionary !== undefined && (changed('dictionary') || changed('component'))) {
     const current = (next.dataSource ?? {}) as Record<string, unknown>;
-    // 与属性面板 updateDictionary 一致：收敛为 kind 键，保留数据源其余键
+    // 与属性面板 updateDictionary 一致：写入 kind 键，保留数据源其余键
     if (patch.dictionary || dataSourceKind(current) === 'dictionary') {
-      const { mode: _legacyMode, ...rest } = current;
-      next = { ...next, dataSource: { ...rest, kind: 'dictionary', dictionary: patch.dictionary } };
+      next = { ...next, dataSource: { ...current, kind: 'dictionary', dictionary: patch.dictionary } };
     }
   }
   return next;

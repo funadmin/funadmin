@@ -98,11 +98,6 @@ final class Manifest
 
     private static function validate(string $directory, array $data): void
     {
-        foreach (['backendHooks' => 'serverHooks', 'frontendHooks' => 'clientHooks'] as $retired => $current) {
-            if (array_key_exists($retired, $data)) {
-                throw new RuntimeException('plugin.json 字段 ' . $retired . ' 已移除，请改为 ' . $current);
-            }
-        }
         $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin.schema.json';
         JsonSchemaValidator::fromFile($schema)->validate($data);
         self::assertNoSymlinks($directory);
@@ -121,11 +116,6 @@ final class Manifest
         }
         if (!in_array('Plugin', self::declaredClasses($source), true)) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
-        }
-        foreach (['resources/public', 'migrations'] as $oldPath) {
-            if (file_exists($directory . '/' . $oldPath)) {
-                throw new RuntimeException('插件包含已移除的旧目录：' . $oldPath);
-            }
         }
         self::validateApplications($directory, (string) $data['code']);
         self::validateAdminWeb($directory, $data['adminWeb'] ?? null, $data);

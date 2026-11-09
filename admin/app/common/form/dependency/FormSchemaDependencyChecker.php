@@ -172,7 +172,7 @@ final class FormSchemaDependencyChecker
 
     private function checkDataSource(array $source, string $path, array &$diagnostics, array &$dependencies): void
     {
-        if (($source['kind'] ?? $source['mode'] ?? '') !== 'endpoint') {
+        if (($source['kind'] ?? '') !== 'endpoint') {
             return;
         }
         $key = (string) ($source['endpoint'] ?? '');

@@ -32,7 +32,7 @@ final class Business extends AdminController
         parent::__construct();
         $connections = \app\common\service\database\DatabaseConnections::allowed();
         $this->business = BusinessDevelopmentService::production(
-            root_path(),
+            base_path() . DIRECTORY_SEPARATOR,
             is_array($connections) ? array_values(array_filter($connections, 'is_string')) : []
         );
     }

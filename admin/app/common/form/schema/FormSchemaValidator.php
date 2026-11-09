@@ -78,23 +78,6 @@ final class FormSchemaValidator
         $this->fieldCapabilities = $fieldCapabilities ?? new FieldCapabilityRegistry();
     }
 
-    public function normalize(array $schema): array
-    {
-        if (is_array($schema['dataSources'] ?? null)) {
-            foreach ($schema['dataSources'] as &$dataSource) {
-                if (!is_array($dataSource)) {
-                    continue;
-                }
-                $this->normalizeDataSource($dataSource);
-            }
-            unset($dataSource);
-        }
-        if (is_array($schema['nodes'] ?? null)) {
-            $this->normalizeNodeDataSources($schema['nodes']);
-        }
-        return $schema;
-    }
-
     public function validate(array $schema): void
     {
         $encoded = json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -253,7 +236,7 @@ final class FormSchemaValidator
             }
             if ($kind === 'category') {
                 $source = $node['dataSource'] ?? [];
-                $mode = $source['kind'] ?? $source['mode'] ?? '';
+                $mode = $source['kind'] ?? '';
                 if (!in_array($mode, ['static', 'dictionary'], true)) throw new FormSchemaException('分类仅支持字段静态选项或字典', '/list/category/field');
                 if ($mode === 'dictionary' && !preg_match('/^[A-Za-z][A-Za-z0-9_]{0,59}$/', (string) ($source['dictionary'] ?? ''))) throw new FormSchemaException('分类字典标识不合法', '/list/category/field');
                 if ($mode === 'static') {
@@ -936,29 +919,6 @@ final class FormSchemaValidator
             if (!in_array($event, $allowed, true)) {
                 throw new FormSchemaException('插件组件事件未授权：' . $event, $path . '/' . $event, 'FORM_SCHEMA_UNSAFE');
             }
-        }
-    }
-
-    private function normalizeNodeDataSources(array &$nodes): void
-    {
-        foreach ($nodes as &$node) {
-            if (!is_array($node)) {
-                continue;
-            }
-            if (is_array($node['dataSource'] ?? null)) {
-                $this->normalizeDataSource($node['dataSource']);
-            }
-            if (is_array($node['children'] ?? null)) {
-                $this->normalizeNodeDataSources($node['children']);
-            }
-        }
-        unset($node);
-    }
-
-    private function normalizeDataSource(array &$dataSource): void
-    {
-        if (!isset($dataSource['kind']) && is_string($dataSource['mode'] ?? null)) {
-            $dataSource['kind'] = $dataSource['mode'];
         }
     }
 

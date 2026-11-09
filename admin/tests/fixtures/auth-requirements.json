@@ -969,6 +969,11 @@
         "login": true,
         "permission": null
     },
+    "GET /api/v2/member/profile => app\\api\\controller\\v2\\Member::profile": {
+        "guard": "member",
+        "login": true,
+        "permission": null
+    },
     "GET /api/v2/member/status => app\\api\\controller\\v2\\Member::status": {
         "guard": "member",
         "login": false,
@@ -1814,6 +1819,11 @@
         "login": true,
         "permission": null
     },
+    "POST /api/v2/member => app\\api\\controller\\v2\\Member::register": {
+        "guard": "member",
+        "login": false,
+        "permission": null
+    },
     "POST /api/v2/token => app\\api\\controller\\v2\\Token::build": {
         "guard": "member",
         "login": false,
@@ -1821,36 +1831,6 @@
     },
     "POST /api/v2/token/refresh => app\\api\\controller\\v2\\Token::refresh": {
         "guard": "member",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/login => app\\api\\controller\\v3\\Auth::login": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/logout => app\\api\\controller\\v3\\Auth::logout": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/me => app\\api\\controller\\v3\\Auth::me": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/password => app\\api\\controller\\v3\\Auth::password": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/refresh => app\\api\\controller\\v3\\Auth::refresh": {
-        "guard": "self",
-        "login": false,
-        "permission": null
-    },
-    "POST /api/v3/auth/register => app\\api\\controller\\v3\\Auth::register": {
-        "guard": "self",
         "login": false,
         "permission": null
     },
@@ -2024,9 +2004,14 @@
         "login": true,
         "permission": "authorization:admin:update"
     },
-    "PUT /api/v3/auth/profile => app\\api\\controller\\v3\\Auth::profile": {
-        "guard": "self",
-        "login": false,
+    "PUT /api/v2/member/password => app\\api\\controller\\v2\\Member::password": {
+        "guard": "member",
+        "login": true,
+        "permission": null
+    },
+    "PUT /api/v2/member/profile => app\\api\\controller\\v2\\Member::updateProfile": {
+        "guard": "member",
+        "login": true,
         "permission": null
     }
 }

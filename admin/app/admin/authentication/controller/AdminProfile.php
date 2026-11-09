@@ -149,7 +149,7 @@ final class AdminProfile
                 $current = Admin::where('id', $admin->id)->lockForUpdate()->first();
                 if (!password_verify($old, $current->password)) throw new DomainException('原密码错误', 422);
                 if (password_verify($new, $current->password)) throw new DomainException('新密码不能与原密码相同', 422);
-                $current->update(['password' => password_hash($new, PASSWORD_DEFAULT), 'token' => null]);
+                $current->update(['password' => password_hash($new, PASSWORD_DEFAULT)]);
                 (new AdminSessionService())->revokeAll((int) $current->id);
                 return null;
             });

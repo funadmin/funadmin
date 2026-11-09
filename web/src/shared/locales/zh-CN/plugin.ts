@@ -8,7 +8,7 @@ export default {
     install: '安装', localUpdate: '本地 ZIP 更新', update: '更新', migrate: '迁移', enable: '启用', disable: '禁用', developBusiness: '开发业务', config: '配置', history: '历史', uninstall: '卸载', purge: '清除数据', deletePackage: '删除包', detail: '详情',
     searchPlaceholder: '搜索插件', search: '搜索',
     businessTip: '进入统一业务设计器，目标可用性由服务端再次校验', businessReason: '插件正在发布、恢复或当前状态不可开发',
-    running: '插件正在执行{label}（{progress}%）', needMerge: '检测到本地修改，需要人工合并', needReinstall: '插件需要重新安装后才能执行此操作',
+    running: '插件正在执行{label}（{progress}%）', needMerge: '检测到本地修改，需要人工合并',
     pendingMigration: '存在待执行数据库迁移，完成迁移后才能启用',
     stateNotAllowed: '当前状态“{state}”不允许执行此操作', stateNotDisable: '当前状态“{state}”不允许禁用', stateNotInstall: '当前状态“{state}”不允许安装',
     confirmMigrate: '确认迁移插件', confirmEnable: '确认启用插件', confirmDisable: '确认禁用插件', confirmSuffix: '吗？', operateTitle: '操作确认',

@@ -53,12 +53,6 @@ final class PluginHookManifestTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->manifest(['serverHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'action','file'=>'hooks/linked.php','handler'=>'run']]]);
     }
-    public function test_retired_hook_fields_rejected_with_rename_hint(): void {
-        foreach (['backendHooks'=>'serverHooks','frontendHooks'=>'clientHooks'] as $retired=>$current) {
-            try { $this->manifest([$retired=>[]]); self::fail($retired.' must be rejected'); }
-            catch (\RuntimeException $e) { self::assertStringContainsString($current, $e->getMessage()); }
-        }
-    }
     public function test_missing_component_reference_rejected(): void {
         $this->expectException(\RuntimeException::class);
         $this->manifest(['adminWeb'=>['source'=>'web/src/admin/plugins/demo','components'=>(object)[],'minFrontendVersion'=>'1','permissions'=>[],'menu'=>[],'routes'=>[]], 'clientHooks'=>[['id'=>'test','point'=>'demo.run','type'=>'component','component'=>'Missing']]]);

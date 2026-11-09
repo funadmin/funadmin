@@ -42,7 +42,6 @@ final class PluginValidate extends Command
                 $records[(string) $record->code] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,
-                    'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
                 ];
             }
             (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION))->assertSatisfied($manifest, $records);
@@ -50,7 +49,7 @@ final class PluginValidate extends Command
             (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION, $host))->assertComposerSatisfied($manifest);
             $others = [];
             foreach ($records as $code => $record) {
-                if ($record['lifecycle_state'] === 'enabled' && !$record['needs_reinstall'] && $code !== $name) {
+                if ($record['lifecycle_state'] === 'enabled' && $code !== $name) {
                     $others[$code] = ($this->projectRoot ?? base_path()) . '/plugins/' . $code;
                 }
             }

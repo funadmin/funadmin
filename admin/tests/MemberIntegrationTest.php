@@ -35,14 +35,9 @@ final class MemberIntegrationTest extends TestCase
 
     private function createMemberAccountFixture(): void
     {
-        Db::schema()->create('market_token', static function (\Illuminate\Database\Schema\Blueprint $table): void {
-            $table->id(); $table->integer('member_id'); $table->string('access_hash'); $table->string('refresh_hash');
-            $table->integer('access_expires_at'); $table->integer('refresh_expires_at'); $table->string('ip');
-            $table->dateTime('created_at'); $table->dateTime('revoked_at')->nullable();
-        });
         Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('nickname')->default(''); });
         Db::table('member')->insert(['id' => 91, 'username' => 'market_member', 'nickname' => '市场会员', 'password' => password_hash('market-password-91', PASSWORD_DEFAULT), 'sex' => '0', 'level_id' => 1, 'status' => 1]);
-        $request = new Request("POST /api/v3/auth/login HTTP/1.1\r\n\r\n");
+        $request = new Request("POST /api/v2/token HTTP/1.1\r\n\r\n");
         Context::set(\Webman\Http\Request::class, $request);
     }
 
@@ -166,9 +161,9 @@ final class MemberIntegrationTest extends TestCase
     public function test_v2_member_api_messages_are_translated_consistently(): void
     {
         $call = $this->v2Client();
-        self::assertSame(__('Unauthorized'), json_decode($call('GET', '/api/v2/member')->rawBody(), true)['msg']);
-        self::assertNotSame('Unauthorized', __('Unauthorized'));
-        self::assertNotSame('Invalid token', __('Invalid token'));
+        self::assertSame(trans('Unauthorized'), json_decode($call('GET', '/api/v2/member')->rawBody(), true)['msg']);
+        self::assertNotSame('Unauthorized', trans('Unauthorized'));
+        self::assertNotSame('Invalid token', trans('Invalid token'));
     }
 
     public function test_every_member_api_controller_uses_one_middleware_and_declares_public_methods_by_attribute(): void
@@ -187,9 +182,13 @@ final class MemberIntegrationTest extends TestCase
         self::assertTrue($public(\app\api\controller\v2\Token::class, 'refresh'));
         self::assertFalse($public(\app\api\controller\v2\Token::class, 'logout'));
         self::assertFalse($public(\app\api\controller\v2\Member::class, 'show'));
+        self::assertTrue($public(\app\api\controller\v2\Member::class, 'register'));
+        foreach (['profile', 'updateProfile', 'password'] as $method) {
+            self::assertFalse($public(\app\api\controller\v2\Member::class, $method), $method);
+        }
 
         \Webman\Route::load([config_path()]);
-        foreach ([['GET', '/api/v2/member'], ['POST', '/api/v2/logout'], ['POST', '/api/v2/token'], ['POST', '/api/v2/token/refresh']] as [$method, $path]) {
+        foreach ([['GET', '/api/v2/member'], ['POST', '/api/v2/logout'], ['POST', '/api/v2/token'], ['POST', '/api/v2/token/refresh'], ['POST', '/api/v2/member'], ['GET', '/api/v2/member/profile'], ['PUT', '/api/v2/member/profile'], ['PUT', '/api/v2/member/password']] as [$method, $path]) {
             $matched = \Webman\Route::dispatch($method, $path);
             self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0], $path);
             $chain = array_map(static fn (array $item): string => is_array($item[0]) ? $item[0][0] : (string) $item[0],
@@ -330,77 +329,80 @@ final class MemberIntegrationTest extends TestCase
         }
     }
 
-    public function test_public_member_tokens_rotate_once_and_reject_disabled_members(): void
+    private function addRegistrationColumns(): void
     {
-        $this->createMemberAccountFixture();
-        $service = new \app\common\service\member\MemberTokenService();
-        $tokens = $service->login('market_member', 'market-password-91');
-        self::assertSame(91, $service->memberId($tokens['access_token']));
-        self::assertSame(91, $service->authenticate($tokens['access_token'])['id']);
-        self::assertSame(0, Db::table('market_token')->where('access_hash', $tokens['access_token'])->count());
-        $next = $service->refresh($tokens['refresh_token']);
-        self::assertNotNull($next);
-        self::assertNull($service->refresh($tokens['refresh_token']));
-        self::assertNull($service->memberId($tokens['access_token']));
-        Db::table('member')->where('id', 91)->update(['status' => 0]);
-        self::assertNull($service->memberId($next['access_token']));
-        self::assertNull($service->authenticate($next['access_token']));
-        self::assertNull($service->refresh($next['refresh_token']));
-    }
-
-    public function test_public_member_registration_uses_native_cache_without_identity_copies(): void
-    {
-        $this->createMemberAccountFixture();
         Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void {
             $table->string('motto')->default(''); $table->string('real_name')->default(''); $table->integer('birthday')->default(0); $table->integer('scores')->default(0);
         });
-        request()->connection = (new \ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
-        request()->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
-        \support\Cache::delete('market_throttle_' . hash('sha256', 'register:127.0.0.5'));
-        $service = new \app\common\service\member\MemberAccountService();
-        $id = $service->register(['username' => 'newbuyer', 'email' => 'newbuyer@example.com', 'password' => 'new-password-91', 'password_confirm' => 'new-password-91'], '127.0.0.5');
-        self::assertSame($id, $service::currentId());
-        self::assertFalse(Db::schema()->hasTable('identity_member_link'), '身份中心已移除，注册不再写身份副本');
-        self::assertSame('newbuyer', $service::current()['username']);
-        $service->logout();
-        self::assertSame(0, $service::currentId());
-        $service->login('newbuyer', 'new-password-91', '127.0.0.5');
-        self::assertSame($id, $service::currentId());
-        self::assertNotNull(Db::table('member')->where('id', $id)->value('last_login'));
     }
 
-    public function test_public_member_profile_and_password_changes_persist_and_revoke_tokens(): void
+    public function test_public_member_registration_is_stateless_and_writes_no_identity_copies(): void
     {
         $this->createMemberAccountFixture();
-        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('motto')->default(''); });
-        $request = request();
-        $request->connection = (new \ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
-        $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
-        $request->session()->set('admin', ['id' => 1]);
-        $tokens = (new \app\common\service\member\MemberTokenService())->login('market_member', 'market-password-91');
+        $this->addRegistrationColumns();
+        \support\Cache::delete('member_throttle_' . hash('sha256', 'register:127.0.0.5'));
         $service = new \app\common\service\member\MemberAccountService();
-        $service->updateProfile(91, ['nickname' => '更新昵称', 'motto' => '介绍', 'avatar' => 'https://example.com/avatar.png']);
-        self::assertSame('更新昵称', $service->profile(91)['nickname']);
-        $service->changePassword(91, 'market-password-91', 'new-password-92', 'new-password-92');
-        self::assertTrue(password_verify('new-password-92', Db::table('member')->where('id', 91)->value('password')));
-        self::assertSame(0, Db::table('market_token')->whereNull('revoked_at')->count());
-        self::assertSame(1, request()->session()->get('admin')['id']);
-        self::assertNull((new \app\common\service\member\MemberTokenService())->memberId($tokens['access_token']));
+        $id = $service->register(['username' => 'newbuyer', 'email' => 'newbuyer@example.com', 'password' => 'new-password-91', 'password_confirm' => 'new-password-91'], '127.0.0.5');
+        self::assertFalse(Db::schema()->hasTable('identity_member_link'), '身份中心已移除，注册不再写身份副本');
+        self::assertSame('newbuyer', $service->profile($id)['username']);
+        self::assertNotNull(Db::table('member')->where('id', $id)->value('last_login'));
+        self::assertNotNull((new \app\common\service\member\MemberAuthService())->authenticate('newbuyer', 'new-password-91'));
+        foreach (['currentId', 'current', 'login', 'logout'] as $legacy) {
+            self::assertFalse(method_exists($service, $legacy), '会员账号服务不再维护 PHP Session 登录态：' . $legacy);
+        }
+        $this->expectExceptionMessage('用户名已被注册');
+        $service->register(['username' => 'newbuyer', 'email' => 'other@example.com', 'password' => 'new-password-91', 'password_confirm' => 'new-password-91'], '127.0.0.6');
     }
 
-    public function test_public_member_auth_routes_use_native_requests_and_never_accept_admin_cookie_as_member(): void
+    public function test_v2_register_opens_a_session_and_returns_the_account(): void
     {
-        new \Webman\App(Request::class, new \Psr\Log\NullLogger(), app_path(), public_path());
-        \Webman\Route::load([config_path()]);
-        $matched = \Webman\Route::dispatch('POST', '/api/v3/auth/me');
-        self::assertSame(\FastRoute\Dispatcher::FOUND, $matched[0]);
-        $request = new Request("POST /api/v3/auth/me HTTP/1.1\r\nCookie: funadmin_admin=forged\r\n\r\n");
-        Context::set(\Webman\Http\Request::class, $request);
-        $response = (new \app\api\controller\v3\Auth())->me();
-        self::assertSame(401, $response->getStatusCode());
-        self::assertSame(401, json_decode($response->rawBody(), true)['code']);
-        $response = (new \app\api\controller\v3\Auth())->login();
-        self::assertSame(422, $response->getStatusCode());
+        $call = $this->v2Client();
+        $this->addRegistrationColumns();
+        \support\Cache::delete('member_throttle_' . hash('sha256', 'register:0.0.0.0'));
+        self::assertSame(422, $call('POST', '/api/v2/member', ['username' => 'v2buyer'])->getStatusCode(), '缺字段');
+        $weak = $call('POST', '/api/v2/member', ['username' => 'v2buyer', 'email' => 'v2buyer@example.com', 'password' => 'short', 'password_confirm' => 'short']);
+        self::assertSame(422, $weak->getStatusCode(), $weak->rawBody());
+        $response = $call('POST', '/api/v2/member', ['username' => 'v2buyer', 'email' => 'v2buyer@example.com', 'nickname' => '新会员', 'password' => 'v2-password-91', 'password_confirm' => 'v2-password-91']);
+        self::assertSame(200, $response->getStatusCode(), $response->rawBody());
+        $data = json_decode($response->rawBody(), true, flags: JSON_THROW_ON_ERROR)['data'];
+        self::assertSame(['id', 'username', 'nickname', 'email', 'mobile', 'avatar', 'motto', 'created_at', 'last_login'], array_keys($data['user']));
+        self::assertSame(['v2buyer', '新会员', 'v2buyer@example.com'], [$data['user']['username'], $data['user']['nickname'], $data['user']['email']]);
+        self::assertArrayNotHasKey('password', $data['user']);
+        self::assertSame(200, $call('GET', '/api/v2/member', token: $data['access_token'])->getStatusCode());
+        self::assertSame(200, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $data['refresh_token']])->getStatusCode());
+        self::assertSame(422, $call('POST', '/api/v2/member', ['username' => 'v2buyer', 'email' => 'again@example.com', 'password' => 'v2-password-91', 'password_confirm' => 'v2-password-91'])->getStatusCode(), '重复用户名');
+    }
+
+    public function test_v2_member_profile_and_password_endpoints_require_the_member_bearer(): void
+    {
+        $call = $this->v2Client();
+        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('motto')->default(''); });
+        foreach ([['GET', '/api/v2/member/profile'], ['PUT', '/api/v2/member/profile'], ['PUT', '/api/v2/member/password']] as [$method, $path]) {
+            self::assertSame(401, $call($method, $path)->getStatusCode(), $path . ' 未登录拒绝');
+            self::assertSame(401, $call($method, $path, token: 'forged')->getStatusCode(), $path . ' 伪造令牌拒绝');
+        }
+        $current = $this->v2Login($call);
+        $other = $this->v2Login($call);
+        $profile = json_decode($call('GET', '/api/v2/member/profile', token: $current['access_token'])->rawBody(), true)['data']['user'];
+        self::assertSame([91, 'market_member', '市场会员'], [$profile['id'], $profile['username'], $profile['nickname']]);
+
+        self::assertSame(422, $call('PUT', '/api/v2/member/profile', ['nickname' => '<b>'], $current['access_token'])->getStatusCode());
+        self::assertSame(422, $call('PUT', '/api/v2/member/profile', ['nickname' => '昵称', 'avatar' => 'http://example.com/a.png'], $current['access_token'])->getStatusCode());
+        $updated = $call('PUT', '/api/v2/member/profile', ['nickname' => '更新昵称', 'motto' => '介绍', 'avatar' => 'https://example.com/avatar.png'], $current['access_token']);
+        self::assertSame(200, $updated->getStatusCode(), $updated->rawBody());
+        $user = json_decode($updated->rawBody(), true)['data']['user'];
+        self::assertSame(['更新昵称', '介绍', 'https://example.com/avatar.png'], [$user['nickname'], $user['motto'], $user['avatar']]);
+
+        self::assertSame(422, $call('PUT', '/api/v2/member/password', ['current' => 'wrong-password', 'password' => 'new-password-92', 'password_confirm' => 'new-password-92'], $current['access_token'])->getStatusCode());
+        self::assertSame(200, $call('GET', '/api/v2/member', token: $current['access_token'])->getStatusCode(), '改密失败不吊销会话');
+        $changed = $call('PUT', '/api/v2/member/password', ['current' => 'market-password-91', 'password' => 'new-password-92', 'password_confirm' => 'new-password-92'], $current['access_token']);
+        self::assertSame(200, $changed->getStatusCode(), $changed->rawBody());
+        self::assertTrue(password_verify('new-password-92', Db::table('member')->where('id', 91)->value('password')));
+        self::assertSame(0, Db::table('member_api_session')->where('member_id', 91)->whereNull('revoked_at')->count(), '改密吊销该会员全部会话');
+        self::assertSame(401, $call('GET', '/api/v2/member', token: $current['access_token'])->getStatusCode());
+        self::assertSame(401, $call('GET', '/api/v2/member', token: $other['access_token'])->getStatusCode(), '其它设备同样需要重新登录');
+        self::assertSame(401, $call('POST', '/api/v2/token/refresh', ['refresh_token' => $other['refresh_token']])->getStatusCode());
+        self::assertSame(200, $call('POST', '/api/v2/token', ['username' => 'market_member', 'password' => 'new-password-92'])->getStatusCode());
     }
 
     public function test_member_group_and_level_writes_check_duplicates_and_protect_references(): void

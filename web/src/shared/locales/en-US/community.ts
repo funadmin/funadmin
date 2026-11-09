@@ -96,7 +96,7 @@ export default {
     "profileSaved": "Profile saved",
     "enterANickname": "Enter a nickname",
     "changePassword": "Change password",
-    "changingYourPasswordInvalidatesTheCurrentMemberTokenYou": "Changing your password invalidates the current member token. You will need to sign in again.",
+    "changingYourPasswordInvalidatesTheCurrentMemberTokenYou": "Changing your password signs you out on every device. You will need to sign in again.",
     "confirmNewPassword": "Confirm new password",
     "newPassword": "New password",
     "currentPassword": "Current password",

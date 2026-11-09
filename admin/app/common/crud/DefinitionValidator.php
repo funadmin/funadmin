@@ -38,7 +38,7 @@ final class DefinitionValidator
     private const FIELD_KEYS = [
         'name', 'label', 'dbType', 'nullable', 'primary', 'comment', 'default', 'extra', 'component',
         'valueType', 'cast', 'managed', 'writable', 'options', 'optionsSource', 'relation', 'references',
-        'inferredBy', 'legacy', 'list', 'search', 'searchOperator', 'sortable', 'form', 'detail', 'rules',
+        'inferredBy', 'list', 'search', 'searchOperator', 'sortable', 'form', 'detail', 'rules',
         'required', 'minLength', 'maxLength', 'min', 'max', 'enum', 'format', 'unique', 'dictionary',
         'upload', 'precision', 'scale', 'indexMissing', 'listFormatter', 'listWidth', 'placeholder', 'controlProps',
     ];
@@ -88,6 +88,10 @@ final class DefinitionValidator
             if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#D', (string) ($data[$pathField] ?? ''))) {
                 throw new InvalidArgumentException($pathField . ' 不合法');
             }
+        }
+        // 管理端控制器分组与前端 HTTP 客户端都会自动加 /admin，apiPrefix 不得重复携带。
+        if (preg_match('#^/admin(?:/|$)#D', (string) $data['apiPrefix'])) {
+            throw new InvalidArgumentException('apiPrefix 不得以 /admin 开头');
         }
         foreach (['timestamps', 'softDeletes'] as $flag) {
             if (!isset($data[$flag]) || !is_bool($data[$flag])) {
@@ -423,9 +427,6 @@ final class DefinitionValidator
             }
             if (isset($field['optionsSource'])) {
                 $this->identifier((string) $field['optionsSource'], '字段 optionsSource', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
-            }
-            if (($field['legacy'] ?? false) === true || in_array($name, ['create_time', 'update_time', 'delete_time'], true)) {
-                throw new InvalidArgumentException('发现 legacy 字段，必须先迁移为 Laravel 时间字段：' . $name);
             }
             if (isset($names[$name])) {
                 throw new InvalidArgumentException('字段名重复：' . $name);

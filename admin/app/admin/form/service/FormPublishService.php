@@ -76,18 +76,6 @@ final class FormPublishService
         ];
     }
 
-    /** 兼容旧预览入口；仅委托动态发布，不接受源码生成参数。 */
-    public function preview(array $payload): array
-    {
-        return $this->previewDynamic($payload);
-    }
-
-    /** 兼容旧发布入口；仅委托动态发布，不接受覆盖或资源生成参数。 */
-    public function publish(array $payload, string $operator = 'system'): array
-    {
-        return $this->publishDynamic($payload, $operator);
-    }
-
     /** 动态发布：DDL 成功后只推进不可变 Schema 快照与 BusinessModule。 */
     public function publishDynamic(array $payload, string $operator): array
     {
@@ -385,10 +373,14 @@ final class FormPublishService
         }
     }
 
+    /** 只接受 FormSchema v2 文档（schema_document.schemaVersion = 2）。 */
     private function schemaPayload(array $payload): array
     {
         $schema = $payload['schema_document'] ?? null;
-        return is_array($schema) && (int) ($schema['schemaVersion'] ?? 0) === 2 ? $schema : $payload;
+        if (!is_array($schema) || ($schema['schemaVersion'] ?? null) !== 2) {
+            throw new FormSchemaException('schema_document 必须为 FormSchema v2 文档', '/schemaVersion', 'FORM_SCHEMA_VERSION_UNSUPPORTED');
+        }
+        return $schema;
     }
 
     private function compatiblePayload(array $payload, FormSchema $compiled): array

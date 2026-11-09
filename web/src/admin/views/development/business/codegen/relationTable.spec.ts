@@ -22,7 +22,7 @@ const makeDoc = (): FormSchemaDocument => ({
   nodes: [
     field('n_admin', 'relation', 'admin_id', {
       database: belongsTo('fun_admin', 'username'),
-      dataSource: { mode: 'relation', options: [] },
+      dataSource: { kind: 'relation', options: [] },
       props: { clearable: true, filterable: true }
     }),
     field('n_name', 'input', 'name', { database: { columnType: 'varchar(100)', nullable: true, comment: '' }, props: { clearable: true } }),
@@ -91,13 +91,13 @@ describe('applyRelationRows', () => {
     expect(store.replaceSchema(makeDoc() as never).ok).toBe(true);
     store.selectedKey.value = 'name';
     // PropsPanel.onTypeChange('relation') 的产出（不含 column_type，见实现说明）
-    store.updateField({ type: 'relation', options_source: { mode: 'relation', options: [] }, control_props: { clearable: true, filterable: true }, list_show: 1, form_required: 0 });
+    store.updateField({ type: 'relation', options_source: { kind: 'relation', options: [] }, control_props: { clearable: true, filterable: true }, list_show: 1, form_required: 0 });
     store.updateField({ relation_type: 'belongs_to', relation_table: 'fun_brand', relation_label_field: 'title', relation_value_field: 'id' });
 
     const theirs = store.nodes.value[1];
     expect([next.nodes[1].type, next.nodes[1].dataSource, next.nodes[1].props, next.nodes[1].database?.relation])
       .toStrictEqual([theirs.type, theirs.dataSource, theirs.props, theirs.database?.relation]);
-    expect(next.nodes[1]).toMatchObject({ type: 'relation', dataSource: { mode: 'relation', options: [] }, props: { clearable: true, filterable: true } });
+    expect(next.nodes[1]).toMatchObject({ type: 'relation', dataSource: { kind: 'relation', options: [] }, props: { clearable: true, filterable: true } });
     expect(next.nodes[1].database).toMatchObject({ columnType: 'varchar(100)', relation: { type: 'belongs_to', table: 'fun_brand', labelField: 'title', valueField: 'id' } });
   });
 

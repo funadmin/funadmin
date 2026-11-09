@@ -43,7 +43,6 @@ final class Registry
             if (
                 is_array($record)
                 && ($record['lifecycle_state'] ?? '') === 'enabled'
-                && (int) ($record['needs_reinstall'] ?? 0) === 0
             ) {
                 $enabled[$code] = $manifest;
             }

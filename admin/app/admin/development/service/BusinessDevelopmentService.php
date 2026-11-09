@@ -138,6 +138,7 @@ final class BusinessDevelopmentService
         $payload = $this->creationPayload($input, 'adopted', $inspection['fields']);
         $payload['connection'] = $connection;
         $payload['table_name'] = $table;
+        $payload['schema_document']['database'] = ['table' => $table, 'connection' => $connection, 'source' => 'adopted'];
         $payload['schema_origin'] = 'database';
         return $this->modules->createWithForm($payload, 'database', $actor, $this->forms);
     }
@@ -523,42 +524,75 @@ final class BusinessDevelopmentService
         if (!is_array($listConfig) || !is_array($formConfig)) throw new InvalidArgumentException('配置必须为对象或数组');
         $remark = (string) ($allowed['remark'] ?? '');
         if (mb_strlen($remark) > 1000) throw new InvalidArgumentException('remark 过长');
-        if ($source === 'adopted') $fields = self::adoptedFieldRows($fields);
-        return ['business_target' => $target, 'form_key' => $code, 'name' => $name, 'table_name' => $table, 'connection' => $connection, 'source_type' => $source, 'status' => (int) $status, 'list_config' => $listConfig, 'form_config' => $formConfig, 'remark' => $remark, 'fields' => $fields];
+        $nodes = $source === 'adopted' ? self::adoptedFieldNodes($fields) : [];
+        return [
+            'business_target' => $target, 'form_key' => $code, 'name' => $name, 'table_name' => $table, 'connection' => $connection,
+            'source_type' => $source, 'status' => (int) $status, 'list_config' => $listConfig, 'form_config' => $formConfig, 'remark' => $remark,
+            'schema_document' => self::creationDocument($code, $name, $table, $connection, $source, $listConfig, $formConfig, $nodes),
+        ];
     }
 
-    /** 「从数据库创建」与同步表结构共用的字段映射，保证同一列生成相同的节点。 */
-    private static function adoptedFieldRows(array $fields): array
+    /** 新建模块的 FormSchema v2 文档：可视化创建无节点，从数据库创建按列生成节点。 */
+    private static function creationDocument(string $code, string $name, string $table, string $connection, string $source, array $listConfig, array $formConfig, array $nodes): array
     {
-        return array_values(array_map(static function (array $field): array {
+        return [
+            'schemaVersion' => 2, 'key' => $code, 'title' => $name, 'model' => [], 'layout' => [], 'nodes' => $nodes,
+            'dataSources' => [], 'actions' => [], 'form' => $formConfig, 'submit' => [], 'list' => $listConfig,
+            'database' => ['table' => $table, 'connection' => $connection !== '' ? $connection : 'mysql', 'source' => $source],
+            'extensions' => [],
+        ];
+    }
+
+    /** 「从数据库创建」与同步表结构共用的列 → v2 节点映射，保证同一列生成相同的节点。 */
+    private static function adoptedFieldNodes(array $fields): array
+    {
+        $columns = array_values(array_filter($fields, static fn (array $field): bool => !($field['primary'] ?? false) && !($field['managed'] ?? false)));
+        $nodes = [];
+        foreach ($columns as $index => $field) {
+            $name = (string) $field['name'];
             $component = (string) ($field['component'] ?? 'input');
-            return [
-                'field_name' => (string) $field['name'],
-                'label' => (string) ($field['label'] ?? $field['name']),
-                'type' => $component === 'inputNumber' ? 'number' : $component,
-                'column_type' => (string) $field['dbType'],
-                'nullable' => (int) $field['nullable'],
-                'comment' => (string) ($field['comment'] ?? ''),
-                'list_show' => (int) ($field['list'] ?? true),
-                'form_show' => (int) ($field['form'] ?? true),
-                'form_readonly' => (int) !($field['writable'] ?? true),
-                'list_sort' => (int) ($field['sortable'] ?? false),
-                'validate_rules' => (array) ($field['rules'] ?? []),
-                'options_source' => isset($field['options']) ? ['mode' => 'static', 'options' => $field['options']] : null,
+            $type = $component === 'inputNumber' ? 'number' : $component;
+            $columnType = (string) $field['dbType'];
+            $validation = [];
+            foreach ((array) ($field['rules'] ?? []) as $rule => $value) {
+                $validation[] = ['type' => (string) $rule, 'value' => $value];
+            }
+            $nodes[] = [
+                'id' => 'node_' . substr(hash('sha256', $name . ':' . $index), 0, 16),
+                'kind' => 'field', 'type' => $type, 'field' => $name, 'title' => (string) ($field['label'] ?? $name),
+                'defaultValue' => null, 'valueType' => self::adoptedValueType($type, $columnType),
+                'props' => [], 'attrs' => [], 'className' => '', 'style' => [],
+                'hidden' => !($field['form'] ?? true), 'disabled' => !($field['writable'] ?? true),
+                'native' => false, 'info' => '', 'slot' => null, 'children' => [], 'validation' => $validation,
+                'dataSource' => isset($field['options']) ? ['kind' => 'static', 'options' => $field['options']] : null,
+                'conditions' => [], 'events' => [], 'access' => [],
+                'database' => [
+                    'columnType' => $columnType, 'nullable' => (bool) $field['nullable'], 'unsigned' => false, 'index' => 'none',
+                    'comment' => (string) ($field['comment'] ?? ''),
+                    'relation' => ['type' => 'none', 'table' => '', 'labelField' => '', 'valueField' => '', 'multiple' => false, 'onDelete' => 'restrict'],
+                ],
+                'list' => ['show' => (bool) ($field['list'] ?? true), 'sort' => (bool) ($field['sortable'] ?? false), 'filter' => '', 'formatter' => '', 'width' => 0],
+                'layout' => ['span' => 24, 'group' => ''],
+                'extensions' => [],
             ];
-        }, array_filter($fields, static fn (array $field): bool => !($field['primary'] ?? false) && !($field['managed'] ?? false))));
+        }
+        return $nodes;
+    }
+
+    private static function adoptedValueType(string $type, string $columnType): string
+    {
+        if (in_array($type, ['checkbox', 'transfer', 'images', 'files', 'daterange', 'datetimerange'], true)) return 'array';
+        if (in_array($type, ['number', 'slider', 'rate'], true) || preg_match('/^(?:tinyint|smallint|mediumint|int|bigint|decimal|float|double)/', $columnType)) return 'number';
+        if ($type === 'switch') return 'boolean';
+        if ($type === 'json') return 'object';
+        return 'string';
     }
 
     private function adoptedNodes(array $module, array $fields): array
     {
-        return $this->schemas->compile([
-            'form_key' => (string) $module['code'],
-            'name' => (string) $module['name'],
-            'table_name' => (string) $module['table_name'],
-            'connection' => (string) $module['connection_name'],
-            'source_type' => 'adopted',
-            'fields' => self::adoptedFieldRows($fields),
-        ])->document()['nodes'];
+        $document = self::creationDocument((string) $module['code'], (string) $module['name'], (string) $module['table_name'],
+            (string) $module['connection_name'], 'adopted', [], [], self::adoptedFieldNodes($fields));
+        return $this->schemas->compile($document)->document()['nodes'];
     }
 
     private static function physicalColumn(array $database): array

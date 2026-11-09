@@ -14,25 +14,21 @@ const Blank: RouteComponent = () => import('@/layout/blank.vue');
  * - "Blank"            => 空白布局（用于多级菜单）
  * - "system/user/index" => src/views/system/user/index.vue
  * - "business/{entity}/index" => 生成业务页 src/views/business/{entity}/index.vue（与代码生成器所在的 views/development/business 是不同路径）
- * - 完整路径 "/views/system/user/index.vue" 也兼容
+ * component 只接受相对 views 的路径，不带前导 /、views/ 前缀或 .vue 后缀。
  */
 function resolveComponent(component?: string): RouteComponent {
   // 主布局只在顶层挂载；目录或待加载插件的子节点使用空白 router-view。
   if (!component || component === 'Layout' || component === 'Blank') return Blank;
 
-  const normalized = component
-    .replace(/^\/+/, '')
-    .replace(/^views\//, '');
-  const suffix = normalized.endsWith('.vue') ? '' : '.vue';
   const candidates = [
-    `/src/admin/views/${normalized}${suffix}`,
-    `/src/admin/views/${normalized}/index${suffix}`
+    `/src/admin/views/${component}.vue`,
+    `/src/admin/views/${component}/index.vue`
   ];
   const target = candidates.find((key) => key in modules);
   const loader = target ? modules[target as keyof typeof modules] : undefined;
   if (!loader) {
-    if (normalized.startsWith('business/')) {
-      console.info(`[router] 生成源码尚未进入当前构建，使用运行时发布宿主: ${normalized}`);
+    if (component.startsWith('business/')) {
+      console.info(`[router] 生成源码尚未进入当前构建，使用运行时发布宿主: ${component}`);
       return () => import('@/views/form/published.vue');
     }
     console.warn(`[router] 未找到组件: ${candidates.join(' | ')}，请检查后端菜单 component 字段`);

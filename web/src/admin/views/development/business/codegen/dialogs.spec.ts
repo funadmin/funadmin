@@ -508,7 +508,7 @@ describe('BatchGenerateDialog', () => {
   });
 
   it('表单从未发布的模块显示简短原因（核心：需先动态发布；插件：需先在设计器发布），不显示原始错误', async () => {
-    const notPublished = apiError('表单尚未发布', 'VALIDATION_ERROR', 'req-np');
+    const notPublished = apiError('表单尚未发布', 'FORM_SCHEMA_NOT_PUBLISHED', 'req-np');
     mocks.previewFormalGeneration.mockImplementation(async (id: number) => {
       if (id === 1 || id === 2) throw notPublished;
       return previewOf({ generationId: 50 + id, sensitive: { confirmToken: `token-${id}` } });

@@ -18,7 +18,7 @@ describe('配置值保存权限', () => {
     const wrapper = render(); await wrapper.findAll('button')[1]!.trigger('click'); await flushPromises();
     expect(api.updateValue).not.toHaveBeenCalled(); expect(wrapper.emitted('success')).toBeUndefined(); wrapper.unmount();
   });
-  it.each(['system:config:value', '*', '*:*:*'])('%s 可以提交配置值', async permission => {
+  it.each(['system:config:value', '*'])('%s 可以提交配置值', async permission => {
     user.permissions = [permission]; const wrapper = render(); await wrapper.findAll('button')[1]!.trigger('click'); await flushPromises();
     expect(api.updateValue).toHaveBeenCalledExactlyOnceWith(2, 'old'); wrapper.unmount();
   });

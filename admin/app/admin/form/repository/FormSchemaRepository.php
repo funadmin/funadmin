@@ -11,7 +11,6 @@ use app\common\form\registry\FormRegistryFactory;
 use app\common\form\schema\FormSchema;
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaException;
-use app\common\form\schema\FormSchemaMigrator;
 use app\common\form\schema\FormSchemaValidator;
 use app\admin\form\model\Form;
 use app\admin\form\model\FormField;
@@ -30,7 +29,6 @@ final class FormSchemaRepository
     private FieldCapabilityRegistry $fieldCapabilities;
 
     public function __construct(
-        private readonly FormSchemaMigrator $migrator = new FormSchemaMigrator(),
         private readonly PluginFormComponentRegistry $pluginComponents = new PluginFormComponentRegistry(),
         ?FormSchemaDependencyChecker $dependencyChecker = null,
         ?FieldCapabilityRegistry $fieldCapabilities = null
@@ -57,12 +55,10 @@ final class FormSchemaRepository
 
     public function compile(array $definition): FormSchema
     {
-        $schemaVersion = $definition['schemaVersion'] ?? null;
-        if ($schemaVersion !== null && $schemaVersion !== 2) {
+        if (($definition['schemaVersion'] ?? null) !== 2) {
             throw new FormSchemaException('不支持的 FormSchema 版本', '/schemaVersion', 'FORM_SCHEMA_VERSION_UNSUPPORTED');
         }
-        $schema = $schemaVersion === 2 ? $definition : $this->migrator->fromV1($definition);
-        $compiled = $this->compiler->compile($schema);
+        $compiled = $this->compiler->compile($definition);
         return self::$compiledCache[$compiled->hash()] ??= $compiled;
     }
 

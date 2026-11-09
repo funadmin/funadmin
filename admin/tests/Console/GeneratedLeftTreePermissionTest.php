@@ -19,7 +19,7 @@ use support\Request;
 /**
  * 正式生成模块的左树、来源与快捷分类权限按生成控制器方法推导的权限码检查：
  * 当前模块左树读取/表单/写入分别对应 left-tree / left-tree-form / mutate-left-tree，来源为其他模块时检查该模块的 index/create/update/remove，
- * 动态运行时表单保持 admin/form.data 资源路径检查。
+ * 动态运行时表单以表单运行控制器的推导码 form:data:* 检查（当前模块左树同样检查 left-tree / mutate-left-tree）。
  */
 #[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
@@ -151,7 +151,7 @@ final class GeneratedLeftTreePermissionTest extends TestCase
         self::assertSame(2, $this->service()->sourceCandidates()['total']);
     }
 
-    public function test_generated_modules_check_derived_codes_and_dynamic_forms_keep_resource_paths(): void
+    public function test_generated_modules_and_dynamic_forms_check_derived_codes(): void
     {
         $root = Db::table('console_tree')->insertGetId(['title' => '根节点']);
         $this->actAs(2);
@@ -178,22 +178,44 @@ final class GeneratedLeftTreePermissionTest extends TestCase
         self::assertSame(['business:console-tree:list-actions', 'business:console-tree:index', 'business:console-tree:index',
             'business:console-tree:create', 'business:console-tree:create', 'business:console-tree:update', 'business:console-tree:remove'], array_slice($checked, 0, 7));
 
-        // 动态运行时（未正式生成）保持 admin/form.data 资源路径检查。
+        // 动态运行时（未正式生成）按表单运行控制器的推导码 form:data:* 检查。
         Db::table('business_module')->update(['lifecycle_status' => 'dynamic_published']);
-        foreach (['console_tree', 'console_host'] as $key) {
-            $checked = [];
-            $service->leftTree($key);
-            self::assertSame(['admin/form.data/index', 'admin/form.data/create', 'admin/form.data/create', 'admin/form.data/update', 'admin/form.data/remove'], $checked);
-        }
+        $checked = [];
+        $service->leftTree('console_tree');
+        $m = 'form:data:mutate-left-tree';
+        self::assertSame(['form:data:left-tree', 'form:data:index',
+            'form:data:create', $m, 'form:data:create', $m, 'form:data:update', $m, 'form:data:remove', $m], $checked);
+        $checked = [];
+        $service->leftTree('console_host');
+        self::assertSame(['form:data:index', 'form:data:create', 'form:data:create', 'form:data:update', 'form:data:remove'], $checked);
         $checked = [];
         $service->sourceMeta('console_tree');
-        self::assertSame(['admin/form.data/index'], $checked);
+        self::assertSame(['form:data:index'], $checked);
         $checked = [];
         $service->detail('console_tree', $root, true, $this->treeHash);
-        self::assertSame(['admin/form.data/detail', 'admin/form.data/create'], $checked);
+        self::assertSame(['form:data:detail', 'form:data:create'], $checked);
         $checked = [];
         $service->listActionCatalog('console_tree', 'categoryToolbar', new FormActionRegistry([]));
-        self::assertSame(['admin/form.data/index', 'admin/form.data/index', 'admin/form.data/create', 'admin/form.data/create', 'admin/form.data/update', 'admin/form.data/remove'], array_slice($checked, 0, 6));
+        self::assertSame(['form:data:index', 'form:data:index', 'form:data:create', 'form:data:create', 'form:data:update', 'form:data:remove'], array_slice($checked, 0, 6));
+    }
+
+    /** 动态运行时左树写动作：mutate-left-tree 码须能被真实的 nodeAccess 授予与拒绝（旧资源路径 mutatelefttree 无法换算，非超管恒为拒绝）。 */
+    public function test_dynamic_left_tree_mutation_is_granted_by_the_form_data_code(): void
+    {
+        Db::table('console_tree')->insertGetId(['title' => '根节点']);
+        Db::table('business_module')->update(['lifecycle_status' => 'dynamic_published']);
+        foreach (['index', 'left-tree', 'left-tree-form', 'mutate-left-tree', 'create', 'update', 'remove'] as $act) {
+            Db::table('permission')->insertOrIgnore(['app_name' => 'admin', 'code' => 'form:data:' . $act, 'obj' => 'form/data', 'act' => $act,
+                'name' => $act, 'resource_type' => 'route', 'status' => 1, 'is_public' => 0, 'source_type' => 'core', 'source_name' => 'form']);
+        }
+        $this->actAs(2);
+        $grant = static fn (array $acts) => (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', array_map(static fn (string $act): string => 'form:data:' . $act, $acts))->pluck('id')->all());
+
+        $grant(['index', 'left-tree', 'create', 'update', 'remove', 'mutate-left-tree']);
+        self::assertSame(['create' => true, 'addChild' => true, 'edit' => true, 'delete' => true], $this->service()->leftTree('console_tree')['actions']);
+
+        $grant(['index', 'left-tree', 'create', 'update', 'remove']);
+        self::assertSame(['create' => false, 'addChild' => false, 'edit' => false, 'delete' => false], $this->service()->leftTree('console_tree')['actions']);
     }
 
     public function test_underivable_generated_code_denies_instead_of_widening(): void
@@ -245,7 +267,7 @@ final class GeneratedLeftTreePermissionTest extends TestCase
 
     private function binding(): array
     {
-        return ['formKey' => 'console_tree', 'schemaHash' => $this->treeHash, 'route' => 'admin/business.consoletreecontroller',
+        return ['formKey' => 'console_tree', 'schemaHash' => $this->treeHash, 'route' => 'business:console-tree',
             'table' => Db::connection()->getTablePrefix() . 'console_tree', 'connection' => (string) config('database.default')];
     }
 

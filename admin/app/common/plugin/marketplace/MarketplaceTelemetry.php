@@ -32,7 +32,7 @@ final class MarketplaceTelemetry
         $enabled = $url !== '' && ($marketplace['telemetry'] ?? true) !== false;
         return new self(
             $enabled ? new NativeMarketplaceHttpTransport(new Client(), $url, 5, 3) : null,
-            new CloudAccountSession(new ThinkSessionStore()),
+            new CloudAccountSession(new RequestSessionStore()),
             (string) config('funadmin.version'),
             PHP_VERSION
         );
@@ -66,7 +66,7 @@ final class MarketplaceTelemetry
 
     public static function pluginRecord(string $code): ?array
     {
-        // Eloquent builder: ThinkORM field()/find() would throw after lifecycle changes already committed.
+        // 含软删除记录：卸载后仍要上报来源与版本。
         $record = Plugin::withTrashed()->where('code', $code)->first(['code', 'version', 'source']);
         return $record ? $record->only(['code', 'version', 'source']) : null;
     }

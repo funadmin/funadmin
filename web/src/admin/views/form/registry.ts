@@ -20,7 +20,7 @@ export interface ControlMeta {
 }
 
 const staticOptions = (...labels: string[]) => ({
-  mode: 'static',
+  kind: 'static',
   options: labels.map((label, index) => ({ label, value: index + 1 }))
 });
 
@@ -52,8 +52,8 @@ export const CONTROL_REGISTRY: ControlMeta[] = [
   control('number', t('formDesigner.controls.number', '数字输入'), 'field', t('formDesigner.groups.basic', '基础控件'), 'int', null, { controlsPosition: 'right' }),
   control('select', t('formDesigner.controls.select', '下拉选择'), 'field', t('formDesigner.groups.selection', '选择控件'), 'varchar(100)', staticOptions('选项一', '选项二'), { clearable: true }),
   control('selectV2', t('formDesigner.controls.selectV2', '虚拟化选择'), 'field', t('formDesigner.groups.selection', '选择控件'), 'varchar(100)', staticOptions('选项一', '选项二'), { clearable: true }),
-  control('treeSelect', t('formDesigner.controls.treeSelect', '树形选择'), 'field', t('formDesigner.groups.selection', '选择控件'), 'bigint', { mode: 'static', options: [{ label: '节点一', value: 1, children: [] }] }, { clearable: true, checkStrictly: true }),
-  control('cascader', t('formDesigner.controls.cascader', '级联选择'), 'field', t('formDesigner.groups.selection', '选择控件'), 'varchar(255)', { mode: 'static', options: [{ label: '选项一', value: 1, children: [] }] }, { clearable: true }),
+  control('treeSelect', t('formDesigner.controls.treeSelect', '树形选择'), 'field', t('formDesigner.groups.selection', '选择控件'), 'bigint', { kind: 'static', options: [{ label: '节点一', value: 1, children: [] }] }, { clearable: true, checkStrictly: true }),
+  control('cascader', t('formDesigner.controls.cascader', '级联选择'), 'field', t('formDesigner.groups.selection', '选择控件'), 'varchar(255)', { kind: 'static', options: [{ label: '选项一', value: 1, children: [] }] }, { clearable: true }),
   control('radio', t('formDesigner.controls.radio', '单选框组'), 'field', t('formDesigner.groups.selection', '选择控件'), 'varchar(100)', staticOptions('选项一', '选项二')),
   control('checkbox', t('formDesigner.controls.checkbox', '复选框组'), 'field', t('formDesigner.groups.selection', '选择控件'), 'json', staticOptions('选项一', '选项二')),
   control('switch', t('formDesigner.controls.switch', '开关'), 'field', t('formDesigner.groups.selection', '选择控件'), 'tinyint(1)', null, { activeValue: 1, inactiveValue: 0 }),
@@ -71,10 +71,10 @@ export const CONTROL_REGISTRY: ControlMeta[] = [
   control('images', t('formDesigner.controls.images', '多图上传'), 'field', t('formDesigner.groups.upload', '上传控件'), 'json', null, { maxSize: 5, maxCount: 9, bizType: 'image' }),
   control('file', t('formDesigner.controls.file', '单文件上传'), 'field', t('formDesigner.groups.upload', '上传控件'), 'json', null, { maxCount: 1, bizType: 'file' }),
   control('files', t('formDesigner.controls.files', '多文件上传'), 'field', t('formDesigner.groups.upload', '上传控件'), 'json', null, { maxCount: 0, bizType: 'file' }),
-  control('dictionary', t('formDesigner.controls.dictionary', '字典选择'), 'business', t('formDesigner.groups.business', '业务控件'), 'varchar(100)', { mode: 'dictionary', dictionary: '', options: [] }, { clearable: true }),
-  control('relation', t('formDesigner.controls.relation', '关联数据'), 'business', t('formDesigner.groups.business', '业务控件'), 'bigint', { mode: 'relation', options: [] }, { clearable: true, filterable: true }),
-  control('department', t('formDesigner.controls.department', '部门选择'), 'business', t('formDesigner.groups.business', '业务控件'), 'bigint', { mode: 'department', options: [] }, { clearable: true, checkStrictly: true }),
-  control('user', t('formDesigner.controls.user', '用户选择'), 'business', t('formDesigner.groups.business', '业务控件'), 'bigint', { mode: 'user', options: [] }, { clearable: true, filterable: true }),
+  control('dictionary', t('formDesigner.controls.dictionary', '字典选择'), 'business', t('formDesigner.groups.business', '业务控件'), 'varchar(100)', { kind: 'dictionary', dictionary: '', options: [] }, { clearable: true }),
+  control('relation', t('formDesigner.controls.relation', '关联数据'), 'business', t('formDesigner.groups.business', '业务控件'), 'bigint', { kind: 'relation', options: [] }, { clearable: true, filterable: true }),
+  control('department', t('formDesigner.controls.department', '部门选择'), 'business', t('formDesigner.groups.business', '业务控件'), 'bigint', { kind: 'department', options: [] }, { clearable: true, checkStrictly: true }),
+  control('user', t('formDesigner.controls.user', '用户选择'), 'business', t('formDesigner.groups.business', '业务控件'), 'bigint', { kind: 'user', options: [] }, { clearable: true, filterable: true }),
   control('richtext', t('formDesigner.controls.richtext', '富文本'), 'business', t('formDesigner.groups.business', '业务控件'), 'longtext', null, { rows: 8 }),
   control('json', t('formDesigner.controls.json', 'JSON 编辑器'), 'business', t('formDesigner.groups.business', '业务控件'), 'json', null, { rows: 8 }),
   control('hidden', t('formDesigner.controls.hidden', '隐藏字段'), 'field', t('formDesigner.groups.basic', '基础控件'), 'varchar(255)'),

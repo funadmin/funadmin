@@ -33,7 +33,7 @@ trait PluginComposerDependencies
         try { (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION, $host))->assertComposerSatisfied($manifest); }
         catch (\RuntimeException $e) { throw new PluginPreconditionException($e->getMessage(), 0, $e); }
         $others = [];
-        foreach (Plugin::where('lifecycle_state', 'enabled')->where('status', 1)->where('needs_reinstall', 0)->whereNull('operation_token')->get() as $record) {
+        foreach (Plugin::where('lifecycle_state', 'enabled')->where('status', 1)->whereNull('operation_token')->get() as $record) {
             $code = (string) $record->code;
             if ($code !== $manifest->code()) { $others[$code] = $root . '/plugins/' . $code; }
         }

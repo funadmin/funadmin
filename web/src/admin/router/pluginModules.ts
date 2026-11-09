@@ -11,7 +11,7 @@ interface SyncOptions {
 }
 
 const mounted = new Map<string, { signature: string; routeNames: string[] }>();
-const sourceModules = import.meta.glob<Component>('../modules/**/*.{vue,tsx}');
+const sourceModules = import.meta.glob<Component>('../plugins/**/*.{vue,tsx}');
 const PluginModuleError = () => import('@/views/system/plugin/PluginModuleError.vue');
 
 export async function syncPluginModules(
@@ -78,7 +78,7 @@ const resolveComponents = (
   modules: Record<string, Component>
 ): Record<string, Component> => Object.fromEntries(
   Object.entries(descriptor.components).map(([name, relativePath]) => {
-    const key = `../modules/${descriptor.code}/${relativePath}`;
+    const key = `../plugins/${descriptor.code}/${relativePath}`;
     const component = modules[key];
     if (!component) throw new Error(`插件组件未包含在当前构建中：${name}`);
     return [name, component];

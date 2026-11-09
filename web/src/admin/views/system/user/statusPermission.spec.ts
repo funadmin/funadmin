@@ -71,7 +71,7 @@ describe('管理员状态操作权限', () => {
     expect(control.props('modelValue')).toBe(true);
   });
 
-  it.each(['authorization:admin:status', '*', '*:*:*'])('%s 允许切换普通管理员状态', async permission => {
+  it.each(['authorization:admin:status', '*'])('%s 允许切换普通管理员状态', async permission => {
     const control = await render([permission]);
     expect(control.props('disabled')).toBe(false);
     control.vm.$emit('change', false);

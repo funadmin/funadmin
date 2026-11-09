@@ -6,9 +6,6 @@ namespace app\admin\development\service;
 
 use app\common\crud\CrudDefinition;
 use app\common\form\schema\FormSchema;
-use app\common\form\schema\FormSchemaCompiler;
-use app\common\form\schema\FormSchemaMigrator;
-use app\common\form\schema\FormSchemaValidator;
 use InvalidArgumentException;
 
 /** 将表单设计元数据确定性转换为统一 CRUD Definition。 */
@@ -27,13 +24,6 @@ final class FormCrudDefinitionFactory
         'department' => 'department', 'user' => 'user', 'richtext' => 'richtext', 'json' => 'json',
         'hidden' => 'hidden', 'readonly' => 'readonly',
     ];
-
-    public function create(array $form, array $publishConfig = [], array $schema = []): CrudDefinition
-    {
-        $compiled = (new FormSchemaCompiler(new FormSchemaValidator()))
-            ->compile((new FormSchemaMigrator())->fromV1($form));
-        return $this->createFromSchema($compiled, $form, $publishConfig, $schema);
-    }
 
     public function createFromSchema(FormSchema $formSchema, array $form, array $publishConfig = [], array $schema = []): CrudDefinition
     {
@@ -213,7 +203,7 @@ final class FormCrudDefinitionFactory
     private function options(array $field, string $name, array &$row, array &$sources): void
     {
         $source = (array) ($field['options_source'] ?? []);
-        $mode = (string) ($source['kind'] ?? $source['mode'] ?? '');
+        $mode = (string) ($source['kind'] ?? '');
         if ($mode === 'static' && is_array($source['options'] ?? null)) {
             $row['options'] = $source['options'];
             return;
@@ -384,9 +374,6 @@ final class FormCrudDefinitionFactory
         $columns = array_column((array) ($schema['columns'] ?? []), null, 'name');
         $name = (string) $primary[0];
         if (!isset($columns[$name])) throw new InvalidArgumentException('采纳表主键字段不存在');
-        foreach (['create_time', 'update_time', 'delete_time'] as $legacy) {
-            if (isset($columns[$legacy])) throw new InvalidArgumentException('采纳表包含 legacy 时间字段，必须先迁移为 Laravel 时间字段');
-        }
         return $this->identifier($name, '主键字段');
     }
 

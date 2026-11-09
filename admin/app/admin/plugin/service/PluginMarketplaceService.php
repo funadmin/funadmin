@@ -8,7 +8,7 @@ use app\common\plugin\marketplace\CloudAccountSession;
 use app\common\plugin\marketplace\NativeMarketplaceAdapter;
 use app\common\plugin\marketplace\NativeMarketplaceHttpTransport;
 use app\common\plugin\marketplace\PluginMarketplaceGateway;
-use app\common\plugin\marketplace\ThinkSessionStore;
+use app\common\plugin\marketplace\RequestSessionStore;
 use app\common\plugin\marketplace\dto\CloudAccountDto;
 use app\common\plugin\marketplace\dto\LoginRequestDto;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
@@ -50,7 +50,7 @@ final class PluginMarketplaceService extends AbstractService
                 (int) ($marketplace['request_timeout'] ?? 30),
                 (int) ($marketplace['connect_timeout'] ?? 10)
             ),
-            new CloudAccountSession(new ThinkSessionStore()),
+            new CloudAccountSession(new RequestSessionStore()),
             $platformVersion,
             PHP_VERSION
         );

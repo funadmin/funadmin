@@ -63,10 +63,10 @@ describe('轻量 SchemaForm 的 Builder 兼容', () => {
     expect(wrapper.findComponent(SchemaRenderer).exists()).toBe(true);
     wrapper.unmount();
   });
-  it('kind static 与旧 mode static 均不请求通用 options', async () => {
+  it('kind static 不请求通用 options', async () => {
     const wrapper = render([
       field({ field_name: 'a', type: 'select', options_source: { kind: 'static', options: [{ label: '组', value: 7 }] } }),
-      field({ field_name: 'b', type: 'select', options_source: { mode: 'static', options: [] } })
+      field({ field_name: 'b', type: 'select', options_source: { kind: 'static', options: [] } })
     ], { a: 7, b: '' });
     await flushPromises();
     expect(mocks.options).not.toHaveBeenCalled();
@@ -104,8 +104,8 @@ describe('轻量 SchemaForm 的 Builder 兼容', () => {
     wrapper.unmount();
     expect(signal.aborted).toBe(true);
   });
-  it('继续支持旧远程 mode', async () => {
-    const wrapper = render([field({ type: 'select', options_source: { mode: 'relation' } })], { value: '' });
+  it('远程 kind 请求通用 options', async () => {
+    const wrapper = render([field({ type: 'select', options_source: { kind: 'relation' } })], { value: '' });
     await vi.waitFor(() => expect(mocks.options).toHaveBeenCalledWith('system_member', 'value', expect.any(Object), expect.any(AbortSignal)));
     wrapper.unmount();
   });

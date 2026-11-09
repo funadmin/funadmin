@@ -234,7 +234,7 @@ class FileHelper
     public static function mutexCompare($source, $destFileOrPath, string $prefix = '', bool $onlyFiles = false): array
     {
         $list = [];
-        $destFileOrPath = $destFileOrPath ?: root_path();
+        $destFileOrPath = $destFileOrPath ?: base_path() . DIRECTORY_SEPARATOR;
         if (!is_array($source) && is_file($source) && is_file($destFileOrPath)) {
             return md5_file($source) !== md5_file(filename: $destFileOrPath);
         }

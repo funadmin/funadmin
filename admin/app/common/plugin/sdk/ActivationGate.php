@@ -37,7 +37,6 @@ final class ActivationGate
     {
         if (($plugin['enabled'] ?? false) !== true
             || ($plugin['state'] ?? '') !== 'enabled'
-            || ($plugin['needs_reinstall'] ?? true) !== false
             || ($plugin['operation_token'] ?? null) !== null
             || ($application !== null && ($plugin['applications'][$application] ?? false) !== true)) {
             return false;

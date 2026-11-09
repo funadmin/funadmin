@@ -4,6 +4,7 @@
     v-else-if="registryReady"
     ref="formRef"
     class="schema-form"
+    :style="{ '--schema-field-min-width': fieldMinimumWidth }"
     :model="values"
     :rules="rules"
     :label-width="labelWidth"
@@ -96,7 +97,7 @@ const errorSummary = computed(() => {
   return count ? t('formData.errorSummary', { n: count }, '表单存在 {n} 个错误，请检查并修正。') : '';
 });
 const asyncDataSources = flattenSchemaNodes(props.schema.nodes).map(({ node }) => node).filter((node) => {
-  const kind = String(node.dataSource?.kind ?? node.dataSource?.mode ?? '');
+  const kind = String(node.dataSource?.kind ?? '');
   return Boolean(props.formKey && node.field && kind && kind !== 'static');
 }).map((node) => ({
   node,
@@ -140,6 +141,14 @@ const formSize = computed(() => props.schema.form?.size ?? 'default');
 const inline = computed(() => Boolean(props.schema.form?.inline));
 const readOnly = computed(() => Boolean(props.schema.form?.readOnly));
 const gutter = computed(() => Number(props.schema.form?.gutter ?? 16));
+// 栅格是首选宽度；最小宽度要同时容纳标签、控件和列间距。
+const fieldMinimumWidth = computed(() => {
+  const configured = labelWidth.value.trim();
+  const label = labelPosition.value === 'top' ? '0px'
+    : /^\d+(?:\.\d+)?$/.test(configured) ? `${configured}px`
+    : configured === 'auto' ? '110px' : configured;
+  return `calc(${label} + 144px + ${gutter.value}px)`;
+});
 const rules = computed<FormRules>(() => {
   const result: FormRules = {};
   for (const { node } of flattenSchemaNodes(props.schema.nodes)) {

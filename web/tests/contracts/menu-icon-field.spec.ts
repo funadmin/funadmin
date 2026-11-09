@@ -11,7 +11,6 @@ const topMenu = readFileSync(resolve(process.cwd(), 'src/admin/layout/components
 const topSubItem = readFileSync(resolve(process.cwd(), 'src/admin/layout/components/TopSubItem.vue'), 'utf8');
 const iconGenerator = readFileSync(resolve(process.cwd(), 'scripts/generate-ep-icons.mjs'), 'utf8');
 const iconStyles = readFileSync(resolve(process.cwd(), 'src/shared/styles/ep-icons.css'), 'utf8');
-const iconMigrationPath = resolve(process.cwd(), '../admin/database/core/migrations/archive/048_admin_menu_icon_completion.sql');
 
 describe('菜单表单图标字段', () => {
   it('图标选择器不能放在无指令的原生 template 中', () => {
@@ -38,13 +37,5 @@ describe('菜单表单图标字段', () => {
       expect(iconGenerator).toContain(`'${iconClass}'`);
       expect(iconStyles).toContain(`.${iconClass}{`);
     }
-  });
-
-  it('增量迁移为全部 Admin Web 菜单补齐图标字段', () => {
-    const migration = readFileSync(iconMigrationPath, 'utf8');
-    expect(migration).toContain("WHERE `menu`.`source_type` = 'admin_web'");
-    expect(migration).toMatch(/COALESCE\(NULLIF\(TRIM\(`menu`\.`icon`\), ''\), ''\) = ''/);
-    expect(migration).toContain("THEN 'i-ep-folder'");
-    expect(migration).toContain("ELSE 'i-ep-document'");
   });
 });

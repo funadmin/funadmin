@@ -145,7 +145,7 @@ final class PluginScaffoldExecutionTest extends TestCase
         self::assertSame(':memory:', Db::connection()->getDatabaseName());
         Db::schema()->create('plugin', static function (Blueprint $table): void {
             $table->id(); $table->string('code'); $table->string('version'); $table->string('lifecycle_state');
-            $table->boolean('needs_reinstall')->default(false); $table->timestamps(); $table->softDeletes();
+            $table->timestamps(); $table->softDeletes();
         });
         try {
             (new PluginScaffolder($this->root . '/plugins'))->scaffold('validatefixture');
@@ -160,9 +160,9 @@ final class PluginScaffoldExecutionTest extends TestCase
             self::assertStringContainsString('依赖插件未安装', $command->getDisplay());
             PluginRecord::query()->create(['code' => 'dependency', 'version' => '1.0.0', 'lifecycle_state' => 'enabled']);
             self::assertSame(0, $command->execute(['name' => 'validatefixture']), $command->getDisplay());
-            PluginRecord::query()->where('code', 'dependency')->update(['needs_reinstall' => 1]);
+            PluginRecord::query()->where('code', 'dependency')->update(['lifecycle_state' => 'disabled']);
             self::assertSame(1, $command->execute(['name' => 'validatefixture']));
-            self::assertStringContainsString('重新安装', $command->getDisplay());
+            self::assertStringContainsString('依赖插件未启用', $command->getDisplay());
             PluginRecord::query()->where('code', 'dependency')->firstOrFail()->delete();
             self::assertSame(1, $command->execute(['name' => 'validatefixture']));
         } finally { Db::schema()->dropIfExists('plugin'); }

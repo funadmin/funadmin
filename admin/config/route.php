@@ -17,7 +17,7 @@ use Webman\Route;
 Route::disableDefaultRoute();
 Route::get('/plugins/hooks/frontend', [\app\common\plugin\controller\FrontendHooks::class, 'index']);
 Route::get('/admin/plugins/hooks/frontend', [\app\common\plugin\controller\FrontendHooks::class, 'index']);
-// 默认入口保持兼容；自定义入口由 AdminAuth 的动态路由承载，入口不匹配时控制器返回 404。
+// 默认后台入口固定注册；自定义入口由 AdminAuth 的动态路由承载，入口不匹配时控制器返回 404。
 Route::get('/admin/auth/csrf', [\app\admin\authentication\controller\AdminAuth::class, 'csrf']);
 Route::post('/admin/auth/login', [\app\admin\authentication\controller\AdminAuth::class, 'login']);
 Route::get('/admin/auth/me', [\app\admin\authentication\controller\AdminAuth::class, 'me']);
@@ -29,6 +29,10 @@ Route::group('/api/v2', static function (): void {
     // 会员鉴权：ApiController 统一挂载 ApiMiddleware，默认需要登录；公开方法标注 #[NoNeedLogin]。
     Route::get('/member', [\app\api\controller\v2\Member::class, 'show']);
     Route::get('/member/status', [\app\api\controller\v2\Member::class, 'status']);
+    Route::post('/member', [\app\api\controller\v2\Member::class, 'register']);
+    Route::get('/member/profile', [\app\api\controller\v2\Member::class, 'profile']);
+    Route::put('/member/profile', [\app\api\controller\v2\Member::class, 'updateProfile']);
+    Route::put('/member/password', [\app\api\controller\v2\Member::class, 'password']);
     Route::post('/logout', [\app\api\controller\v2\Token::class, 'logout']);
 });
 Route::get('/health', static fn () => json(['status' => 'ok', 'service' => 'admin']));

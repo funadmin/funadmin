@@ -104,7 +104,7 @@ export const buildDesignerDebugState = (
       state.dataSources.push({
         nodeId: node.id,
         status: 'configured',
-        kind: String(node.dataSource.kind ?? node.dataSource.mode ?? 'unknown')
+        kind: String(node.dataSource.kind ?? 'unknown')
       });
     }
     const field = String(node.field ?? '');

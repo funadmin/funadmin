@@ -51,7 +51,6 @@ export default {
     businessReason: 'Plugin is publishing, recovering, or not developable in current state',
     running: 'Plugin is running {label} ({progress}%)',
     needMerge: 'Local modifications detected, manual merge required',
-    needReinstall: 'Plugin must be reinstalled before this action',
     pendingMigration: 'Pending DB migration must run before enabling',
     stateNotAllowed: 'State "{state}" does not allow this action',
     stateNotDisable: 'State "{state}" does not allow disabling',

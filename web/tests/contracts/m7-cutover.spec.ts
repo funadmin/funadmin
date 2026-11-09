@@ -31,12 +31,6 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
     for (const file of productionPhp) {
       expect(read(file), file).not.toContain('app\\\\backend\\\\');
     }
-    const cutover = read('admin/database/core/migrations/archive/050_backend_to_console_cutover.sql');
-    expect(cutover).toContain("SET `module` = 'console'");
-    expect(cutover).toContain("REPLACE(`code`, 'backend/', 'console/')");
-    expect(cutover).toContain("REPLACE(`obj`, 'backend/', 'console/')");
-    expect(cutover).toContain("REPLACE(`v2`, 'backend/', 'console/')");
-    expect(cutover).toContain('`rule_hash` = SHA2(');
   });
 
   it('业务 PHP 不读写 legacy 公共字段', () => {
@@ -85,8 +79,8 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
   });
 
   it('插件菜单与权限仅从 adminWeb 契约注册', () => {
-    const pluginService = read('admin/app/admin/plugins/service/PluginService.php');
-    const infrastructure = read('admin/app/admin/plugins/service/PluginInfrastructureService.php');
+    const pluginService = read('admin/app/admin/plugin/service/PluginService.php');
+    const infrastructure = read('admin/app/admin/plugin/service/PluginInfrastructureService.php');
     expect(pluginService).toContain("$manifestData['adminWeb']['permissions']");
     expect(pluginService).toContain("$manifestData['adminWeb']['menu']");
     expect(pluginService).not.toContain("$manifestData['permissions']");

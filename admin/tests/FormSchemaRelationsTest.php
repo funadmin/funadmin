@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\common\form\schema\FormSchemaCompiler;
 use app\common\form\schema\FormSchemaException;
-use app\common\form\schema\FormSchemaMigrator;
 use app\common\form\schema\FormSchemaValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -51,17 +50,6 @@ final class FormSchemaRelationsTest extends TestCase
         ]]));
 
         self::assertSame('title', $compiled->document()['relations'][0]['localField']);
-    }
-
-    public function test_migrator_passes_relations_through_for_v2_documents(): void
-    {
-        $document = $this->document(['relations' => [
-            ['type' => 'hasMany', 'name' => 'comments', 'table' => 'fun_comment', 'localField' => 'id', 'foreignField' => 'article_id'],
-        ]]);
-        $migrator = new FormSchemaMigrator();
-
-        self::assertSame($document['relations'], $migrator->fromV1($document)['relations']);
-        self::assertSame($document['relations'], $migrator->fromV1(['schema_document' => $document])['relations']);
     }
 
     #[DataProvider('invalidRelations')]

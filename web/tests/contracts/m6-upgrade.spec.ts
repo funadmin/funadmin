@@ -50,17 +50,6 @@ describe('M6 系统升级契约', () => {
     expect(existsSync(resolve(projectRoot, 'web/src/admin/mock/modules/upgrade.ts'))).toBe(true);
   });
 
-  it('通过 forward migration 注册规范权限和菜单字段', () => {
-    const migration = readFileSync(resolve(projectRoot, 'admin/database/core/migrations/archive/043_system_upgrade.sql'), 'utf8');
-    for (const action of ['status', 'check', 'executeupgrade', 'upload', 'restore']) {
-      expect(migration).toContain(`console/systemupgrade:${action}`);
-    }
-    for (const field of ['`name`', '`sort_order`', '`created_at`', '`updated_at`']) {
-      expect(migration).toContain(field);
-    }
-    expect(migration).toContain('WHERE NOT EXISTS');
-    expect(migration).not.toMatch(/\b(?:DROP|TRUNCATE|DELETE)\b/i);
-  });
 
   it('升级页面直接使用按方法推导的后端权限码（无对照表）', () => {
     const auth = readFileSync(resolve(projectRoot, 'admin/app/admin/authorization/model/Permission.php'), 'utf8');

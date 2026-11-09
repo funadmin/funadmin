@@ -22,7 +22,7 @@ use support\Context;
 final class CodeGeneratorFormSizeTest extends TestCase
 {
     /** 未配置表单尺寸时与 CodeGeneratorRelationsTest::PLAIN_BASELINE 一致的 core 基准。 */
-    private const PLAIN_DEFINITION_HASH = 'ca941664e4845b8d9555cc4848c41c6de150b95153aa8319e9f3ac8e9aa71316';
+    private const PLAIN_DEFINITION_HASH = 'ba3ede61aca0d48ccc3d932ebc46adc96b7594ff24423a38d0f99f2bf6ea9799';
     private const PLAIN_FORM_HASH = '6927aa1eb452d91eca895d75e84707287a706033eb768388b131fec09052f382';
     private const PLAIN_VIEW_HASH = 'f1c0628836ba60c6d4c457d8d19078b92714dc3f7e1eab924b8b0a4e4ff861f6';
     private const FORM_PATH = 'web/src/admin/views/business/shop-plain/components/ShopPlainForm.vue';
@@ -85,10 +85,10 @@ final class CodeGeneratorFormSizeTest extends TestCase
         self::assertStringContainsString('size="100%">', $drawerFull);
         self::assertStringNotContainsString(':fullscreen', $drawerFull);
 
-        // 未设置的 drawer 保持原有输出。
+        // 未设置宽度的 drawer 同样用 size，默认 720px。
         $drawerPlain = ProductionTemplateContext::build($this->definition(['formMode' => 'drawer']))['formContent'];
-        self::assertStringContainsString('width="720px">', $drawerPlain);
-        self::assertStringNotContainsString('size=', $drawerPlain);
+        self::assertStringContainsString('size="720px">', $drawerPlain);
+        self::assertStringNotContainsString('width=', $drawerPlain);
 
         // 存储在表单记录上的发布设置同样生效。
         $stored = (new FormCrudDefinitionFactory())->createFromSchema($this->schema(), ['publish_config' => ['formWidth' => 1200]]);

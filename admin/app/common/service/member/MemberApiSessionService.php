@@ -96,6 +96,13 @@ final class MemberApiSessionService
             ->update(['revoked_at' => date('Y-m-d H:i:s')]);
     }
 
+    /** 吊销该会员的全部会话（改密等场景，所有设备需重新登录）。 */
+    public function revokeMember(int $memberId): void
+    {
+        Db::table('member_api_session')->where('member_id', $memberId)->whereNull('revoked_at')
+            ->update(['revoked_at' => date('Y-m-d H:i:s')]);
+    }
+
     private function revokeReplayedSession(string $hash): void
     {
         $used = Db::table('member_api_session_used')->where('refresh_hash', $hash)->first();

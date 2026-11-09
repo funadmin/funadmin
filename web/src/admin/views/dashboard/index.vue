@@ -189,27 +189,7 @@ defineOptions({ name: 'Dashboard' });
 
 const userStore = useUserStore();
 const { t } = useI18n();
-const { tokens: chartTokens } = useChartTheme();
-
-/** 兼容旧字段名的扁平化 token，供本页图表 option 直接读取 */
-const tokens = computed(() => {
-  const t = chartTokens.value;
-  return {
-    primary: t.primary,
-    success: t.success,
-    warning: t.warning,
-    danger: t.danger,
-    info: t.info,
-    text: t.text,
-    textPrimary: t.text,
-    textRegular: t.text,
-    textSecondary: t.textSecondary,
-    border: t.border,
-    borderLight: t.border,
-    borderLighter: t.border,
-    bgElevated: t.cardBg
-  };
-});
+const { tokens } = useChartTheme();
 
 const today = dayjs().format('YYYY-MM-DD');
 const weekday = computed(() => [t('dashboard.sun', '周日'), t('dashboard.mon', '周一'), t('dashboard.tue', '周二'), t('dashboard.wed', '周三'), t('dashboard.thu', '周四'), t('dashboard.fri', '周五'), t('dashboard.sat', '周六')][dayjs().day()]);
@@ -312,25 +292,25 @@ const trendOption = computed(() => {
   const order = visit.map((v) => Math.round(v * (0.3 + Math.random() * 0.2)));
 
   return {
-    color: [tokens.value.primary, chartTokens.value.primaryAlpha(chartTokens.value.isDark ? 0.5 : 0.35)],
+    color: [tokens.value.primary, tokens.value.primaryAlpha(tokens.value.isDark ? 0.5 : 0.35)],
     grid: { left: 12, right: 12, top: 40, bottom: 8, containLabel: true },
-    legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 16, textStyle: { color: tokens.value.textRegular } },
+    legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 16, textStyle: { color: tokens.value.text } },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: tokens.value.bgElevated,
-      borderColor: tokens.value.borderLight,
-      textStyle: { color: tokens.value.textPrimary }
+      backgroundColor: tokens.value.cardBg,
+      borderColor: tokens.value.border,
+      textStyle: { color: tokens.value.text }
     },
     xAxis: {
       type: 'category',
       data: x,
-      axisLine: { lineStyle: { color: tokens.value.borderLighter } },
+      axisLine: { lineStyle: { color: tokens.value.border } },
       axisLabel: { color: tokens.value.textSecondary }
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: tokens.value.borderLighter, type: 'dashed' } },
+      splitLine: { lineStyle: { color: tokens.value.border, type: 'dashed' } },
       axisLabel: { color: tokens.value.textSecondary }
     },
     series: [
@@ -349,8 +329,8 @@ const trendOption = computed(() => {
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: chartTokens.value.primaryAlpha(0.22) },
-              { offset: 1, color: chartTokens.value.primaryAlpha(0) }
+              { offset: 0, color: tokens.value.primaryAlpha(0.22) },
+              { offset: 1, color: tokens.value.primaryAlpha(0) }
             ]
           }
         }
@@ -360,7 +340,7 @@ const trendOption = computed(() => {
         type: 'bar',
         barMaxWidth: 18,
         itemStyle: { borderRadius: [4, 4, 0, 0] },
-        emphasis: { itemStyle: { color: chartTokens.value.primaryAlpha(0.6) } },
+        emphasis: { itemStyle: { color: tokens.value.primaryAlpha(0.6) } },
         data: order
       }
     ]
@@ -369,7 +349,7 @@ const trendOption = computed(() => {
 
 /* ---------- 来源饼图 ---------- */
 const sourceOption = computed(() => ({
-  color: chartTokens.value.palette.slice(0, 5),
+  color: tokens.value.palette.slice(0, 5),
   tooltip: { trigger: 'item' },
   legend: {
     bottom: 0,
@@ -377,7 +357,7 @@ const sourceOption = computed(() => ({
     itemWidth: 8,
     itemHeight: 8,
     itemGap: 14,
-    textStyle: { color: tokens.value.textRegular }
+    textStyle: { color: tokens.value.text }
   },
   series: [
     {
@@ -390,7 +370,7 @@ const sourceOption = computed(() => ({
       labelLine: { show: false },
       itemStyle: {
         borderRadius: 6,
-        borderColor: tokens.value.bgElevated,
+        borderColor: tokens.value.cardBg,
         borderWidth: 3
       },
       data: [
@@ -411,14 +391,14 @@ const rankOption = computed(() => ({
   xAxis: {
     type: 'value',
     axisLine: { show: false },
-    splitLine: { lineStyle: { color: tokens.value.borderLighter, type: 'dashed' } },
+    splitLine: { lineStyle: { color: tokens.value.border, type: 'dashed' } },
     axisLabel: { color: tokens.value.textSecondary }
   },
   yAxis: {
     type: 'category',
     data: [t('dashboard.rankP1', '苹果 iPhone 15'), t('dashboard.rankP2', '华为 Mate 60'), t('dashboard.rankP3', '小米 14 Ultra'), t('dashboard.rankP4', '一加 12'), t('dashboard.rankP5', 'OPPO Find X7')],
-    axisLine: { lineStyle: { color: tokens.value.borderLighter } },
-    axisLabel: { color: tokens.value.textRegular }
+    axisLine: { lineStyle: { color: tokens.value.border } },
+    axisLabel: { color: tokens.value.text }
   },
   series: [
     {
@@ -455,8 +435,8 @@ const radarOption = computed(() => ({
       { name: t('dashboard.radarDeliver', '上线交付'), max: 100 },
       { name: t('dashboard.radarCollab', '协作沟通'), max: 100 }
     ],
-    axisName: { color: tokens.value.textRegular },
-    splitLine: { lineStyle: { color: tokens.value.borderLighter } },
+    axisName: { color: tokens.value.text },
+    splitLine: { lineStyle: { color: tokens.value.border } },
     splitArea: { areaStyle: { color: ['transparent'] } }
   },
   series: [

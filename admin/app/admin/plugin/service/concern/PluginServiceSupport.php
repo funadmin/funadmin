@@ -78,7 +78,6 @@ trait PluginServiceSupport
             'name' => $manifest->name(),
             'version' => $manifest->version(),
             'code_version' => $manifest->version(),
-            'needs_reinstall' => 0,
             'requires' => (string) ($data['requires']['funadmin'] ?? ''),
             'manifest' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ];
@@ -111,7 +110,6 @@ trait PluginServiceSupport
             $records[(string) $record->code] = [
                 'version' => (string) $record->version,
                 'lifecycle_state' => (string) $record->lifecycle_state,
-                'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
             ];
         }
         return $records;
@@ -256,15 +254,6 @@ trait PluginServiceSupport
                 ? $storedManifest
                 : json_decode(is_string($storedManifest) ? $storedManifest : '', true);
             if (is_array($manifest) && ($manifest['schema_version'] ?? null) === 2 && ($manifest['code'] ?? null) === $code) {
-                if (self::hasRetiredHookFields($manifest)) {
-                    // backendHooks/frontendHooks 已更名为 serverHooks/clientHooks，不做兼容：
-                    // 旧清单不进入激活快照，并要求用新版 plugin.json 重新安装，避免钩子被静默丢弃。
-                    if ((int) ($record->needs_reinstall ?? 0) !== 1) {
-                        Plugin::withTrashed()->where('code', $code)->update(['needs_reinstall' => 1]);
-                    }
-                    $records[$code]['needs_reinstall'] = 1;
-                    continue;
-                }
                 $manifests[$code] = $manifest;
             }
         }
@@ -272,11 +261,6 @@ trait PluginServiceSupport
             $this->projectRoot === null ? runtime_path('plugins/activation') : $this->projectRoot . '/runtime/plugins/activation',
             ($this->projectRoot ?? base_path()) . '/plugins'
         ))->compile($records, $manifests);
-    }
-
-    private static function hasRetiredHookFields(array $manifest): bool
-    {
-        return array_key_exists('backendHooks', $manifest) || array_key_exists('frontendHooks', $manifest);
     }
 
     private function infrastructure(): PluginInfrastructureService
@@ -301,7 +285,7 @@ trait PluginServiceSupport
 
     private function assertLifecycleSchema(): void
     {
-        $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at', 'manifest', 'lifecycle_state', 'state_changed_at', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'recovery_path', 'needs_reinstall'];
+        $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at', 'manifest', 'lifecycle_state', 'state_changed_at', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'recovery_path'];
         if (array_diff($required, $this->infrastructure()->pluginColumns())) {
             throw new RuntimeException('插件生命周期表结构未升级，请先在 admin 目录执行 php bin/console.php migrate');
         }

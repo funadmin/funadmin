@@ -30,6 +30,7 @@ final class BusinessApiErrorMapper
         'BUSINESS_EXTERNAL_TABLE_MISSING' => [409, '外部依赖表不存在', false],
         'BUSINESS_TABLE_STRATEGY_INVALID' => [422, '业务表策略无效', false],
         'FORM_SCHEMA_CONFLICT' => [409, '表单结构已被修改，请刷新后重试', false],
+        'FORM_SCHEMA_NOT_PUBLISHED' => [422, '表单尚未发布', false],
         'DATABASE_INSPECTION_STALE' => [409, '数据库结构已变化，请重新检查', true],
         'GENERATION_PLAN_CONFLICT' => [409, '生成计划存在冲突', false],
         'GENERATION_TARGET_DRIFT' => [409, '生成目标已变化，请重新预览', true],
@@ -77,6 +78,7 @@ final class BusinessApiErrorMapper
         if (isset(self::ERRORS[$message])) return $message;
         if ($exception instanceof BusinessResourceGoneException) return 'RESOURCE_GONE';
         if ($exception instanceof BusinessConflictException) return 'GENERATION_PLAN_CONFLICT';
+        if ($exception instanceof FormSchemaException && $exception->errorCode() === 'FORM_SCHEMA_NOT_PUBLISHED') return 'FORM_SCHEMA_NOT_PUBLISHED';
         if ($exception instanceof FormSchemaException || $exception instanceof InvalidArgumentException) return 'VALIDATION_ERROR';
         return 'INTERNAL_ERROR';
     }

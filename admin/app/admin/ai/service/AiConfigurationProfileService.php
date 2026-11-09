@@ -38,12 +38,7 @@ final class AiConfigurationProfileService
         if (array_key_exists('api_key', $snapshot['configuration'])) throw new InvalidArgumentException('快照不得包含密钥', 400);
         $config = self::validate($snapshot['configuration']);
         if (($snapshot['model'] ?? null) !== $config['model']) throw new InvalidArgumentException('模型快照不一致', 400);
-        // 历史根域指向无版本端点，不能套用新规则后再注入当前密钥。
-        $legacyBase = rtrim(trim($config['base_url']), '/');
-        if ((!array_key_exists('url_version', $snapshot) && \app\common\ai\provider\OpenAiCompatibleGateway::normalizeBaseUrl($legacyBase) !== $legacyBase)
-            || (array_key_exists('url_version', $snapshot) && $snapshot['url_version'] !== 1)) {
-            throw new \RuntimeException('档案 URL 规则已变更，请创建新任务', 409);
-        }
+        if (($snapshot['url_version'] ?? null) !== 1) throw new \RuntimeException('档案 URL 规则已变更，请创建新任务', 409);
         // 当前凭据仅可用于完全相同的可信目标，目标变更必须在读取密文和解密前停止。
         foreach (['base_url', 'protocol', 'provider'] as $field) {
             if (($row->configuration[$field] ?? null) !== $config[$field]) throw new \RuntimeException('档案可信目标已变更，请创建新任务', 409);

@@ -240,8 +240,8 @@ final class FormDataService
 
     /**
      * $entry 为服务本次请求的生成控制器方法（leftTree / leftTreeForm / mutateLeftTree / index）。
-     * 来源为当前正式生成模块时，读取检查该方法推导码与 index，写动作检查对应 create/update/remove 与 mutateLeftTree 推导码；
-     * 来源为其他模块（或动态运行时）时检查来源模块的 index 与 create/update/remove。
+     * 来源为当前模块（正式生成为 business:{资源}:*，动态运行时为 form:data:*）时，读取检查该方法推导码与 index，
+     * 写动作检查对应 create/update/remove 与 mutate-left-tree 推导码；来源为其他模块时检查来源模块的 index 与 create/update/remove。
      */
     private function leftTreeFor(string $key, string $entry): array
     {
@@ -259,8 +259,8 @@ final class FormDataService
         }
         $source = $this->form($sourceKey);
         $runtime = $this->publishedRuntime($source);
-        $current = $sourceKey === $key && (string) $runtime['module']->lifecycle_status !== 'dynamic_published';
-        // 当前正式生成模块：服务本次请求的方法码（左树/来源表单/写入端点）之外仍须具备列表读取 index。
+        $current = $sourceKey === $key;
+        // 来源为当前模块（正式生成或动态运行时）：服务本次请求的方法码（左树/来源表单/写入端点）之外仍须具备列表读取 index。
         $reads = $current && $entry !== 'index' ? [$entry, 'index'] : ['index'];
         foreach ($reads as $method) {
             if (!($this->permissionChecker)($this->modulePermission($runtime['module'], $method))) throw new InvalidArgumentException('没有来源业务读取权限');
@@ -477,30 +477,28 @@ final class FormDataService
     }
 
     /**
-     * 来源模块某控制器方法的权限：动态运行时为 admin/form.data/{操作}（保持原资源路径），
+     * 来源模块某控制器方法的权限码：动态运行时为表单运行控制器方法的推导码 form:data:{方法}，
      * 正式生成模块为生成控制器方法的推导码 business:{资源}:{方法}；插件来源与不可推导时拒绝。
      */
     private function modulePermission(BusinessModule $module, string $method): string
     {
-        $route = $this->businessPermissionRoute($module);
-        if ((string) $module->lifecycle_status === 'dynamic_published') return $route . '/' . $method;
+        $this->assertCoreModule($module);
+        if ((string) $module->lifecycle_status === 'dynamic_published') {
+            $code = $method === '' ? null : \app\admin\authorization\service\PermissionCode::derive(\app\admin\form\controller\Data::class, $method);
+            if ($code === null) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+            return $code;
+        }
         $form = Form::where('id', (int) $module->form_id)->first();
         if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
         return $this->businessPermission((string) $form->form_key, $method);
     }
 
-    /** 旧控制器资源路径：动态运行时的权限前缀，以及正式生成宿主 productionBinding.route 的绑定校验标识。 */
-    private function businessPermissionRoute(BusinessModule $module): string
+    /** 插件使用独立 manifest 权限，不能回退到同名核心路由授权。 */
+    private function assertCoreModule(BusinessModule $module): void
     {
-        // 插件使用独立 manifest 权限，不能回退到同名核心路由授权。
         if (($module->metadata['target']['type'] ?? 'core') !== 'core') {
             throw new InvalidArgumentException('插件来源暂不支持快捷分类，请使用插件正式表单');
         }
-        if ((string) $module->lifecycle_status === 'dynamic_published') return 'admin/form.data';
-        $form = Form::where('id', (int) $module->form_id)->first();
-        if (!$form) throw new InvalidArgumentException('来源业务未绑定表单');
-        $class = str_replace(' ', '', ucwords(str_replace('_', ' ', (string) $form->form_key)));
-        return 'admin/business.' . strtolower($class) . 'controller';
     }
 
     /** 在行权限和软删除过滤之后读取；多取一条用于检测并发增加，绝不静默截断树。 */
@@ -780,9 +778,8 @@ final class FormDataService
             throw new InvalidArgumentException('字段不存在：' . $fieldName);
         }
         $source = is_array($field->options_source) ? $field->options_source : [];
-        $mode = (string) ($source['kind'] ?? $source['mode'] ?? ((string) $field->relation_type === 'belongs_to' ? 'relation' : 'static'));
+        $mode = (string) ($source['kind'] ?? ((string) $field->relation_type === 'belongs_to' ? 'relation' : 'static'));
         $source['kind'] = $mode;
-        $source['mode'] = $mode;
         if (in_array($mode, ['endpoint', 'computed'], true)) {
             return $this->executeOptionsSource($source, [
                 'form' => ['key' => $key],
@@ -918,17 +915,6 @@ final class FormDataService
         return ['options' => array_slice($filtered, $offset, $size), 'total' => count($filtered)];
     }
 
-    /** 将列表或分页结果归一为 v2 list/total，并保留旧 options 契约。 */
-    public function normalizeOptionsResult(array $result): array
-    {
-        $list = array_is_list($result) ? $result : (array) ($result['list'] ?? $result['options'] ?? []);
-        return [
-            'list' => array_values($list),
-            'options' => array_values($list),
-            'total' => (int) ($result['total'] ?? count($list)),
-        ];
-    }
-
     /** 执行已归一的数据源定义，供运行态与独立契约测试复用。 */
     public function executeOptionsSource(array $source, array $context = []): array
     {
@@ -1003,7 +989,7 @@ final class FormDataService
         $button = array_values(array_filter($buttons, static fn (array $b): bool => ($b['id'] ?? '') === ($request['buttonId'] ?? null)))[0] ?? [];
         $factory = \app\common\form\registry\FormRegistryFactory::production();
         $executor ??= ($button['action']['type'] ?? '') === 'registered' ? $factory->listExecutor() : $factory->resourceExecutor();
-        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->businessPermission($key, 'export') : 'admin/form.data/export')) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
+        if (($button['action']['type'] ?? '') === 'download' && !($this->permissionChecker)($this->productionBinding ? $this->businessPermission($key, 'export') : $this->modulePermission($runtime['module'], 'export'))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         $runtime['filter'] = $this->normalizeListActionFilter($runtime['fields'], $request['filter'] ?? []);
         $categoryLocation = in_array($request['location'] ?? '', ['categoryToolbar', 'categoryNode'], true);
         if ($categoryLocation || array_key_exists('category', $request)) {
@@ -1137,25 +1123,24 @@ final class FormDataService
         if (($runtime['module']->metadata['target']['type'] ?? 'core') !== 'core') {
             throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
         }
-        $route = $this->businessPermissionRoute($runtime['module']);
         if ($this->productionBinding !== null) {
             // 注入仅增加约束，不允许替换发布加载、字段过滤、身份或数据范围查询。
             $binding = $this->productionBinding;
             if ((string) $runtime['module']->lifecycle_status !== 'published'
-                || ($binding['formKey'] ?? '') !== $key || ($binding['route'] ?? '') !== $route
+                || ($binding['formKey'] ?? '') !== $key || ($binding['route'] ?? '') !== $this->businessPermissionPrefix($key)
                 || ($binding['table'] ?? '') !== (string) $form->table_name
                 || ($binding['connection'] ?? '') !== (string) $form->connection) {
                 throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
             }
             $this->assertPublishedSchemaHash((string) ($binding['schemaHash'] ?? ''), $runtime['schemaHash']);
-            // 正式生成宿主按生成控制器方法推导的权限码准入（与其路由权限一致），不再使用旧控制器资源路径。
+            // 正式生成宿主按生成控制器方法推导的权限码准入（与其路由权限一致）。
             $method = ['listactions' => 'listActions', 'listaction' => 'listAction'][$entry] ?? '';
             if (!($this->permissionChecker)($this->businessPermission($key, $method))) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
             $readPermission = $this->businessPermission($key, 'index');
         } elseif ((string) $runtime['module']->lifecycle_status !== 'dynamic_published') {
             throw new InvalidArgumentException('FORM_LIST_ACTION_ADAPTER_UNAVAILABLE');
         }
-        if (!($this->permissionChecker)($readPermission ?? $route . '/index')) {
+        if (!($this->permissionChecker)($readPermission ?? $this->modulePermission($runtime['module'], 'index'))) {
             throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         }
         return $runtime + ['form' => $form];
@@ -1172,6 +1157,12 @@ final class FormDataService
             : \app\admin\authorization\service\PermissionCode::derive('app\\admin\\business\\' . $formKey . '\\controller\\' . $class, $method);
         if ($code === null) throw new InvalidArgumentException('FORM_ACTION_FORBIDDEN');
         return $code;
+    }
+
+    /** 正式生成宿主 productionBinding.route 的绑定标识：生成控制器权限码前缀 business:{资源}。 */
+    private function businessPermissionPrefix(string $formKey): string
+    {
+        return substr($this->businessPermission($formKey, 'index'), 0, -strlen(':index'));
     }
 
     /** 执行已发布 Schema 明确引用的生产动作。 */
@@ -1853,7 +1844,7 @@ final class FormDataService
         return (string) ($field['type'] ?? '') === 'hidden'
             || filter_var($props['disabled'] ?? false, FILTER_VALIDATE_BOOL)
             || (int) ($field['form_readonly'] ?? 0) === 1
-            || (string) ($source['kind'] ?? $source['mode'] ?? '') === 'computed'
+            || (string) ($source['kind'] ?? '') === 'computed'
             || filter_var($props['computed'] ?? false, FILTER_VALIDATE_BOOL)
             || filter_var($props['primary'] ?? false, FILTER_VALIDATE_BOOL)
             || filter_var($props['system'] ?? false, FILTER_VALIDATE_BOOL);

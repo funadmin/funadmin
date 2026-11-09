@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runBackendTests } from './backend-runtime';
@@ -9,8 +9,6 @@ const levelController = readFileSync(resolve(process.cwd(), '../admin/app/admin/
 const groupApi = readFileSync(resolve(process.cwd(), 'src/admin/api/system/memberGroup.ts'), 'utf8');
 const levelApi = readFileSync(resolve(process.cwd(), 'src/admin/api/system/memberLevel.ts'), 'utf8');
 const authController = readFileSync(resolve(process.cwd(), '../admin/app/admin/authentication/controller/AdminAuth.php'), 'utf8');
-const permissionMigrationPath = resolve(process.cwd(), '../admin/database/core/migrations/archive/036_crud_import_permissions.sql');
-const permissionMigration = existsSync(permissionMigrationPath) ? readFileSync(permissionMigrationPath, 'utf8') : '';
 const groupPage = readFileSync(resolve(process.cwd(), 'src/admin/views/system/member-group/index.vue'), 'utf8');
 const levelPage = readFileSync(resolve(process.cwd(), 'src/admin/views/system/member-level/index.vue'), 'utf8');
 
@@ -72,8 +70,6 @@ describe('CRUD 模型类公共解析契约', () => {
     expect(levelApi).toContain('importRows: (rows:');
     expect(authController).toContain('AuthorizationService');
     expect(runBackendTests('AuthorizationIntegrationTest.php', 'test_login_permissions_are_exactly_the_granted_codes')).toContain('OK (1 test');
-    expect(permissionMigration).toContain('backend/systemmembergroup:import');
-    expect(permissionMigration).toContain('backend/systemmemberlevel:import');
     expect(groupPage).toContain("v-perm=\"'system:member-group:import'\"");
     expect(levelPage).toContain("v-perm=\"'system:member-level:import'\"");
   }, 60_000);

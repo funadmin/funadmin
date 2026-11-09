@@ -28,9 +28,7 @@ describe('会员注册默认分组契约', () => {
           \support\Db::table('member_group')->insert(['id' => $id, 'name' => $name, 'status' => $status, 'deleted_at' => $deletedAt]);
       }
       $level = (int) \support\Db::table('member_level')->where('status', 1)->whereNull('deleted_at')->orderBy('id')->value('id');
-      $request = new \support\Request("POST /api/v3/auth/register HTTP/1.1\r\n\r\n");
-      $request->connection = (new ReflectionClass(\Workerman\Connection\TcpConnection::class))->newInstanceWithoutConstructor();
-      $request->context['session'] = new \Workerman\Protocols\Http\Session(bin2hex(random_bytes(16)));
+      $request = new \support\Request("POST /api/v2/member HTTP/1.1\r\n\r\n");
       \support\Context::set(\Webman\Http\Request::class, $request);
       $service = new \app\common\service\member\MemberAccountService();
       $id = $service->register([
@@ -45,13 +43,12 @@ describe('会员注册默认分组契约', () => {
           'levelId' => (int) $member->level_id, 'defaultLevelId' => $level,
           'status' => (int) $member->status, 'scores' => (int) $member->scores,
           'identityTable' => \support\Db::schema()->hasTable('identity_member_link'),
-          'authenticated' => $service::currentId() === $id,
+          'sessionLogin' => method_exists($service, 'currentId'),
       ], JSON_THROW_ON_ERROR);
-      $service->logout();
     `);
     expect(result).toMatchObject({
       retiredModelRegistration: false, groupIds: [9003], status: 1, scores: 0,
-      identityTable: false, authenticated: true
+      identityTable: false, sessionLogin: false
     });
     const levels = result as { levelId: number; defaultLevelId: number };
     expect(levels.defaultLevelId).toBeGreaterThan(0);

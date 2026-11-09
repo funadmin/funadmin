@@ -5,35 +5,13 @@ declare(strict_types=1);
 namespace app\common\service\member;
 
 use app\common\model\Member;
-use app\common\service\member\MemberAuthService;
 use RuntimeException;
 use support\Cache;
 use support\Db;
 
-/** 通用会员账号：注册、资料与密码；保留原会话与限流键，避免迁移时丢失已有状态。 */
+/** 通用会员账号：注册、资料与密码。登录会话由 MemberApiSessionService（会员 API v2）负责。 */
 final class MemberAccountService
 {
-    private const SESSION_KEY = 'market_member_id';
-
-    public static function currentId(): int
-    {
-        return (int) request()->session()->get(self::SESSION_KEY, 0);
-    }
-
-    public static function current(): ?array
-    {
-        $id = self::currentId();
-        if ($id <= 0) {
-            return null;
-        }
-        $member = Member::where('id', $id)->where('status', 1)->select(['id', 'username', 'nickname', 'email', 'mobile', 'avatar', 'motto', 'created_at', 'last_login'])->first();
-        if (!$member) {
-            request()->session()->delete(self::SESSION_KEY);
-            return null;
-        }
-        return $member->toArray();
-    }
-
     public function register(array $input, string $ip): int
     {
         $this->throttle('register:' . $ip, 5, 3600, '注册过于频繁，请稍后再试');
@@ -94,28 +72,7 @@ final class MemberAccountService
             }
             throw $exception;
         }
-        $this->startSession((int) $member->id);
         return (int) $member->id;
-    }
-
-    public function login(string $account, string $password, string $ip): void
-    {
-        $key = 'login:' . $ip . ':' . strtolower($account);
-        $this->throttle($key, 10, 900, '登录失败次数过多，请 15 分钟后再试', false);
-        $member = (new MemberAuthService())->authenticate($account, $password);
-        if ($member === null) {
-            $this->throttle($key, 10, 900, '登录失败次数过多，请 15 分钟后再试');
-            throw new RuntimeException('账号或密码错误');
-        }
-        Cache::delete('market_throttle_' . hash('sha256', $key));
-        Member::where('id', $member['id'])->update(['last_login' => Db::connection()->getDriverName() === 'mysql' ? time() : date('Y-m-d H:i:s'), 'last_ip' => mb_substr($ip, 0, 45)]);
-        $this->startSession((int) $member['id']);
-    }
-
-    public function logout(): void
-    {
-        request()->session()->delete(self::SESSION_KEY);
-        request()->sessionRegenerateId(true);
     }
 
     public function profile(int $memberId): ?array
@@ -159,10 +116,9 @@ final class MemberAccountService
         }
         Db::transaction(static function () use ($member, $next, $memberId): void {
             $member->forceFill(['password' => password($next)])->save();
-            // 改密后吊销该账号的全部公开会员 opaque 令牌（沿用兼容存储表）。
-            Db::table('market_token')->where('member_id', $memberId)->whereNull('revoked_at')->update(['revoked_at' => date('Y-m-d H:i:s')]);
+            // 改密后吊销该账号的全部会员 API 会话，所有设备需重新登录。
+            (new MemberApiSessionService())->revokeMember($memberId);
         });
-        request()->sessionRegenerateId(true);
     }
 
     private function assertPassword(string $password): void
@@ -172,22 +128,14 @@ final class MemberAccountService
         }
     }
 
-    private function startSession(int $memberId): void
+    /** 固定窗口计数。 */
+    private function throttle(string $key, int $limit, int $window, string $message): void
     {
-        request()->sessionRegenerateId(true);
-        request()->session()->set(self::SESSION_KEY, $memberId);
-    }
-
-    /** 固定窗口计数；$count 为 false 时只检查不计数。 */
-    private function throttle(string $key, int $limit, int $window, string $message, bool $count = true): void
-    {
-        $cacheKey = 'market_throttle_' . hash('sha256', $key);
+        $cacheKey = 'member_throttle_' . hash('sha256', $key);
         $hits = (int) Cache::get($cacheKey, 0);
         if ($hits >= $limit) {
             throw new RuntimeException($message);
         }
-        if ($count) {
-            Cache::set($cacheKey, $hits + 1, $window);
-        }
+        Cache::set($cacheKey, $hits + 1, $window);
     }
 }

@@ -39,15 +39,23 @@ final class CrudMigrationRegressionTest extends TestCase
 
     public static function adminPrefixes(): array
     {
-        return [[null, '/admin/business/review-route'], ['/admin/business/review-route', '/admin/business/review-route'], ['/admin', '/admin']];
+        return [[null, '/admin/business/review-route'], ['/business/review-route', '/admin/business/review-route']];
+    }
+
+    /** 管理端路由前缀由生成器自动添加，apiPrefix 自带 /admin 时直接拒绝。 */
+    #[\PHPUnit\Framework\Attributes\TestWith(['/admin/business/review-route'])]
+    #[\PHPUnit\Framework\Attributes\TestWith(['/admin'])]
+    public function test_api_prefix_with_admin_segment_is_rejected(string $prefix): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('apiPrefix 不得以 /admin 开头');
+        (new CrudGenerator(base_path()))->renderManagedBundle(self::definition('review_route', ['apiPrefix' => $prefix]));
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('adminPrefixes')]
     public function test_factory_default_routes_match_frontend_admin_requests(?string $prefix, string $expected): void
     {
-        $form = self::form('review_route');
-        if ($prefix !== null) $form['publish_config'] = ['apiPrefix' => $prefix];
-        $definition = (new FormCrudDefinitionFactory())->create($form);
+        $definition = self::definition('review_route', $prefix !== null ? ['apiPrefix' => $prefix] : []);
         $files = (new CrudGenerator(base_path()))->renderManagedBundle($definition);
         $paths = $definition->get('generationTargets');
         $temporary = [];
@@ -103,9 +111,10 @@ final class CrudMigrationRegressionTest extends TestCase
         self::assertSame(1, Db::table('permission')->where('code', 'business:review:export')->whereNull('deleted_at')->count());
     }
 
-    public static function form(string $key): array
+    public static function definition(string $key, array $publishConfig = []): \app\common\crud\CrudDefinition
     {
-        return ['form_key' => $key, 'name' => 'Review', 'table_name' => 'fun_' . $key, 'connection' => 'mysql', 'source_type' => 'created',
-            'fields' => [['field_name' => 'title', 'label' => 'Title', 'type' => 'input', 'column_type' => 'varchar(80)', 'nullable' => 0]]];
+        $form = \app\common\form\builder\Form::make($key)->title('Review')->table('fun_' . $key, 'mysql');
+        $form->input('title', 'Title')->column('varchar(80)', false);
+        return (new FormCrudDefinitionFactory())->createFromSchema($form->compile(), $publishConfig === [] ? [] : ['publish_config' => $publishConfig]);
     }
 }

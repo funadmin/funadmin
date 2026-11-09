@@ -13,7 +13,7 @@ const descriptor = (): EnabledPluginModule => ({
   routes: [{ path: '/plugins/example/items', name: 'Plugin_example_Items', component: 'Index', meta: { title: '示例', permission: 'example:item:list' } }]
 });
 const router = () => createRouter({ history: createMemoryHistory(), routes: [] });
-const modules = { '../modules/example/Index.vue': defineComponent({ template: '<div />' }) };
+const modules = { '../plugins/example/Index.vue': defineComponent({ template: '<div />' }) };
 let activeRouter = router();
 
 afterEach(() => { clearPluginModules(activeRouter); vi.unstubAllEnvs(); });
@@ -87,12 +87,24 @@ describe('Webman plugin module routing', () => {
       path: '/plugins/document/docs', name: 'Plugin_document_Docs', component: 'Index', meta: { title: '文档中心' }
     }] };
     const page = defineComponent({ template: '<article>文档中心</article>' });
-    const synced = await syncPluginModules(activeRouter, [document], { modules: { '../modules/document/Index.vue': page } });
+    const synced = await syncPluginModules(activeRouter, [document], { modules: { '../plugins/document/Index.vue': page } });
     expect(synced.errors).toEqual([]);
     const result = activeRouter.resolve('/admin/plugins/document/docs');
     expect(result.name).toBe('Plugin_document_Docs');
     expect(result.matched.filter(record => record.components?.default === Layout)).toHaveLength(1);
     expect(result.matched.at(-1)?.components?.default).toBe(page);
+  });
+
+  it('resolves real plugin pages from the build-time src/admin/plugins glob', async () => {
+    activeRouter = router();
+    const qa: EnabledPluginModule = { code: 'qa', version: '1.0.0', components: { Moderation: 'pages/Moderation.vue' }, routes: [{
+      path: '/plugins/qa/moderation', name: 'Plugin_qa_Moderation', component: 'Moderation', meta: { title: '问答审核' }
+    }] };
+    const synced = await syncPluginModules(activeRouter, [descriptor(), qa]);
+    expect(synced).toEqual({ loaded: ['example', 'qa'], errors: [] });
+    for (const path of ['/admin/plugins/example/items', '/admin/plugins/qa/moderation']) {
+      expect(typeof activeRouter.resolve(path).matched.at(-1)?.components?.default).toBe('function');
+    }
   });
 
   it('mounts a diagnostic route for missing build assets and clears it on logout', async () => {

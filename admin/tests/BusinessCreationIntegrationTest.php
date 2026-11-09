@@ -91,11 +91,10 @@ final class BusinessCreationIntegrationTest extends TestCase
         self::assertSame(1, Db::table('form_schema_version')->where('form_id', $form->id)->count());
         self::assertFalse(Db::schema()->hasTable('creation_fixture'), '创建草稿不提前创建物理业务表');
 
+        $document = \app\common\form\builder\Form::make($form->form_key)->title('客户订单编辑')->table($form->table_name, $form->connection, $form->source_type);
+        $document->input('title', '订单标题')->column('varchar(255)');
         (new FormDesignerService(base_path()))->save([
-            'id' => $form->id, 'form_key' => $form->form_key, 'name' => '客户订单编辑',
-            'table_name' => $form->table_name, 'connection' => $form->connection,
-            'source_type' => $form->source_type, 'expected_schema_hash' => $form->schema_hash,
-            'fields' => [['field_name' => 'title', 'label' => '订单标题', 'type' => 'input', 'column_type' => 'varchar(255)']],
+            'id' => $form->id, 'expected_schema_hash' => $form->schema_hash, 'schema_document' => $document->compile()->document(),
         ]);
         self::assertSame('客户订单编辑', $form->fresh()->name);
         self::assertSame('title', Db::table('form_field')->where('form_id', $form->id)->value('field_name'));

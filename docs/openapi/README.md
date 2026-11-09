@@ -47,6 +47,4 @@
 
 后续接入生成命令时，需要同时扫描控制器和本目录的 `ApiDocumentation.php`，并启用 PHPDoc 注释解析。生成结果可输出 OpenAPI 3.0.3 JSON，供文档页面或接口工具使用。
 
-当前 `controller/generated/I18nDemoController.php` 仍是 ThinkPHP 旧路由示例，文档操作标记为 `deprecated=true`，并明确注明未接入原生路由。生成器应优先静态解析源码中的注释，避免为了获取文档加载这些旧控制器。若只发布当前可调用接口，应排除此控制器，而不是把历史注释当作已注册路由。
-
 建议生成时检查：注释语法、完整路径与实际路由一致、操作 ID 唯一、模型引用可解析、路径参数齐全，以及错误响应和认证方式匹配。当前范围是 `admin/app/admin` 下带路由属性的控制器，以及 `admin/app/api/controller/v2` 下的会员 API（路由在 `config/route.php` 中注册）；公共身份协议、市场客户端接口及插件源码中其他控制器不在这批注释范围内。

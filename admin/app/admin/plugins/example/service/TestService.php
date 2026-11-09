@@ -51,10 +51,10 @@ final class TestService
             $table = (string) $reference->TABLE_NAME;
             $column = (string) $reference->COLUMN_NAME;
             if (!preg_match('/^[a-z_][a-z0-9_]*$/', $table) || !preg_match('/^[a-z_][a-z0-9_]*$/', $column)) {
-                throw new \RuntimeException(lang('test.referenceMetadataInvalid'));
+                throw new \RuntimeException(trans('test.referenceMetadataInvalid'));
             }
             if ($connection->table($connection->getTablePrefix() !== '' && str_starts_with($table, $connection->getTablePrefix()) ? substr($table, strlen($connection->getTablePrefix())) : $table)->whereIn($column, $ids)->limit(1)->count() > 0) {
-                return lang('test.referenced', ['target' => $table . '.' . $column]);
+                return trans('test.referenced', ['target' => $table . '.' . $column]);
             }
         }
         return null;

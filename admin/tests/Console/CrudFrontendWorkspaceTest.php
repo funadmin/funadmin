@@ -35,10 +35,9 @@ final class CrudFrontendWorkspaceTest extends TestCase
 
     public function test_factory_generation_writes_into_sibling_frontend_and_detects_its_local_edits(): void
     {
-        $definition = (new FormCrudDefinitionFactory())->create([
-            'form_key' => 'workspace_product', 'name' => 'Product', 'table_name' => 'fun_workspace_product', 'connection' => 'mysql',
-            'fields' => [['field_name' => 'title', 'label' => 'Title', 'type' => 'input', 'column_type' => 'varchar(80)', 'nullable' => 0]],
-        ]);
+        $form = \app\common\form\builder\Form::make('workspace_product')->title('Product')->table('fun_workspace_product', 'mysql');
+        $form->input('title', 'Title')->column('varchar(80)', false);
+        $definition = (new FormCrudDefinitionFactory())->createFromSchema($form->compile(), []);
         $generator = new CrudGenerator($this->backend);
         $plan = $generator->plan($definition);
         $generator->generate($definition, $plan['confirmToken']);

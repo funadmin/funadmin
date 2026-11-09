@@ -24,7 +24,7 @@ final class PluginCenterIntegrationTest extends TestCase
 
     public function test_installed_plugin_serialization_reads_operation_history_with_eloquent_queries(): void
     {
-        Db::table('plugin')->insert(['code' => 'sample', 'name' => '示例插件', 'version' => '1.0.0', 'status' => 1, 'lifecycle_state' => 'enabled', 'needs_reinstall' => 0, 'manifest' => '{}', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
+        Db::table('plugin')->insert(['code' => 'sample', 'name' => '示例插件', 'version' => '1.0.0', 'status' => 1, 'lifecycle_state' => 'enabled', 'manifest' => '{}', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
         Db::table('plugin_operation')->insert(['plugin_code' => 'sample', 'operation' => 'install', 'status' => 'success', 'stage' => 'done', 'progress' => 100, 'operation_token' => 'sample-operation', 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')]);
         self::assertCount(1, (new PluginCenterService())->installed());
     }

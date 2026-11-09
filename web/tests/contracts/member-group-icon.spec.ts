@@ -5,12 +5,6 @@ import { describe, expect, it } from 'vitest';
 const read = (relativePath: string) => readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
 describe('会员组图标字段', () => {
-  it('migration 为会员组表新增 icon 列', () => {
-    const sql = read('../admin/database/core/migrations/archive/019_member_group_icon.sql');
-
-    expect(sql).toMatch(/ALTER TABLE `fun_member_group` ADD COLUMN `icon`/);
-  });
-
   it('后端接收、校验并返回 icon', () => {
     const controller = read('../admin/app/admin/system/controller/SystemMemberGroup.php');
 

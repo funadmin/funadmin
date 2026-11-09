@@ -17,7 +17,7 @@ use support\annotation\route\RouteGroup;
 use support\Db;
 use support\Response;
 
-/** Admin Web 附件分组管理；保留模型供旧文件选择器兼容使用。 */
+/** Admin Web 附件分组管理。 */
 #[RouteGroup('/admin/system/attachment-group')]
 class SystemAttachmentGroup extends AdminController
 {

@@ -26,30 +26,6 @@ class ResourceRegistryService extends AbstractService
         $this->clearApplicationCache();
     }
 
-    public function removeRoute(string $appName, string $href): void
-    {
-        $resource = PermissionResource::fromRoute($appName, $href);
-        if (!$resource) {
-            return;
-        }
-        $permission = Permission::where('code', $resource['code'])->first();
-        if (!$permission) {
-            return;
-        }
-        $ids = array_merge([(int) $permission->id], Permission::childIds((int) $permission->id));
-        Db::transaction(function () use ($ids) {
-            $resources = Permission::whereIn('id', $ids)->get(['obj', 'act'])->toArray();
-            foreach ($resources as $item) {
-                CasbinRule::where('ptype', 'p')->where('v2', $item['obj'])->where('v3', $item['act'])->delete();
-            }
-            AdminMenu::whereIn('permission_id', $ids)->delete();
-            $this->removePermissionFields($ids);
-            Permission::whereIn('id', $ids)->delete();
-        });
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
-    }
-
     public function removeSource(string $sourceType, string $sourceName): void
     {
         $permissionIds = array_map('intval', Permission::where('source_type', $sourceType)
@@ -77,12 +53,12 @@ class ResourceRegistryService extends AbstractService
     /** 同步生成目录，只撤销已移除的资源；保留未变权限的 ID、角色及字段授权。 */
     public function pruneSource(string $sourceType, string $sourceName, array $permissionCodes, array $menus): void
     {
-        $codes = array_map([PermissionResource::class, 'canonicalCode'], $permissionCodes);
+        $codes = array_map([self::class, 'normalizeCode'], $permissionCodes);
         $menuKeys = [];
         foreach ($menus as $menu) {
             $href = trim((string) ($menu['href'] ?? ''));
             $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
-            $code = PermissionResource::canonicalCode((string) ($menu['permission'] ?? ''));
+            $code = self::normalizeCode((string) ($menu['permission'] ?? ''));
             $menuKeys[$href . "\0" . $this->queryWithPermission((string) ($menu['query'] ?? ''), $code)] = true;
         }
         Db::transaction(function () use ($sourceType, $sourceName, $codes, $menuKeys): void {
@@ -134,7 +110,7 @@ class ResourceRegistryService extends AbstractService
         }
         Db::transaction(function () use ($permissions, $sourceType, $sourceName): void {
             foreach ($permissions as $item) {
-                $code = PermissionResource::canonicalCode((string) ($item['code'] ?? ''));
+                $code = self::normalizeCode((string) ($item['code'] ?? ''));
                 if ($code === '' || !preg_match('/^[a-z][a-z0-9]*:[a-z][a-z0-9:-]*$/', $code)) {
                     continue;
                 }
@@ -260,6 +236,11 @@ class ResourceRegistryService extends AbstractService
         PermissionField::whereIn('id', $fieldIds)->delete();
     }
 
+    private static function normalizeCode(string $code): string
+    {
+        return strtolower(trim($code));
+    }
+
     private function registerItems(array $items, int $parentPermissionId, int $parentMenuId, string $appName, string $sourceType, string $sourceName): void
     {
         foreach ($items as $item) {
@@ -267,8 +248,8 @@ class ResourceRegistryService extends AbstractService
             $href = trim((string) ($item['href'] ?? $item['path'] ?? ''));
             $href = str_starts_with($href, '/') ? '/' . strtolower(trim($href, '/')) : strtolower(trim($href, '/'));
             $itemAppName = in_array($sourceType, ['admin_web', 'generated', 'plugin'], true) ? 'admin' : (strtolower(trim((string) ($item['appName'] ?? $appName))) ?: 'admin');
-            $referencedCode = PermissionResource::canonicalCode((string) ($item['permission'] ?? ''));
-            $resource = $children || $referencedCode !== '' ? null : PermissionResource::fromRoute($itemAppName, $href);
+            $referencedCode = self::normalizeCode((string) ($item['permission'] ?? ''));
+            // 叶子菜单必须引用已登记的路由或能力权限；未引用权限的节点登记为分组。
             $isMenu = (int) ($item['type'] ?? 1) === 1 && (int) ($item['visible'] ?? 1) === 1;
             if ($referencedCode !== '') {
                 $permission = Permission::where('code', $referencedCode)->first();
@@ -284,13 +265,12 @@ class ResourceRegistryService extends AbstractService
                     throw new RuntimeException('菜单权限归属冲突：' . $referencedCode);
                 }
             } else {
-                $permissionWhere = $resource ? ['code' => $resource['code']] : ['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'name' => (string) ($item['name'] ?? ''), 'source_type' => $sourceType, 'source_name' => $sourceName];
-                $permission = Permission::where($permissionWhere)->first();
+                $permission = Permission::where(['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'name' => (string) ($item['name'] ?? ''), 'source_type' => $sourceType, 'source_name' => $sourceName])->first();
                 if ($permission && ((string) $permission->source_type !== $sourceType || (string) $permission->source_name !== $sourceName || (string) $permission->app_name !== $itemAppName)) {
-                    throw new RuntimeException('菜单权限归属冲突：' . (string) ($resource['code'] ?? $item['name'] ?? ''));
+                    throw new RuntimeException('菜单权限归属冲突：' . (string) ($item['name'] ?? ''));
                 }
                 $permission ??= new Permission();
-                $permission->forceFill(['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'code' => $resource['code'] ?? null, 'obj' => $resource['obj'] ?? '', 'act' => $resource['act'] ?? '', 'name' => (string) ($item['name'] ?? ''), 'resource_type' => $resource ? Permission::TYPE_ROUTE : Permission::TYPE_GROUP, 'status' => (int) ($item['status'] ?? 1), 'is_public' => (int) ($item['is_public'] ?? 0), 'sort_order' => (int) ($item['sort'] ?? 999), 'source_type' => $sourceType, 'source_name' => $sourceName])->save();
+                $permission->forceFill(['pid' => $parentPermissionId, 'app_name' => $itemAppName, 'code' => null, 'obj' => '', 'act' => '', 'name' => (string) ($item['name'] ?? ''), 'resource_type' => Permission::TYPE_GROUP, 'status' => (int) ($item['status'] ?? 1), 'is_public' => (int) ($item['is_public'] ?? 0), 'sort_order' => (int) ($item['sort'] ?? 999), 'source_type' => $sourceType, 'source_name' => $sourceName])->save();
             }
             $menuId = $parentMenuId;
             if ($isMenu) {

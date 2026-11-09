@@ -47,18 +47,6 @@ root.style.setProperty('--el-color-primary-dark-2', mix(黑, 20%));
 
 `src/components/Setting/index.vue` 提供颜色选取器 + 推荐色板。用户改完后会自动 `setPrimaryColor`。
 
-### 2.3 默认主色历史迁移
-
-老用户的 localStorage 可能锁着旧默认色（`#2c7be5`、`#165dff`），刷新后还是旧色。`main.ts` 在 `applyTheme()` 之前调了一次：
-
-```ts
-appStore.migrateLegacyPrimary();
-```
-
-逻辑：**仅当当前主色 == 某个历史默认值时**才替换为新默认 `#5D87FF`，自定义色不受影响。
-
-新增历史默认色（项目改默认主色时）需要把旧值追加到 `LEGACY_DEFAULT_PRIMARIES`。
-
 ---
 
 ## 三、预设主题方案

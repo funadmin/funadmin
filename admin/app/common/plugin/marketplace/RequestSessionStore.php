@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\plugin\marketplace;
 
-final class ThinkSessionStore implements SessionStore
+/** 插件市场账号会话存储：读写当前 webman 请求的 session。 */
+final class RequestSessionStore implements SessionStore
 {
     public function get(string $key): mixed
     {

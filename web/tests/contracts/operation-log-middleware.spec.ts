@@ -10,7 +10,6 @@ const controller = readProjectFile('admin/app/admin/system/controller/SystemOper
 const model = readProjectFile('admin/app/admin/system/model/AdminLog.php');
 const api = readProjectFile('web/src/admin/api/system/log.ts');
 const view = readProjectFile('web/src/admin/views/system/log/operation.vue');
-const migration = readProjectFile('admin/database/core/migrations/archive/012_admin_log_audit.sql');
 
 describe('操作日志中间件契约', () => {
   it('控制器执行完成后实际持久化成功及业务失败状态', () => {
@@ -61,20 +60,6 @@ describe('操作日志中间件契约', () => {
     expect(audit).toMatchObject({ preserved: true, status: 0, requestId: 'contract-audit-request', errorMessage: 'DomainException' });
     expect((audit as { durationMs: number }).durationMs).toBeGreaterThanOrEqual(0);
     expect(JSON.stringify(audit)).not.toContain('must-not-be-logged');
-  });
-
-  it('数据库迁移统一应用与来源字段并增加查询索引', () => {
-    for (const field of ['response_code', 'duration_ms', 'request_id', 'error_message', 'source_type']) {
-      expect(migration).toContain(`COLUMN_NAME = '${field}'`);
-    }
-    expect(migration).toContain('CHANGE COLUMN `module` `app_name`');
-    expect(migration).toContain('CHANGE COLUMN `plugins` `source_name`');
-    expect(migration).toContain("WHEN `source_name` IS NULL OR TRIM(`source_name`) = '' OR `source_name` = 'app' THEN 'system'");
-    expect(migration).toContain("WHEN `source_name` IS NULL OR TRIM(`source_name`) = '' OR `source_name` = 'app' THEN 'core'");
-    for (const index of ['idx_admin_log_admin_time', 'idx_admin_log_app_time', 'idx_admin_log_source_time', 'idx_admin_log_status_time', 'idx_admin_log_create_time']) {
-      expect(migration).toContain(`INDEX_NAME = '${index}'`);
-    }
-    expect(migration).not.toMatch(/\b(?:DROP|TRUNCATE|RENAME)\b/i);
   });
 
   it('服务与前端统一使用应用及来源字段', () => {

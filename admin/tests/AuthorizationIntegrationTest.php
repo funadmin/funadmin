@@ -241,26 +241,26 @@ final class AuthorizationIntegrationTest extends TestCase
     public function test_node_authorization_uses_webman_identity_and_observes_revocation(): void
     {
         $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$role->id]);
         $casbin->syncRolePermissions($role->id, [10]);
         $this->asActor(2);
         $authorization = new \app\admin\authorization\service\AdminAuthorizationService();
-        self::assertTrue($authorization->nodeAccess('demo/page/read'));
-        self::assertFalse($authorization->nodeAccess('demo/page/write'));
+        self::assertTrue($authorization->nodeAccess('demo:page:read'));
+        self::assertFalse($authorization->nodeAccess('demo:page:write'));
         $casbin->syncRolePermissions($role->id, []);
-        self::assertFalse($authorization->nodeAccess('demo/page/read'));
+        self::assertFalse($authorization->nodeAccess('demo:page:read'));
         $this->asActor(0);
-        self::assertFalse($authorization->nodeAccess('demo/page/read'));
+        self::assertFalse($authorization->nodeAccess('demo:page:read'));
     }
 
     public function test_node_authorization_does_not_keep_a_previous_request_identity(): void
     {
         $authorization = new \app\admin\authorization\service\AdminAuthorizationService();
-        self::assertTrue($authorization->nodeAccess('admin/systemrole/index'));
+        self::assertTrue($authorization->nodeAccess('system:role:index'));
         $this->asActor(0);
-        self::assertFalse($authorization->nodeAccess('admin/systemrole/index'));
+        self::assertFalse($authorization->nodeAccess('system:role:index'));
     }
 
     public function test_administrator_read_requires_explicit_permission(): void
@@ -317,13 +317,13 @@ final class AuthorizationIntegrationTest extends TestCase
     {
         $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
         $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'level' => 20, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$child->id]);
         $casbin->syncRoleInheritance($child->id, [$parent->id]);
         $casbin->syncRolePermissions($parent->id, [10]);
         self::assertTrue($casbin->enforceAdmin(2, 'demo/page', 'read'));
-        self::assertContains('demo:read', (new AuthorizationService())->permissionCodes(2));
+        self::assertContains('demo:page:read', (new AuthorizationService())->permissionCodes(2));
         self::assertContains(10, (new \app\admin\authorization\service\RoleScopeService())->permissionIdsForRoles([$child->id]));
         $casbin->syncRoleInheritance($child->id, []);
         self::assertFalse($casbin->enforceAdmin(2, 'demo/page', 'read'));
@@ -332,7 +332,7 @@ final class AuthorizationIntegrationTest extends TestCase
     public function test_independent_authorizers_observe_revocation_and_transaction_rollback(): void
     {
         $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
         $writer = new CasbinService();
         $reader = new CasbinService();
         $writer->syncAdminRoles(2, [$role->id]);
@@ -482,7 +482,7 @@ final class AuthorizationIntegrationTest extends TestCase
     {
         $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
         $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$child->id]);
         $casbin->syncRolePermissions($parent->id, [10]);
@@ -503,7 +503,7 @@ final class AuthorizationIntegrationTest extends TestCase
         $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
         Db::table('permission')->insert([
             ['id' => 10, 'pid' => 0, 'name' => '写入', 'code' => 'demo:write', 'obj' => 'demo/page', 'act' => 'write', 'resource_type' => 'capability'],
-            ['id' => 11, 'pid' => 10, 'name' => '查看', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability'],
+            ['id' => 11, 'pid' => 10, 'name' => '查看', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability'],
         ]);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$role->id]);
@@ -517,7 +517,7 @@ final class AuthorizationIntegrationTest extends TestCase
     public function test_disabled_role_keeps_direct_grants_for_the_workspace_but_cannot_authorize(): void
     {
         $role = AuthGroup::forceCreate(['name' => '查看者', 'code' => 'reader', 'level' => 10, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$role->id]);
         $casbin->syncRolePermissions($role->id, [10]);
@@ -532,7 +532,7 @@ final class AuthorizationIntegrationTest extends TestCase
         $parent = AuthGroup::forceCreate(['name' => '上级', 'code' => 'parent', 'level' => 10, 'status' => 1]);
         $bridge = AuthGroup::forceCreate(['name' => '中间角色', 'code' => 'bridge', 'pid' => $parent->id, 'level' => 20, 'status' => 1]);
         $child = AuthGroup::forceCreate(['name' => '下级', 'code' => 'child', 'pid' => $bridge->id, 'level' => 30, 'status' => 1]);
-        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
+        Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:page:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
         $casbin = new CasbinService();
         $casbin->syncAdminRoles(2, [$child->id]);
         $casbin->syncRolePermissions($parent->id, [10]);

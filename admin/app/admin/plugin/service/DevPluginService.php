@@ -60,7 +60,6 @@ final class DevPluginService
                 $records[(string) $record->code] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,
-                    'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
                 ];
             }
             return $records;

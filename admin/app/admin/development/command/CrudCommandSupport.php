@@ -21,7 +21,7 @@ trait CrudCommandSupport
         }
         $data = json_decode((string) file_get_contents($realPath), true, 512, JSON_THROW_ON_ERROR);
         if (!is_array($data) || !isset($data['schemaVersion'])) {
-            throw new InvalidArgumentException('旧 CRUD 配置已弃用，请使用版本化 CRUD Definition');
+            throw new InvalidArgumentException('CRUD Definition 缺少 schemaVersion');
         }
         return CrudDefinition::fromInput($data);
     }

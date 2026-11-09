@@ -227,7 +227,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $pdo = new \PDO('sqlite::memory:');
             $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
             $executor = new ListButtonExecutor($registry, bin2hex(random_bytes(32)), new ListActionStore($pdo, 'list_actions'));
-            $binding = ['formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/business.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection];
+            $binding = ['formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'business:console-order', 'table' => $prefix . 'console_order', 'connection' => $connection];
             $granted = [];
             $service = new \app\admin\form\service\FormDataService(permissionChecker: static function (string $permission) use (&$granted): bool {
                 $granted[] = $permission;
@@ -316,7 +316,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
             $executor = new ListButtonExecutor((new FormRegistryFactory([], null, $generated))->actions(), bin2hex(random_bytes(32)), new ListActionStore($pdo, 'list_actions'));
             $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: [
-                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/business.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection]);
+                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'business:console-order', 'table' => $prefix . 'console_order', 'connection' => $connection]);
 
             $row = ['buttonId' => 'approve-row', 'location' => 'row', 'schemaHash' => $schema->hash(), 'ids' => [$second], 'idempotencyKey' => 'row-1'];
             $confirmation = $service->executeListButton('console_order', $row, $executor);
@@ -359,7 +359,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
             $secret = bin2hex(random_bytes(32));
             $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: [
-                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'admin/business.consoleordercontroller', 'table' => $prefix . 'console_order', 'connection' => $connection]);
+                'formKey' => 'console_order', 'schemaHash' => $schema->hash(), 'route' => 'business:console-order', 'table' => $prefix . 'console_order', 'connection' => $connection]);
             $run = function (callable $handler, string $nonce) use ($definitions, $secret, $pdo, $service, $schema, $record): callable {
                 $definitions['business.console-order.approve']['handler'] = $handler;
                 $executor = new ListButtonExecutor(new \app\common\form\action\FormActionRegistry($definitions), $secret, new ListActionStore($pdo, 'list_actions'));

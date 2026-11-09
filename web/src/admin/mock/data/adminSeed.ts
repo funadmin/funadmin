@@ -43,7 +43,7 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     parentRoleIds: [],
     departmentIds: [],
     permissionIds: [],
-    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 200, 201, 202, 203, 207, 300, 301],
+    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 200, 201, 207, 300, 301],
     createdAt: unixToDatetime(1554298659)
   },
   {
@@ -437,13 +437,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'development:business:modules',
-          children: [
-            { id: 202, parentId: 201, routeName: 'BusinessMine', path: '/development/business/', redirect: '/development/business/mine', component: 'development/business/mine', type: 'C', name: '代码生成', sort: 10, hidden: true, keepAlive: true, affix: false, permission: 'development:business:modules' },
-            { id: 203, parentId: 201, routeName: 'BusinessVisual', path: '/development/business/visual', component: 'development/business/visual', type: 'C', name: '可视化创建', sort: 20, hidden: true, keepAlive: false, affix: false, permission: 'development:business:create-visual' },
-            { id: 204, parentId: 201, routeName: 'BusinessDatabase', path: '/development/business/database', component: 'development/business/database', type: 'C', name: '从数据库生成', sort: 30, hidden: true, keepAlive: false, affix: false, permission: 'development:business:inspect-database' },
-            { id: 205, parentId: 201, routeName: 'BusinessRecords', path: '/development/business/records', component: 'development/business/records', type: 'C', name: '生成与发布记录', sort: 40, hidden: true, keepAlive: true, affix: false, permission: 'development:business:generations' }
-          ]
+          permission: 'development:business:modules'
         },
         { id: 207, parentId: 200, routeName: 'AiDevelopment', path: 'ai', component: 'development/ai/index', type: 'C', icon: 'i-ep-cpu', name: 'AI 开发助手', sort: 30, hidden: false, keepAlive: true, affix: false, permission: 'development:ai:view' },
         { id: 206, parentId: 200, routeName: 'BusinessDesigner', path: 'business/designer', component: 'form/designer/index', type: 'C', name: '业务设计器', sort: 90, hidden: true, keepAlive: false, affix: false, permission: 'development:business:save-schema' }

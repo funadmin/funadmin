@@ -119,12 +119,11 @@ class PluginActivationReader
     private function validPlugin(mixed $plugin, string $code): bool
     {
         if (!is_array($plugin)
-            || array_keys(array_diff_key($plugin, array_flip(['serverHooks', 'serverHookFiles']))) !== ['code', 'state', 'enabled', 'needs_reinstall', 'operation_token', 'version', 'package_hash', 'dependencies', 'applications']
+            || array_keys(array_diff_key($plugin, array_flip(['serverHooks', 'serverHookFiles']))) !== ['code', 'state', 'enabled', 'operation_token', 'version', 'package_hash', 'dependencies', 'applications']
             || $plugin['code'] !== $code
             || preg_match('/^[a-z][a-z0-9]*$/', $code) !== 1
             || !is_string($plugin['state'])
             || !is_bool($plugin['enabled'])
-            || !is_bool($plugin['needs_reinstall'])
             || (!is_null($plugin['operation_token']) && !is_string($plugin['operation_token']))
             || !is_string($plugin['version'])
             || !is_string($plugin['package_hash'])

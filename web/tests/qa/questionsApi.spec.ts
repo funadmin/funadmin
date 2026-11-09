@@ -23,7 +23,7 @@ it('uses the configured backend origin for independently hosted community and me
  const {questionsApi}=await import('../../src/web/api/questions');await questionsApi.questions({site_id:'7',locale:'en-us'});
  const {memberAuthApi}=await import('../../src/web/api/memberAuth');await memberAuthApi.login({account:'member',password:'example'});
  expect(axios.getUri(calls[0])).toBe('https://backend.example.test/qa/api/questions?site_id=7&locale=en-us&q=&page=1');
- expect(axios.getUri(calls[1])).toBe('https://backend.example.test/api/v3/auth/login');
+ expect(axios.getUri(calls[1])).toBe('https://backend.example.test/api/v2/token');expect(calls[1]!.data).toBe(JSON.stringify({username:'member',password:'example'}));
 });
 it('clears revoked membership on a real HTTP 401 response',async()=>{
  axios.defaults.adapter=async config=>Promise.reject({response:{status:401,data:{code:401,msg:'令牌已失效'}},config});

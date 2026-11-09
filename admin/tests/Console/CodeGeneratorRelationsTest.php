@@ -27,9 +27,9 @@ final class CodeGeneratorRelationsTest extends TestCase
     /** 修改关联生成前记录的无关联模块基准（definitionHash 与全部生成文件 sha256）。 */
     private const PLAIN_BASELINE = [
         'core' => [
-            'definitionHash' => 'ca941664e4845b8d9555cc4848c41c6de150b95153aa8319e9f3ac8e9aa71316',
+            'definitionHash' => 'ba3ede61aca0d48ccc3d932ebc46adc96b7594ff24423a38d0f99f2bf6ea9799',
             'files' => [
-                'app/admin/business/shop_plain/controller/ShopPlainController.php' => '623f3831f1be57709610d178d71df6b3340beea44a8de36c9004a0559cd5ad3b',
+                'app/admin/business/shop_plain/controller/ShopPlainController.php' => 'd5bdfe07b1fcf59b23783a47bd38d138e6a15862985bec2227ae29da5e5e7672',
                 'app/admin/business/shop_plain/lang/en-us.php' => 'cf6264058cd19ba878b3828997d7bd5f0a93e6307ad7e9a8790311790c9acee4',
                 'app/admin/business/shop_plain/lang/zh-cn.php' => 'a08ac305ea247e7492bd78090c40caa66e875223c91dbee3cbfafc74fb86a692',
                 'app/admin/business/shop_plain/model/ShopPlain.php' => '3501b9f3424727574ad0c8de8ca7d21313d0e53532ae0998170cddccd2a92f53',
@@ -47,7 +47,7 @@ final class CodeGeneratorRelationsTest extends TestCase
             ],
         ],
         'plugin' => [
-            'definitionHash' => '23c7d6f59dd7d55b487245d78fdc5afb5785494b1e38c4465cc19807854a1503',
+            'definitionHash' => '9d196b6a36f680a8f663f4563b5eabbc5978e7ca3b63618e93112f7d97a47cd8',
             'files' => [
                 'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => '6f43e2318ad4976cee5a929ea898111b4cb942ca69f846c89be54a7fa34e5c27',
                 'plugins/shopkit/app/admin/plugins/shopkit/model/ShopPlain.php' => '735cbf06dc88f65462099000fa3e0f4536f4f0550e04d89ac3be3867c044e193',

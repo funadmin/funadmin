@@ -151,14 +151,13 @@ describe('混合布局菜单全树路由', () => {
     warn.mockRestore();
   });
 
-  it('Mock 业务开发直接展示列表，隐藏辅助入口并保留 AI', () => {
+  it('Mock 业务开发直接展示列表并保留 AI', () => {
     const menuSeed = getAdminMenuTreeSeed();
     const developmentMenu = menuSeed.find((menu) => menu.routeName === 'Development');
     const business = developmentMenu?.children?.find((menu) => menu.routeName === 'BusinessDevelopment');
     expect(business).toMatchObject({ path: 'business/mine', component: 'development/business/mine', type: 'C', permission: 'development:business:modules' });
     expect(business?.redirect).toBeUndefined();
-    expect(business?.children?.every((item) => item.hidden)).toBe(true);
-    expect(business?.children?.map((item) => item.routeName)).toEqual(['BusinessMine', 'BusinessVisual', 'BusinessDatabase', 'BusinessRecords']);
+    expect(business?.children ?? []).toEqual([]);
 
     const routes = generateRoutes(menuSeed);
     const router = createRouter({ history: createMemoryHistory(), routes });
@@ -167,7 +166,7 @@ describe('混合布局菜单全树路由', () => {
     expect(getVisibleMenuChildren(developmentRoute!).map((route) => route.name)).toEqual(['BusinessDevelopment', 'AiDevelopment']);
     expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/ai`).name).toBe('AiDevelopment');
     expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/designer?moduleId=1`).name).toBe('BusinessDesigner');
-    expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 202, 203, 207]));
+    expect(ADMIN_ROLE_ROWS[0].menuIds).toEqual(expect.arrayContaining([200, 201, 207]));
   });
 
   it('隐藏辅助入口保留权限、组件及 active 菜单，父子不重复注册路径', () => {
@@ -185,10 +184,10 @@ describe('混合布局菜单全树路由', () => {
     expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/mine`).matched.at(-1)?.components?.default).toBeTypeOf('function');
     const paths = router.getRoutes().map((route) => route.path);
     expect(new Set(paths).size).toBe(paths.length);
+    for (const path of ['visual', 'database', 'records']) {
+      expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/${path}`).matched, path).toEqual([]);
+    }
     for (const [path, name, permission] of [
-      ['visual', 'BusinessVisual', 'create-visual'],
-      ['database', 'BusinessDatabase', 'inspect-database'],
-      ['records', 'BusinessRecords', 'generations'],
       ['designer', 'BusinessDesigner', 'save-schema']
     ]) {
       const resolved = router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/${path}`);
@@ -202,26 +201,13 @@ describe('混合布局菜单全树路由', () => {
     expect(router.resolve(`${ADMIN_ROUTE_PREFIX}/development/business/mine`).meta.permission).toBe('development:business:modules');
   });
 
-  it('业务列表菜单与兼容入口中英文标题统一', () => {
-    expect(zh.menu).toMatchObject({ BusinessDevelopment: '代码生成', BusinessMine: '代码生成' });
-    expect(en.menu).toMatchObject({ BusinessDevelopment: 'Code Generator', BusinessMine: 'Code Generator' });
+  it('业务列表菜单中英文标题统一', () => {
+    expect(zh.menu).toMatchObject({ BusinessDevelopment: '代码生成' });
+    expect(en.menu).toMatchObject({ BusinessDevelopment: 'Code Generator' });
     const designer = staticRoutes.flatMap((route) => route.children || []).find((route) => route.name === 'BusinessDesigner');
     expect(designer?.meta?.activeMenu).toBe(`${ADMIN_ROUTE_PREFIX}/development/business/mine`);
   });
 
-  it('旧业务目录 URL 保留 query/hash 重定向到列表', async () => {
-    const routes = generateRoutes(getAdminMenuTreeSeed());
-    // 重定向测试只需真实路由配置，不加载页面依赖。
-    const stub = (items: RouteRecordRaw[]) => items.forEach((item) => {
-      item.component = { template: '页面' };
-      if (item.children) stub(item.children);
-    });
-    stub(routes);
-    const router = createRouter({ history: createMemoryHistory(), routes });
-    await router.push(`${ADMIN_ROUTE_PREFIX}/development/business?keyword=test#list`);
-    expect(router.currentRoute.value.fullPath).toBe(`${ADMIN_ROUTE_PREFIX}/development/business/mine?keyword=test#list`);
-    expect(router.currentRoute.value.name).toBe('BusinessDevelopment');
-  });
 
   it('TopMenu 首叶跳转与 Sidebar 路径解析一致', () => {
     const routes = generateRoutes(menus);
@@ -246,6 +232,22 @@ describe('混合布局菜单全树路由', () => {
       const resolved = router.resolve(path);
       expect(resolved.name, `${path} 不应命中 NotFound`).not.toBe('NotFound');
       expect(resolved.matched.length, `${path} 必须命中动态路由`).toBeGreaterThan(0);
+    }
+  });
+
+  it('component 只接受相对 views 的路径：前导 /、views/ 前缀与 .vue 后缀不再被规范化', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const page = (id: number, component: string): API.MenuItem => ({ id, parentId: 0, routeName: `Path${id}`, path: `/path-${id}`, component, type: 'C', name: component, sort: id, hidden: false, keepAlive: false, affix: false });
+    try {
+      generateRoutes([page(1, 'system/user/index'), page(2, '/views/system/user/index.vue'), page(3, 'views/system/user/index'), page(4, 'system/user/index.vue')]);
+      expect(warn).toHaveBeenCalledTimes(3);
+      expect(warn.mock.calls.map((call) => String(call[0]))).toEqual([
+        expect.stringContaining('/src/admin/views//views/system/user/index.vue.vue'),
+        expect.stringContaining('/src/admin/views/views/system/user/index.vue'),
+        expect.stringContaining('/src/admin/views/system/user/index.vue.vue')
+      ]);
+    } finally {
+      warn.mockRestore();
     }
   });
 

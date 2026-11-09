@@ -43,7 +43,7 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="t('formDesigner.optionsSource', '选项来源')">
-          <el-input :model-value="optionsJson" type="textarea" :rows="6" placeholder='{"mode":"static"}' @change="onOptionsJson" />
+          <el-input :model-value="optionsJson" type="textarea" :rows="6" placeholder='{"kind":"static"}' @change="onOptionsJson" />
         </el-form-item>
       </el-form>
     </el-collapse-item>
@@ -90,8 +90,7 @@ const loadDictTypes = async (visible = true) => {
 watch(() => props.field.type, (type) => { if (type === 'dictionary') void loadDictTypes(); }, { immediate: true });
 const updateDictionary = (value: string | undefined) => {
   const current = (props.field.options_source ?? {}) as Record<string, unknown>;
-  const { mode: _legacyMode, ...rest } = current;
-  patch({ options_source: { ...rest, kind: 'dictionary', dictionary: value ?? '' } });
+  patch({ options_source: { ...current, kind: 'dictionary', dictionary: value ?? '' } });
 };
 
 // 折叠项：字典控件默认展开数据源，避免必填的字典编码藏在折叠里。

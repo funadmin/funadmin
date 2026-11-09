@@ -152,7 +152,7 @@ class CrudFormSchemaExecutionTest extends TestCase
     public function test_list_button_loads_authorized_records_from_native_request_identity(): void
     {
         $root = \app\admin\business\console_form_tree\model\ConsoleFormTree::create(['title' => '仅服务端加载']);
-        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'admin/business.consoleformtreecontroller', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
+        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'business:console-form-tree', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
         $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: $binding);
         self::assertSame($this->hash, $service->listActionCatalog('console_form_tree', 'row', new \app\common\form\action\FormActionRegistry())['schemaHash']);
         $request = new \support\Request("POST /admin/business/console-form-tree/list-action HTTP/1.1\r\n\r\n");
@@ -204,7 +204,7 @@ class CrudFormSchemaExecutionTest extends TestCase
         $request = new \support\Request("POST /admin/business/console-form-tree/list-action HTTP/1.1\r\n\r\n");
         $request->context['admin'] = ['id' => 7];
         \support\Context::set(\Webman\Http\Request::class, $request);
-        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'admin/business.consoleformtreecontroller', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
+        $binding = ['formKey' => 'console_form_tree', 'schemaHash' => $this->hash, 'route' => 'business:console-form-tree', 'table' => Db::connection()->getTablePrefix() . 'console_form_tree', 'connection' => (string) config('database.default')];
         $service = new \app\admin\form\service\FormDataService(permissionChecker: static fn (): bool => true, productionBinding: $binding);
         $calls = 0;
         $actions = new \app\common\form\action\FormActionRegistry(['tree.mark' => [

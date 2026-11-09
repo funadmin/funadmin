@@ -170,7 +170,7 @@ Manifest 的可选声明示例：
 }
 ```
 
-> 不兼容变更：旧字段 `backendHooks` / `frontendHooks` 已更名为 `serverHooks` / `clientHooks`，且不再兼容。仍使用旧字段的 `plugin.json` 会在安装时被拒绝；已安装的旧插件会在重建激活快照（`php webman plugin:activation-cache` 或任意生命周期操作）时被标记为“需要重新安装”，其钩子不再生效，需改用新字段后重新安装。激活快照 `schema_version` 同步升级为 2，升级后必须重建一次快照，否则旧快照会被判定为不可信。
+> 钩子字段为 `serverHooks` / `clientHooks`；`plugin.json` 不接受其他顶层字段，未知字段在 Schema 校验时被拒绝。激活快照当前 `schema_version` 为 3，快照格式变化后必须执行 `php webman plugin:activation-cache` 重建一次，否则旧快照会被判定为不可信。
 
 私有 `hooks/pricing.php` 返回具名 callable 映射：
 

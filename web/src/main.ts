@@ -44,9 +44,6 @@ async function bootstrap() {
   // 后端译文包覆盖静态语言包；失败时内部回落缓存/静态包。
   void applyRemotePack(appStore.locale);
 
-  // 历史默认主色无感迁移（老 localStorage 里若是旧默认色，自动换成新默认色）
-  appStore.migrateLegacyPrimary();
-
   // 提前把主题 CSS 变量（含 --el-color-primary 派生色）写到 :root，
   // 避免首屏 / Teleport 弹窗（ElMessageBox 等）拿到 EP 默认 #409eff
   appStore.applyTheme();

@@ -6,13 +6,7 @@ const root = resolve(process.cwd(), '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
 describe('统一表单发布引擎契约', () => {
-  it('提供发布状态迁移与模型 JSON 配置', () => {
-    const migrationPath = resolve(root, 'admin/database/core/migrations/archive/066_form_publish_engine.sql');
-    expect(existsSync(migrationPath)).toBe(true);
-    const migration = readFileSync(migrationPath, 'utf8');
-    for (const column of ['publish_config', 'publish_status', 'published_at', 'crud_generation_id', 'published_definition_hash']) {
-      expect(migration).toContain(column);
-    }
+  it('表单模型声明发布配置 JSON 字段', () => {
     expect(read('admin/app/admin/form/model/Form.php')).toContain("'publish_config'");
   });
 
@@ -21,7 +15,8 @@ describe('统一表单发布引擎契约', () => {
     expect(existsSync(factoryPath)).toBe(true);
     const factory = readFileSync(factoryPath, 'utf8');
     expect(factory).toContain('final class FormCrudDefinitionFactory');
-    expect(factory).toContain('public function create(');
+    expect(factory).toContain('public function createFromSchema(');
+    expect(factory).not.toContain('public function create(');
     for (const key of ['generationTargets', 'permissionPrefix', 'listFormatter', 'listWidth', 'layoutSchema']) {
       expect(factory).toContain(`'${key}'`);
     }
@@ -47,19 +42,10 @@ describe('统一表单发布引擎契约', () => {
     expect(orchestration).toContain('formalGeneration(');
   });
 
-  it('多级表单控制器发布权限可被 nodeAccess 正确解析', () => {
+  it('运行时权限检查器 nodeAccess 只按权限码判断', () => {
     const authorization = read('admin/app/admin/authorization/service/AdminAuthorizationService.php');
-    expect(authorization).toContain("preg_match('/^[a-z][a-z0-9_.-]*$/', $object)");
-    const migration = read('admin/database/core/migrations/archive/066_form_publish_engine.sql');
-    for (const code of ['console/form.designer:previewpublish', 'console/form.designer:publish', 'console/form.designer:publishstatus', 'console/form.designer:retryresources', 'form:publish:overwrite', 'form:publish:apply-resources']) {
-      expect(migration).toContain(code);
-    }
-    expect(migration).toContain('CONVERT(X\'');
-    expect(migration).not.toMatch(/'[\u4e00-\u9fff]+(?:[\u4e00-\u9fff/ ]*)'/);
-    const fullMigration = read('admin/database/core/migrations/archive/079_form_full_publish_permissions.sql');
-    for (const action of ['preview', 'publish', 'status', 'generation', 'retryresources']) {
-      expect(fullMigration).toContain(`console/form.full-publish:${action}`);
-    }
+    expect(authorization).toContain("preg_match('/^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/D', $code)");
+    expect(authorization).not.toContain('legacyMap');
   });
 
   it('CRUD Definition 接受完整筛选、格式化和布局元数据', () => {
@@ -152,7 +138,7 @@ describe('统一表单发布引擎契约', () => {
 
   it('生成菜单优先独立源码并使用预置发布宿主兜底', () => {
     const router = read('web/src/admin/router/dynamic.ts');
-    expect(router).toContain("normalized.startsWith('business/')");
+    expect(router).toContain("component.startsWith('business/')");
     expect(router).toContain("import('@/views/form/published.vue')");
     expect(router).toContain("import { resolveMenuPath, adminRoutePath } from '@/utils/route'");
     expect(existsSync(resolve(root, 'web/src/admin/views/form/published.vue'))).toBe(true);

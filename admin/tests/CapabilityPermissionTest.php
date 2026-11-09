@@ -15,8 +15,8 @@ use support\Db;
 use support\Request;
 
 /**
- * 能力权限与代码中的权限判断：原 nodeAccess('模块/资源/操作') 调用点改为 can('模块:资源:操作') 后结果不变；
- * 仍以旧接口资源路径判断的动态调用（表单数据源、列表资源目录）按冻结映射换算为推导码。
+ * 能力权限与代码中的权限判断：can() 与运行时权限检查器 nodeAccess() 都按权限码判断，结果一致；
+ * nodeAccess 不再接受资源路径（模块/资源/操作）。
  */
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState(false)]
@@ -49,13 +49,14 @@ final class CapabilityPermissionTest extends TestCase
         Context::destroy();
     }
 
-    public function test_capability_checks_by_code_match_the_previous_resource_path_checks(): void
+    public function test_capability_checks_by_code_agree_between_can_and_node_access(): void
     {
         $authorization = new AdminAuthorizationService();
         foreach (self::CAPABILITIES as $granted) {
             (new CasbinService())->syncRolePermissions(2, Db::table('permission')->where('code', $granted)->pluck('id')->all());
             foreach (self::CAPABILITIES as $code) {
-                self::assertSame($authorization->nodeAccess(str_replace(':', '/', $code)), $authorization->can($code), "授予 $granted 时 $code 的判断不一致");
+                self::assertSame($authorization->nodeAccess($code), $authorization->can($code), "授予 $granted 时 $code 的判断不一致");
+                self::assertFalse($authorization->nodeAccess(str_replace(':', '/', $code)), "资源路径 $code 不再被接受");
                 self::assertSame($code === $granted, $authorization->can($code));
             }
         }
@@ -70,15 +71,12 @@ final class CapabilityPermissionTest extends TestCase
         Db::table('auth_group')->insert(['id' => 3, 'name' => '无动作', 'code' => 'cap_other', 'level' => 10, 'data_scope' => 'all', 'status' => 1]);
         (new CasbinService())->syncAdminRoles(3, [3]);
         $authorization = new AdminAuthorizationService();
-        $before = [$authorization->nodeAccess('business/shop-order/action-approve'), $authorization->nodeAccess('development/business/generate')];
         self::assertSame([false, false], [$authorization->nodeAccess($code), $authorization->can($code)]);
 
         (new CasbinService())->syncRolePermissions(2, Db::table('permission')->where('code', $code)->pluck('id')->all());
         self::assertSame([true, true], [$authorization->nodeAccess($code), $authorization->can($code)]);
-        // 资源路径（obj/act）判断不受影响：同一资源仍按 obj/act 放行，未授予的能力仍拒绝。
-        self::assertSame([false, false], $before);
-        self::assertTrue($authorization->nodeAccess('business/shop-order/action-approve'));
-        self::assertFalse($authorization->nodeAccess('development/business/generate'));
+        // 资源路径（obj/act）写法即使对应已授予的权限也拒绝。
+        self::assertFalse($authorization->nodeAccess('business/shop-order/action-approve'));
         // 未建权限行的码、以及未授予该权限的角色一律拒绝。
         self::assertFalse($authorization->nodeAccess('business:shop-order:action-reject'));
         $other = new Request("GET /admin/x HTTP/1.1\r\n\r\n");
@@ -87,26 +85,13 @@ final class CapabilityPermissionTest extends TestCase
         self::assertSame([false, false], [$authorization->nodeAccess($code), $authorization->can($code)]);
     }
 
-    public function test_legacy_route_resource_paths_translate_to_the_renamed_codes(): void
-    {
-        $authorization = new AdminAuthorizationService();
-        $map = require dirname(__DIR__) . '/database/permission-maps/host-per-method.php';
-        foreach (['admin/form.data|meta', 'admin/development.business|saveschema', 'admin/development.devplugin|options', 'admin/form.data|index'] as $legacy) {
-            [$obj, $act] = explode('|', $legacy);
-            self::assertFalse($authorization->nodeAccess($obj . '/' . $act), $legacy);
-            (new CasbinService())->syncRolePermissions(2, Db::table('permission')->whereIn('code', $map[$legacy])->pluck('id')->all());
-            self::assertTrue($authorization->nodeAccess($obj . '/' . $act), $legacy);
-            self::assertTrue($authorization->can($map[$legacy][0]), $legacy);
-            (new CasbinService())->syncRolePermissions(2, []);
-        }
-    }
-
-    public function test_a_single_split_code_does_not_satisfy_its_legacy_resource_path(): void
+    public function test_form_runtime_codes_are_checked_directly(): void
     {
         $authorization = new AdminAuthorizationService();
         (new CasbinService())->syncRolePermissions(2, Db::table('permission')->where('code', 'form:data:mutate-left-tree')->pluck('id')->all());
-        self::assertFalse($authorization->nodeAccess('admin/form.data/index'), '只授予拆分出的一个码，不能通过旧资源路径检查');
-        self::assertTrue($authorization->can('form:data:mutate-left-tree'));
+        self::assertTrue($authorization->nodeAccess('form:data:mutate-left-tree'));
+        self::assertFalse($authorization->nodeAccess('form:data:index'), '授予一个码不隐含同资源的其他码');
+        self::assertFalse($authorization->nodeAccess('admin/form.data/index'), '旧资源路径不再被换算');
     }
 
     public function test_static_call_sites_no_longer_use_resource_paths(): void

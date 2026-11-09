@@ -500,14 +500,18 @@ describe('CodePreviewDialog', () => {
     expect(button(wrapper, 'generate').attributes('disabled')).toBeUndefined();
   });
 
-  // 后端 BusinessApiErrorMapper 把 FormSchemaException 映射为 VALIDATION_ERROR 并透出原文；同时兼容直接透传的 FORM_SCHEMA_NOT_PUBLISHED。
-  const notPublishedErrors = {
-    mapped: { code: 422, msg: '表单尚未发布', data: { error: { code: 'VALIDATION_ERROR', requestId: 'req-np', retryable: false, details: {} } } },
-    direct: { code: 422, msg: '表单尚未发布', data: { error: { code: 'FORM_SCHEMA_NOT_PUBLISHED', requestId: 'req-np', retryable: false, details: {} } } }
-  };
+  // 后端 BusinessApiErrorMapper 返回稳定错误码 FORM_SCHEMA_NOT_PUBLISHED；前端只按错误码识别。
+  const notPublishedError = { code: 422, msg: '表单尚未发布', data: { error: { code: 'FORM_SCHEMA_NOT_PUBLISHED', requestId: 'req-np', retryable: false, details: {} } } };
 
-  it.each(Object.entries(notPublishedErrors))('表单从未发布（%s）：显示说明提示而非原始错误，「动态发布」可用，保留「重新预览」', async (_name, error) => {
-    mocks.previewFormalGeneration.mockRejectedValueOnce(error);
+  it('同文案的 VALIDATION_ERROR 不被当作未发布', async () => {
+    mocks.previewFormalGeneration.mockRejectedValueOnce({ ...notPublishedError, data: { error: { ...notPublishedError.data.error, code: 'VALIDATION_ERROR' } } });
+    const wrapper = render();
+    await flushPromises();
+    expect(wrapper.find('[data-preview-unpublished]').exists()).toBe(false);
+  });
+
+  it('表单从未发布：显示说明提示而非原始错误，「动态发布」可用，保留「重新预览」', async () => {
+    mocks.previewFormalGeneration.mockRejectedValueOnce(notPublishedError);
     const wrapper = render();
     await flushPromises();
     const alert = wrapper.find('[data-preview-unpublished]');
@@ -522,7 +526,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('表单从未发布：在弹窗内动态发布成功后自动重新预览', async () => {
-    mocks.previewFormalGeneration.mockRejectedValueOnce(notPublishedErrors.mapped);
+    mocks.previewFormalGeneration.mockRejectedValueOnce(notPublishedError);
     mocks.module.mockResolvedValue({ module: coreModule, form: { schema_document: { key: 'shop_goods' }, schema_hash: 'h1', publish_config: {} } });
     mocks.previewPublish.mockResolvedValue({ formDependencyHash: 'dep' });
     mocks.publish.mockResolvedValue({});
@@ -537,7 +541,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('表单从未发布的插件目标：提示先在表单设计器保存并发布', async () => {
-    mocks.previewFormalGeneration.mockRejectedValueOnce(notPublishedErrors.mapped);
+    mocks.previewFormalGeneration.mockRejectedValueOnce(notPublishedError);
     const wrapper = render(pluginModule);
     await flushPromises();
     expect(wrapper.find('[data-preview-unpublished]').text()).toContain('请先在表单设计器保存并发布后再预览。');

@@ -147,7 +147,7 @@ const syncDraft = (): void => {
   validation.value = clone((props.node.validation ?? []).map((rule) => ({ ...createValidationRule(), ...rule })) as DesignerValidationRule[]);
   conditions.value = clone((props.node.conditions ?? []).map((rule) => ({ ...createConditionRule(), ...(rule as DesignerConditionRule) })) as DesignerConditionRule[]);
   replaceReactive(events, clone(props.node.events ?? {}) as Record<string, unknown>);
-  replaceReactive(dataSource, { ...createDataSource((props.node.dataSource?.kind ?? props.node.dataSource?.mode ?? 'static') as DataSourceKind), ...(clone(props.node.dataSource ?? {}) as object) });
+  replaceReactive(dataSource, { ...createDataSource((props.node.dataSource?.kind ?? 'static') as DataSourceKind), ...(clone(props.node.dataSource ?? {}) as object) });
   replaceReactive(access, { read: [], write: [], include: 'auto', ...(clone(props.node.access ?? {}) as object) });
 };
 watch(() => props.node, syncDraft, { immediate: true, deep: true });

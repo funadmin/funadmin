@@ -122,21 +122,23 @@ final class PluginLayoutExecutionTest extends TestCase
         }
     }
 
-    public static function undeclaredLegacyRoots(): array
-    {
-        return [['web/pages', 'adminWeb'], ['resources/public', 'resources'], ['migrations', 'migrations']];
-    }
-
-    #[\PHPUnit\Framework\Attributes\DataProvider('undeclaredLegacyRoots')]
-    public function test_undeclared_old_physical_directories_are_rejected(string $path, string $declaration): void
+    public function test_undeclared_web_directory_outside_the_unified_layout_is_rejected(): void
     {
         $directory = $this->root . '/layoutfixture';
         $manifest = json_decode(file_get_contents($directory . '/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
-        unset($manifest[$declaration]);
-        mkdir($directory . '/' . $path, 0755, true);
+        unset($manifest['adminWeb']);
+        mkdir($directory . '/web/pages', 0755, true);
         file_put_contents($directory . '/plugin.json', json_encode($manifest, JSON_THROW_ON_ERROR));
         $this->expectException(\RuntimeException::class);
         Manifest::fromDirectory($directory);
+    }
+
+    /** 未声明的目录不参与安装与发布，不再作为旧布局拒绝。 */
+    public function test_undeclared_stray_directories_are_ignored(): void
+    {
+        $directory = $this->root . '/layoutfixture';
+        foreach (['resources/public', 'migrations'] as $path) mkdir($directory . '/' . $path, 0755, true);
+        self::assertSame('layoutfixture', Manifest::fromDirectory($directory)->code());
     }
 
     public function test_table_ownership_ignores_old_migration_roots(): void

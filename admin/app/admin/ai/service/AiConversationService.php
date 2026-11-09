@@ -198,15 +198,13 @@ final class AiConversationService
         $this->ownedConversation($conversationId, $adminId);
         $this->validateFields($input, ['role', 'content', 'idempotency_key']);
         $key = $input['idempotency_key'] ?? null;
-        if (array_key_exists('idempotency_key', $input) && (!is_string($key) || preg_match('/^[A-Za-z0-9_-]{1,128}$/D', $key) !== 1)) throw new InvalidArgumentException('idempotency_key 无效', 400);
+        if (!is_string($key) || preg_match('/^[A-Za-z0-9_-]{1,128}$/D', $key) !== 1) throw new InvalidArgumentException('idempotency_key 无效', 400);
         if (($input['role'] ?? 'user') !== 'user') throw new InvalidArgumentException('只允许 user 消息', 400);
         $content = $this->userTextBlocks($input['content'] ?? null, true);
         $create = function () use ($conversationId, $adminId, $content): array {
             if (in_array('attachment', array_column($content, 'type'), true)) return ($this->attachments ?? AiAttachmentService::production())->append($conversationId, $adminId, $content, $this->store);
             return $this->store->appendMessage($conversationId, ['role'=>'user', 'content'=>$content, 'metadata'=>[], 'parent_id'=>null]);
         };
-        // 兼容旧客户端；新客户端为每条逻辑消息传入稳定键。
-        if ($key === null) return $create();
         $canonical = array_map(static fn (array $block): array => $block['type'] === 'text' ? ['type'=>'text','text'=>$block['text']] : ['type'=>'attachment','attachment_id'=>$block['attachment_id']], $content);
         return $this->store->idempotentMessage($conversationId, $adminId, $key, hash('sha256', json_encode(['role'=>'user','content'=>$canonical], JSON_THROW_ON_ERROR)), $create);
     }
@@ -240,8 +238,6 @@ final class AiConversationService
                 continue;
             }
             $blocks = $row['content'] ?? [];
-            // 兼容旧版数据库文本对象，但绝不把旧消息元数据转成模型指令。
-            if (is_array($blocks) && array_keys($blocks) === ['text']) $blocks = [['type'=>'text', 'text'=>$blocks['text']]];
             $blocks = $this->userTextBlocks($blocks, $role === 'user');
             $text = in_array('attachment', array_column($blocks, 'type'), true)
                 ? ($this->attachments ?? AiAttachmentService::production())->modelHistory($conversationId, $adminId, $row)

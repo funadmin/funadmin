@@ -94,9 +94,10 @@ final class AdminSessionService
         Db::table('admin_auth_tokens')->where('admin_id', $adminId)->delete();
     }
 
+    /** 令牌绑定签发时的密码哈希：改密后旧令牌一律失效。 */
     private static function credentialVersion(Admin $admin): string
     {
-        return hash('sha256', (string) $admin->password . "\0" . (string) $admin->token);
+        return hash('sha256', (string) $admin->password);
     }
 
     private function assertNotLocked(string $ip): void

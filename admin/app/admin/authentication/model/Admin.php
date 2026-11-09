@@ -19,7 +19,7 @@ use support\Model;
 class Admin extends Model
 {
     protected $table = 'admin';
-    protected $hidden = ['password', 'token'];
+    protected $hidden = ['password'];
     protected $guarded = ['id'];
     protected $casts = ['status' => 'boolean'];
 

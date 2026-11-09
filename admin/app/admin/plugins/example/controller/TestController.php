@@ -49,13 +49,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/admin/plugins/example/test",
+     *     path="/admin/plugins/example/test",
      *     operationId="admin_plugins_example_controller_TestController_index_get",
      *     tags={"示例插件测试记录"},
      *     summary="获取示例插件测试记录列表。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:index。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:index。",
      *     security={{"AdminSession"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1)),
      *     @OA\Parameter(name="pageSize", in="query", required=false, description="每页记录数。", @OA\Schema(type="integer", minimum=1, maximum=100)),
      *     @OA\Parameter(name="recycled", in="query", required=false, description="recycled 参数。", @OA\Schema(type="integer")),
@@ -77,13 +76,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/admin/plugins/example/test/{id}",
+     *     path="/admin/plugins/example/test/{id}",
      *     operationId="admin_plugins_example_controller_TestController_detail_get",
      *     tags={"示例插件测试记录"},
      *     summary="获取指定示例插件测试记录的详情。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:detail。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:detail。",
      *     security={{"AdminSession"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="string", pattern="^(?:\d+)$")),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
@@ -101,13 +99,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugins/example/test",
+     *     path="/admin/plugins/example/test",
      *     operationId="admin_plugins_example_controller_TestController_create_post",
      *     tags={"示例插件测试记录"},
      *     summary="创建示例插件测试记录，校验提交字段后保存。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:create。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:create。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
      *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
@@ -124,13 +121,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Put(
-     *     path="/admin/admin/plugins/example/test/{id}",
+     *     path="/admin/plugins/example/test/{id}",
      *     operationId="admin_plugins_example_controller_TestController_update_put",
      *     tags={"示例插件测试记录"},
      *     summary="更新指定示例插件测试记录。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:update。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:update。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="string", pattern="^(?:\d+)$")),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
@@ -149,13 +145,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugins/example/test/{id}",
+     *     path="/admin/plugins/example/test/{id}",
      *     operationId="admin_plugins_example_controller_TestController_remove_delete",
      *     tags={"示例插件测试记录"},
      *     summary="删除指定示例插件测试记录。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:remove。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:remove。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="string", pattern="^(?:\d+)$")),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
@@ -174,13 +169,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugins/example/test/{id}/restore",
+     *     path="/admin/plugins/example/test/{id}/restore",
      *     operationId="admin_plugins_example_controller_TestController_restore_post",
      *     tags={"示例插件测试记录"},
      *     summary="恢复回收站中的示例插件测试记录。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:restore。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:restore。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="string", pattern="^(?:\d+)$")),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
@@ -199,13 +193,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugins/example/test/{id}/destroy",
+     *     path="/admin/plugins/example/test/{id}/destroy",
      *     operationId="admin_plugins_example_controller_TestController_destroy_delete",
      *     tags={"示例插件测试记录"},
      *     summary="永久删除示例插件测试记录，删除后不可通过回收站恢复。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:destroy。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:destroy。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="string", pattern="^(?:\d+)$")),
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
@@ -223,13 +216,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugins/example/test",
+     *     path="/admin/plugins/example/test",
      *     operationId="admin_plugins_example_controller_TestController_recycle_delete",
      *     tags={"示例插件测试记录"},
      *     summary="将选中的示例插件测试记录移入回收站。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:recycle。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:recycle。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\RequestBody(
      *         required=false,
      *         @OA\JsonContent(type="object", @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
@@ -249,13 +241,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugins/example/test/restore",
+     *     path="/admin/plugins/example/test/restore",
      *     operationId="admin_plugins_example_controller_TestController_restoreMany_post",
      *     tags={"示例插件测试记录"},
      *     summary="批量恢复回收站中的示例插件测试记录。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:restore-many。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:restore-many。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
      *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
@@ -271,13 +262,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Delete(
-     *     path="/admin/admin/plugins/example/test/destroy",
+     *     path="/admin/plugins/example/test/destroy",
      *     operationId="admin_plugins_example_controller_TestController_destroyMany_delete",
      *     tags={"示例插件测试记录"},
      *     summary="批量永久删除示例插件测试记录，删除后不可通过回收站恢复。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:destroy-many。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:destroy-many。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
      *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
      *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
@@ -293,13 +283,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Post(
-     *     path="/admin/admin/plugins/example/test/import",
+     *     path="/admin/plugins/example/test/import",
      *     operationId="admin_plugins_example_controller_TestController_import_post",
      *     tags={"示例插件测试记录"},
      *     summary="批量导入示例插件测试记录，返回导入结果。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:import。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:import。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
-     *     deprecated=true,
      *     @OA\RequestBody(
      *         required=false,
      *         @OA\JsonContent(type="object", @OA\Property(property="rows", type="array", description="待导入的记录数组。", @OA\Items()))
@@ -319,13 +308,12 @@ final class TestController extends AdminController
      * @return Response JSON 格式的接口响应。
      *
      * @OA\Get(
-     *     path="/admin/admin/plugins/example/test/export",
+     *     path="/admin/plugins/example/test/export",
      *     operationId="admin_plugins_example_controller_TestController_export_get",
      *     tags={"示例插件测试记录"},
      *     summary="按筛选条件导出示例插件测试记录数据。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 旧版 ThinkPHP 生成示例，尚未接入原生 Webman 路由；仅保留历史接口说明。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:export。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 仅在对应插件启用且当前用户有权访问时可用。 插件权限：example:test:export。",
      *     security={{"AdminSession"={}}},
-     *     deprecated=true,
      *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1)),
      *     @OA\Parameter(name="pageSize", in="query", required=false, description="每页记录数。", @OA\Schema(type="integer", minimum=1, maximum=100)),
      *     @OA\Parameter(name="recycled", in="query", required=false, description="recycled 参数。", @OA\Schema(type="integer")),

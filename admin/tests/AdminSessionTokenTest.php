@@ -10,12 +10,14 @@ use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
-final class LegacyAuthCompatibilityTest extends TestCase
+/** 管理员令牌只存放在 admin_auth_tokens（哈希），并绑定签发时的密码：改密或登出后失效。 */
+final class AdminSessionTokenTest extends TestCase
 {
     protected function setUp(): void
     {
         $schema = Db::schema();
         $schema->dropIfExists('login_attempts');
+        $schema->dropIfExists('admin_auth_tokens');
         $schema->dropIfExists('admin');
         $schema->create('admin', static function (Blueprint $table): void {
             $table->id();
@@ -27,7 +29,6 @@ final class LegacyAuthCompatibilityTest extends TestCase
             $table->string('mobile', 30)->nullable();
             $table->string('ip', 45)->nullable();
             $table->string('last_login_ip', 45)->default('');
-            $table->string('token', 100)->nullable();
             $table->boolean('status')->default(true);
             $table->string('avatar', 255)->default('');
             $table->timestamps();
@@ -38,7 +39,7 @@ final class LegacyAuthCompatibilityTest extends TestCase
             $table->unsignedInteger('attempts')->default(0);
             $table->unsignedBigInteger('window_start');
         });
-        if (!Db::schema()->hasTable('admin_auth_tokens')) Db::schema()->create('admin_auth_tokens', static function (Blueprint $table): void {
+        $schema->create('admin_auth_tokens', static function (Blueprint $table): void {
             $table->string('token_hash', 64)->primary();
             $table->unsignedBigInteger('admin_id')->index();
             $table->string('purpose', 16);
@@ -55,25 +56,32 @@ final class LegacyAuthCompatibilityTest extends TestCase
         Db::schema()->dropIfExists('admin');
     }
 
-    public function test_authentication_reads_and_revokes_tokens_on_existing_admin_table(): void
+    public function test_tokens_are_stored_hashed_and_revoked_on_logout(): void
     {
         $service = new AdminSessionService();
-        $admin = $service->createAdmin('legacy_admin', 'a-long-test-password');
+        $admin = $service->createAdmin('session_admin', 'a-long-test-password');
+        $result = $service->login('session_admin', 'a-long-test-password', '127.0.0.1');
 
-        self::assertSame('legacy_admin', $admin['username']);
-        self::assertSame(1, Db::table('admin')->count());
-
-        $result = $service->login('legacy_admin', 'a-long-test-password', '127.0.0.1');
         self::assertSame($admin['id'], $service->authenticate($result['access_token'])['id']);
-        self::assertNull(Db::table('admin')->value('token'));
+        self::assertArrayNotHasKey('token', $result['admin']);
         self::assertSame(
             hash('sha256', $result['access_token']),
             Db::table('admin_auth_tokens')->where('admin_id', $admin['id'])->where('purpose', 'api')->value('token_hash')
         );
 
         $service->logout($result['access_token']);
-        self::assertNull(Db::table('admin')->value('token'));
         $this->expectException(DomainException::class);
         $service->authenticate($result['access_token']);
+    }
+
+    public function test_password_change_invalidates_issued_tokens(): void
+    {
+        $service = new AdminSessionService();
+        $admin = $service->createAdmin('session_admin', 'a-long-test-password');
+        $token = $service->login('session_admin', 'a-long-test-password', '127.0.0.1')['access_token'];
+
+        Db::table('admin')->where('id', $admin['id'])->update(['password' => password_hash('another-long-password', PASSWORD_DEFAULT)]);
+        $this->expectException(DomainException::class);
+        $service->authenticate($token);
     }
 }

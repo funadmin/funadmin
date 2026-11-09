@@ -25,7 +25,7 @@ use support\Request;
 
 /**
  * 生成模块的列表动作宿主按方法推导的权限码准入（business:{资源}:index / list-actions / list-action / export），
- * 注册动作再按自身 permission 判断；动态运行时表单保持 admin/form.data 资源路径检查。
+ * 注册动作再按自身 permission 判断；动态运行时表单按表单运行控制器的推导码 form:data:* 检查。
  */
 #[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
 #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
@@ -160,14 +160,14 @@ final class GeneratedListActionPermissionTest extends TestCase
         $service->executeListButton('console_order', ['buttonId' => 'export-rows', 'location' => 'toolbar', 'schemaHash' => $this->schema->hash(), 'ids' => []], $this->executor());
         self::assertSame(['business:console-order:list-action', 'business:console-order:index', 'business:console-order:export'], $checked);
 
-        // 动态运行时（未正式生成）仍按 admin/form.data 资源路径检查。
+        // 动态运行时（未正式生成）按 form:data:* 推导码检查。
         Db::table('business_module')->update(['lifecycle_status' => 'dynamic_published']);
         $checked = [];
         (new FormDataService(permissionChecker: $recording))->listActionCatalog('console_order', 'row', $this->registry());
-        self::assertSame('admin/form.data/index', $checked[0]);
+        self::assertSame('form:data:index', $checked[0]);
         $checked = [];
         (new FormDataService(permissionChecker: $recording))->executeListButton('console_order', ['buttonId' => 'export-rows', 'location' => 'toolbar', 'schemaHash' => $this->schema->hash(), 'ids' => []], $this->executor());
-        self::assertSame(['admin/form.data/index', 'admin/form.data/export'], $checked);
+        self::assertSame(['form:data:index', 'form:data:export'], $checked);
     }
 
     public function test_commit_generation_binds_stored_schema_version_row_of_generated_hash(): void
@@ -230,7 +230,7 @@ final class GeneratedListActionPermissionTest extends TestCase
 
     private function binding(): array
     {
-        return ['formKey' => 'console_order', 'schemaHash' => $this->schema->hash(), 'route' => 'admin/business.consoleordercontroller',
+        return ['formKey' => 'console_order', 'schemaHash' => $this->schema->hash(), 'route' => 'business:console-order',
             'table' => Db::connection()->getTablePrefix() . 'console_order', 'connection' => (string) config('database.default')];
     }
 

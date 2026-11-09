@@ -54,7 +54,7 @@
         </el-row>
 
         <el-form-item v-if="form.type === 'C'" :label="t('systemMenu.component', '组件')" prop="component">
-          <el-input v-model="form.component" placeholder="views/system/user/index.vue" />
+          <el-input v-model="form.component" placeholder="system/user/index" />
         </el-form-item>
 
         <el-form-item v-if="form.type === 'M'" :label="t('systemMenu.redirect', '重定向')" prop="redirect">

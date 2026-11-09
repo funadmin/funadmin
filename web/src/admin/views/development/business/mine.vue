@@ -180,7 +180,7 @@ import CodePreviewDialog from './codegen/CodePreviewDialog.vue';
 import RecordsPanel from './codegen/RecordsPanel.vue';
 import { runSequential } from './codegen/batch';
 import { PERM_PREVIEW, PERMS_FORMAL_GENERATION } from './codegen/formalGeneration';
-import { CODEGEN_PAGE_PATH } from './codegen/useLegacyCodegenRedirect';
+import { adminRoutePath } from '@/utils/route';
 import { LIFECYCLE_STATUS_META, designerLocation } from './constants';
 import { useBusinessMenuRefresh } from './composables/useBusinessMenuRefresh';
 import { useLatestRequest } from './composables/useLatestRequest';
@@ -196,7 +196,9 @@ const DELETE_PERMISSIONS = ['development:business:delete-module', 'development:b
 const EDIT_PERMISSIONS = ['development:business:save-schema', 'development:business:save-publish-config'];
 const GENERATE_PERMISSIONS = [PERM_PREVIEW, ...PERMS_FORMAL_GENERATION];
 const DYNAMIC_PUBLISH_PERMISSIONS = ['development:business:preview-publish', 'development:business:publish'];
-/** 打开弹窗的一次性 URL 意图：旧入口（从数据库生成 / 可视化创建）跳转过来时使用，用完即移除。 */
+/** 代码生成页（菜单 BusinessDevelopment，组件 development/business/mine）。 */
+const CODEGEN_PAGE_PATH = adminRoutePath('/development/business/mine');
+/** 打开弹窗的一次性 URL 意图（如插件中心「业务开发」入口 ?plugin=x&create=1），用完即移除。 */
 const ROUTE_INTENTS = [
   { key: 'load', allowed: () => hasPermission(LOAD_PERMISSIONS, 'all'), open: () => { loadVisible.value = true; } },
   { key: 'create', allowed: () => hasPermission(CREATE_PERMISSION), open: () => createTable() }
@@ -253,7 +255,7 @@ const activeTab = computed<CodegenTab>({
   }
 });
 
-function applyRouteIntents() {
+function syncPageQuery() {
   pageQuery.value = { ...route.query };
   const intents = ROUTE_INTENTS.filter((intent) => route.query[intent.key] === '1');
   if (!intents.length) return;
@@ -266,12 +268,12 @@ function applyRouteIntents() {
   void router.replace({ query: next });
 }
 
-watch(() => route.query, () => { if (active.value) applyRouteIntents(); }, { immediate: true });
+watch(() => route.query, () => { if (active.value) syncPageQuery(); }, { immediate: true });
 // 首次激活紧跟挂载，上面的 immediate watch 已处理；之后每次从缓存恢复时再按当前 URL 同步。
 let activations = 0;
 onActivated(() => {
   active.value = true;
-  if (activations++ > 0) applyRouteIntents();
+  if (activations++ > 0) syncPageQuery();
 });
 onDeactivated(() => { active.value = false; });
 

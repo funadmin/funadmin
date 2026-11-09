@@ -13,8 +13,7 @@ use Webman\MiddlewareInterface;
 /**
  * Webman 多语言中间件：按请求选择 locale，并把当前语言同步到客户端 Cookie。
  *
- * 翻译资源由 support\Translation 根据 config/translation.php 统一加载，
- * 这里不再依赖已移除的 ThinkPHP middleware、Request 或 Cookie API。
+ * 翻译资源由 support\Translation 根据 config/translation.php 统一加载。
  */
 class LoadLangPackMiddleware implements MiddlewareInterface
 {
