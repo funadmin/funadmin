@@ -10,7 +10,7 @@ final class ThemeEngine
     {
         if(!preg_match('~^[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*$~D',$template))throw new \InvalidArgumentException('模板路径无效');
         $tags=new CmsTags($this->registry,$this->root,$variables,$context);
-        if(is_file($this->root.'/'.$template.'.blade.php')){
+        if(ThemeViewFinder::exists($this->root,$template)){
             $this->registry->beginRender();
             return(new BladeThemeEngine($this->root))->renderFile($template,$variables,$tags);
         }

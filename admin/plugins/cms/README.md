@@ -313,7 +313,7 @@ nginx -p "$PWD/admin/runtime/cms-local-nginx/" -c nginx-8088.conf -s quit
 
 默认 `detail` 会按实际内容模型选择内页布局；显式指定的页面模板继续优先。主题名称由内置描述服务统一提供，只有实际安装且有首页模板的目录会进入选择列表；第三方主题可继续使用自己的展示逻辑。切换主题不会改动已有内容或导航项。
 
-模板位于 `app/cms/view/{corporate,industrial,studio,editorial,minimal,aurora,heritage}/`，主题样式与插画位于 `public/plugin-assets/cms/public/themes/`。共享展示数据和基础交互，各主题首页和样式独立维护。长手机菜单在固定页头下独立滚动，可访问屏幕下方的链接。
+模板位于 `app/cms/view/{corporate,industrial,studio,editorial,minimal,aurora,heritage}/`（各主题差异文件）与 `app/cms/view/_shared/`（共用页面与片段），主题样式与插画位于 `public/plugin-assets/cms/public/themes/`。共享展示数据和基础交互，各主题首页和样式独立维护。长手机菜单在固定页头下独立滚动，可访问屏幕下方的链接。
 
 ## Element Plus 浏览器直载
 
@@ -321,7 +321,7 @@ nginx -p "$PWD/admin/runtime/cms-local-nginx/" -c nginx-8088.conf -s quit
 
 页面布局、响应式栅格、内容卡片和封面、主按钮、桌面下拉导航、手机抽屉、语言切换、轮播、面包屑、搜索输入和分页使用真实 Element Plus 组件。各主题继续保留自己的配色和企业展示版式。
 
-组件结构直接声明在 `app/cms/view/{主题}/` 的 `.blade.php` 模板中；`cms-element.js` 只解析声明、挂载组件并连接公共交互，不再按 CSS 类拼出菜单、卡片或布局。例如：
+组件结构直接声明在 `app/cms/view/{主题}/` 与共享层 `app/cms/view/_shared/` 的 `.blade.php` 模板中；`cms-element.js` 只解析声明、挂载组件并连接公共交互，不再按 CSS 类拼出菜单、卡片或布局。例如：
 
 ```blade
 <el-row gutter="24" class="cms-el-grid">
@@ -345,7 +345,7 @@ PHP 输出完整正文与链接。浏览器挂载不使用 Vue 模板编译器�
 
 ## 新增主题的选择与维护
 
-在“CMS → 站点管理 → 编辑站点 → 主题”选择并保存，栏目、内容、导航和网站配置继续使用原数据。新增主题不插入演示记录，也不会自动替换当前站点主题。新主题各自有完整的24个 Blade 页面/片段、独立首页结构、CSS 与 SVG。可以在主题目录中直接调整布局；共享数据过滤和分页规则沿用 CMS。
+在“CMS → 站点管理 → 编辑站点 → 主题”选择并保存，栏目、内容、导航和网站配置继续使用原数据。新增主题不插入演示记录，也不会自动替换当前站点主题。各主题的首页、页头、CSS 与 SVG 独立；详情、栏目、搜索、卡片、分页、页脚等共用页面放在 `app/cms/view/_shared/`，主题目录里的同名文件优先，需要单独调整某个共用片段时复制到主题目录再改（详见 [CMS Blade](../../../docs/cms-blade.md)）。共享数据过滤和分页规则沿用 CMS。
 
 主题模板和公共资源更新不需要前台 npm 构建，发布/更新插件并按 Webman 流程重载 PHP worker 即可。资源与运行模板在本地工作区已同步。
 

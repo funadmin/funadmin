@@ -41,4 +41,4 @@
 
 ### Task 5: Follow-up editor and public template refactor
 - [x] Add autosave, batch publish/offline and conflict diff as separate reviewable increments.（本机暂存 + 冲突摘要；批量操作复用单条接口，未新增后端权限码）
-- [ ] Extract common Blade data/partials only after behavior tests cover all eight themes.
+- [x] Extract common Blade data/partials only after behavior tests cover all eight themes.（192 个模板减为 `_shared` 22 个 + 主题差异 19 个；8 主题 × 15 页面重构前后输出逐字节一致）

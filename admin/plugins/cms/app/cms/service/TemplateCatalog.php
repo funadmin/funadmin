@@ -13,7 +13,7 @@ final class TemplateCatalog
         foreach(new \DirectoryIterator($base) as $directory){
             if($directory->isDot()||!$directory->isDir()||$directory->isLink())continue;
             $name=$directory->getFilename();
-            if(!preg_match('/^[a-zA-Z0-9_-]+$/D',$name))continue;
+            if(!preg_match('/^[a-zA-Z0-9_-]+$/D',$name)||$name===\app\cms\template\ThemeViewFinder::SHARED)continue;
             $root=$directory->getRealPath();$homeFile=$root.'/index'.(is_file($root.'/index.blade.php')?'.blade.php':'.html');$home=$root?realpath($homeFile):false;
             if(!$root||!str_starts_with($root,$base.DIRECTORY_SEPARATOR)||!$home||!is_file($home)||is_link($homeFile)||!is_readable($home)||!str_starts_with($home,$root.DIRECTORY_SEPARATOR))continue;
             $definition=BuiltinThemes::get($name);
@@ -30,8 +30,9 @@ final class TemplateCatalog
         if(!$base||!$root||!str_starts_with($root,$base.DIRECTORY_SEPARATOR))throw new \InvalidArgumentException('主题不存在');
         $labels=['detail'=>'通用详情','article'=>'文章详情','product'=>'产品详情','case'=>'案例详情','page'=>'单页详情','download'=>'下载详情'];
         $options=[];
-        $files=new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root,\FilesystemIterator::SKIP_DOTS));
-        foreach($files as $file){
+        // 共享层先列出，主题内同名模板覆盖它。
+        foreach(array_filter([\app\cms\template\ThemeViewFinder::sharedRoot($root),$root]) as $root)
+        foreach(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root,\FilesystemIterator::SKIP_DOTS)) as $file){
             if(!$file->isFile()||$file->isLink())continue;
             $suffix=str_ends_with($file->getFilename(),'.blade.php')?'.blade.php':($file->getExtension()==='html'?'.html':null);if($suffix===null)continue;
             $resolved=$file->getRealPath();if(!$resolved||!str_starts_with($resolved,$root.DIRECTORY_SEPARATOR))continue;

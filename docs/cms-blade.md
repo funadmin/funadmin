@@ -1,6 +1,8 @@
 # CMS Blade 主题开发
 
-CMS 的八套内置主题（default、corporate、industrial、studio、editorial、minimal、aurora、heritage）使用原生 Blade。源文件在 `admin/plugins/cms/app/cms/view/{theme}/`，安装后运行文件在 `admin/app/cms/view/{theme}/`。模板文件后缀为 `.blade.php`，编译缓存位于 `admin/runtime/views/cms/`。依赖宿主已有的 `illuminate/view`，无需另装 Laravel 或构建官网前端。
+CMS 的八套内置主题（default、corporate、industrial、studio、editorial、minimal、aurora、heritage）使用原生 Blade。源文件在 `admin/plugins/cms/app/cms/view/{theme}/`，安装后运行文件在 `admin/app/cms/view/{theme}/`。模板文件后缀为 `.blade.php`，编译缓存位于 `admin/runtime/views/cms/`。
+
+八套主题共用的页面与片段放在共享层 `view/_shared/`（详情页、栏目、搜索、卡片、分页、面包屑、页脚、轮播、导航节点等 22 个文件）；每个主题目录只保留各自不同的文件，至少有首页 `index.blade.php` 和页头 `partials/header.blade.php`。查找模板与 `@include` 时先找主题目录，找不到再回落到共享层，所以在主题里放一个同名文件即可覆盖共享版本。共享层只对首页是 Blade 的主题生效，旧版 `.html` 主题不回落；两层都禁止符号链接或路径越界。新建主题时复制一个内置主题目录（只含其差异文件）再修改首页、页头和样式即可，其余页面自动沿用共享层；需要改动某个共用片段时，把它从 `_shared` 复制到主题目录再改，不要直接改共享层，以免影响其他主题。依赖宿主已有的 `illuminate/view`，无需另装 Laravel 或构建官网前端。
 
 ## 页面和布局
 
