@@ -26,9 +26,9 @@
 - [x] Run CMS public tests and cache tests.
 
 ### Task 2: SEO and delivery metadata
-- [ ] Write failing tests for OG/Twitter, model JSON-LD, RSS and pagination canonical metadata.
-- [ ] Extend `Seo::head`, `PublicSite::sitemap`/RSS and Blade head partials.
-- [ ] Verify escaping, noindex search, multilingual alternates and public routes.
+- [x] Write failing tests for OG/Twitter, model JSON-LD, RSS and pagination canonical metadata.
+- [x] Extend `Seo::head`, `PublicSite::sitemap`/RSS and Blade head partials.
+- [x] Verify escaping, noindex search, multilingual alternates and public routes.
 
 ### Task 3: Form idempotency and audit
 - [ ] Write failing tests for submission fingerprint, retry behavior, rate limits and duplicate response.

@@ -173,6 +173,13 @@ RenderContext 中 siteId 和 locale 不可变；数据库查询必须使用该�
 
 页面源代码包含正文、导航、title、description、canonical、语言与结构化数据；关闭 JS 仍可阅读和导航。四套内置主题使用本地 Vue/Element Plus 增强布局、导航、卡片、搜索与分页，具体加载方式见下方“Element Plus 浏览器直载”。浏览器资源为本地固定版本发行文件，版本及许可证见 `public/plugin-assets/cms/public/vendor/VERSIONS.txt` 与 LICENSE 文件。
 
+分享与结构化数据由 `Seo::head` 统一输出，所有主题共用：
+
+- Open Graph（`og:type/title/description/url/site_name/locale`）与 Twitter Card；内容有图片封面时输出绝对地址的 `og:image`（附件记录有宽高时附带尺寸）并使用 `summary_large_image`，否则为 `summary`。文章另输出 `article:published_time/modified_time`（UTC，ISO 8601）。
+- JSON-LD 按模型区分：文章为 `Article`（headline、发布/修改时间、封面、publisher 机构，机构 logo 取网站配置 `logo`），产品为 `Product`（品牌、封面、`sku` 字段），语言首页为带站内搜索 `SearchAction` 的 `WebSite`，其余为 `WebPage`。品牌名优先取网站配置 `brand_name`。
+- 分页列表第 2 页起 canonical 指向自身并输出 `rel="prev"`（不输出 next，搜索引擎已不再依赖该提示）。
+- 每种语言首页下提供 RSS 2.0：`/feed.xml`、`/en/feed.xml` 等，列出最近 20 篇已发布且未设 noindex 的内容，页面 head 自动声明订阅地址；与公开页面共用缓存和 ETag。已发布的同名路由优先于 feed。
+
 `/sitemap.xml` 仅包含当前站点已发布且允许索引的正式地址；`/robots.txt` 使用站点配置并输出主域 sitemap。不存在或未发布页面使用真实 404；公开请求不返回服务器堆栈；GET/HEAD 状态与头一致。
 
 从仓库执行：

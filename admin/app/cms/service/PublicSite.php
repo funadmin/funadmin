@@ -21,6 +21,7 @@ final class PublicSite
         if($path==='/sitemap.xml')return $this->sitemap($site);
         $pageNumber=1;$routes=new RouteService();$route=$routes->resolve($site['id'],$path);$search=false;$query='';
         if(!$route&&preg_match('~^(.*)/page/([1-9][0-9]*)/?$~',$path,$m)) { $pageNumber=(int)$m[2];if($pageNumber>10000)return $this->error(404);$route=$routes->resolve($site['id'],($m[1]?:'').'/');if($route&&!in_array($route['target_type'],['home','category'],true))$route=null; }
+        if(!$route&&preg_match('~^(.*)/feed\.xml$~',$path,$m))return $this->feed($request,$site,($m[1]?:'').'/');
         if(!$route){foreach($sites->locales($site['id'],true) as $candidate){$home=$routes->canonical($site['id'],'home',$candidate['id']);if($home&&$path===rtrim($home['path'],'/').'/search/'){$route=$home;$search=true;try{$query=Input::text($request->get('q',''),100);}catch(InvalidArgumentException){return $this->error(400);}break;}}}
         if(!$route)return $this->error(404);
         $language=$sites->language($site['id'],$route['locale']);$canonical=$routes->canonical($site['id'],$route['target_type'],$route['target_id']);if(!$canonical)return $this->error(404);
@@ -51,6 +52,32 @@ final class PublicSite
     private function redirect(array $site,string $path,string $query=''): Response
     {
         return new Response(301,['Location'=>'https://'.$site['primary_host'].RouteService::encoded($path).($query!==''?'?'.$query:'')],'');
+    }
+    /** 语言首页下的 feed.xml：最近 20 篇已发布、未设置 noindex 的内容，RSS 2.0；与页面共用站点版本缓存。 */
+    private function feed(Request $request,array $site,string $home): Response
+    {
+        $sites=new SiteService();$routes=new RouteService();$language=null;
+        foreach($sites->locales($site['id'],true) as $candidate){$route=$routes->canonical($site['id'],'home',$candidate['id']);if($route&&rtrim($route['path'],'/').'/'===$home){$language=$sites->language($site['id'],$candidate['locale']);break;}}
+        if(!$language)return $this->error(404);
+        $cache=PublicPageCache::enabled()?new PublicPageCache():null;$variant='rss|'.(string)($site['updated_at']??'').'|'.(string)($language['updated_at']??'');$cached=null;
+        if($cache){try{$cached=$cache->get((string)$site['id'],(string)$language['locale'],$home.'feed.xml',$variant);}catch(\Throwable){$cache=null;}}
+        if($cached){$xml=$cached['body'];$etag=$cached['etag'];}
+        else{
+            $x=fn(string $v):string=>htmlspecialchars($v,ENT_XML1|ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$origin='https://'.$site['primary_host'];$items='';$latest=null;
+            $configuration=(new SiteConfiguration())->resolve($site['id'],$language['locale']);$name=(string)(($configuration['brand_name']??'')?:$language['name']);
+            foreach((new ContentService())->listing($site['id'],$language['locale'],['limit'=>20,'order'=>'published_desc'])['items'] as $item){
+                if(str_contains((string)($item['robots']??''),'noindex'))continue;$link=$origin.$item['url'];$stamp=strtotime(($item['published_at']??'').' UTC')?:null;$updated=strtotime(($item['published_updated_at']??'').' UTC')?:$stamp;if($updated&&$updated>$latest)$latest=$updated;
+                $items.='<item><title>'.$x((string)$item['title']).'</title><link>'.$x($link).'</link><guid isPermaLink="true">'.$x($link).'</guid>'.($stamp?'<pubDate>'.gmdate(DATE_RSS,$stamp).'</pubDate>':'').(($item['summary']??'')!==''?'<description>'.$x((string)$item['summary']).'</description>':'').'</item>';
+            }
+            $xml='<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>'.$x($name).'</title><link>'.$x($origin.RouteService::encoded($home)).'</link><description>'.$x((string)($language['seo_description']??'')).'</description><language>'.$x((string)$language['locale']).'</language>';
+            $xml.='<atom:link href="'.$x($origin.RouteService::encoded($home.'feed.xml')).'" rel="self" type="application/rss+xml"/>'.($latest?'<lastBuildDate>'.gmdate(DATE_RSS,$latest).'</lastBuildDate>':'').$items.'</channel></rss>';
+            $etag=null;if($cache){$etag=$cache->etag($xml);try{$cache->put((string)$site['id'],(string)$language['locale'],$home.'feed.xml',$xml,$etag,null,$variant);}catch(\Throwable){}}
+        }
+        $headers=['Content-Type'=>'application/rss+xml; charset=utf-8','Cache-Control'=>'no-cache','X-Content-Type-Options'=>'nosniff'];
+        if($etag===null)return new Response(200,$headers,$xml);
+        $headers=['Cache-Control'=>'public, no-cache','ETag'=>$etag]+$headers;
+        if(PublicPageCache::matches((string)$request->header('if-none-match',''),$etag)){unset($headers['Content-Type']);return new Response(304,$headers,'');}
+        return new Response(200,$headers,$xml);
     }
     private function sitemap(array $site): Response
     {
