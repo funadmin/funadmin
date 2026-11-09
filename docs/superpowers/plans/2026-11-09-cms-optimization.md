@@ -40,5 +40,5 @@
 - [x] Fix shared CSS/Blade attributes and run all theme browser checks.
 
 ### Task 5: Follow-up editor and public template refactor
-- [ ] Add autosave, batch publish/offline and conflict diff as separate reviewable increments.
+- [x] Add autosave, batch publish/offline and conflict diff as separate reviewable increments.（本机暂存 + 冲突摘要；批量操作复用单条接口，未新增后端权限码）
 - [ ] Extract common Blade data/partials only after behavior tests cover all eight themes.

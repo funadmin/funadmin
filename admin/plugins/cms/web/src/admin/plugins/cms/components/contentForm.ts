@@ -36,12 +36,13 @@ export function validateContentForm(form: FormData, fields: ModelField[]): Recor
   return errors;
 }
 
-const editable=['title','summary','body_html','desired_path','model_id','model_version_id','category_id','data','template','robots','seo_title','seo_description','author_name','cover_attach_id'];
+/** 编辑器里由作者修改、参与“是否有未保存修改”判断的字段。 */
+export const CONTENT_EDITABLE_KEYS=['title','summary','body_html','desired_path','model_id','model_version_id','category_id','data','template','robots','seo_title','seo_description','author_name','cover_attach_id'];
 function canonical(value: unknown): unknown {
   if(Array.isArray(value))return value.map(canonical);
   if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,canonical(item)]));
   return value;
 }
 export function contentFingerprint(form: FormData): string {
-  return JSON.stringify(canonical(Object.fromEntries(editable.map(key=>[key,form[key]??null]))));
+  return JSON.stringify(canonical(Object.fromEntries(CONTENT_EDITABLE_KEYS.map(key=>[key,form[key]??null]))));
 }
