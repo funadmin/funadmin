@@ -12,6 +12,8 @@ export interface ModelField { name: string; label: string; type: string; require
 export interface ContentModel { id: Id; code: string; name: string; status: number; current_version: number; schema: { id: Id; field_schema: ModelField[] } }
 export interface Revision { id: Id; revision_no: number; model_version_id: Id; title: string; summary: string; body_html: string; desired_path: string; cover_attach_id: Id | null; author_name: string; template: string; seo_title: string; seo_description: string; robots: string; data: FormData; created_at: string }
 export interface ContentRow { id: Id; content_id: Id; model_id: Id; category_id: Id | null; locale: string; status: string; lock_version: number; draft_revision_id: Id; published_revision_id: Id | null; published_at: string | null; revision: Revision }
+/** “附带表单”下拉选项：本站表单代码、名称与启用状态（停用的前台不显示）。 */
+export interface FormOption { code: string; name: string; status: number }
 export interface ContentList { items: ContentRow[]; total: number; page: number; limit: number }
 export interface Category extends FormData { id: Id; locale_id: Id; name: string; url: string }
 export interface Provider { name: string; parameters: Record<string, {type: string; default?: unknown; required?: boolean; min?: number; max?: number; enum?: unknown[]}> }

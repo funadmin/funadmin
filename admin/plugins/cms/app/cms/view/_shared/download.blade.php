@@ -1,3 +1,3 @@
 @include('partials.header')
 <article class="container resource-page" data-template="download">@include('partials.breadcrumb')<div class="resource-layout"><header><span class="eyebrow">THE RESOURCE LIBRARY</span><h1>{{ $content['title'] ?? '' }}</h1><p class="summary">{{ $content['summary'] ?? '' }}</p><time>{{ $display['published_label'] ?? '' }}</time><div class="article-body" data-cms-static>{{ $content['body'] ?? '' }}</div></header><aside class="resource-card"><span class="resource-icon" aria-hidden="true">↓</span><h2>{{ $ui['resource_title'] ?? '' }}</h2><p>{{ $ui['resource_intro'] ?? '' }}</p>@include('partials.fields')</aside></div></article>
-@include('partials.related')@include('partials.footer')
+@include('partials.page-form')@include('partials.related')@include('partials.footer')

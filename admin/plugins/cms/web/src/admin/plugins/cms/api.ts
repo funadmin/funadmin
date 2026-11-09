@@ -1,6 +1,6 @@
 import http from '@/utils/http';
 import { adminApiUrl } from '@/utils/apiUrl';
-import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy, CmsForm, FormSubmissionList, FormSubmissionDetail } from './types';
+import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy, CmsForm, FormSubmissionList, FormSubmissionDetail, FormOption } from './types';
 const base = '/plugins/cms';
 const get = <T>(path: string, params?: FormData) => http.get<T>(`${base}${path}`, params);
 const post = <T>(path: string, data: FormData) => http.post<T>(`${base}${path}`, data);
@@ -50,7 +50,7 @@ export const cmsApi = {
   },
   administrators: () => get<FormData[]>('/sites/admins'),
   menuTargets: (scope: Scope) => get<FormData[]>('/menus/targets', scope),
-  lookups: (scope: Scope) => get<{models: ContentModel[]; categories: Category[]; templates: Array<{value: string; label: string}>}>('/content/lookups', scope),
+  lookups: (scope: Scope) => get<{models: ContentModel[]; categories: Category[]; templates: Array<{value: string; label: string}>; forms?: FormOption[]}>('/content/lookups', scope),
   detail: (data: FormData) => get<ContentRow>('/content/detail', data),
   revisions: (data: FormData) => get<Revision[]>('/content/revisions', data),
   saveContent: (data: FormData) => post<ContentRow>('/content/save', data),
@@ -58,6 +58,7 @@ export const cmsApi = {
   offline: (data: FormData) => post('/content/offline', data),
   previewContent: (data: FormData) => get<{html: string}>('/content/preview', data),
   categories: (scope: Scope) => get<Category[]>('/categories', scope),
+  categoriesWithForms: (scope: Scope) => get<{categories: Category[]; forms: FormOption[]}>('/categories', {...scope, with_forms: 1}),
   categoryStatus: (data: FormData) => post('/categories/status', data),
   menuStatus: (data: FormData) => post('/menus/status', data),
   saveCategory: (data: FormData) => post<Category>('/categories/save', data),

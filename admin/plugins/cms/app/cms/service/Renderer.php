@@ -37,6 +37,10 @@ final class Renderer
         $variables=['site'=>array_replace($site,['name'=>$language['name'],'home_url'=>RouteService::encoded((new RouteService())->canonical($site['id'],'home',$language['id'])['path']??'/')]),'locale'=>$language['locale'],'page'=>$page+['query'=>'','search_url'=>rtrim((new RouteService())->canonical($site['id'],'home',$language['id'])['path']??'/','/').'/search/'],'category'=>$category,'content'=>$content+['body'=>new TrustedHtml($content['body_html']??'')],'seo'=>['head'=>Seo::head($site,$language,$page,$languages,$content)]];
         $variables=array_replace($variables,$presentation,['config'=>$configuration,'has_languages'=>count($languages)>1,'theme'=>['code'=>$site['theme']]+($builtin??[])]);
         if(!empty($configuration['brand_name']))$variables['site']['name']=$configuration['brand_name'];
+        // 附带表单：内容取已发布（预览时为所看）修订的表单，栏目页取栏目译文的表单；停用或已删除时不显示整个区块。
+        $formCode=(string)($content['form_code']??$category['form_code']??'');
+        $pageForm=$formCode===''?null:(new FormService())->resolve($site['id'],$formCode,$language['locale']);
+        $variables['page_form']=$pageForm?['code'=>$pageForm['code'],'name'=>$pageForm['name']]:null;
         $theme=Input::template($site['theme']);$root=dirname(__DIR__).'/view';$resolved=realpath($root.'/'.$theme);$base=realpath($root);
         if(!$base||!$resolved||!str_starts_with($resolved,$base.DIRECTORY_SEPARATOR))throw new \InvalidArgumentException('主题不存在');
         return (new ThemeEngine($registry,$resolved))->renderFile(Input::template($template),$variables,$context);

@@ -17,7 +17,7 @@ final class Content extends Base
         $site=$this->site('cms:content:list');$locale=$this->locale();
         $enabled=array_map('strval',Db::table('cms_site_model')->where('site_id',$site)->where('status',1)->pluck('model_id')->all());
         $models=array_values(array_filter((new \app\cms\service\ModelService())->listing(),static fn($model)=>in_array($model['id'],$enabled,true)&&(int)$model['status']===1));
-        return ['models'=>$models,'categories'=>(new \app\cms\service\CategoryService())->listing($site,$locale,false),'templates'=>(new \app\cms\service\TemplateCatalog())->details($site)];
+        return ['models'=>$models,'categories'=>(new \app\cms\service\CategoryService())->listing($site,$locale,false),'templates'=>(new \app\cms\service\TemplateCatalog())->details($site),'forms'=>(new \app\cms\service\FormService())->options($site)];
     }); }
     #[Get('/translation')]
     public function translation(): Response { return $this->action(function(): array {

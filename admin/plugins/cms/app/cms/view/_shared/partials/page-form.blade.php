@@ -1,0 +1,1 @@
+@if(!empty($page_form))<section class="container cms-page-form" aria-labelledby="cms-page-form-title"><h2 id="cms-page-form-title">{{ $page_form['name'] ?? '' }}</h2>{{ $cms->tag('form', ['name' => $page_form['code'] ?? '']) }}</section>@endif

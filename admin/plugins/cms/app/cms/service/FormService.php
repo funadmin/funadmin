@@ -39,7 +39,7 @@ final class FormService
     {
         $siteId = Input::id($siteId);
         $formId = empty($input['id']) ? null : Input::id($input['id']);
-        return Db::transaction(function () use ($siteId, $formId, $input): array {
+        $result = Db::transaction(function () use ($siteId, $formId, $input): array {
             (new SiteService())->lock($siteId);
             $old = $formId === null ? null : $this->locked($siteId, $formId);
             if ($old && (!array_key_exists('lock_version', $input) || (int)$input['lock_version'] !== $old['lock_version'])) {
@@ -69,19 +69,25 @@ final class FormService
             $id = (string)Db::table('cms_form')->insertGetId($data + ['site_id' => $siteId, 'lock_version' => 0, 'created_at' => $data['updated_at']]);
             return $this->get($siteId, $id);
         });
+        // 事务提交后再刷新公开页缓存：附带该表单的页面需重新渲染。
+        (new PublicPageCache())->invalidateSite($siteId);
+        return $result;
     }
 
     public function setStatus(string $siteId, string $formId, bool $enabled, int $version): array
     {
         $siteId = Input::id($siteId);
         $formId = Input::id($formId);
-        return Db::transaction(function () use ($siteId, $formId, $enabled, $version): array {
+        $result = Db::transaction(function () use ($siteId, $formId, $enabled, $version): array {
             (new SiteService())->lock($siteId);
             $form = $this->locked($siteId, $formId);
             if ($form['lock_version'] !== $version) throw new InvalidArgumentException('表单已被修改，请刷新后重试', 409);
             Db::table('cms_form')->where('site_id', $siteId)->where('id', $formId)->update(['status' => $enabled ? 1 : 0, 'lock_version' => $version + 1, 'updated_at' => Input::now()]);
             return $this->get($siteId, $formId);
         });
+        // 事务提交后再刷新公开页缓存：附带该表单的页面需重新渲染。
+        (new PublicPageCache())->invalidateSite($siteId);
+        return $result;
     }
 
     public function delete(string $siteId, string $formId): void
@@ -96,6 +102,7 @@ final class FormService
             }
             Db::table('cms_form')->where('site_id', $siteId)->where('id', $formId)->delete();
         });
+        (new PublicPageCache())->invalidateSite($siteId);
     }
 
     /** 前台用：只返回启用的表单；字段与文字按“请求语言 → 站点默认语言 → 字段原值”合并，不含 `texts`。 */
@@ -137,6 +144,29 @@ final class FormService
             unset($field);
         }
         return ['id' => $form['id'], 'site_id' => $form['site_id'], 'code' => $form['code'], 'name' => $name, 'fields' => $fields, 'settings' => $settings];
+    }
+
+    /**
+     * 供内容、栏目“附带表单”下拉框使用：本站全部表单的代码、名称与启用状态，按名称排序。
+     * @return list<array{code:string,name:string,status:int}>
+     */
+    public function options(string $siteId): array
+    {
+        return array_map(static fn(object $row): array => ['code' => (string)$row->code, 'name' => (string)$row->name, 'status' => (int)$row->status],
+            Db::table('cms_form')->where('site_id', Input::id($siteId))->orderBy('name')->orderBy('code')->get(['code', 'name', 'status'])->all());
+    }
+
+    /** 校验要附带的表单代码：空串表示不附带；否则必须是本站已有的表单（停用的也可选，前台不显示）。 */
+    public static function attachable(string $siteId, mixed $code): string
+    {
+        if ($code === null || $code === '') return '';
+        try {
+            $code = Input::code($code);
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('附带的表单不存在', 422);
+        }
+        if (!Db::table('cms_form')->where('site_id', Input::id($siteId))->where('code', $code)->exists()) throw new InvalidArgumentException('附带的表单不存在', 422);
+        return $code;
     }
 
     public function newCount(string $siteId): int

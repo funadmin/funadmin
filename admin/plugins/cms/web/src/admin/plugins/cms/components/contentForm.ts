@@ -37,7 +37,7 @@ export function validateContentForm(form: FormData, fields: ModelField[]): Recor
 }
 
 /** 编辑器里由作者修改、参与“是否有未保存修改”判断的字段。 */
-export const CONTENT_EDITABLE_KEYS=['title','summary','body_html','desired_path','model_id','model_version_id','category_id','data','template','robots','seo_title','seo_description','author_name','cover_attach_id'];
+export const CONTENT_EDITABLE_KEYS=['title','summary','body_html','desired_path','model_id','model_version_id','category_id','data','template','robots','seo_title','seo_description','author_name','cover_attach_id','form_code'];
 function canonical(value: unknown): unknown {
   if(Array.isArray(value))return value.map(canonical);
   if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,canonical(item)]));

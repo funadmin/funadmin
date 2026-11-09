@@ -23,6 +23,8 @@ final class CategoryService
             $name=Input::text($input['name']??'',100);if($name==='')throw new InvalidArgumentException('栏目名称不能为空');
             $translated=['site_id'=>$siteId,'category_id'=>$id,'locale'=>$locale,'name'=>$name,'description'=>Input::text($input['description']??'',20000),'list_template'=>Input::template($input['list_template']??'category'),'detail_template'=>Input::template($input['detail_template']??'detail'),'seo_title'=>Input::text($input['seo_title']??''),'seo_description'=>Input::text($input['seo_description']??'',500),'status'=>(int)($input['locale_status']??$input['status']??1),'updated_at'=>$now];
             $existing=Db::table('cms_category_locale')->where('category_id',$id)->where('locale',$locale)->first();
+            // 只有显式提交 form_code 才修改附带表单，其他字段的保存保留原值。
+            if(array_key_exists('form_code',$input))$translated['form_code']=FormService::attachable($siteId,$input['form_code']);
             if($existing){$localeId=(string)$existing->id;Db::table('cms_category_locale')->where('id',$localeId)->update($translated);}else $localeId=(string)Db::table('cms_category_locale')->insertGetId($translated+['created_at'=>$now]);
             (new RouteService())->publish($siteId,$locale,'category',$localeId,(string)($input['desired_path']??''));
             (new PublicPageCache())->invalidateSite($siteId);
