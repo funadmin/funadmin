@@ -19,6 +19,7 @@ final class FormFieldCatalog
     public const MAX_FILES = 10;
     private const MAX_OPTIONS = 100;
     private const MAX_HTML = 20000;
+    private const MAX_HTML_INPUT = 200000;
 
     /** @return list<array<string,mixed>> */
     public static function normalize(array $fields): array
@@ -171,16 +172,20 @@ final class FormFieldCatalog
         return array_keys($result);
     }
 
+    /** The cap applies to the sanitized output, so re-normalizing stored html (entities grow `&` into `&amp;`) stays idempotent. */
     private static function html(mixed $value): string
     {
-        return HtmlSanitizer::clean(self::text($value, self::MAX_HTML));
+        $html = HtmlSanitizer::clean(self::text($value, self::MAX_HTML_INPUT, true));
+        $html = self::text($html, PHP_INT_MAX, true); // removed nodes can leave edge whitespace; trim so a second pass is stable
+        if (mb_strlen($html) > self::MAX_HTML) throw self::invalid('内容清洗后超过 ' . self::MAX_HTML . ' 字');
+        return $html;
     }
 
-    private static function text(mixed $value, int $max): string
+    private static function text(mixed $value, int $max, bool $multiline = false): string
     {
         if (!is_string($value) && !is_int($value) && !is_float($value)) throw self::invalid('文本格式无效');
-        $text = trim((string)$value);
-        if (!mb_check_encoding($text, 'UTF-8') || mb_strlen($text) > $max) throw self::invalid('文本无效或超过 ' . $max . ' 字');
+        $text = FormValueValidator::clean((string)$value, $multiline);
+        if ($text === null || mb_strlen($text) > $max) throw self::invalid('文本无效或超过 ' . $max . ' 字');
         return $text;
     }
 

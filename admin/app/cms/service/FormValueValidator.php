@@ -108,8 +108,10 @@ final class FormValueValidator
         $allowed = array_column($field['options'], 'value');
         $picked = [];
         foreach ($raw as $item) {
-            if (!is_string($item) && !is_int($item) || !in_array((string)$item, $allowed, true)) return [null, 'invalid_option'];
-            $picked[] = (string)$item;
+            $item = is_string($item) || is_int($item) ? self::clean((string)$item, false) : null;
+            if ($item === '') continue;
+            if ($item === null || !in_array($item, $allowed, true)) return [null, 'invalid_option'];
+            $picked[] = $item;
         }
         $picked = array_values(array_intersect($allowed, $picked));
         if ($picked === []) return [[], $field['required'] ? 'required' : null];
@@ -129,12 +131,16 @@ final class FormValueValidator
         return [$value, null];
     }
 
-    /** Trims and strips control characters (keeping line breaks and tabs for multi-line text); null for invalid UTF-8. */
-    private static function clean(string $value, bool $multiline): ?string
+    /**
+     * Strips control characters (keeping line breaks and tabs for multi-line text) and trims whitespace
+     * including Unicode separators such as U+3000; null for invalid UTF-8. Shared with FormFieldCatalog.
+     */
+    public static function clean(string $value, bool $multiline): ?string
     {
         if (!mb_check_encoding($value, 'UTF-8')) return null;
         $value = str_replace(["\r\n", "\r"], "\n", $value);
         if (!$multiline) $value = str_replace(["\n", "\t"], ' ', $value);
-        return trim((string)preg_replace('/[\x00-\x08\x0B-\x1F\x7F\x{80}-\x{9F}]/u', '', $value));
+        $value = (string)preg_replace('/[\x00-\x08\x0B-\x1F\x7F\x{80}-\x{9F}]/u', '', $value);
+        return (string)preg_replace('/\A[\s\p{Z}]+|[\s\p{Z}]+\z/u', '', $value);
     }
 }

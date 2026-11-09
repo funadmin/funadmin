@@ -108,6 +108,23 @@ final class FormValueValidatorTest extends TestCase
         self::assertSame('invalid',$this->error(['type'=>'text'],"\xff\xfe"));
         self::assertSame('required',$this->error(['type'=>'text','required'=>true],null));
     }
+    public function test_unicode_separators_do_not_satisfy_required(): void
+    {
+        self::assertSame('required',$this->error(['type'=>'text','required'=>true],"\u{3000}"));
+        self::assertSame('required',$this->error(['type'=>'textarea','required'=>true],"\u{3000}\n\u{00A0}\u{2003}"));
+        self::assertSame('Ann',$this->value(['type'=>'text'],"\u{3000}Ann\u{3000}"));
+        self::assertSame('fallback',$this->value(['type'=>'hidden','from_query'=>true,'value'=>'fallback'],"\u{3000}"));
+    }
+    public function test_choice_items_are_cleaned_like_single_choice_values(): void
+    {
+        $options=[['value'=>"\u{3000}a ",'label'=>'A'],['value'=>'b','label'=>'B']];
+        self::assertSame('a',$this->value(['type'=>'radio','options'=>$options],' a '));
+        self::assertSame('a',$this->value(['type'=>'select','options'=>$options],"\u{3000}a"));
+        self::assertSame(['a','b'],$this->value(['type'=>'checkbox','options'=>$options],[' a ',"b\x00"]));
+        self::assertSame(['a','b'],$this->value(['type'=>'select','multiple'=>true,'options'=>$options],["\u{3000}a\u{3000}",'b ']));
+        self::assertSame('required',$this->error(['type'=>'checkbox','required'=>true,'options'=>$options],[' ',"\u{3000}"]));
+        self::assertSame('invalid_option',$this->error(['type'=>'checkbox','options'=>$options],["\xff"]));
+    }
     public function test_file_required_and_max_files_use_counts(): void
     {
         $fields=FormFieldCatalog::normalize([['name'=>'doc','type'=>'file','label'=>'Doc','required'=>true,'max_files'=>2],['name'=>'pic','type'=>'image','label'=>'Pic']]);

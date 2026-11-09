@@ -63,6 +63,27 @@ final class FormFieldCatalogTest extends TestCase
         self::assertTrue($fields[7]['from_query']);
         self::assertSame(FormFieldCatalog::normalize($fields),$fields,'normalize must be idempotent');
     }
+    public function test_normalize_is_idempotent_for_entity_heavy_html_near_cap(): void
+    {
+        $raw=str_repeat('a & b &lt; c ',1176);
+        $once=FormFieldCatalog::normalize([['type'=>'paragraph','html'=>$raw],['name'=>'agree','type'=>'consent','label'=>'Agree','html'=>$raw]]);
+        self::assertGreaterThan(19900,mb_strlen($once[0]['html']),'sanitized output must sit close to the cap');
+        self::assertLessThanOrEqual(20000,mb_strlen($once[1]['html']));
+        self::assertSame($once,FormFieldCatalog::normalize($once));
+        $edges=FormFieldCatalog::normalize([['type'=>'paragraph','html'=>"<script>x</script> hi \u{3000}<script>y</script>"]]);
+        self::assertSame('hi',$edges[0]['html']);
+        self::assertSame($edges,FormFieldCatalog::normalize($edges));
+        try{FormFieldCatalog::normalize([['type'=>'paragraph','html'=>str_repeat('a & b ',3333)]]);self::fail('Sanitized html over the cap must be rejected up front');}
+        catch(\InvalidArgumentException $e){self::assertSame(422,$e->getCode());}
+    }
+    public function test_normalize_trims_unicode_separators_and_control_chars_from_texts_and_options(): void
+    {
+        $fields=FormFieldCatalog::normalize([['name'=>'pick','type'=>'radio','label'=>"\u{3000}Pick\u{00A0}",'options'=>[['value'=>"\u{3000} a\x01 ",'label'=>"\u{2003}A"]]]]);
+        self::assertSame('Pick',$fields[0]['label']);
+        self::assertSame([['value'=>'a','label'=>'A']],$fields[0]['options']);
+        try{FormFieldCatalog::normalize([['name'=>'pick','type'=>'radio','label'=>'P','options'=>[['value'=>"\u{3000}"]]]]);self::fail('Separator-only option value must be rejected');}
+        catch(\InvalidArgumentException $e){self::assertSame(422,$e->getCode());}
+    }
     public function test_normalize_sanitizes_consent_and_paragraph_html(): void
     {
         $fields=FormFieldCatalog::normalize([
