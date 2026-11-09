@@ -25,6 +25,11 @@ final class FormSubmissionService
     private const SEARCH_LIMIT = 20000;
     private const NOTE_LIMIT = 2000;
     private const BATCH_LIMIT = 1000;
+    /** 导出用固定文字：表头前四列、状态名、同意框的是/否。键为导出语言。 */
+    private const EXPORT_LABELS = [
+        'zh-cn' => ['columns' => ['提交时间', '表单', '状态', '来源页面'], 'statuses' => ['new' => '新提交', 'processing' => '跟进中', 'done' => '已完成', 'invalid' => '无效'], 'yes' => '是', 'no' => '否'],
+        'en-us' => ['columns' => ['Submitted at', 'Form', 'Status', 'Source page'], 'statuses' => ['new' => 'New', 'processing' => 'In progress', 'done' => 'Done', 'invalid' => 'Invalid'], 'yes' => 'Yes', 'no' => 'No'],
+    ];
 
     private readonly FormService $forms;
     private readonly FormFileStorage $storage;
@@ -143,7 +148,10 @@ final class FormSubmissionService
         return ['list' => $list, 'total' => $total, 'page' => $page, 'pageSize' => self::PAGE_SIZE];
     }
 
-    /** 字段按提交时的快照排列；每个字段带原值 `value`、展示文本 `text`，文件字段另带 `files`。 */
+    /**
+     * 字段按提交时的快照排列；每个字段带原值 `value`（同意框为布尔）与 `text`（只含来自快照的文字：选项标签、文件原名，
+     * 其余类型为原值文本，同意框为空串，由后台界面按语言翻译），文件字段另带 `files`。状态返回键名。
+     */
     public function detail(string $siteId, string $id): array
     {
         $siteId = Input::id($siteId);
@@ -241,11 +249,13 @@ final class FormSubmissionService
     /**
      * 按筛选逐行产出 CSV 行（第一行为表头）。列：提交时间、表单、状态、来源页面 + 所有涉及快照合并的字段（按字段标识合并，
      * 标签取最新快照，较新快照的字段在前）。所有单元格做公式注入防护。筛选条件在调用时立即校验。
+     * `$locale` 决定固定表头、状态名与是/否的语言：以 `en` 开头用英文，其余用中文。
      */
-    public function export(string $siteId, array $filters): \Generator
+    public function export(string $siteId, array $filters, string $locale = 'zh-cn'): \Generator
     {
         $siteId = Input::id($siteId);
-        return $this->rows($siteId, $this->filtered($siteId, $filters));
+        $labels = self::EXPORT_LABELS[str_starts_with(strtolower($locale), 'en') ? 'en-us' : 'zh-cn'];
+        return $this->rows($siteId, $this->filtered($siteId, $filters), $labels);
     }
 
     /** @return array{absolute:string,name:string,mime:string} */
@@ -258,7 +268,7 @@ final class FormSubmissionService
         return ['absolute' => $absolute, 'name' => $row->original_name, 'mime' => $row->mime];
     }
 
-    private function rows(string $siteId, Builder $query): \Generator
+    private function rows(string $siteId, Builder $query, array $labels): \Generator
     {
         $columns = [];
         foreach ($this->batches((clone $query)->select(['id', 'fields'])) as $batch) {
@@ -268,9 +278,8 @@ final class FormSubmissionService
                 }
             }
         }
-        yield array_map(self::cell(...), array_merge(['提交时间', '表单', '状态', '来源页面'], array_values($columns)));
+        yield array_map(self::cell(...), array_merge($labels['columns'], array_values($columns)));
         $forms = $this->formNames($siteId);
-        $labels = ['new' => '新提交', 'processing' => '跟进中', 'done' => '已完成', 'invalid' => '无效'];
         foreach ($this->batches($query) as $batch) {
             $names = [];
             foreach (Db::table('cms_form_file')->where('site_id', $siteId)->whereIn('submission_id', array_column($batch, 'id'))->orderBy('id')->get(['submission_id', 'field', 'original_name']) as $file) {
@@ -279,12 +288,12 @@ final class FormSubmissionService
             foreach ($batch as $row) {
                 $item = $this->format($row);
                 $fields = array_column($item['fields'], null, 'name');
-                $line = [$item['created_at'], $forms[$item['form_id']]['form_name'] ?? '', $labels[$item['status']] ?? $item['status'], $item['source_url']];
+                $line = [$item['created_at'], $forms[$item['form_id']]['form_name'] ?? '', $labels['statuses'][$item['status']] ?? $item['status'], $item['source_url']];
                 foreach (array_keys($columns) as $name) {
                     $field = $fields[$name] ?? null;
                     if ($field === null) $line[] = '';
                     elseif (in_array($field['type'], FormFieldCatalog::FILE_TYPES, true)) $line[] = implode(', ', $names[$item['id']][$name] ?? []);
-                    else $line[] = self::display($field, $item['values'][$name] ?? null);
+                    else $line[] = self::display($field, $item['values'][$name] ?? null, [$labels['yes'], $labels['no']]);
                 }
                 yield array_map(self::cell(...), $line);
             }
@@ -320,7 +329,11 @@ final class FormSubmissionService
             if (($bound = self::date($filters[$key] ?? null, $end)) !== null) $query->where('created_at', $bound[0], $bound[1]);
         }
         $keyword = FormValueValidator::clean(is_scalar($filters['keyword'] ?? null) ? (string)$filters['keyword'] : '', false);
-        if ($keyword !== null && $keyword !== '') $query->where('search_text', 'like', '%' . mb_substr($keyword, 0, 100) . '%');
+        if ($keyword !== null && $keyword !== '') {
+            // 关键词按字面匹配：转义 LIKE 通配符。转义符用 `!`，MySQL 与 SQLite 对它的字面量写法一致（反斜杠在两者中不同）。
+            $pattern = '%' . strtr(mb_substr($keyword, 0, 100), ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+            $query->whereRaw("search_text LIKE ? ESCAPE '!'", [$pattern]);
+        }
         return $query;
     }
 
@@ -416,11 +429,14 @@ final class FormSubmissionService
         ];
     }
 
-    /** 展示文本：选项值显示为快照里的标签，多选用逗号连接，同意框为是/否。 */
-    private static function display(array $field, mixed $value): string
+    /**
+     * 展示文本：选项值显示为快照里的标签，多选用逗号连接。同意框只在给出 [是, 否] 文字时（导出）转成文字，否则为空串。
+     * @param ?array{0:string,1:string} $yesNo
+     */
+    private static function display(array $field, mixed $value, ?array $yesNo = null): string
     {
         if ($value === null) return '';
-        if ($field['type'] === 'consent') return $value ? '是' : '否';
+        if ($field['type'] === 'consent') return $yesNo === null ? '' : ($value ? $yesNo[0] : $yesNo[1]);
         $labels = array_column($field['options'] ?? [], 'label', 'value');
         $items = array_map(static fn(mixed $item): string => (string)($labels[(string)$item] ?? $item), is_array($value) ? $value : [$value]);
         return implode(', ', $items);

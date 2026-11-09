@@ -208,8 +208,14 @@ final class FormSubmissionServiceTest extends CmsTestCase
         self::assertSame([$b],$ids(['from'=>'2026-01-06','to'=>'2026-01-10']),'to is inclusive of the whole day');
         self::assertSame([$a],$ids(['to'=>'2026-01-05']));
         self::assertSame([$a],$ids(['keyword'=>'苹果']));
+        $pct=$this->seed($site,$form,'Eve','折扣 50% 起');$plain=$this->seed($site,$form,'Frank','预算 500 元');$odd=$this->seed($site,$form,'Gina','a_b!c\\d');
+        self::assertSame([$pct],$ids(['keyword'=>'50%']),'% is matched literally, so 50% does not match 500');
+        self::assertSame([],$ids(['keyword'=>'a%b']));self::assertSame([],$ids(['keyword'=>'Fra_k']),'_ is matched literally');
+        self::assertSame([$odd],$ids(['keyword'=>'a_b!c\\d']),'escape characters themselves match literally');
+        self::assertContains($plain,$ids(['keyword'=>'500']));
         self::assertSame([],$ids(['keyword'=>'Dave']),'keyword still honors the default status filter');
         self::assertSame([],$ids([],2));
+        Db::table('cms_form_submission')->whereIn('id',[$pct,$plain,$odd])->delete();
         $this->fails(fn()=>$this->service->list($site['id'],['status'=>['bogus']],1),422,'unknown status');
         $this->fails(fn()=>$this->service->list($site['id'],['from'=>'yesterday'],1),422,'bad date');
         self::assertSame([],$this->service->list($this->site('b','b.test')['id'],[],1)['list']);
@@ -292,6 +298,13 @@ final class FormSubmissionServiceTest extends CmsTestCase
         self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',$rows[2][0]);
         $all=iterator_to_array($this->service->export($site['id'],['status'=>['new','processing','done','invalid']]),false);
         self::assertCount(4,$all);self::assertSame('已完成',$all[1][2]);
+        $en=iterator_to_array($this->service->export($site['id'],['status'=>['new','done']],'en-us'),false);
+        self::assertSame(['Submitted at','Form','Status','Source page','名字','电话','同意'],array_slice($en[0],0,7),'fixed columns follow the export locale, field labels come from the snapshot');
+        self::assertSame(['Done','New','New'],array_column(array_slice($en,1),2));
+        self::assertSame(['Yes','No'],[$en[2][6],$en[1][6]]);
+        $consent=$this->service->detail($site['id'],(string)Db::table('cms_form_submission')->where('values','like','%李四%')->value('id'));
+        self::assertSame('new',$consent['status']);
+        self::assertSame(['agree',true,''],[$consent['fields'][2]['name'],$consent['fields'][2]['value'],$consent['fields'][2]['text']],'detail returns consent as a bool without fixed-language text');
     }
 
     public function test_delete_removes_files(): void
