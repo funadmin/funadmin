@@ -57,13 +57,19 @@ final class FormPublicTest extends CmsTestCase
         return new FormEndpoint(new FormSubmissionService(new FormService(),new FormFileStorage($this->base.'/forms'),$this->guard,$captcha),$this->guard,$captcha);
     }
     /** @param array<string,string|list<string>> $fields @param array<string,list<array{0:string,1:string}>> $files */
-    private function request(string $path,array $fields,array $files=[],bool $json=true,string $host='cms.test'): Request
+    /** @param array<string,string> $headers 额外请求头 @param string $remote 非空时模拟该连接来源地址 */
+    private function request(string $path,array $fields,array $files=[],bool $json=true,string $host='cms.test',string $remote='',array $headers=[]): Request
     {
         $boundary='----cmsform'.bin2hex(random_bytes(6));$body='';
         foreach($fields as $name=>$value) foreach((array)$value as $item) $body.="--$boundary\r\nContent-Disposition: form-data; name=\"".(is_array($value)?$name.'[]':$name)."\"\r\n\r\n$item\r\n";
         foreach($files as $name=>$list) foreach($list as [$filename,$content]) $body.="--$boundary\r\nContent-Disposition: form-data; name=\"{$name}[]\"; filename=\"$filename\"\r\nContent-Type: application/octet-stream\r\n\r\n$content\r\n";
         $body.="--$boundary--\r\n";
-        return new Request("POST /cms/forms/$path HTTP/1.1\r\nHost: $host\r\n".($json?"Accept: application/json\r\nX-Requested-With: XMLHttpRequest\r\n":"Accept: text/html\r\n")."User-Agent: PHPUnit\r\nContent-Type: multipart/form-data; boundary=$boundary\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body);
+        $raw="POST /cms/forms/$path HTTP/1.1\r\nHost: $host\r\n".($json?"Accept: application/json\r\nX-Requested-With: XMLHttpRequest\r\n":"Accept: text/html\r\n")."User-Agent: PHPUnit\r\n".implode('',array_map(static fn(string $k,string $v): string=>"$k: $v\r\n",array_keys($headers),$headers))."Content-Type: multipart/form-data; boundary=$boundary\r\nContent-Length: ".strlen($body)."\r\n\r\n".$body;
+        if($remote==='') return new Request($raw);
+        return new class($raw,$remote) extends Request {
+            public function __construct(string $buffer,private readonly string $remote){parent::__construct($buffer);}
+            public function getRemoteIp(): string{return $this->remote;}
+        };
     }
     private function token(array $site,array $form): string
     {
@@ -130,10 +136,28 @@ final class FormPublicTest extends CmsTestCase
         $context=new RenderContext($site['id'],'zh-cn');
         $blade=(new ThemeEngine((new BuiltinTags())->registry($context),$root))->renderFile('page',[],$context);
         $normalize=static fn(string $html): string=>preg_replace(['~cms-form-[0-9a-f]{8}~','~(name="_token" value=")[^"]+~','~(name="_captcha_id" value=")[^"]+~','~src="data:image/[^"]+"~'],['UID','$1T','$1C','src="IMG"'],$html);
-        self::assertStringContainsString('name="_captcha_id"',$database);
-        self::assertMatchesRegularExpression('~<img[^>]*src="data:image/~',$database);
+        self::assertStringContainsString('<input type="hidden" name="_captcha_id" value="">',$database,'captcha is not issued at render; cms-form.js fetches the throttled endpoint');
+        self::assertStringNotContainsString('data:image/',$database);
+        self::assertMatchesRegularExpression('~<img[^>]*data-captcha-image~',$database);
+        self::assertStringContainsString('data-captcha-refresh',$database);
+        self::assertStringContainsString('<noscript><p class="cms-form-noscript">'.FormMessages::for('zh-cn')['captcha_noscript'].'</p></noscript>',$database);
         self::assertStringContainsString('name="_captcha"',$database);
+        self::assertStringContainsString(FormMessages::for('en-us')['captcha_noscript'],$this->tag($site['id'],'{cms:form name="contact" /}','en-us'));
         self::assertSame($normalize($blade),$normalize($database));
+    }
+
+    public function test_public_form_styles_ship_in_shared_stylesheet_loaded_by_every_theme(): void
+    {
+        $root=dirname(__DIR__,2).'/plugins/cms';
+        $css=file_get_contents($root.'/public/plugin-assets/cms/public/cms.css');
+        foreach(['.cms-form{','.cms-form>.cms-form-field--half{','.cms-form-label{','.cms-form-control{','.cms-form-help{','.cms-form-error{','.cms-form-field[data-invalid] .cms-form-control{','.cms-form-message{','.cms-form-success{','.cms-form-captcha-row{','.cms-form-option,.cms-form-consent{','.cms-form-submit{','.cms-form-submit:disabled,.cms-form[aria-busy=true] .cms-form-submit{','.cms-form [hidden]{'] as $selector) self::assertStringContainsString($selector,$css);
+        self::assertMatchesRegularExpression('~@media \(max-width:\d+px\)\{\.cms-form\{grid-template-columns:minmax\(0,1fr\)\}~',$css,'half-width fields collapse to one column on narrow screens');
+        $template=file_get_contents($root.'/app/cms/view/_forms/form.blade.php').file_get_contents($root.'/public/plugin-assets/cms/public/cms-form.js');
+        preg_match_all('~\bcms-form-[a-z-]+~',$template,$used);
+        foreach(array_unique($used[0]) as $class) if(!in_array($class,['cms-form-field--','cms-form-ready'],true)&&!preg_match('~^cms-form-field--~',$class)) self::assertStringContainsString('.'.$class,$css,"$class has styles");
+        $headers=glob($root.'/app/cms/view/*/partials/header.blade.php');
+        self::assertNotEmpty($headers);
+        foreach($headers as $header) self::assertStringContainsString('href="/plugin-assets/cms/public/cms.css"',file_get_contents($header),basename(dirname($header,2)).' loads cms.css');
     }
 
     public function test_visitor_messages_follow_site_locale(): void
@@ -234,6 +258,43 @@ final class FormPublicTest extends CmsTestCase
         $response=$endpoint->submit($this->request('contact',['_token'=>$this->token($site,$form),'_hp'=>'http://spam','name'=>'bot']),'contact');
         self::assertSame(200,$response->getStatusCode());
         self::assertSame(1,Db::table('cms_form_submission')->where('form_id',$form['id'])->count(),'honeypot is silently dropped');
+    }
+
+    public function test_throttle_uses_proxy_appended_address_not_spoofed_forwarded_for(): void
+    {
+        $site=$this->site();$form=$this->form($site['id'],[['name'=>'name','type'=>'text','label'=>'姓名']],['rate_limit'=>5],'proxied');
+        $endpoint=$this->endpoint();
+        $submit=fn(string $remote,array $headers): Response=>$endpoint->submit($this->request('proxied',['_token'=>$this->token($site,$form),'name'=>'a'],[],true,'cms.test',$remote,$headers),'proxied');
+        for($i=1;$i<=5;$i++) self::assertSame(200,$submit('127.0.0.1',['X-Forwarded-For'=>"6.6.6.$i, 198.51.100.20"])->getStatusCode(),"attempt $i");
+        self::assertSame(429,$submit('127.0.0.1',['X-Forwarded-For'=>'6.6.6.99, 198.51.100.20'])->getStatusCode(),'rotating the client-controlled first hop does not open a new bucket');
+        self::assertSame(['198.51.100.20'],Db::table('cms_form_submission')->distinct()->pluck('ip')->all(),'the hop appended by the trusted proxy is recorded');
+        self::assertSame(200,$submit('10.0.0.5',['X-Real-IP'=>'198.51.100.21','X-Forwarded-For'=>'198.51.100.20'])->getStatusCode(),'X-Real-IP from a trusted proxy wins over X-Forwarded-For');
+        self::assertSame(200,$submit('8.8.8.8',['X-Real-IP'=>'198.51.100.20','X-Forwarded-For'=>'198.51.100.20'])->getStatusCode(),'headers from a public peer are ignored');
+        self::assertSame('8.8.8.8',Db::table('cms_form_submission')->orderByDesc('created_at')->orderByDesc('id')->value('ip'));
+        self::assertSame(200,$submit('127.0.0.1',['X-Real-IP'=>'2001:db8:1:2::1'])->getStatusCode());
+        for($i=2;$i<=5;$i++) self::assertSame(200,$submit('127.0.0.1',['X-Real-IP'=>"2001:db8:1:2::$i"])->getStatusCode(),"ipv6 attempt $i");
+        self::assertSame(429,$submit('127.0.0.1',['X-Real-IP'=>'2001:db8:1:2:ffff::9'])->getStatusCode(),'addresses in one IPv6 /64 share a bucket');
+    }
+
+    public function test_unexpected_failures_are_logged_without_submitted_values(): void
+    {
+        $site=$this->site();$form=$this->form($site['id']);
+        file_put_contents($this->base.'/not-a-directory','x');
+        $captcha=new FormCaptcha(self::SECRET);
+        $broken=new FormSubmissionService(new FormService(),new FormFileStorage($this->base.'/not-a-directory/forms'),$this->guard,$captcha);
+        $handler=new \Monolog\Handler\TestHandler();
+        \support\Log::channel()->pushHandler($handler);
+        try {
+            $response=(new FormEndpoint($broken,$this->guard,$captcha))->submit($this->request('contact',['_token'=>$this->token($site,$form),'name'=>'secret-visitor-value'],['resume'=>[['secret-file.pdf',self::PDF]]]),'contact');
+        } finally {
+            \support\Log::channel()->popHandler();
+        }
+        self::assertSame(500,$response->getStatusCode());
+        self::assertTrue($handler->hasErrorRecords(),'unexpected throwables are logged');
+        $logged=json_encode(array_map(static fn($record): array=>['message'=>$record['message'],'context'=>$record['context']],$handler->getRecords()),JSON_UNESCAPED_UNICODE);
+        self::assertStringContainsString('RuntimeException',$logged);
+        self::assertStringNotContainsString('secret-file',$logged);
+        self::assertStringNotContainsString('secret-visitor-value',$logged);
     }
 
     public function test_html_fallback_renders_result_page(): void

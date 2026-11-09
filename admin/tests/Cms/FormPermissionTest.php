@@ -37,6 +37,7 @@ final class FormPermissionTest extends CmsTestCase
         $custom=Db::table('cms_site_role')->insertGetId(['site_id'=>$a['id'],'code'=>'custom','name'=>'Custom','status'=>1]);
         Db::table('cms_site_role_permission')->insert(['site_id'=>$a['id'],'role_id'=>$custom,'permission_code'=>'cms:content:list']);
         Db::table('cms_site')->where('id',$gone['id'])->update(['deleted_at'=>\app\cms\service\Input::now()]);
+        foreach([$a,$b,$gone] as $site)$this->unmark($site['id']);
         $before=$this->others();
 
         self::assertSame(8,FormPermissionUpgrade::backfill());
@@ -49,6 +50,38 @@ final class FormPermissionTest extends CmsTestCase
 
         self::assertSame(0,FormPermissionUpgrade::backfill());
         self::assertSame($rows,Db::table('cms_site_role_permission')->count());
+    }
+
+    public function test_backfill_runs_once_per_site_so_revoked_permissions_stay_revoked(): void
+    {
+        $old=$this->site();
+        // 升级前的已有站点：没有任何表单权限，也没有补齐标记。
+        Db::table('cms_site_role_permission')->where('site_id',$old['id'])->where('permission_code','like','cms:form:%')->delete();
+        $this->unmark($old['id']);
+        self::assertSame(6,FormPermissionUpgrade::backfill(),'first run backfills the administrator role only');
+        self::assertSame(self::FORM,$this->formPermissions($old['id'],'administrator'));
+        self::assertSame([],$this->formPermissions($old['id'],'editor'));
+        self::assertNotEmpty($this->settings($old['id'])[FormPermissionUpgrade::MARKER]??null,'the site is marked in the same run');
+
+        // 站点有意收回管理员的导出与删除权限；之后每次停用→启用都不得再补回。
+        Db::table('cms_site_role_permission')->where('site_id',$old['id'])->whereIn('permission_code',['cms:form:export','cms:form:delete'])->delete();
+        self::assertSame(0,FormPermissionUpgrade::backfill());
+        self::assertSame(0,FormPermissionUpgrade::backfill());
+        self::assertSame(['cms:form:list','cms:form:manage','cms:form:submissions','cms:form:handle'],$this->formPermissions($old['id'],'administrator'));
+
+        // 新建站点在创建时已按预设授权并标记；收回后同样保持收回。
+        $fresh=$this->site('fresh','fresh.test');
+        self::assertNotEmpty($this->settings($fresh['id'])[FormPermissionUpgrade::MARKER]??null,'new sites are marked at seed time');
+        Db::table('cms_site_role_permission')->where('site_id',$fresh['id'])->where('permission_code','cms:form:delete')->delete();
+        self::assertSame(0,FormPermissionUpgrade::backfill());
+        self::assertNotContains('cms:form:delete',$this->formPermissions($fresh['id'],'administrator'));
+
+        // 编辑站点时即使传入新的 settings，也保留标记；其他设置键不受补齐影响。
+        $marked=$this->settings($old['id'])[FormPermissionUpgrade::MARKER];
+        (new \app\cms\service\SiteService())->save(['id'=>$old['id'],'settings'=>['member_content'=>['enabled'=>false,'model_codes'=>[]]]],'1');
+        self::assertSame($marked,$this->settings($old['id'])[FormPermissionUpgrade::MARKER]);
+        self::assertSame(['enabled'=>false,'model_codes'=>[]],$this->settings($old['id'])['member_content']);
+        self::assertSame(0,FormPermissionUpgrade::backfill());
     }
 
     public function test_ceilings_map_to_forms_controller_codes(): void
@@ -65,6 +98,19 @@ final class FormPermissionTest extends CmsTestCase
         self::assertSame(['delete','detail','export','file','index','invalidate','note','remove','save','status','submissions','summary','transition'],(static function(array $m): array{sort($m);return $m;})(array_values(array_unique($methods))));
         self::assertSame(['cms:forms:export'],PermissionCatalog::ceilings('cms:form:export'));
         self::assertSame(['cms:forms:remove'],PermissionCatalog::ceilings('cms:form:delete'));
+    }
+
+    /** 模拟升级前创建的站点：去掉补齐标记，保留其他设置。 */
+    private function unmark(string $siteId): void
+    {
+        $settings=$this->settings($siteId);unset($settings[FormPermissionUpgrade::MARKER]);
+        Db::table('cms_site')->where('id',$siteId)->update(['settings'=>json_encode((object)$settings)]);
+    }
+
+    private function settings(string $siteId): array
+    {
+        $settings=json_decode((string)Db::table('cms_site')->where('id',$siteId)->value('settings'),true);
+        return is_array($settings)?$settings:[];
     }
 
     /** @return list<string> 按 FORM 顺序排列 */

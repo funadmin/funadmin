@@ -32,7 +32,7 @@ import Designer from './index.vue';
 
 const hash = (letter: string) => letter.repeat(64);
 const remote = (letter = 'a', title = '订单', target: Record<string, unknown> = { type: 'core', pluginCode: null, scope: 'admin' }) => ({
-  module: { id: 12, code: 'orders', runtime_route: '/development/business/runtime/orders', metadata: { target } }, fields: [],
+  module: { id: 12, code: 'orders', runtime_route: '/development/business/runtime/orders', metadata: { target } },
   form: { id: 7, name: title, form_key: 'orders', table_name: 'fun_orders', schema_hash: hash(letter), schema_document: { schemaVersion: 2, key: 'orders', title, nodes: [] } }
 });
 const conflict = { code: 409, msg: '冲突', data: { error: { code: 'FORM_SCHEMA_CONFLICT', requestId: 'r1', retryable: true, details: {} } } };

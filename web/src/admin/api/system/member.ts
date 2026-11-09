@@ -1,5 +1,4 @@
 import http from '@/utils/http';
-import type { FormFieldDef } from '@/api/form';
 import type { FormSchemaDocument } from '@/views/form/schema/types';
 import type { PageSchema } from '@/components/DataTable/pageSchema';
 
@@ -15,7 +14,6 @@ export interface MemberOptions {
   levels: MemberOption[];
   tags: MemberOption[];
   schema?: FormSchemaDocument;
-  fields?: FormFieldDef[];
   page?: PageSchema;
 }
 

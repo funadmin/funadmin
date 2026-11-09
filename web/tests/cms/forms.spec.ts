@@ -173,6 +173,7 @@ describe('CMS 后台表单页面', () => {
   });
 
   it('导出与翻页只使用已查询的筛选，未选状态按全部状态查询', async () => {
+    api.formSubmissions.mockResolvedValue({ list: [row], total: 41, page: 1, pageSize: 20 });
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     const w = keep(mount(FormsPanel, { props: { scope, can: () => true, languages }, global })); await flushPromises();
     const state = (w.vm as any).$.setupState;
@@ -187,6 +188,26 @@ describe('CMS 后台表单页面', () => {
     await buttons(w, '导出 CSV')[0].trigger('click');
     expect(api.formExportUrl).toHaveBeenLastCalledWith({ site_id: '7', status: all, keyword: '李四', locale: 'zh-cn' });
     open.mockRestore();
+  });
+
+  it('批量操作使总数缩小后，页码越界时回到最后一页并重新加载', async () => {
+    const page2 = { ...row, id: '77', summary: [{ label: '姓名', value: '王五' }] };
+    api.formSubmissions.mockResolvedValue({ list: [row], total: 21, page: 1, pageSize: 20 });
+    const w = keep(mount(FormsPanel, { props: { scope, can: () => true, languages }, global })); await flushPromises();
+    const state = (w.vm as any).$.setupState;
+    api.formSubmissions.mockResolvedValue({ list: [page2], total: 21, page: 2, pageSize: 20 });
+    state.page = 2; await flushPromises();
+    expect(state.rows).toEqual([page2]);
+    api.removeFormSubmissions.mockResolvedValue({ count: 1 });
+    api.formSubmissions.mockImplementation(async (params: { page: number }) => params.page === 1 ? { list: [row], total: 20, page: 1, pageSize: 20 } : { list: [], total: 20, page: params.page, pageSize: 20 });
+    state.selection = [page2]; await nextTick();
+    await buttons(w, '删除所选')[0].trigger('click'); await flushPromises();
+    expect(state.page).toBe(1);
+    expect(api.formSubmissions).toHaveBeenLastCalledWith({ site_id: '7', status: ['new', 'processing'], page: 1 });
+    expect(state.rows).toEqual([row]);
+    api.formSubmissions.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 });
+    await buttons(w, '查询')[0].trigger('click'); await flushPromises();
+    expect(state.page).toBe(1);
   });
 
   it('文件字段必须选择允许的类型，数字默认值必须是数字', async () => {
@@ -223,7 +244,7 @@ describe('CMS 后台表单页面', () => {
     const w = keep(mount(FormsPanel, { props: { scope, can: (code: string) => code === 'cms:form:list', languages }, global })); await flushPromises();
     expect(api.formSubmissions).not.toHaveBeenCalled();
     await buttons(w, '嵌入代码')[0].trigger('click');
-    const blade = "{!! $cms->tag('form', ['name' => 'contact']) !!}", tag = '{cms:form name="contact" /}';
+    const blade = "{{ $cms->tag('form', ['name' => 'contact']) }}", tag = '{cms:form name="contact" /}';
     expect(w.text()).toContain(blade);
     expect(w.text()).toContain(tag);
     await buttons(w, '复制')[0].trigger('click'); await flushPromises();

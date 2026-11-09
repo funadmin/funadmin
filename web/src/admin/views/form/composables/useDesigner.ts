@@ -121,7 +121,9 @@ export function useDesigner() {
     } while (used.has(candidate));
     return candidate;
   };
-  const usedFieldNames = () => new Set(collectFieldNodes(nodes.value).map((node) => node.field).filter((name): name is string => typeof name === 'string' && name !== ''));
+  const hasFieldName = (node: FormSchemaNode): node is FormSchemaNode & { field: string } => typeof node.field === 'string' && node.field !== '';
+  /** 设计器内字段名全局唯一：包含 repeatable/subform 子节点在内的所有带 field 的节点。 */
+  const usedFieldNames = () => new Set(flattenNodes(nodes.value).map(({ node }) => node).filter(hasFieldName).map((node) => node.field));
   const findNode = (nodeId: string) => findLocation(nodes.value, nodeId)?.node ?? null;
   const selectNode = (nodeId: string | null) => {
     selectedNodeId.value = nodeId;
@@ -136,7 +138,7 @@ export function useDesigner() {
     if (!target) throw new Error(t('formDesigner.targetNotContainer', '目标节点不是容器'));
     pushHistory();
     const used = usedFieldNames();
-    let sequence = collectFieldNodes(nodes.value).length + 1;
+    let sequence = used.size + 1;
     while (used.has(`field_${sequence}`)) sequence += 1;
     const node = createNode(type, sequence, nextNodeId(type));
     const at = Math.max(0, Math.min(index ?? target.length, target.length));
@@ -189,10 +191,10 @@ export function useDesigner() {
     if (!source) return null;
     pushHistory();
     const copy = cloneNodeTree(source.node);
-    // 复制出的主表字段各取唯一字段名 <name>_copy[_n]；repeatable/subform 子字段属于子表作用域，保持原名。
+    // 复制出的每个带 field 的节点（含子表容器子节点）各取全局唯一字段名 <name>_copy[_n]。
     const used = usedFieldNames();
-    for (const node of collectFieldNodes([copy])) {
-      if (typeof node.field !== 'string' || node.field === '') continue;
+    for (const { node } of flattenNodes([copy])) {
+      if (!hasFieldName(node)) continue;
       const base = `${node.field}_copy`;
       let candidate = base;
       for (let suffix = 2; used.has(candidate); suffix += 1) candidate = `${base}_${suffix}`;

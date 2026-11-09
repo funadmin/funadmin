@@ -107,7 +107,7 @@ beforeEach(() => {
   mocks.permissions = ['*'];
   mocks.query = {};
   mocks.targets.mockResolvedValue(targets);
-  mocks.createVisual.mockResolvedValue({ module: { id: 7, form_id: 11 }, fields: [] });
+  mocks.createVisual.mockResolvedValue({ module: { id: 7, form_id: 11 } });
 });
 
 async function open(props: Record<string, unknown> = {}) {
@@ -212,7 +212,7 @@ describe('CreateTableDialog 新建表', () => {
       treeEnabled: false, treeParentField: '', treeSelectionMode: 'single', listConfig: {}, target: { type: 'core' }
     });
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false]);
-    expect(wrapper.emitted('created')?.[0]?.[0]).toEqual({ module: { id: 7, form_id: 11 }, fields: [] });
+    expect(wrapper.emitted('created')?.[0]?.[0]).toEqual({ module: { id: 7, form_id: 11 } });
     expect(mocks.push).toHaveBeenCalledWith({ path: '/admin/development/business/designer', query: { id: '11', moduleId: '7' } });
   });
 
@@ -268,7 +268,7 @@ describe('CreateTableDialog 新建表', () => {
     await action(wrapper, 'create-submit').trigger('click');
     expect(action(wrapper, 'create-cancel').attributes('disabled')).toBeDefined();
     expect(mocks.createVisual).toHaveBeenCalledOnce();
-    resolve({ module: { id: 7, form_id: 11 }, fields: [] });
+    resolve({ module: { id: 7, form_id: 11 } });
     await flushPromises();
     expect(mocks.push).toHaveBeenCalledOnce();
   });

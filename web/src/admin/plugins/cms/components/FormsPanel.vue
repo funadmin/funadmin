@@ -18,7 +18,7 @@ const forms=ref<CmsForm[]>([]),rows=ref<FormSubmissionRow[]>([]),selection=ref<F
 const filters=reactive({form_id:'',status:['new','processing'] as FormSubmissionStatus[],range:[] as string[],keyword:''});
 const detailId=ref<string>(),editorOpen=ref(false),editing=ref<CmsForm|null>(null),embed=ref<CmsForm>();
 const statuses=computed<Record<string,string>>(()=>Object.fromEntries(FORM_SUBMISSION_STATUSES.map(status=>[status,t(`cms.forms.statuses.${status}`)])));
-const embedCodes=computed(()=>embed.value?[{label:t('cms.forms.bladeUsage'),code:`{!! $cms->tag('form', ['name' => '${embed.value.code}']) !!}`},{label:t('cms.forms.tagUsage'),code:`{cms:form name="${embed.value.code}" /}`}]:[]);
+const embedCodes=computed(()=>embed.value?[{label:t('cms.forms.bladeUsage'),code:`{{ $cms->tag('form', ['name' => '${embed.value.code}']) }}`},{label:t('cms.forms.tagUsage'),code:`{cms:form name="${embed.value.code}" /}`}]:[]);
 let generation=0;
 /** 读取筛选控件当前值；未选任何状态即“全部状态”，显式发送四个状态，避免服务端回落到默认的新提交+跟进中。 */
 function readFilters():FormData{
@@ -31,7 +31,14 @@ const applied=ref<FormData>(readFilters());
 async function loadSubmissions(){
   if(!canSubmissions.value)return;
   const token=++generation;loading.value=true;
-  try{const result=await cmsApi.formSubmissions({...applied.value,page:page.value});if(token===generation){rows.value=result.list;total.value=result.total;}}
+  try{
+    const result=await cmsApi.formSubmissions({...applied.value,page:page.value});
+    if(token!==generation)return;
+    rows.value=result.list;total.value=result.total;
+    // 批量标记无效或删除后总数变少，当前页可能已越界（分页器在只有一页时隐藏）：回到最后一页，由 page 的监听重新加载一次。
+    const last=Math.max(1,Math.ceil(result.total/PAGE_SIZE));
+    if(page.value>last)page.value=last;
+  }
   catch(cause){if(token===generation){rows.value=[];total.value=0;error.value=(cause as {msg?:string})?.msg||t('cms.labels.couldNotLoadPleaseTryAgainLater');}}
   finally{if(token===generation)loading.value=false;}
 }

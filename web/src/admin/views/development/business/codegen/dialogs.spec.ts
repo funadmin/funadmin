@@ -175,7 +175,7 @@ describe('LoadTablesDialog', () => {
     });
     mocks.createFromDatabase.mockImplementation(async (payload: Record<string, unknown>) => {
       mocks.calls.push(`create:${payload.table}`);
-      return { module: { ...baseModule, id: 100 + mocks.calls.length, code: payload.code, table_name: payload.table }, fields: [] };
+      return { module: { ...baseModule, id: 100 + mocks.calls.length, code: payload.code, table_name: payload.table } };
     });
   });
 
@@ -286,9 +286,8 @@ const syncDetail = (hash = 'hash-1', doc = syncDoc()): BusinessModuleDetail => (
   module: { ...baseModule },
   form: {
     id: 3, form_key: 'shop_goods', name: '商品', table_name: 'fun_shop_goods', connection: 'mysql', source_type: 'adopted',
-    status: 1, remark: '', sort_order: 0, schema_hash: hash, schema_document: doc as unknown as NonNullable<FormDefinition['schema_document']>, publish_config: {}, fields: []
-  },
-  fields: []
+    status: 1, remark: '', sort_order: 0, schema_hash: hash, schema_document: doc as unknown as NonNullable<FormDefinition['schema_document']>, publish_config: {}
+  }
 });
 
 const diff = (): DatabaseSyncDiff => ({

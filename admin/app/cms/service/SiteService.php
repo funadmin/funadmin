@@ -37,6 +37,8 @@ final class SiteService
             if($old&&!Db::table('cms_site_locale')->where('site_id',$old['id'])->where('locale',$locale)->where('status',1)->exists()) throw new InvalidArgumentException('默认语言必须已启用');
             $settings=SiteConfiguration::siteSettings($input['settings']??$old['settings']??[]);
             if($old&&isset($settings['configuration']))SiteConfiguration::reconcileLocales($old['id'],$settings['configuration']['fields']);
+            // 表单权限补齐标记由系统维护：编辑时沿用旧值；新站点创建时即按预设授权，直接标记为已补齐。
+            $marker=$old?($old['settings'][FormPermissionUpgrade::MARKER]??null):$now;unset($settings[FormPermissionUpgrade::MARKER]);if($marker!==null)$settings[FormPermissionUpgrade::MARKER]=$marker;
             $data=['code'=>Input::code($input['code']??$old['code']??''),'name'=>Input::text($input['name']??$old['name']??'',100),'default_locale'=>$locale,'theme'=>Input::template($input['theme']??$old['theme']??'default'),'settings'=>Input::json($settings),'status'=>(int)($input['status']??$old['status']??1),'updated_at'=>$now];
             if($old) { $id=$old['id'];Db::table('cms_site')->where('id',$id)->update($data); }
             else {

@@ -1,5 +1,5 @@
 import http from '@/utils/http';
-import type { FormComponentCatalogItem, FormDefinition, FormFieldDef, FormPublishConfig, FormSchemaDiff, FormSchemaDocument, FormSchemaCompileResult, FormSchemaVersion } from '@/api/form';
+import type { FormComponentCatalogItem, FormDefinition, FormPublishConfig, FormSchemaDiff, FormSchemaDocument, FormSchemaCompileResult, FormSchemaVersion } from '@/api/form';
 
 import type { FormListActionMetadata, FormListButtonLocation } from '@/views/form/schema/types';
 import type { ListResource } from '@/views/form/runtime/listResourceHost';
@@ -163,7 +163,6 @@ export interface BusinessFormalGenerationResult {
 export interface BusinessModuleDetail {
   module: BusinessModule;
   form?: FormDefinition | null;
-  fields: FormFieldDef[];
 }
 
 export interface BusinessPageResult<T> {

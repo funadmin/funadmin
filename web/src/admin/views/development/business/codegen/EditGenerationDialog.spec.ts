@@ -77,9 +77,8 @@ const makeDetail = (): BusinessModuleDetail => ({
   module: { ...coreModule },
   form: {
     id: 3, form_key: 'shop_goods', name: '商品', table_name: 'fa_shop_goods', connection: 'mysql', source_type: 'created',
-    status: 1, remark: '', sort_order: 0, schema_hash: 'hash-1', schema_document: makeDoc() as unknown as NonNullable<FormDefinition['schema_document']>, publish_config: { sortOrder: 10 }, fields: []
-  },
-  fields: []
+    status: 1, remark: '', sort_order: 0, schema_hash: 'hash-1', schema_document: makeDoc() as unknown as NonNullable<FormDefinition['schema_document']>, publish_config: { sortOrder: 10 }
+  }
 });
 
 const conflictError = { code: 409, msg: '冲突', data: { error: { code: 'FORM_SCHEMA_CONFLICT', requestId: 'r1', retryable: true, details: {} } } };

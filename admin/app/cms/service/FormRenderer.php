@@ -9,13 +9,13 @@ use InvalidArgumentException;
 
 /**
  * 前台表单渲染：表单定义只作为数据传入可信的文件模板（当前主题的 `partials/form` 或内置 `_forms/form`），从不被编译。
- * 同一页面多次渲染时，每次生成独立的 DOM 前缀 `uid`。
+ * 同一页面多次渲染时，每次生成独立的 DOM 前缀 `uid`。验证码只由 cms-form.js 从受限流的接口获取，渲染时不签发。
  */
 final class FormRenderer
 {
     public const SCRIPT = '<script src="/plugin-assets/cms/public/cms-form.js" defer></script>';
 
-    public function __construct(private ?FormService $forms = null, private ?FormGuard $guard = null, private ?FormCaptcha $captcha = null) {}
+    public function __construct(private ?FormService $forms = null, private ?FormGuard $guard = null) {}
 
     /** 浏览器可见的提交地址：公开站点经反向代理把 `/` 映射到内部 `/cms/`，与主题内其他链接一样不带 `/cms` 前缀。 */
     public static function action(string $code): string
@@ -35,7 +35,9 @@ final class FormRenderer
             'action' => self::action($form['code']),
             'token' => ($this->guard ??= new FormGuard())->issue($form['site_id'], $form['id']),
             'uid' => $uid,
-            'captcha' => $form['settings']['captcha'] ? ($this->captcha ??= new FormCaptcha())->issue() : null,
+            // 渲染时不签发验证码：否则每次匿名 GET 都会生成图片并写缓存，绕过 /captcha 的按 IP 限流。
+            // 只给出空占位，cms-form.js 初始化时从受限流的接口获取；无 JS 访客看到 <noscript> 提示。
+            'captcha' => $form['settings']['captcha'] ? ['id' => '', 'image' => ''] : null,
             'ui' => FormMessages::for($context->locale),
             'locale' => $context->locale,
             'source' => is_string($context->page['path'] ?? null) ? $context->page['path'] : '',

@@ -1,5 +1,5 @@
 import http from '@/utils/http';
-import type { FormDefinition, FormFieldDef } from '@/api/form';
+import type { FormDefinition } from '@/api/form';
 import type { FormListButtonLocation, FormSchemaDocument } from '@/views/form/schema/types';
 
 export type FormRecordId = string | number;
@@ -11,7 +11,6 @@ export interface FormDataMutationResult {
 
 export interface FormDataMeta {
   form: FormDefinition;
-  fields: FormFieldDef[];
   primaryKey: { name: string; type: 'integer' | 'string' };
   schema: FormSchemaDocument;
   schemaHash: string;

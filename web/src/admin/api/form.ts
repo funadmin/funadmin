@@ -20,43 +20,6 @@ export interface FormSchemaDocument {
   relations?: import('@/views/form/schema/types').FormSchemaRelation[];
 }
 
-/** 表单字段定义（列/表单/列表/关联全量参数） */
-export interface FormFieldDef {
-  id?: number;
-  form_id?: number;
-  field_name: string;
-  label: string;
-  type: string;
-  column_type: string;
-  nullable: number;
-  default_value: string;
-  comment: string;
-  unsigned: number;
-  index_type: 'none' | 'unique' | 'index';
-  placeholder: string;
-  options_source?: Record<string, unknown> | null;
-  control_props?: Record<string, unknown> | null;
-  validate_rules?: Record<string, unknown> | null;
-  link_rules?: Record<string, unknown> | null;
-  relation_type: 'none' | 'belongs_to' | 'has_many';
-  relation_table: string;
-  relation_label_field: string;
-  relation_value_field: string;
-  relation_multiple: number;
-  relation_on_delete: 'restrict' | 'cascade' | 'set_null';
-  list_show: number;
-  list_sort: number;
-  list_filter: string;
-  list_formatter: string;
-  list_width: number;
-  form_show: number;
-  form_required: number;
-  form_group: string;
-  form_span: number;
-  form_readonly: number;
-  sort_order: number;
-}
-
 /** 表单定义 */
 export type FormPublishStatus =
   | 'draft'
@@ -107,8 +70,6 @@ export interface FormDefinition {
   connection: string;
   source_type: 'created' | 'adopted';
   status: number;
-  list_config?: Record<string, unknown> | null;
-  form_config?: Record<string, unknown> | null;
   schema_version?: number;
   schema_document?: FormSchemaDocument | null;
   schema_hash?: string | null;
@@ -123,14 +84,11 @@ export interface FormDefinition {
   remark: string;
   sort_order: number;
   updated_at?: string;
-  fields: FormFieldDef[];
-  fields_count?: number;
 }
 
 export interface FormSchemaCompileResult {
   document: FormSchemaDocument;
   hash: string;
-  projection: FormFieldDef[];
 }
 
 export interface FormSchemaVersion {

@@ -54,13 +54,27 @@ final class FormGuard
         return $value !== null && $value !== '' && $value !== [];
     }
 
-    /** 每次调用计一次提交；同一站点、表单与 IP 在 600 秒窗口内超过 $limit 次（上限 60）即拒绝。 */
+    /** 每次调用计一次提交；同一站点、表单与 IP（IPv6 按 /64 归并）在 600 秒窗口内超过 $limit 次（上限 60）即拒绝。 */
     public function throttle(string $siteId, string $formId, string $ip, int $limit): void
     {
         $limit = max(1, min(FormService::RATE_LIMIT_MAX, $limit));
-        if (!Limiter::attempt("cms_form:{$siteId}:{$formId}:{$ip}", $limit, self::THROTTLE_WINDOW)) {
+        $bucket = self::bucket($ip);
+        if (!Limiter::attempt("cms_form:{$siteId}:{$formId}:{$bucket}", $limit, self::THROTTLE_WINDOW)) {
             throw new InvalidArgumentException('too_many_requests', 429);
         }
+    }
+
+    /**
+     * 限流键中的来源地址：IPv4 按单个地址；IPv6 按 /64 前缀归并（一个终端通常独占整个 /64，可随意轮换后 64 位）；
+     * IPv4 映射的 IPv6 地址按其中的 IPv4 处理。提交限流与验证码签发限流都经由这里，保持一致。
+     */
+    public static function bucket(string $ip): string
+    {
+        $binary = @inet_pton($ip);
+        if ($binary === false) return $ip;
+        if (strlen($binary) === 16 && substr($binary, 0, 12) === "\0\0\0\0\0\0\0\0\0\0\xff\xff") $binary = substr($binary, 12);
+        if (strlen($binary) === 4) return (string)inet_ntop($binary);
+        return inet_ntop(substr($binary, 0, 8) . str_repeat("\0", 8)) . '/64';
     }
 
     /**

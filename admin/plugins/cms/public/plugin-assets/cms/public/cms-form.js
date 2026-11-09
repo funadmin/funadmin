@@ -1,4 +1,4 @@
-/* CMS 公开表单的渐进增强：fetch 提交、419 时刷新令牌重试一次、错误显示到字段旁、成功后替换为提示。无框架依赖。 */
+/* CMS 公开表单的渐进增强：初始化时从限流接口获取验证码、fetch 提交、419 时刷新令牌重试一次、错误显示到字段旁、成功后替换为提示。无框架依赖。 */
 (function () {
   'use strict';
 
@@ -44,6 +44,11 @@
     if (!slot) return;
     slot.textContent = text;
     slot.hidden = text === '';
+    var field = slot.closest ? slot.closest('[data-field]') : null;
+    if (field) {
+      if (text === '') field.removeAttribute('data-invalid');
+      else field.setAttribute('data-invalid', '');
+    }
   }
 
   function showErrors(form, errors) {
@@ -97,6 +102,8 @@
 
     var refresh = form.querySelector('[data-captcha-refresh]');
     if (refresh) refresh.addEventListener('click', function () { refreshCaptcha(form, action); });
+    // 页面渲染时不签发验证码（避免每次匿名访问都生成图片与缓存）；有验证码块时从受限流的接口获取第一张。
+    if (form.querySelector('[data-captcha-image]')) refreshCaptcha(form, action);
 
     function renewToken() {
       var body = new FormData();
@@ -122,6 +129,7 @@
       event.preventDefault();
       if (busy) return;
       busy = true;
+      form.setAttribute('aria-busy', 'true');
       var buttons = Array.prototype.slice.call(form.querySelectorAll('button[type="submit"], input[type="submit"]'));
       buttons.forEach(function (button) { button.disabled = true; });
       slots(form).forEach(function (slot) { setText(slot, ''); });
@@ -141,6 +149,7 @@
         showErrors(form, { _form: form.getAttribute('data-network-error') || '' });
       }).then(function () {
         busy = false;
+        form.removeAttribute('aria-busy');
         buttons.forEach(function (button) { button.disabled = false; });
       });
     });

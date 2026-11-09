@@ -50,8 +50,9 @@
 @if($captcha)
 <div class="cms-form-field cms-form-captcha" data-field="captcha">
 <label class="cms-form-label" for="{{ $uid }}--captcha">{{ $ui['captcha'] }}<span class="cms-form-required" title="{{ $ui['required'] }}">*</span></label>
-<div class="cms-form-captcha-row"><input class="cms-form-control" type="text" id="{{ $uid }}--captcha" name="_captcha" required autocomplete="off" inputmode="latin" maxlength="10"><img src="{{ $captcha['image'] }}" alt="{{ $ui['captcha'] }}" data-captcha-image><button type="button" class="cms-form-captcha-refresh" data-captcha-refresh>{{ $ui['captcha_refresh'] }}</button></div>
+<div class="cms-form-captcha-row"><input class="cms-form-control" type="text" id="{{ $uid }}--captcha" name="_captcha" required autocomplete="off" inputmode="latin" maxlength="10"><img @if($captcha['image'] !== '')src="{{ $captcha['image'] }}" @endif alt="{{ $ui['captcha'] }}" data-captcha-image><button type="button" class="cms-form-captcha-refresh" data-captcha-refresh>{{ $ui['captcha_refresh'] }}</button></div>
 <input type="hidden" name="_captcha_id" value="{{ $captcha['id'] }}">
+<noscript><p class="cms-form-noscript">{{ $ui['captcha_noscript'] }}</p></noscript>
 <p class="cms-form-error" data-error role="alert" hidden></p>
 </div>
 @endif

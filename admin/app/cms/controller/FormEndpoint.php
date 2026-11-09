@@ -9,7 +9,7 @@ use app\common\service\authentication\BearerTokenExtractor;
 use app\common\service\member\MemberApiSessionService;
 use InvalidArgumentException;
 use support\annotation\route\{Get, Post, RouteGroup};
-use support\{Request, Response};
+use support\{Log, Request, Response};
 use Throwable;
 use Webman\Http\UploadFile;
 use Webman\Limiter\Limiter;
@@ -67,7 +67,8 @@ final class FormEndpoint
         } catch (InvalidArgumentException $e) {
             if ($e->getCode() === 404) return $this->failure($json, $site, $locale, 404, ['_form' => 'unavailable'], [], $back);
             return $this->failure($json, $site, $locale, 422, ['_form' => 'invalid'], [], $back);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            self::logFailure('cms.form.submit_failed', $e, ['site_id' => (string)$site['id'], 'form' => $code]);
             return $this->failure($json, $site, $locale, 500, ['_form' => 'network'], [], $back);
         }
         $message = $result['message'] !== '' ? $result['message'] : $ui['success'];
@@ -88,7 +89,7 @@ final class FormEndpoint
     {
         [$site, $locale, $form] = $this->resolve($request, $code);
         if ($form === null || !$form['settings']['captcha']) return $this->unavailable($locale);
-        if (!Limiter::attempt('cms_form_captcha:' . $site['id'] . ':' . $this->ip($request), self::CAPTCHA_LIMIT, self::CAPTCHA_WINDOW)) {
+        if (!Limiter::attempt('cms_form_captcha:' . $site['id'] . ':' . FormGuard::bucket($this->ip($request)), self::CAPTCHA_LIMIT, self::CAPTCHA_WINDOW)) {
             $text = FormMessages::for($locale)['errors']['too_many_requests'];
             return $this->json(429, ['code' => 429, 'msg' => $text, 'data' => ['errors' => ['_form' => $text]]]);
         }
@@ -172,10 +173,33 @@ final class FormEndpoint
         return '';
     }
 
+    /**
+     * 访客地址（用于限流与记录）。不使用 getRealIp()：它信任 X-Forwarded-For 的第一段，而那一段由客户端任意填写。
+     * - 直连地址不是内网/回环地址：直接使用它，忽略所有转发头；
+     * - 直连地址是内网/回环（视为受信任的反向代理）：优先 X-Real-IP，其次 X-Forwarded-For 的最后一段（即该代理追加的那一段）；
+     * - 头部缺失或无效时回落到直连地址，仍无效则为 0.0.0.0。
+     */
     private function ip(Request $request): string
     {
-        $ip = $request->getRealIp();
-        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '0.0.0.0';
+        $remote = trim((string)$request->getRemoteIp(), '[]');
+        $remote = filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '0.0.0.0';
+        if (!Request::isIntranetIp($remote)) return $remote;
+        $real = trim(self::text($request->header('x-real-ip')));
+        if (filter_var($real, FILTER_VALIDATE_IP)) return $real;
+        $hops = explode(',', self::text($request->header('x-forwarded-for')));
+        $last = trim((string)end($hops));
+        return filter_var($last, FILTER_VALIDATE_IP) ? $last : $remote;
+    }
+
+    /**
+     * 记录意外异常：只记异常类型、消息、位置与不含参数的调用栈，从不记录访客提交的值。
+     * 数据库异常的消息里带有 SQL 绑定值，因此只记录不含绑定值的 SQL。
+     */
+    private static function logFailure(string $message, Throwable $e, array $context): void
+    {
+        $text = $e instanceof \Illuminate\Database\QueryException ? $e->getSql() : $e->getMessage();
+        $trace = array_map(static fn(array $frame): string => ($frame['file'] ?? '?') . ':' . ($frame['line'] ?? 0) . ' ' . ($frame['class'] ?? '') . ($frame['type'] ?? '') . ($frame['function'] ?? ''), array_slice($e->getTrace(), 0, 15));
+        Log::error($message, $context + ['exception' => get_class($e), 'message' => mb_substr($text, 0, 500), 'code' => $e->getCode(), 'file' => $e->getFile() . ':' . $e->getLine(), 'trace' => $trace]);
     }
 
     /** 会员只通过现有的 Bearer 令牌识别；无效或缺失时不记录。 */
@@ -185,7 +209,8 @@ final class FormEndpoint
         if ($token === null) return null;
         try {
             $id = (new MemberApiSessionService())->authenticate($token)['id'] ?? null;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            self::logFailure('cms.form.member_lookup_failed', $e, []);
             return null;
         }
         return $id === null ? null : (string)$id;

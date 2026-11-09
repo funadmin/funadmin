@@ -134,6 +134,37 @@ describe('useDesigner 直接编辑 FormSchema 节点', () => {
     expect(store.addNode('input').field).toBe('field_4');
   });
 
+  it('addNode keeps field names unique against repeatable/subform children', () => {
+    const items = field({ id: 'n_items', type: 'repeatable', field: 'items', children: [] });
+    const store = loaded([items]);
+    const first = store.addNode('input', 'n_items');
+    const second = store.addNode('input', 'n_items');
+    const top = store.addNode('input');
+    const names = [first.field, second.field, top.field, 'items'];
+    expect(new Set(names).size).toBe(4);
+    expect(store.findNode('n_items')!.children.map((child) => child.field)).toEqual([first.field, second.field]);
+  });
+
+  it('duplicating a repeatable/subform child twice gives unique names', () => {
+    const items = field({ id: 'n_items', type: 'subform', field: 'items', children: [field()] });
+    const store = loaded([items]);
+    const first = store.duplicateNode('n_a')!;
+    const second = store.duplicateNode('n_a')!;
+    expect(first.field).toBe('a_copy');
+    expect(second.field).toBe('a_copy_2');
+    expect(store.findNode('n_items')!.children.map((child) => child.field)).toEqual(['a', 'a_copy_2', 'a_copy']);
+  });
+
+  it('duplicating a container renames its children too', () => {
+    const items = field({ id: 'n_items', type: 'repeatable', field: 'items', children: [field()] });
+    const store = loaded([items]);
+    const copy = store.duplicateNode('n_items')!;
+    expect(copy.field).toBe('items_copy');
+    expect(copy.children[0].field).toBe('a_copy');
+    const all = store.flattenedNodes.value.map(({ node }) => node.field);
+    expect(new Set(all).size).toBe(all.length);
+  });
+
   it('undo restores nodes after rename', () => {
     const store = loaded([field()]);
     store.selectNode('n_a');

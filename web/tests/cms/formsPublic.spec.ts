@@ -40,6 +40,7 @@ it('shows 422 errors beside matching fields as plain text and keeps the form', a
   const button = document.querySelector('button')!;
   submit();
   expect(button.disabled).toBe(true);
+  expect(document.querySelector('form')!.getAttribute('aria-busy')).toBe('true');
   await vi.waitFor(() => expect(document.querySelector('[data-field="email"] [data-error]')!.textContent).toBe('<b>邮箱无效</b>'));
   expect(fetchMock).toHaveBeenCalledTimes(1);
   const [url, init] = fetchMock.mock.calls[0];
@@ -58,6 +59,9 @@ it('shows 422 errors beside matching fields as plain text and keeps the form', a
   expect(formError.textContent).toBe('提交过快');
   expect(formError.hidden).toBe(false);
   expect(button.disabled).toBe(false);
+  expect(document.querySelector('form')!.hasAttribute('aria-busy')).toBe(false);
+  expect(document.querySelector('[data-field="email"]')!.hasAttribute('data-invalid')).toBe(true);
+  expect(document.querySelector('[data-field="name"]')!.hasAttribute('data-invalid')).toBe(false);
   expect(document.querySelector('form')).not.toBeNull();
 });
 
@@ -98,17 +102,29 @@ it('replaces the form with the success message', async () => {
   expect(success.querySelector('i')).toBeNull();
 });
 
-it('replaces the one-time captcha after a failed submission', async () => {
-  document.querySelector('[data-form-error]')!.insertAdjacentHTML('beforebegin', '<div data-field="captcha"><input name="_captcha" value="abcd"><img src="data:image/png;base64,old" data-captcha-image><input type="hidden" name="_captcha_id" value="old-id"><p data-error hidden></p></div>');
+it('loads the captcha from the throttled endpoint on init, then replaces it after a failed submission', async () => {
+  document.querySelector('[data-form-error]')!.insertAdjacentHTML('beforebegin', '<div data-field="captcha"><input name="_captcha" value=""><img alt="验证码" data-captcha-image><button type="button" data-captcha-refresh>换一张</button><input type="hidden" name="_captcha_id" value=""><p data-error hidden></p></div>');
   fetchMock
+    .mockReturnValueOnce(reply({ status: 200, body: { code: 0, data: { id: 'first-id', image: 'data:image/png;base64,first' } } }))
     .mockReturnValueOnce(reply({ status: 422, body: { code: 422, data: { errors: { captcha: '验证码错误' } } } }))
     .mockReturnValueOnce(reply({ status: 200, body: { code: 0, data: { id: 'new-id', image: 'data:image/png;base64,new' } } }));
   new Function(source)();
+  await vi.waitFor(() => expect(document.querySelector<HTMLInputElement>('input[name="_captcha_id"]')!.value).toBe('first-id'));
+  expect(fetchMock.mock.calls[0][0]).toBe('/forms/contact/captcha?locale=zh-cn');
+  expect(fetchMock.mock.calls[0][1].method).toBe('GET');
+  expect(document.querySelector('[data-captcha-image]')!.getAttribute('src')).toBe('data:image/png;base64,first');
+  document.querySelector<HTMLInputElement>('input[name="_captcha"]')!.value = 'abcd';
   submit();
   await vi.waitFor(() => expect(document.querySelector<HTMLInputElement>('input[name="_captcha_id"]')!.value).toBe('new-id'));
-  expect(fetchMock.mock.calls[1][0]).toBe('/forms/contact/captcha?locale=zh-cn');
-  expect(fetchMock.mock.calls[1][1].method).toBe('GET');
+  expect((fetchMock.mock.calls[1][1].body as FormData).get('_captcha_id')).toBe('first-id');
+  expect(fetchMock.mock.calls[2][0]).toBe('/forms/contact/captcha?locale=zh-cn');
+  expect(fetchMock.mock.calls[2][1].method).toBe('GET');
   expect(document.querySelector('[data-captcha-image]')!.getAttribute('src')).toBe('data:image/png;base64,new');
   expect(document.querySelector<HTMLInputElement>('input[name="_captcha"]')!.value).toBe('');
   expect(document.querySelector('[data-field="captcha"] [data-error]')!.textContent).toBe('验证码错误');
+});
+
+it('forms without a captcha block do not request one on init', () => {
+  new Function(source)();
+  expect(fetchMock).not.toHaveBeenCalled();
 });

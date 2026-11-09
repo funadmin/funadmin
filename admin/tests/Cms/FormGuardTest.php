@@ -92,6 +92,19 @@ final class FormGuardTest extends TestCase
         for($i=0;$i<60;$i++) $guard->throttle($other,'7','203.0.113.9',1000);
         self::assertRejected('too_many_requests',429,fn()=>$guard->throttle($other,'7','203.0.113.9',1000));
     }
+    public function test_limiter_bucket_groups_ipv6_by_64_prefix(): void
+    {
+        self::assertSame(FormGuard::bucket('2001:db8:1:2::1'),FormGuard::bucket('2001:0db8:0001:0002:ffff:ffff:ffff:ffff'));
+        self::assertNotSame(FormGuard::bucket('2001:db8:1:2::1'),FormGuard::bucket('2001:db8:1:3::1'));
+        self::assertSame('203.0.113.9',FormGuard::bucket('203.0.113.9'),'IPv4 is kept per address');
+        self::assertSame('203.0.113.9',FormGuard::bucket('::ffff:203.0.113.9'),'IPv4-mapped IPv6 is treated as IPv4');
+        \Webman\Limiter\Limiter::init(null);
+        $guard=$this->guard();
+        $site='t'.bin2hex(random_bytes(6));
+        for($i=1;$i<=5;$i++) $guard->throttle($site,'7',"2001:db8:9:9::$i",5);
+        self::assertRejected('too_many_requests',429,fn()=>$guard->throttle($site,'7','2001:db8:9:9:abcd::1',5));
+        $guard->throttle($site,'7','2001:db8:9:a::1',5);
+    }
     public function test_captcha_is_single_use(): void
     {
         $phrases=new class implements PhraseBuilderInterface {

@@ -300,7 +300,6 @@ describe('CodePreviewDialog', () => {
   it('「动态发布」读取已保存 Schema，先预览再发布', async () => {
     mocks.module.mockResolvedValue({
       module: coreModule,
-      fields: [],
       form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'hash-1', publish_config: { menuName: '商品' } }
     });
     mocks.previewPublish.mockResolvedValue({ formDependencyHash: 'dep-1' });
@@ -350,7 +349,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('对外暴露 dynamicPublish：未打开弹窗也可直接走动态发布流程', async () => {
-    mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'hash-1', publish_config: {} } });
+    mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'hash-1', publish_config: {} } });
     mocks.previewPublish.mockResolvedValue({ formDependencyHash: 'dep-1' });
     mocks.publish.mockResolvedValue({});
     const onPublished = vi.fn();
@@ -395,7 +394,7 @@ describe('CodePreviewDialog', () => {
 
   it('确认生成前显示菜单名称、父级菜单、图标与会员端 API 摘要（来自模块发布设置）', async () => {
     mocks.module.mockResolvedValue({
-      module: coreModule, fields: [],
+      module: coreModule,
       form: { id: 3, schema_hash: 'h', publish_config: { menuEnabled: true, menuName: '商品管理', parentSourceName: 'shop', icon: 'i-ep-goods', memberApiEnabled: true, memberApiOwnerField: 'member_id' } }
     });
     const wrapper = render();
@@ -409,7 +408,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('发布设置未保存时摘要按正式生成的默认值解析：菜单名取表单名、默认图标、顶级菜单、未启用', async () => {
-    mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, form_key: 'shop_goods', name: '商品', schema_hash: 'h', publish_config: null } });
+    mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, form_key: 'shop_goods', name: '商品', schema_hash: 'h', publish_config: null } });
     const wrapper = render();
     await flushPromises();
     const summary = wrapper.find('[data-generate-summary]');
@@ -421,7 +420,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('空菜单名回退表单名；启用会员端 API 但未保存归属字段时显示默认 member_id', async () => {
-    mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, form_key: 'shop_goods', name: '商品', schema_hash: 'h', publish_config: { menuName: '', memberApiEnabled: true } } });
+    mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, form_key: 'shop_goods', name: '商品', schema_hash: 'h', publish_config: { menuName: '', memberApiEnabled: true } } });
     const wrapper = render();
     await flushPromises();
     const summary = wrapper.find('[data-generate-summary]');
@@ -430,7 +429,7 @@ describe('CodePreviewDialog', () => {
   });
 
   it('关闭生成菜单时摘要说明不会创建菜单，不再显示父级菜单与图标', async () => {
-    mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, form_key: 'shop_goods', name: '商品', schema_hash: 'h', publish_config: { menuEnabled: false, menuName: '商品管理' } } });
+    mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, form_key: 'shop_goods', name: '商品', schema_hash: 'h', publish_config: { menuEnabled: false, menuName: '商品管理' } } });
     const wrapper = render();
     await flushPromises();
     const summary = wrapper.find('[data-generate-summary]');
@@ -608,7 +607,7 @@ describe('CodePreviewDialog', () => {
     const STALE = '预览基于已发布的版本；已保存但未发布的字段改动需要先「动态发布」后才会出现在生成代码里。';
 
     it('已保存 Schema 与预览所用的已发布 Schema 不同：显示说明与「动态发布」，发布成功后重新预览', async () => {
-      mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'saved-2', published_schema_hash: 's', publish_config: {} } });
+      mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'saved-2', published_schema_hash: 's', publish_config: {} } });
       mocks.previewPublish.mockResolvedValue({ formDependencyHash: 'dep' });
       mocks.publish.mockResolvedValue({});
       const wrapper = render();
@@ -617,7 +616,7 @@ describe('CodePreviewDialog', () => {
       expect(banner.exists()).toBe(true);
       expect(banner.text()).toContain(STALE);
       expect(banner.find('[data-action="stale-dynamic-publish"]').exists()).toBe(true);
-      mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'saved-2', published_schema_hash: 'saved-2', publish_config: {} } });
+      mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, schema_document: { key: 'shop_goods' }, schema_hash: 'saved-2', published_schema_hash: 'saved-2', publish_config: {} } });
       mocks.previewFormalGeneration.mockResolvedValue(preview({ schemaHash: 'saved-2' }));
       await banner.find('[data-action="stale-dynamic-publish"]').trigger('click');
       await flushPromises();
@@ -627,14 +626,14 @@ describe('CodePreviewDialog', () => {
     });
 
     it('已保存 Schema 即预览所用版本时不显示说明', async () => {
-      mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, schema_hash: 's', published_schema_hash: 's', publish_config: {} } });
+      mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, schema_hash: 's', published_schema_hash: 's', publish_config: {} } });
       const wrapper = render();
       await flushPromises();
       expect(wrapper.find('[data-preview-stale]').exists()).toBe(false);
     });
 
     it('计划被阻断（无 schemaHash）时按已发布 hash 判断', async () => {
-      mocks.module.mockResolvedValue({ module: coreModule, fields: [], form: { id: 3, schema_hash: 'saved-2', published_schema_hash: 'old-1', publish_config: {} } });
+      mocks.module.mockResolvedValue({ module: coreModule, form: { id: 3, schema_hash: 'saved-2', published_schema_hash: 'old-1', publish_config: {} } });
       mocks.previewFormalGeneration.mockResolvedValue(preview({ schemaHash: undefined, sensitive: undefined, plan: { blocked: true, files: [] } }));
       const wrapper = render();
       await flushPromises();
@@ -642,7 +641,7 @@ describe('CodePreviewDialog', () => {
     });
 
     it('插件目标读取草稿 Schema，不显示说明', async () => {
-      mocks.module.mockResolvedValue({ module: pluginModule, fields: [], form: { id: 3, schema_hash: 'saved-2', published_schema_hash: 'old-1', publish_config: {} } });
+      mocks.module.mockResolvedValue({ module: pluginModule, form: { id: 3, schema_hash: 'saved-2', published_schema_hash: 'old-1', publish_config: {} } });
       const wrapper = render(pluginModule);
       await flushPromises();
       expect(wrapper.find('[data-preview-stale]').exists()).toBe(false);
