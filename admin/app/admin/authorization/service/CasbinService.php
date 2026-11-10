@@ -315,13 +315,20 @@ class CasbinService extends AbstractService
     private function replacePolicies(string $ptype, string $subject, string $domain, array $rows): void
     {
         Db::transaction(function () use ($ptype, $subject, $domain, $rows) {
+            // 按差异同步：只软删除移除的规则、只添加缺少的规则，未变化的规则行不动（规则表不清理，整组重建会持续膨胀）。
             $adapter = new DatabaseAdapter($domain);
-            $filters = $ptype === 'p' ? [$subject, $domain] : [$subject, '', $domain];
-            $adapter->removeFilteredPolicy($ptype, $ptype, 0, ...$filters);
-            foreach ($rows as $row) {
-                $rule = array_map(static fn (int $index): string => $row['v' . $index], range(0, $ptype === 'p' ? 3 : 2));
-                $adapter->addPolicy($ptype, $ptype, $rule);
+            $indexes = range(0, $ptype === 'p' ? 3 : 2);
+            $ruleKey = static fn ($row): string => implode("\x1f", array_map(static fn (int $index): string => (string) $row['v' . $index], $indexes));
+            $wanted = [];
+            foreach ($rows as $row) $wanted[$ruleKey($row)] = array_map(static fn (int $index): string => $row['v' . $index], $indexes);
+            $removed = [];
+            $existing = CasbinRule::query()->where('ptype', $ptype)->where('v0', $subject)->where($ptype === 'p' ? 'v1' : 'v2', $domain)->orderBy('id')->get();
+            foreach ($existing as $rule) {
+                $key = $ruleKey($rule);
+                if (isset($wanted[$key])) unset($wanted[$key]); else $removed[] = (int) $rule->id;
             }
+            if ($removed !== []) CasbinRule::query()->whereKey($removed)->delete();
+            foreach ($wanted as $rule) $adapter->addPolicy($ptype, $ptype, $rule);
         });
     }
 

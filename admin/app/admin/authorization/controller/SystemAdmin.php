@@ -18,6 +18,7 @@ use app\admin\authorization\service\RoleScopeService;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleGuardService;
+use app\admin\authorization\service\RelationRowSync;
 use InvalidArgumentException;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -564,15 +565,8 @@ class SystemAdmin extends AdminController
 
     private function syncDepartments(int $adminId, array $departmentIds): void
     {
-        AdminDepartment::where('admin_id', $adminId)->delete();
-        $rows = array_map(static fn (int $departmentId): array => [
-            'admin_id' => $adminId,
-            'dept_id' => $departmentId,
-            'created_at' => date('Y-m-d H:i:s'),
-        ], array_values(array_unique(array_filter($departmentIds))));
-        if ($rows !== []) {
-            AdminDepartment::insert($rows);
-        }
+        RelationRowSync::sync(AdminDepartment::class, ['admin_id' => $adminId], 'dept_id',
+            RelationRowSync::keys(array_filter($departmentIds)), ['created_at' => date('Y-m-d H:i:s')]);
     }
 
     private function adminDepartmentIds(int $adminId, int $primaryDepartmentId): array

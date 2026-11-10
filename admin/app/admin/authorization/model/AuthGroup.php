@@ -18,6 +18,7 @@ namespace app\admin\authorization\model;
 use app\common\model\concern\LaravelSoftDelete;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\RoleGuardService;
+use app\admin\authorization\service\RelationRowSync;
 use app\admin\authorization\service\RoleScopeService;
 use app\common\model\BaseModel;
 use app\common\traits\DataFormat;
@@ -73,29 +74,14 @@ class AuthGroup extends BaseModel
      */
     public static function syncRelations(int $roleId, array $data): void
     {
-        AuthGroupInherit::where('role_id', $roleId)->delete();
         $parentRoleIds = array_values(array_unique(array_filter(array_merge(
             $data['parentRoleIds'],
             $data['parentId'] > 0 ? [$data['parentId']] : []
         ))));
-        $inheritRows = array_map(static fn (int $parentId): array => [
-            'role_id' => $roleId,
-            'parent_role_id' => $parentId,
-            'created_at' => date('Y-m-d H:i:s')
-        ], $parentRoleIds);
-        if ($inheritRows) {
-            AuthGroupInherit::insert($inheritRows);
-        }
-
-        AuthGroupDepartment::where('role_id', $roleId)->delete();
-        if ($data['dataScope'] === 'custom') {
-            $departmentRows = array_map(static fn (int $departmentId): array => [
-                'role_id' => $roleId,
-                'dept_id' => $departmentId,
-                'created_at' => date('Y-m-d H:i:s')
-            ], $data['departmentIds']);
-            AuthGroupDepartment::insert($departmentRows);
-        }
+        $now = date('Y-m-d H:i:s');
+        RelationRowSync::sync(AuthGroupInherit::class, ['role_id' => $roleId], 'parent_role_id', RelationRowSync::keys($parentRoleIds), ['created_at' => $now]);
+        RelationRowSync::sync(AuthGroupDepartment::class, ['role_id' => $roleId], 'dept_id',
+            $data['dataScope'] === 'custom' ? RelationRowSync::keys($data['departmentIds']) : [], ['created_at' => $now]);
         CasbinService::instance()->syncRoleInheritance($roleId, $parentRoleIds);
     }
 

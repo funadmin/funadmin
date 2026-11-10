@@ -14,6 +14,7 @@
 namespace app\admin\authentication\model;
 
 use app\admin\authorization\model\AdminDepartment;
+use app\admin\authorization\service\RelationRowSync;
 use app\common\model\concern\LaravelSoftDelete;
 use support\Model;
 
@@ -22,7 +23,7 @@ class Admin extends Model
     use LaravelSoftDelete;
 
     protected $table = 'admin';
-    protected $hidden = ['password'];
+    protected $hidden = ['password', 'deleted_token'];
     protected $guarded = ['id'];
     protected $casts = ['status' => 'boolean'];
 
@@ -61,18 +62,10 @@ class Admin extends Model
 
     public static function syncDepartments(int $adminId, array $departmentIds): void
     {
-        AdminDepartment::where('admin_id', $adminId)->delete();
+        $departmentIds = array_filter(array_map('intval', $departmentIds), static fn (int $departmentId): bool => $departmentId > 0);
         $now = date('Y-m-d H:i:s');
-        foreach (array_values(array_unique(array_map('intval', $departmentIds))) as $departmentId) {
-            if ($departmentId > 0) {
-                AdminDepartment::create([
-                    'admin_id' => $adminId,
-                    'dept_id' => $departmentId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
-        }
+        RelationRowSync::sync(AdminDepartment::class, ['admin_id' => $adminId], 'dept_id', RelationRowSync::keys($departmentIds),
+            ['created_at' => $now, 'updated_at' => $now], true);
     }
 
     public function toManagementData(): array

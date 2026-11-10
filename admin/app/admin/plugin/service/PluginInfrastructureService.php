@@ -347,18 +347,22 @@ final class PluginInfrastructureService
         });
     }
 
-    /** 快照行在上面已被软删除（主键仍在）：按主键恢复为快照内容，不存在时才新建。 */
+    /**
+     * 快照行在上面已被软删除（主键仍在）：按主键恢复为快照内容，不存在时才新建。
+     * 快照中本身已删除的行保持删除（deleted_token = id），未删除的行恢复为未删除。
+     */
     private static function reviveSnapshotRow(string $class, array $row): void
     {
         $model = isset($row['id']) ? $class::withTrashed()->find($row['id']) : null;
-        if (!$model) {
-            $class::forceCreate($row);
-            return;
-        }
+        $model ??= new $class();
         $model->forceFill($row);
-        $model->{$model->getDeletedAtColumn()} = null;
-        if ($model->hasDeletedToken()) $model->{$model->getDeletedTokenColumn()} = 0;
+        $deleted = ($row[$model->getDeletedAtColumn()] ?? null) !== null;
+        if (!$deleted) $model->{$model->getDeletedAtColumn()} = null;
+        if ($model->hasDeletedToken()) $model->{$model->getDeletedTokenColumn()} = $deleted ? (int) ($row['id'] ?? 0) : 0;
         $model->save();
+        if ($deleted && $model->hasDeletedToken() && (int) $model->{$model->getDeletedTokenColumn()} !== (int) $model->getKey()) {
+            $class::withTrashed()->whereKey($model->getKey())->update([$model->getDeletedTokenColumn() => $model->getKey()]);
+        }
     }
 
     public function assertPurgeAllowed(Manifest $manifest): void

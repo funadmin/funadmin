@@ -317,7 +317,8 @@ final class AuthzCacheTest extends TestCase
             $casbin->permissionCodesForAdmin($id);
         }
         self::assertLessThanOrEqual(AuthzCache::MAX_ENTRIES, AuthzCache::size());
-        CasbinService::instance()->syncRolePermissions(6, [$this->target]);
+        // 按差异同步：内容不变时不写库，需要真实的授权变更才换版本。
+        CasbinService::instance()->syncRolePermissions(6, []);
         $casbin->permissionCodesForAdmin(2);
         self::assertLessThanOrEqual(5, AuthzCache::size(), '版本变化后只保留新版本条目');
     }

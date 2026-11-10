@@ -366,35 +366,19 @@ final class RoleAuthorizationService
 
     private function syncFields(int $roleId, array $grants): void
     {
-        AuthGroupFieldPermission::where('role_id', $roleId)->delete();
-        if (!$grants) {
-            return;
+        $rows = [];
+        foreach ($grants as $grant) {
+            $rows[(int) $grant['fieldId']] = ['can_view' => $grant['view'] ? 1 : 0, 'can_edit' => $grant['edit'] ? 1 : 0];
         }
         $now = date('Y-m-d H:i:s');
-        $rows = array_map(static fn (array $grant): array => [
-            'role_id' => $roleId,
-            'field_id' => $grant['fieldId'],
-            'can_view' => $grant['view'] ? 1 : 0,
-            'can_edit' => $grant['edit'] ? 1 : 0,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ], $grants);
-        AuthGroupFieldPermission::insert($rows);
+        RelationRowSync::sync(AuthGroupFieldPermission::class, ['role_id' => $roleId], 'field_id', $rows, ['created_at' => $now, 'updated_at' => $now]);
     }
 
     private function syncDataScope(AuthGroup $role, string $scope, array $departmentIds): void
     {
         $role->forceFill(['data_scope' => $scope])->save();
-        AuthGroupDepartment::where('role_id', (int) $role->id)->delete();
-        if ($scope !== 'custom') {
-            return;
-        }
-        $rows = array_map(static fn (int $departmentId): array => [
-            'role_id' => (int) $role->id,
-            'dept_id' => $departmentId,
-            'created_at' => date('Y-m-d H:i:s'),
-        ], $departmentIds);
-        AuthGroupDepartment::insert($rows);
+        RelationRowSync::sync(AuthGroupDepartment::class, ['role_id' => (int) $role->id], 'dept_id',
+            $scope === 'custom' ? RelationRowSync::keys($departmentIds) : [], ['created_at' => date('Y-m-d H:i:s')]);
     }
 
     private function assignablePermissionIds(): array

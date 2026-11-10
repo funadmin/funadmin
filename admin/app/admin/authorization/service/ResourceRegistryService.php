@@ -244,7 +244,7 @@ class ResourceRegistryService extends AbstractService
                 if (!$permission) {
                     throw new RuntimeException('菜单引用的权限不存在：' . $referencedCode);
                 }
-                if (!in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || (int) $permission->status !== 1 || $permission->deleted_at !== null) {
+                if (!in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || (int) $permission->status !== 1) {
                     throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . $referencedCode);
                 }
                 $isOwnedPluginPermission = str_starts_with($referencedCode, strtolower($sourceName) . ':') && (string) $permission->source_type === $sourceType && (string) $permission->source_name === $sourceName;
@@ -262,7 +262,7 @@ class ResourceRegistryService extends AbstractService
             }
             $menuId = $parentMenuId;
             if ($isMenu) {
-                if (!$children && (int) ($item['status'] ?? 1) === 1 && (!in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || (int) $permission->status !== 1 || $permission->deleted_at !== null || (string) $permission->code === '')) {
+                if (!$children && (int) ($item['status'] ?? 1) === 1 && (!in_array((string) $permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true) || (int) $permission->status !== 1 || (string) $permission->code === '')) {
                     throw new RuntimeException('菜单只能绑定启用的路由或能力权限：' . (string) ($item['name'] ?? $href));
                 }
                 $queryText = (string) ($item['query'] ?? '');

@@ -37,7 +37,7 @@ final class CodeGeneratorRelationsTest extends TestCase
                 'app/admin/business/shop_plain/validate/ShopPlainValidate.php' => '18c8a08e79c4a9d675982e9935a0feec256547c4457d2fd76904d106c43c471d',
                 'database/business/shop-plain.sql' => '80a91eed629a3e12a9c4594c411b32872fb8da9de6d2fb84c67f8c646ac001d5',
                 'database/business/shop-plain_lang.sql' => '32f285c297f8d88a99c4772b899e033e3141dafafae56254ab6e5b57f92d49a2',
-                'database/business/shop-plain_permissions.sql' => '46f43f02acbe18020d387c8ee0b36a85a1181e12e735fdd39e1e38758dae1dcd',
+                'database/business/shop-plain_permissions.sql' => '4ce2e1f59708b205f2e50df50fadbf5e4a6d62c11cb99c4facd5d9a729bdf768',
                 'tests/business/ShopPlainGeneratedTest.php' => '6e65441cd0b2fc2b778732cd320c8808c8221821750b147e9dcbbf35d8c069e1',
                 'web/src/admin/api/business/shop-plain.ts' => 'be5314e795a3d07aa720bd9a7372c24d4bb0730653814caa231187e87efdf6d7',
                 'web/src/admin/views/business/shop-plain/components/ShopPlainDetail.vue' => 'beb70112a10ab27ccab812822e4807507515403cf2791946444fc8e964acee6c',

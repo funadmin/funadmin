@@ -375,7 +375,7 @@ class SystemRole extends AdminController
         if ($error = AuthGroup::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (AuthGroup::withTrashed()->where('name', $data['name'])->first() || AuthGroup::withTrashed()->where('code', $data['code'])->first()) {
+        if (AuthGroup::where('name', $data['name'])->first() || AuthGroup::where('code', $data['code'])->first()) {
             return $this->fail(msg: '角色名称或标识已存在', code: 422);
         }
         try {
@@ -440,7 +440,7 @@ class SystemRole extends AdminController
         if ($error = AuthGroup::validateAttributes($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (AuthGroup::withTrashed()->where('id', '<>', $id)->where(function ($query) use ($data) {
+        if (AuthGroup::where('id', '<>', $id)->where(function ($query) use ($data) {
             $query->where('name', $data['name'])->orWhere('code', $data['code']);
         })->first()) {
             return $this->fail(msg: '角色名称或标识已存在', code: 422);

@@ -79,6 +79,27 @@ final class AuthorizationIntegrationTest extends TestCase
         self::assertContains('demo:read', (new AuthorizationService())->permissionCodes(2));
     }
 
+    public function test_soft_deleted_role_frees_its_name_and_code(): void
+    {
+        $payload = ['name' => '可重建角色', 'code' => 'recreatable', 'level' => 100, 'dataScope' => 'self', 'parentId' => 0];
+        $this->asActor(1, 'POST', $payload);
+        $first = json_decode((new SystemRole())->create()->rawBody(), true);
+        self::assertSame(200, $first['code'], $first['msg']);
+        $this->asActor(1, 'POST', $payload);
+        self::assertSame(422, json_decode((new SystemRole())->create()->rawBody(), true)['code'], '未删除角色仍占用名称与标识');
+        AuthGroup::findOrFail($first['data']['id'])->delete();
+        $this->asActor(1, 'POST', $payload);
+        $again = json_decode((new SystemRole())->create()->rawBody(), true);
+        self::assertSame(200, $again['code'], $again['msg']);
+        self::assertNotSame($first['data']['id'], $again['data']['id']);
+        AuthGroup::findOrFail($again['data']['id'])->delete();
+        $this->asActor(1, 'POST', ['name' => '另一角色', 'code' => 'another_role'] + $payload);
+        $other = json_decode((new SystemRole())->create()->rawBody(), true);
+        $this->asActor(1, 'PUT', ['name' => '可重建角色', 'code' => 'recreatable'] + $payload);
+        $updated = json_decode((new SystemRole())->update((int) $other['data']['id'])->rawBody(), true);
+        self::assertSame(200, $updated['code'], $updated['msg']);
+    }
+
     private function asActor(int $id, string $method = 'GET', array $payload = []): void
     {
         $body = json_encode($payload);

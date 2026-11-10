@@ -74,8 +74,10 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
             $table->string('v3', 190)->default('');
             $table->string('v4', 190)->default('');
             $table->string('v5', 190)->default('');
-            $table->string('rule_hash', 64)->unique();
+            $table->string('rule_hash', 64);
             $table->softDeletes();
+            $table->unsignedBigInteger('deleted_token')->default(0);
+            $table->unique(['rule_hash', 'deleted_token']);
         });
         $schema->create('auth_group_inherit', static function (Blueprint $table): void {
             $table->id();
