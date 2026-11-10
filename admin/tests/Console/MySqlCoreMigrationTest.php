@@ -87,6 +87,7 @@ final class MySqlCoreMigrationTest extends TestCase
         self::assertSame(1, Db::table('admin')->count());
         self::assertFalse(Db::table('admin_menu')->whereNotNull('deleted_at')->exists(), '基线不得携带软删除菜单墓碑行');
         self::assertFalse(Db::table('permission')->whereNotNull('deleted_at')->exists(), '基线不得携带软删除权限墓碑行');
+        $this->assertSoftDeleteSchema();
         self::assertSame(count($expected), Db::table('system_migration')->where('scope', 'core')->count());
         foreach (glob($directory . '/*.sql') as $file) {
             self::assertSame(hash_file('sha256', $file), Db::table('system_migration')->where('scope', 'core')->where('version', pathinfo($file, PATHINFO_FILENAME))->value('checksum'));
@@ -191,6 +192,70 @@ final class MySqlCoreMigrationTest extends TestCase
             $service->runCore();
         } finally {
             self::assertSame(1, Db::table('admin')->count(), '非空库拒绝不得覆盖管理员');
+        }
+    }
+
+    /** 005：每张核心表有 deleted_at（带前导索引）；id 主键表有 deleted_token，非主键唯一索引以它结尾；重放 005 结构不变并回填已删除行。 */
+    private function assertSoftDeleteSchema(): void
+    {
+        $prefix = Db::connection()->getTablePrefix();
+        $database = Db::connection()->getDatabaseName();
+        $tables = [];
+        foreach (glob(MigrationService::coreDirectory() . '/*.sql') as $file) {
+            preg_match_all('/^CREATE TABLE (?:IF NOT EXISTS )?`fun_([a-z0-9_]+)`/m', (string) file_get_contents($file), $matches);
+            array_push($tables, ...$matches[1]);
+        }
+        self::assertCount(66, $tables);
+        $snapshot = static function () use ($tables, $prefix): array {
+            $result = [];
+            foreach ($tables as $table) $result[$table] = preg_replace('/ AUTO_INCREMENT=\d+/', '', (string) ((array) Db::connection()->selectOne('SHOW CREATE TABLE `' . $prefix . $table . '`'))['Create Table']);
+            return $result;
+        };
+        foreach ($tables as $table) {
+            $physical = $prefix . $table;
+            $columns = [];
+            foreach (Db::select('SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?', [$database, $physical]) as $row) $columns[$row->COLUMN_NAME] = $row;
+            self::assertSame('datetime', $columns['deleted_at']->COLUMN_TYPE ?? null, $table);
+            self::assertSame('YES', $columns['deleted_at']->IS_NULLABLE, $table);
+            $indexes = [];
+            foreach (Db::select('SELECT INDEX_NAME, NON_UNIQUE, COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY INDEX_NAME, SEQ_IN_INDEX', [$database, $physical]) as $row) {
+                $indexes[$row->INDEX_NAME]['unique'] = (int) $row->NON_UNIQUE === 0;
+                $indexes[$row->INDEX_NAME]['columns'][] = $row->COLUMN_NAME;
+            }
+            self::assertNotSame([], array_filter($indexes, static fn (array $index): bool => $index['columns'][0] === 'deleted_at'), $table . ' deleted_at 缺索引');
+            if (($indexes['PRIMARY']['columns'] ?? []) === ['id']) {
+                self::assertSame(['bigint unsigned', 'NO', '0'], [$columns['deleted_token']->COLUMN_TYPE ?? null, $columns['deleted_token']->IS_NULLABLE ?? null, $columns['deleted_token']->COLUMN_DEFAULT ?? null], $table);
+            } else {
+                self::assertArrayNotHasKey('deleted_token', $columns, $table);
+            }
+            foreach ($indexes as $name => $index) {
+                if ($name === 'PRIMARY' || !$index['unique']) continue;
+                self::assertSame('deleted_token', end($index['columns']), $table . '.' . $name);
+            }
+            if ($table === 'member') foreach (['username', 'mobile', 'email'] as $plain) self::assertArrayNotHasKey($plain, $indexes);
+            if ($table === 'member_level') self::assertArrayNotHasKey('id', $indexes);
+        }
+
+        // 重放 005：结构不变；已软删除但 token 仍为 0 的行回填为自身 id，未删除行保持 0。
+        $now = date('Y-m-d H:i:s');
+        $live = (int) Db::table('config_group')->insertGetId(['name' => 'soft_live', 'title' => 'live', 'created_at' => $now, 'updated_at' => $now]);
+        $gone = (int) Db::table('config_group')->insertGetId(['name' => 'soft_gone', 'title' => 'gone', 'created_at' => $now, 'updated_at' => $now, 'deleted_at' => $now]);
+        try {
+            $before = $snapshot();
+            Db::table('system_migration')->where('scope', 'core')->where('version', '005_soft_delete')->delete();
+            self::assertSame(['005_soft_delete'], (new MigrationService())->runCore());
+            self::assertEquals($before, $snapshot(), '重放 005 结构不变');
+            self::assertSame(0, (int) Db::table('config_group')->where('id', $live)->value('deleted_token'));
+            self::assertSame($gone, (int) Db::table('config_group')->where('id', $gone)->value('deleted_token'));
+            Db::table('config_group')->insert(['name' => 'soft_gone', 'title' => 'again', 'created_at' => $now, 'updated_at' => $now]);
+            try {
+                Db::table('config_group')->insert(['name' => 'soft_gone', 'title' => 'dup', 'created_at' => $now, 'updated_at' => $now]);
+                self::fail('未删除行之间仍须唯一');
+            } catch (\Illuminate\Database\QueryException $error) {
+                self::assertSame(1062, (int) ($error->errorInfo[1] ?? 0));
+            }
+        } finally {
+            Db::table('config_group')->whereIn('name', ['soft_live', 'soft_gone'])->delete();
         }
     }
 }

@@ -224,7 +224,8 @@ class MigrationService extends AbstractService
                     'executed_at' => time(),
                 ]);
             };
-            $hasDdl = array_filter($statements, static fn (string $statement): bool => preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i', $statement) === 1) !== [];
+            // PREPARE/EXECUTE 用于按 information_schema 守卫的动态 DDL；DDL 会隐式提交，不能包在事务里。
+            $hasDdl = array_filter($statements, static fn (string $statement): bool => preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|PREPARE|EXECUTE)\b/i', $statement) === 1) !== [];
             if ($hasDdl) {
                 $apply();
             } else {
