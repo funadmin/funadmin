@@ -15,8 +15,11 @@ use support\Db;
  * fun_member 上与唯一索引首列重复的普通索引（username / mobile / email）删除。
  * 主键不是 id 的表（会话、令牌、关联表等）改为自增 id 主键，原主键列改为唯一索引 uk_{表}_pk（原列 + deleted_token），
  * 软删除后可重新写入同一组合。SQLite 不能改主键，按原列重建表。
- * 只支持 SQLite（PHP 迁移链路只用于非 MySQL 安装与测试）；MySQL 必须执行核心 SQL 005_soft_delete.sql，这里直接拒绝。
- * 插件表不在范围内。只处理已存在的表（SQLite 的 PHP 基线只含部分核心表）。
+ * SQLite 与 MySQL 两个分支，其他驱动拒绝。MySQL 正式安装/升级走核心 SQL 005_soft_delete.sql；这里的 MySQL 分支服务于
+ * 在 MySQL 上走 PHP 迁移链路的库（PHP 基线只含部分核心表）：按 information_schema / SHOW INDEX 读取现状，
+ * 每张表只发一条 ALTER，只含仍缺的子句（子句顺序与核心 SQL 相同，在 001–004 核心库上终态与核心 SQL 逐表一致），
+ * DDL 不放在事务里（MySQL 隐式提交），全部到位时不发 ALTER；随后与 SQLite 共用回填。
+ * 插件表不在范围内。只处理已存在的表。
  */
 return static function (): void {
     $tables = [
@@ -39,8 +42,60 @@ return static function (): void {
     $connection = Db::connection();
     $driver = $connection->getDriverName();
 
-    if ($driver !== 'sqlite') {
-        throw new RuntimeException('005_soft_delete.php 只用于 SQLite；MySQL 必须执行核心 SQL database/core/migrations/005_soft_delete.sql');
+    if (!in_array($driver, ['sqlite', 'mysql'], true)) {
+        throw new RuntimeException('005_soft_delete.php 只支持 SQLite 与 MySQL，当前驱动：' . $driver);
+    }
+
+    if ($driver === 'mysql') {
+        // DDL 隐式提交，不能放在外层事务里（与 PHP 迁移链路一致：逐个迁移直接执行，不包事务）。
+        if ($connection->transactionLevel() > 0) throw new RuntimeException('005_soft_delete.php 的 MySQL DDL 禁止在外层事务中执行');
+        $quote = static fn (string $identifier): string => '`' . str_replace('`', '``', $identifier) . '`';
+        foreach ($tables as $name) {
+            if (!$schema->hasTable($name)) continue;
+            $physical = $connection->getTablePrefix() . $name;
+            $columns = array_map(static fn (object $row): string => (string) $row->COLUMN_NAME, $connection->select(
+                'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$physical]
+            ));
+            // SHOW INDEX 按表内索引顺序返回（information_schema.STATISTICS 不保证顺序），重建唯一索引的先后与核心 SQL 一致。
+            $indexes = [];
+            foreach ($connection->select('SHOW INDEX FROM ' . $quote($physical)) as $row) {
+                $row = array_change_key_case((array) $row, CASE_LOWER);
+                if (($row['column_name'] ?? null) === null) throw new RuntimeException("005_soft_delete.php 不支持函数索引：{$physical}.{$row['key_name']}");
+                $indexes[$row['key_name']]['unique'] = (int) $row['non_unique'] === 0;
+                $indexes[$row['key_name']]['columns'][] = (string) $row['column_name'];
+                $indexes[$row['key_name']]['parts'][] = $quote((string) $row['column_name']) . ($row['sub_part'] !== null ? '(' . (int) $row['sub_part'] . ')' : '');
+            }
+            $primary = $indexes['PRIMARY']['columns'] ?? [];
+            // 子句顺序与核心 SQL 005 相同，结构终态（列与索引顺序）才能一致；同一条 ALTER 内先删后建，外键依赖的前导列始终有索引。
+            $clauses = [];
+            if (!in_array('deleted_at', $columns, true)) $clauses[] = 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL';
+            if (array_filter($indexes, static fn (array $index): bool => $index['columns'][0] === 'deleted_at') === []) {
+                $clauses[] = 'ADD INDEX ' . $quote('idx_' . $name . '_deleted_at') . ' (`deleted_at`)';
+            }
+            $formerPrimary = [];
+            if (!in_array('id', $columns, true)) {
+                $formerPrimary = $primary;
+                $clauses[] = 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, ' . ($primary !== [] ? 'DROP PRIMARY KEY, ' : '') . 'ADD PRIMARY KEY (`id`)';
+            }
+            if (!in_array('deleted_token', $columns, true)) $clauses[] = 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0';
+            if ($formerPrimary !== [] && !isset($indexes['uk_' . $name . '_pk'])) {
+                $clauses[] = 'ADD UNIQUE KEY ' . $quote('uk_' . $name . '_pk') . ' (' . implode(',', array_map($quote, [...$formerPrimary, 'deleted_token'])) . ')';
+            }
+            foreach ($indexes as $index => $definition) {
+                if ($index === 'PRIMARY' || !$definition['unique']) continue;
+                if ($formerPrimary === [] && $definition['columns'] === $primary) {
+                    $clauses[] = 'DROP INDEX ' . $quote($index); // 与主键重复的唯一索引（fun_member_level.id）
+                } elseif (!in_array('deleted_token', $definition['columns'], true)) {
+                    $clauses[] = 'DROP INDEX ' . $quote($index) . ', ADD UNIQUE KEY ' . $quote($index) . ' (' . implode(',', [...$definition['parts'], '`deleted_token`']) . ')';
+                }
+            }
+            if ($name === 'member') {
+                foreach ($indexes as $index => $definition) {
+                    if (!$definition['unique'] && in_array($definition['columns'], [['username'], ['mobile'], ['email']], true)) $clauses[] = 'DROP INDEX ' . $quote($index);
+                }
+            }
+            if ($clauses !== []) $connection->statement('ALTER TABLE ' . $quote($physical) . ' ' . implode(', ', $clauses));
+        }
     }
 
     // 主键不是 id 的表：改为自增 id 主键（存量行按 rowid 顺序编号），原主键列改为唯一索引 uk_{表}_pk（原列 + deleted_token）。
@@ -67,7 +122,7 @@ return static function (): void {
     };
 
     foreach ($tables as $name) {
-        if (!$schema->hasTable($name)) continue;
+        if ($driver !== 'sqlite' || !$schema->hasTable($name)) continue;
         $primaryOf = static function () use ($schema, $name): array {
             foreach ($schema->getIndexes($name) as $index) {
                 if ($index['primary']) return $index['columns'];

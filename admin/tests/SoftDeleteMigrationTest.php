@@ -180,11 +180,28 @@ final class SoftDeleteMigrationTest extends TestCase
         self::assertSame($schema, self::schemaSnapshot(), '重复执行结构不变');
     }
 
-    public function test_php_twin_refuses_mysql(): void
+    /** MySQL 走 PHP 版自己的 information_schema 分支（实跑与核心 SQL 逐表一致见 tests/Console/MySqlSoftDeleteUpgradeTest.php），其他驱动拒绝。 */
+    public function test_php_twin_supports_mysql_and_refuses_other_drivers(): void
     {
         $source = (string) file_get_contents(base_path() . '/database/migrations/' . self::MIGRATION . '.php');
-        self::assertStringContainsString("if (\$driver !== 'sqlite') {", $source);
-        self::assertStringNotContainsString('ALTER TABLE `', $source, 'MySQL 只走核心 SQL，PHP 版不再拼 MySQL DDL');
+        self::assertStringContainsString("if (\$driver === 'mysql') {", $source);
+        self::assertStringContainsString('information_schema.COLUMNS', $source);
+        self::assertStringContainsString('transactionLevel() > 0', $source, 'MySQL DDL 不得在外层事务中执行');
+
+        $capsule = (new \ReflectionProperty(\Illuminate\Database\Capsule\Manager::class, 'instance'))->getValue();
+        $manager = $capsule->getDatabaseManager();
+        $default = $manager->getDefaultConnection();
+        // PDO 惰性连接：驱动判定在任何查询之前，不需要真实的 pgsql 服务。
+        $capsule->addConnection(['driver' => 'pgsql', 'host' => '127.0.0.1', 'database' => 'unused', 'username' => 'unused', 'password' => '', 'prefix' => ''], 'soft_delete_pgsql_probe');
+        $manager->setDefaultConnection('soft_delete_pgsql_probe');
+        try {
+            (require base_path() . '/database/migrations/' . self::MIGRATION . '.php')();
+            self::fail('非 SQLite / MySQL 驱动必须拒绝');
+        } catch (\RuntimeException $error) {
+            self::assertStringContainsString('只支持 SQLite 与 MySQL', $error->getMessage());
+        } finally {
+            $manager->setDefaultConnection($default);
+        }
     }
 
     private static function runMigrationsBefore005(): void
