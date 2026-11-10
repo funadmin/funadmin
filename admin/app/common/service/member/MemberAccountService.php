@@ -35,11 +35,11 @@ final class MemberAccountService
         if (mb_strlen($nickname) > 50 || preg_match('/[\x00-\x1F\x7F<>]/u', $nickname)) {
             throw new RuntimeException('昵称不能超过 50 个字符且不能包含尖括号');
         }
-        if (Member::withTrashed()->where('username', $username)->first()) {
-            throw new RuntimeException('用户名已被注册');
-        }
-        if (Member::withTrashed()->where('email', $email)->first()) {
-            throw new RuntimeException('邮箱已被注册');
+        // 未删除会员与冷静期内注销的会员都占用用户名 / 邮箱。
+        try {
+            (new MemberIdentityGuard())->assertAvailable(['username' => $username, 'email' => $email]);
+        } catch (MemberIdentityTakenException $exception) {
+            throw new RuntimeException($exception->cooling ? $exception->getMessage() : MemberIdentityGuard::FIELDS[$exception->field] . '已被注册');
         }
         $level = MemberLevel::query()->where('status', 1)->orderBy('id', 'asc')->value('id');
         if (!$level) {

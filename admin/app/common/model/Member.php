@@ -13,6 +13,7 @@
 namespace app\common\model;
 
 use app\common\model\concern\LaravelSoftDelete;
+use app\common\model\concern\CascadesMemberDeletion;
 
 class  Member extends BaseModel{
     protected $table = 'member';
@@ -20,6 +21,7 @@ class  Member extends BaseModel{
      * @var bool
      */
     use LaravelSoftDelete;
+    use CascadesMemberDeletion;
 
 
 

@@ -15,6 +15,8 @@ use app\admin\system\model\MemberTag;
 use app\admin\system\model\MemberTagRelation;
 use app\admin\authorization\service\RelationRowSync;
 use app\admin\system\service\MemberFormDefinition;
+use app\common\model\concern\RestoreConflictException;
+use app\common\service\member\MemberIdentityGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use support\annotation\route\Delete;
@@ -333,9 +335,12 @@ class SystemMember extends AdminController
         if ($members instanceof Response) {
             return $members;
         }
-        foreach ($members as $member) {
-            $member->delete();
-        }
+        // 会员与其会话、分组标签关联在同一事务内软删除（见 CascadesMemberDeletion）。
+        Db::transaction(static function () use ($members): void {
+            foreach ($members as $member) {
+                $member->delete();
+            }
+        });
         return $this->ok('已移入回收站', ['removed' => count($members)]);
     }
 
@@ -374,8 +379,15 @@ class SystemMember extends AdminController
         if (count($members) !== count($ids)) {
             return $this->fail(msg: '部分会员不存在或不在回收站', code: 404);
         }
-        foreach ($members as $member) {
-            $member->restore();
+        // 恢复带回这次删除的分组标签关联（会话不恢复）；任一会员的用户名 / 手机号 / 邮箱已被新账号占用时整批不恢复。
+        try {
+            Db::transaction(static function () use ($members): void {
+                foreach ($members as $member) {
+                    $member->restore();
+                }
+            });
+        } catch (RestoreConflictException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 409);
         }
         return $this->ok('恢复成功', ['restored' => count($members)]);
     }
@@ -410,9 +422,8 @@ class SystemMember extends AdminController
             return $members;
         }
         Db::transaction(function () use ($members): void {
+            // 彻底删除连同全部关联行（含已软删除的）一起物理删除，见 CascadesMemberDeletion。
             foreach ($members as $member) {
-                $member->groups()->detach();
-                $member->tags()->detach();
                 $member->forceDelete();
             }
         });
@@ -607,8 +618,9 @@ class SystemMember extends AdminController
 
         return [
             'username' => trim((string) ($row['username'] ?? '')),
-            'mobile' => ($mobile = trim((string) ($row['mobile'] ?? ''))) !== '' ? $mobile : null,
-            'email' => ($email = trim((string) ($row['email'] ?? ''))) !== '' ? $email : null,
+            // 选填的手机号 / 邮箱空值存 NULL，避免多个空字符串在唯一索引上互相冲突。
+            'mobile' => MemberIdentityGuard::normalize(['mobile' => $row['mobile'] ?? null])['mobile'],
+            'email' => MemberIdentityGuard::normalize(['email' => $row['email'] ?? null])['email'],
             'sex' => (string) ($row['sex'] ?? '0'),
             'groupIds' => $groupIds,
             'tagIds' => $tagIds,
@@ -656,24 +668,7 @@ class SystemMember extends AdminController
 
     private function validateUnique(array $data, int $excludeId = 0): ?string
     {
-        $usernameQuery = Member::withTrashed()->where('username', $data['username']);
-        $mobileQuery = $data['mobile'] !== null ? Member::withTrashed()->where('mobile', $data['mobile']) : null;
-        $emailQuery = $data['email'] !== null ? Member::withTrashed()->where('email', $data['email']) : null;
-        if ($excludeId > 0) {
-            $usernameQuery->where('id', '<>', $excludeId);
-            $mobileQuery?->where('id', '<>', $excludeId);
-            $emailQuery?->where('id', '<>', $excludeId);
-        }
-        if ($usernameQuery->first()) {
-            return '用户名已存在';
-        }
-        if ($mobileQuery?->first()) {
-            return '手机号已存在';
-        }
-        if ($emailQuery?->first()) {
-            return '邮箱已存在';
-        }
-        return null;
+        return Member::validateUniqueAttributes($data, $excludeId);
     }
 
     private function duplicateError(\Throwable $exception): ?string

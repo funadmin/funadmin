@@ -8,7 +8,7 @@ use OpenApi\Annotations as OA;
 
 use app\common\controller\AdminController;
 use app\admin\system\model\MemberGroup;
-use app\admin\system\model\MemberGroupRelation;
+use app\common\service\member\MemberReferenceGuard;
 use app\common\traits\Crud;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
@@ -390,10 +390,9 @@ class SystemMemberGroup extends AdminController
         if (in_array(1, $ids, true)) {
             return $this->fail(msg: '默认会员组不能删除', code: 422);
         }
-        if (MemberGroupRelation::whereIn('group_id', $ids)->count() > 0) {
-            return $this->fail(msg: '会员组仍被会员引用，不能删除', code: 422);
-        }
-        return null;
+        // 还被未删除会员使用时不能删除；彻底删除时剩余关联行由模型在同一事务内清理（GuardsMemberReferences）。
+        $message = MemberReferenceGuard::blockingMessage(MemberReferenceGuard::GROUP, $ids, $force);
+        return $message === null ? null : $this->fail(msg: $message, code: 422);
     }
 
     protected function transformData(Model $model): array

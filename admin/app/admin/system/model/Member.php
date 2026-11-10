@@ -21,7 +21,10 @@ use app\admin\system\model\MemberLevel;
 use app\admin\system\model\MemberGroupRelation;
 use app\admin\system\model\MemberTagRelation;
 use app\common\traits\DataFormat;
+use app\common\service\member\MemberIdentityGuard;
+use app\common\service\member\MemberIdentityTakenException;
 use app\common\model\concern\LaravelSoftDelete;
+use app\common\model\concern\CascadesMemberDeletion;
 
 class Member extends BaseModel {
     protected $table = 'member';
@@ -31,6 +34,7 @@ class Member extends BaseModel {
      * @var bool
      */
     use LaravelSoftDelete;
+    use CascadesMemberDeletion;
     use DataFormat;
 
 
@@ -43,12 +47,13 @@ class Member extends BaseModel {
     }
     public function groups()
     {
-        return $this->belongsToMany(MemberGroup::class, 'member_group_relation', 'member_id', 'group_id');
+        // 关联表软删除：只读有效的中间表行。
+        return $this->belongsToMany(MemberGroup::class, 'member_group_relation', 'member_id', 'group_id')->wherePivotNull('deleted_at');
     }
 
     public function tags()
     {
-        return $this->belongsToMany(MemberTag::class, 'member_tag_relation', 'member_id', 'tag_id');
+        return $this->belongsToMany(MemberTag::class, 'member_tag_relation', 'member_id', 'tag_id')->wherePivotNull('deleted_at');
     }
 
     public function level()
@@ -120,24 +125,15 @@ class Member extends BaseModel {
         return null;
     }
 
+    /**
+     * 用户名 / 手机号 / 邮箱唯一性：未删除会员与冷静期内删除的会员都占用（MemberIdentityGuard）。
+     */
     public static function validateUniqueAttributes(array $data, int $excludeId = 0): ?string
     {
-        $usernameQuery = self::withTrashed()->where('username', $data['username']);
-        $mobileQuery = $data['mobile'] !== null ? self::withTrashed()->where('mobile', $data['mobile']) : null;
-        $emailQuery = $data['email'] !== null ? self::withTrashed()->where('email', $data['email']) : null;
-        if ($excludeId > 0) {
-            $usernameQuery->where('id', '<>', $excludeId);
-            $mobileQuery?->where('id', '<>', $excludeId);
-            $emailQuery?->where('id', '<>', $excludeId);
-        }
-        if ($usernameQuery->first()) {
-            return '用户名已存在';
-        }
-        if ($mobileQuery?->first()) {
-            return '手机号已存在';
-        }
-        if ($emailQuery?->first()) {
-            return '邮箱已存在';
+        try {
+            (new MemberIdentityGuard())->assertAvailable(array_intersect_key($data, MemberIdentityGuard::FIELDS), $excludeId);
+        } catch (MemberIdentityTakenException $exception) {
+            return $exception->getMessage();
         }
         return null;
     }

@@ -16,6 +16,8 @@ namespace app\admin\system\model;
 
 use app\common\model\BaseModel;
 use app\common\model\concern\LaravelSoftDelete;
+use app\common\model\concern\GuardsMemberReferences;
+use app\common\service\member\MemberReferenceGuard;
 
 class MemberLevel extends BaseModel
 {
@@ -25,6 +27,7 @@ class MemberLevel extends BaseModel
      * @var bool
      */
     use LaravelSoftDelete;
+    use GuardsMemberReferences;
 
 
     
@@ -35,5 +38,8 @@ class MemberLevel extends BaseModel
         parent::__construct($data);
     }
 
-
+    protected function memberReferenceKind(): string
+    {
+        return MemberReferenceGuard::LEVEL;
+    }
 }

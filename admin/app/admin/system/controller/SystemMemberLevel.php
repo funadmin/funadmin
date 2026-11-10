@@ -7,7 +7,7 @@ namespace app\admin\system\controller;
 use OpenApi\Annotations as OA;
 
 use app\common\controller\AdminController;
-use app\admin\system\model\Member;
+use app\common\service\member\MemberReferenceGuard;
 use app\admin\system\model\MemberLevel;
 use app\common\traits\Crud;
 use support\annotation\route\Delete;
@@ -426,9 +426,9 @@ class SystemMemberLevel extends AdminController
         foreach ($models as $model) {
             $ids[] = (int) $model->id;
         }
-        return Member::withTrashed()->whereIn('level_id', $ids)->count() > 0
-            ? $this->fail(msg: '会员等级仍被会员引用，不能删除', code: 422)
-            : null;
+        // 软删除只看未删除会员；彻底删除还要求回收站中也没有会员引用（fk_member_level）。
+        $message = MemberReferenceGuard::blockingMessage(MemberReferenceGuard::LEVEL, $ids, $force);
+        return $message === null ? null : $this->fail(msg: $message, code: 422);
     }
 
     protected function transformData(Model $model): array
