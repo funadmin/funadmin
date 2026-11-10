@@ -14,12 +14,8 @@ describe('会员注册默认分组契约', () => {
     const result = backendJson(String.raw`
       (new \app\common\service\database\MigrationService())->run();
       \support\Cache::$instances[config('cache.default')] = new \Symfony\Component\Cache\Psr16Cache(new \Symfony\Component\Cache\Adapter\ArrayAdapter());
-      // The SQLite admin fixture is intentionally minimal; add the member account columns
-      // used by the real registration path, matching admin/tests/MemberIntegrationTest.php.
-      \support\Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void {
-          foreach (['nickname', 'motto', 'real_name'] as $field) $table->string($field)->default('');
-          $table->integer('birthday')->default(0); $table->integer('scores')->default(0);
-      });
+      // The full migration already provides all member account columns (including nickname,
+      // motto, real_name, birthday and scores); exercise that schema without recreating columns.
       \support\Db::table('member_group')->update(['status' => 0]);
       foreach ([
           [9001, 'disabled', 0, null], [9002, 'deleted', 1, date('Y-m-d H:i:s')],
