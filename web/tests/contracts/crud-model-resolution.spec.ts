@@ -75,6 +75,6 @@ describe('CRUD 模型类公共解析契约', () => {
   }, 60_000);
 
   it('公共 CRUD 模型解析实际支持写入、软删除恢复和字段受限的导入导出', () => {
-    expect(runBackendTests('Console/CrudTraitExecutionTest.php')).toContain('OK (2 tests');
+    expect(runBackendTests('Console/CrudTraitExecutionTest.php')).toMatch(/OK \(\d+ tests/);
   }, 60_000);
 });

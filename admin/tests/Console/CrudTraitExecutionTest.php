@@ -19,7 +19,7 @@ final class CrudTraitExecutionTest extends TestCase
     {
         self::assertSame(':memory:', Db::connection()->getDatabaseName());
         Db::schema()->create('console_trait', static function (Blueprint $table): void {
-            $table->id(); $table->string('title'); $table->integer('status')->default(1); $table->timestamps(); $table->softDeletes();
+            $table->id(); $table->string('title'); $table->integer('status')->default(1); $table->timestamps(); $table->softDeletes(); $table->unsignedBigInteger('deleted_token')->default(0); $table->unique(['title', 'deleted_token']);
         });
     }
 
@@ -54,6 +54,28 @@ final class CrudTraitExecutionTest extends TestCase
         $controller->remove($id);
         $controller->destroyOne($id);
         self::assertNull(ConsoleTraitModel::withTrashed()->find($id));
+    }
+
+    public function test_generic_restore_conflict_returns_http_409_with_message(): void
+    {
+        $old = ConsoleTraitModel::create(['title' => 'same']);
+        $old->delete();
+        $live = ConsoleTraitModel::create(['title' => 'same']);
+        $this->request(['ids' => [$old->id]]);
+        try {
+            (new ConsoleTraitController())->restore();
+            self::fail('Expected restore conflict');
+        } catch (\app\common\model\concern\RestoreConflictException $error) {
+            $response = (new \app\ExceptionHandle(new \Psr\Log\NullLogger(), false))->render(
+                new Request("POST /admin/test/restore HTTP/1.1\r\n\r\n"), $error
+            );
+            self::assertSame(409, $response->getStatusCode());
+            $body = json_decode($response->rawBody(), true);
+            self::assertSame(409, $body['code']);
+            self::assertSame(\app\common\model\concern\RestoreConflictException::MESSAGE, $body['msg']);
+        }
+        self::assertTrue(ConsoleTraitModel::withTrashed()->find($old->id)->trashed());
+        self::assertNotNull(ConsoleTraitModel::find($live->id));
     }
 
     public function test_trait_import_export_and_batch_actions(): void

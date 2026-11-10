@@ -186,7 +186,7 @@ final class SoftDeleteTraitTest extends TestCase
             $trashed->restore();
             self::fail('restore should conflict');
         } catch (RestoreConflictException $error) {
-            self::assertInstanceOf(\RuntimeException::class, $error);
+            self::assertInstanceOf(\DomainException::class, $error);
             self::assertSame(409, $error->getCode());
             self::assertSame('已存在相同的记录，无法恢复，请先修改或删除现有记录', $error->getMessage());
         }

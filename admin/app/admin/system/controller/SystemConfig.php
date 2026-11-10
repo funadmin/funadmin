@@ -203,7 +203,7 @@ class SystemConfig extends AdminController
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (Config::withTrashed()->where('code', $data['code'])->first()) {
+        if (Config::where('code', $data['code'])->first()) {
             return $this->fail(msg: '配置编码已存在', code: 422);
         }
         $config = Config::forceCreate($data + ['is_system' => 0]);
@@ -255,7 +255,7 @@ class SystemConfig extends AdminController
         if ((string) $config->code === AdminLoginPath::CODE) {
             try { $data['value'] = AdminLoginPath::normalize($data['value']); } catch (\InvalidArgumentException $error) { return $this->fail(msg: $error->getMessage(), code: 422); }
         }
-        if (Config::withTrashed()->where('code', $data['code'])->where('id', '<>', $id)->first()) {
+        if (Config::where('code', $data['code'])->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '配置编码已存在', code: 422);
         }
         $config->forceFill($data)->save();
@@ -407,7 +407,7 @@ class SystemConfig extends AdminController
             }
         }
         foreach ($configs as $config) {
-            $config->forceDelete();
+            $config->delete();
         }
         return $this->ok('删除成功', ['removed' => count($configs)]);
     }
@@ -463,7 +463,7 @@ class SystemConfig extends AdminController
         if ($error = $this->validateGroup($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (ConfigGroup::withTrashed()->where('name', $data['name'])->first()) {
+        if (ConfigGroup::where('name', $data['name'])->first()) {
             return $this->fail(msg: '配置分组编码已存在', code: 422);
         }
         try {
@@ -511,10 +511,10 @@ class SystemConfig extends AdminController
         if ($error = $this->validateGroup($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if ($data['name'] !== (string) $group->getAttribute('name') && Config::withTrashed()->where('group', (string) $group->getAttribute('name'))->count() > 0) {
+        if ($data['name'] !== (string) $group->getAttribute('name') && Config::where('group', (string) $group->getAttribute('name'))->count() > 0) {
             return $this->fail(msg: '配置分组已被配置项引用，不能修改编码', code: 422);
         }
-        if (ConfigGroup::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->first()) {
+        if (ConfigGroup::where('name', $data['name'])->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '配置分组编码已存在', code: 422);
         }
         try {
@@ -557,10 +557,11 @@ class SystemConfig extends AdminController
         if (!$group) {
             return $this->fail(msg: '配置分组不存在', code: 404);
         }
-        if (Config::withTrashed()->where('group', (string) $group->getAttribute('name'))->count() > 0) {
+        // 只看未删除的配置项：已软删除的配置项永久保留，不应永远阻止删除分组。
+        if (Config::where('group', (string) $group->getAttribute('name'))->count() > 0) {
             return $this->fail(msg: '配置分组仍被配置项引用，不能删除', code: 422);
         }
-        $group->forceDelete();
+        $group->delete();
         return $this->ok('删除成功');
     }
 

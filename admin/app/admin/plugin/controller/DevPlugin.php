@@ -247,6 +247,8 @@ final class DevPlugin extends AdminController
             return $this->ok($message, $operation());
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
+        } catch (\app\common\model\concern\RestoreConflictException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 409);
         } catch (RuntimeException $exception) {
             $conflict = str_contains($exception->getMessage(), '已存在');
             return $this->fail(msg: $exception->getMessage(), code: $conflict ? 409 : 422);

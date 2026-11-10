@@ -1694,8 +1694,8 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         if ($placeholders !== []) {
             $sql .= '-- draft: placeholder（AI 预翻译缺失，待人工校正）：' . implode(', ', $placeholders) . "\n";
         }
-        $sql .= "-- 卸载清理（手动执行）：DELETE FROM `fun_language_line` WHERE `locale` = 'zh-cn' AND `ns` = 'crud.{$entity}';\n";
-        $sql .= "-- 卸载清理（手动执行）：DELETE FROM `fun_language_line` WHERE `locale` = 'en-us' AND `ns` = 'crud.{$entity}';\n";
+        $sql .= "-- 卸载清理（手动执行，仅软删除）：UPDATE `fun_language_line` SET `deleted_at` = NOW(), `deleted_token` = `id` WHERE `deleted_at` IS NULL AND `locale` = 'zh-cn' AND `ns` = 'crud.{$entity}';\n";
+        $sql .= "-- 卸载清理（手动执行，仅软删除）：UPDATE `fun_language_line` SET `deleted_at` = NOW(), `deleted_token` = `id` WHERE `deleted_at` IS NULL AND `locale` = 'en-us' AND `ns` = 'crud.{$entity}';\n";
         return $sql;
     }
 

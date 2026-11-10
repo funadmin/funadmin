@@ -129,7 +129,7 @@ class SystemLanguage extends AdminController
         if ($error = Language::validateAttributes($name)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (Language::withTrashed()->where('name', $name)->first()) {
+        if (Language::where('name', $name)->first()) {
             return $this->fail(msg: '语言名称已存在', code: 422);
         }
 
@@ -178,7 +178,7 @@ class SystemLanguage extends AdminController
         if ($error = Language::validateAttributes($name)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if (Language::withTrashed()->where('name', $name)->where('id', '<>', $id)->first()) {
+        if (Language::where('name', $name)->where('id', '<>', $id)->first()) {
             return $this->fail(msg: '语言名称已存在', code: 422);
         }
 
@@ -257,7 +257,7 @@ class SystemLanguage extends AdminController
             return $this->fail(msg: '请选择要删除的语言', code: 422);
         }
 
-        $languages = Language::withTrashed()->whereIn('id', $ids)->get();
+        $languages = Language::whereIn('id', $ids)->get();
         if (count($languages) !== count($ids)) {
             return $this->fail(msg: '部分语言不存在', code: 404);
         }
@@ -268,8 +268,9 @@ class SystemLanguage extends AdminController
         }
         Db::transaction(static function () use ($languages): void {
             foreach ($languages as $language) {
-                LanguageLine::withTrashed()->where('locale', (string) $language->getAttribute('name'))->forceDelete();
-                $language->forceDelete();
+                // 软删除语言及其未删除译文（写 deleted_at 与 deleted_token），数据保留可追溯。
+                LanguageLine::where('locale', (string) $language->getAttribute('name'))->delete();
+                $language->delete();
             }
         });
         return $this->ok('删除成功', ['removed' => count($languages)]);
@@ -468,7 +469,9 @@ class SystemLanguage extends AdminController
             || array_intersect(explode('.', $key), ['__proto__', 'constructor', 'prototype'])) {
             return $this->fail(msg: 'locale/key 不合法', code: 422);
         }
-        $line = LanguageLine::withTrashed()->where('locale', $locale)->where('key', $key)->first();
+        // 优先取未删除行；同 key 可能有多条已删除行（删除后重建再删除），取最近一条复活。
+        $line = LanguageLine::where('locale', $locale)->where('key', $key)->first()
+            ?? LanguageLine::onlyTrashed()->where('locale', $locale)->where('key', $key)->orderByDesc('id')->first();
         if ($line) {
             // 软删行同 key 复活：恢复而非新增，避免唯一键冲突。
             if ($line->trashed()) {

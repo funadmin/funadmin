@@ -6,8 +6,10 @@ namespace app\common\model\concern;
 
 /**
  * 恢复软删除记录时与现有未删除记录的唯一值冲突。
+ *
+ * 继承 DomainException（code 409）：未被业务捕获时由 ExceptionHandle 统一返回 409 与明确提示。
  */
-class RestoreConflictException extends \RuntimeException
+class RestoreConflictException extends \DomainException
 {
     public const MESSAGE = '已存在相同的记录，无法恢复，请先修改或删除现有记录';
 

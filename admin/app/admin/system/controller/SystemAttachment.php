@@ -9,28 +9,17 @@ use OpenApi\Annotations as OA;
 use app\common\controller\AdminController;
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
-use app\common\storage\StorageDriverRegistry;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
 use support\Response;
-use support\Container;
 
 /** Admin Web 附件库管理。 */
 #[RouteGroup('/admin/system/attachment')]
 class SystemAttachment extends AdminController
 {
-
-    private readonly StorageDriverRegistry $storageDrivers;
-
-    public function __construct(?StorageDriverRegistry $storageDrivers = null)
-    {
-        parent::__construct();
-        $this->storageDrivers = $storageDrivers ?? Container::get(StorageDriverRegistry::class);
-    }
-
     /**
      * 获取附件列表。
      *
@@ -178,7 +167,7 @@ class SystemAttachment extends AdminController
     }
 
     /**
-     * 删除附件记录；底层文件无其他引用时同步删除存储对象。
+     * 软删除附件记录；存储中的文件保留不删除。
      *
      * 请求字段：ids。
      *
@@ -188,7 +177,7 @@ class SystemAttachment extends AdminController
      *     path="/admin/system/attachment",
      *     operationId="admin_system_controller_SystemAttachment_delete_delete",
      *     tags={"附件"},
-     *     summary="删除附件记录；底层文件无其他引用时同步删除存储对象。",
+     *     summary="软删除附件记录；存储中的文件保留不删除。",
      *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
      *     @OA\RequestBody(
@@ -206,28 +195,17 @@ class SystemAttachment extends AdminController
     {
         $ids = $this->ids(); if (!$ids) return $this->fail(msg: '请选择要删除的附件', code: 422);
         $attachments = Attach::whereIn('id', $ids)->get(); if (count($attachments) !== count($ids)) return $this->fail(msg: '部分附件不存在', code: 404);
-        $groups = [];
-        try {
-            foreach ($attachments as $attach) {
-                $name=(string)($attach->driver ?: 'local');$key=(string)($attach->storage_key ?? '');
-                if($key===''&&$name==='local'&&str_starts_with((string)$attach->path,'/storage/'))$key=substr((string)$attach->path,strlen('/storage/'));
-                if($key===''&&$name!=='local')throw new \RuntimeException('历史云附件缺少对象标识，记录已保留');
-                $identity=$name.':'.$key;
-                if(!isset($groups[$identity]))$groups[$identity]=['name'=>$name,'key'=>$key,'driver'=>$key!==''?$this->storageDrivers->require($name):null,'rows'=>[]];
-                $groups[$identity]['rows'][]=$attach;
+        // 只软删除附件记录（写 deleted_at 与 deleted_token），存储中的文件一律保留：后台数据永不物理删除。
+        $removed = []; $failed = [];
+        foreach ($attachments as $attach) {
+            try {
+                if (!$attach->delete()) throw new \RuntimeException('attachment soft delete failed');
+                $removed[] = $attach->id;
+            } catch (\Throwable) {
+                $failed[] = $attach->id;
             }
-        } catch (\Throwable) {
-            return $this->fail(msg:'原存储驱动或对象标识不可用，附件记录已保留，请检查对应插件及历史配置',data:['removed'=>[],'failed'=>$ids],code:422);
         }
-        $removed=[];$failed=[];
-        foreach($groups as $group){
-            try{
-                $referenced=$group['key']!==''&&Attach::withTrashed()->where('driver',$group['name'])->where('storage_key',$group['key'])->whereNotIn('id',$ids)->exists();
-                if($group['key']!==''&&!$referenced&&!$group['driver']->delete($group['key']))throw new \RuntimeException('storage delete failed');
-                foreach($group['rows'] as $row){$row->forceDelete();$removed[]=$row->id;}
-            }catch(\Throwable){foreach($group['rows'] as $row)if(!in_array($row->id,$removed,true))$failed[]=$row->id;}
-        }
-        if($failed)return $this->fail(msg:'部分附件删除失败：已删除 '.count($removed).' 条，失败 '.count($failed).' 条已保留',data:['removed'=>$removed,'failed'=>$failed],code:422);
+        if ($failed) return $this->fail(msg: '部分附件删除失败：已删除 '.count($removed).' 条，失败 '.count($failed).' 条已保留', data: ['removed'=>$removed, 'failed'=>$failed], code: 422);
         return $this->ok('删除成功', ['removed' => count($removed)]);
     }
 

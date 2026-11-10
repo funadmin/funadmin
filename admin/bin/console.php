@@ -37,13 +37,12 @@ try {
             echo '管理员已创建：' . $admin['username'] . PHP_EOL;
             break;
         case 'auth:prune':
-            support\Db::table('admin_auth_tokens')->where('expires_at', '<=', date('Y-m-d H:i:s'))->delete();
-            support\Db::table('browser_sessions')->where('expires_at', '<=', date('Y-m-d H:i:s'))->delete();
-            support\Db::table('login_attempts')->where('window_start', '<=', time() - 900)->delete();
-            echo "过期认证数据已清理\n";
+            // 只把过期且未删除的令牌、会话、登录尝试标记为软删除，已删除记录永久保留，不做物理删除。
+            $pruned = (new app\admin\authentication\service\AuthPruneService())->prune();
+            printf("过期认证数据已标记为删除（软删除，记录保留）：令牌 %d，会话 %d，登录尝试 %d\n", $pruned['tokens'], $pruned['sessions'], $pruned['attempts']);
             break;
         default:
-            echo "用法：php bin/console.php install < install.json | migrate | admin:create <username> | auth:prune\n";
+            echo "用法：php bin/console.php install < install.json | migrate | admin:create <username> | auth:prune（软删除过期认证数据）\n";
             exit(1);
     }
 } catch (DomainException $error) {

@@ -1074,6 +1074,8 @@ final class SystemPlugin extends AdminController
             ], code: 409);
         } catch (InvalidArgumentException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 422);
+        } catch (\app\common\model\concern\RestoreConflictException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 409);
         } catch (RuntimeException $exception) {
             $message = $exception->getMessage();
             $conflict = str_contains($message, '已安装') || str_contains($message, '请先禁用') || str_contains($message, '操作中');
