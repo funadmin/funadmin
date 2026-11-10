@@ -1,7 +1,14 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{Category,CategoryLocale,Content,ContentLocale,ContentModel,ContentRevision,ModelVersion,SiteModel};
+use app\cms\model\Category;
+use app\cms\model\CategoryLocale;
+use app\cms\model\Content;
+use app\cms\model\ContentLocale;
+use app\cms\model\ContentModel;
+use app\cms\model\ContentRevision;
+use app\cms\model\ModelVersion;
+use app\cms\model\SiteModel;
 use support\Db;
 use InvalidArgumentException;
 final class ContentService

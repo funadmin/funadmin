@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{Site,SiteLocale};
+use app\cms\model\Site;
+use app\cms\model\SiteLocale;
 use support\Db;
 
 /** Public website configuration. Definitions belong to a site; locales only override translated values. */

@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{TemplateTag,TemplateTagVersion};
+use app\cms\model\TemplateTag;
+use app\cms\model\TemplateTagVersion;
 use support\Db;
 use app\cms\tags\BuiltinTags;
 use app\cms\template\RenderContext;

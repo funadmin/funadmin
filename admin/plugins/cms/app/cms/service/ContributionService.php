@@ -3,7 +3,9 @@
 declare (strict_types=1);
 namespace app\cms\service;
 
-use app\cms\model\{ContentModel,MemberSubmission,ModelVersion};
+use app\cms\model\ContentModel;
+use app\cms\model\MemberSubmission;
+use app\cms\model\ModelVersion;
 use app\common\model\Member;
 use InvalidArgumentException;
 use support\Db;

@@ -408,3 +408,18 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
 上传限制为单个文件 20MB、单次提交合计 50MB、每个字段 10 个文件。扩展名白名单与 `finfo` 嗅探的 MIME 必须同时通过校验，可执行或可被浏览器执行的类型一律拒绝。文件以随机名私有保存在 `runtime/plugins-data/cms/forms/`，原文件名只记在数据库中，不能通过公开地址访问；只能在后台经 `/admin/plugins/cms/forms/files/download` 下载，需要“查看提交”权限。下载默认以 `attachment` 返回；只有 JPEG、PNG、GIF、WebP、BMP 图片在后台预览（`preview=1`）时以 `inline` 返回。所有下载响应都带 `X-Content-Type-Options: nosniff` 与 `Content-Security-Policy: default-src 'none'; sandbox`。
 
 宿主 `config/server.php` 的 `max_package_size` 默认为 10MB，超过它的请求会被 Workerman 直接拒绝。需要接收大附件时，把它调到 50MB 以上并留出余量（例如 64MB），Nginx 也要设置对应的 `client_max_body_size`（Nginx 默认只允许 1MB）。
+
+## 1.5.1 数据访问改用 Eloquent 模型
+
+本版只改内部实现：没有新的迁移文件，表结构、写入的数据、接口返回、后台和前台行为都不变。已安装 1.5.0 的站点在插件中心停用 CMS → 更新（1.5.1）→ 启用即可。更新会新发布 `app/cms/model/` 目录；如果只把文件拷到安装目录而不走更新流程，插件中心会把该插件显示为“已修改”。
+
+- 模型层：命名空间 `app\cms\model`（源码在 `plugins/cms/app/cms/model/`），26 个模型对应 26 张 `cms_*` 表，都继承抽象基类 `CmsModel`。基类关闭自动时间戳，`created_at/updated_at` 仍由服务用 `Input::now()` 写入 UTC 时间；不声明 JSON cast，JSON 列仍由 `Input::json()` 写入、`Input::row()` 解码，写入的字节不变；不声明 `$connection`，查询仍在外层 `Db::transaction` 中；不使用模型事件或 observer，公开页缓存仍在服务中显式失效。服务和控制器不返回模型，返回值仍经 `Input::row()/rows()` 转成数组，id 为字符串。
+- 作用域 trait（`app\cms\model\concern`）：`BelongsToSite` 提供 `forSite()`，`Localized` 提供 `forLocale()`，`HasStatus` 提供 `enabled()`。它们只替换等价的 `where`，不做校验。
+- 软删除：有 `deleted_at` 列的 6 个模型 `Site`、`SiteRole`、`Category`、`Content`、`ContentLocale`、`TemplateTag` 使用项目惯例 `LaravelSoftDelete`，默认排除已软删的行；需要看到已删行的查询（保存后回读、种子存在性判断、乐观锁更新等）显式写 `withTrashed()`。
+- 宿主表使用核心模型：`attach` → `app\common\model\Attach`，`admin` → `app\admin\authentication\model\Admin`，`member` → `app\common\model\Member`，`permission` → `app\admin\authorization\model\Permission`。原有的 `hasTable` 防御和 `status`/`deleted_at` 条件保留；带软删除全局作用域的核心模型用 `withoutGlobalScopes()` 加显式 `whereNull('deleted_at')`，SQL 与原来相同。
+- 仍保留在 `Db::table` 的查询（共 28 处，由 `tests/Cms/QueryBuilderAllowlistTest` 按文件逐一固定）：
+  - 带别名的联表投影及其子查询（内容列表、栏目列表、模板标签的模型/栏目选项、投稿模型、站点角色成员、站点管理员列表）：结果是多表投影，不对应任何一个模型；
+  - 动态表名（路由目标表、导航目标校验、按类型的变更授权、删除提交时遍历附件与事件表）：表名在运行时才确定；
+  - Schema 与升级代码（`SiteRoleSchema` 的种子、`FormPermissionUpgrade`）：要针对执行当时的表结构工作，不随模型演进；
+  - 表单提交的筛选/导出管线（`FormSubmissionService` 的 `filtered()`、导出 `rows()` 中的附件名查询）和表单列表的提交计数（`selectRaw ... groupBy`）：管线以 `Query\Builder` 为类型分批读取原始行，计数是原始聚合。
+- `Db::transaction`、`Db::schema`、`Db::connection` 照旧使用。`lockForUpdate` 共 21 处，位置和条件不变。

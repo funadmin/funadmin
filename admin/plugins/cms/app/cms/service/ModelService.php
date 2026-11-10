@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{ContentModel,ModelVersion};
+use app\cms\model\ContentModel;
+use app\cms\model\ModelVersion;
 use app\common\model\Attach;
 use support\Db;
 use InvalidArgumentException;

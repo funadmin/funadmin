@@ -3,7 +3,9 @@ declare(strict_types=1);
 namespace app\cms\service;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\service\AuthorizationService;
-use app\cms\model\{Site,SiteAdmin,SiteRolePermission};
+use app\cms\model\Site;
+use app\cms\model\SiteAdmin;
+use app\cms\model\SiteRolePermission;
 use support\Db;
 
 final class SiteAuthorization

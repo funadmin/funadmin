@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{Category,CategoryLocale,SiteModel};
+use app\cms\model\Category;
+use app\cms\model\CategoryLocale;
+use app\cms\model\SiteModel;
 use support\Db;
 use InvalidArgumentException;
 final class CategoryService

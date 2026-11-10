@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace app\cms\service;
 
-use app\cms\model\{Form,FormEvent,FormFile,FormSubmission};
+use app\cms\model\Form;
+use app\cms\model\FormEvent;
+use app\cms\model\FormFile;
+use app\cms\model\FormSubmission;
 use Illuminate\Database\Query\Builder;
 use InvalidArgumentException;
 use support\Db;

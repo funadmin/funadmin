@@ -3,7 +3,11 @@ declare(strict_types=1);
 namespace app\cms\service;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\service\RoleScopeService;
-use app\cms\model\{SiteAdmin,SiteAuthAudit,SiteRole,SiteRoleMember,SiteRolePermission};
+use app\cms\model\SiteAdmin;
+use app\cms\model\SiteAuthAudit;
+use app\cms\model\SiteRole;
+use app\cms\model\SiteRoleMember;
+use app\cms\model\SiteRolePermission;
 use support\Db;
 
 final class SiteRoleService

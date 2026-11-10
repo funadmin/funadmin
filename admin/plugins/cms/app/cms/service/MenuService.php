@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{Menu,MenuItem};
+use app\cms\model\Menu;
+use app\cms\model\MenuItem;
 use support\Db;
 use InvalidArgumentException;
 final class MenuService

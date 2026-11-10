@@ -3,7 +3,8 @@
 declare (strict_types=1);
 namespace app\cms\service;
 
-use app\cms\model\{ModelVersion,Site};
+use app\cms\model\ModelVersion;
+use app\cms\model\Site;
 use InvalidArgumentException;
 use support\Db;
 final class ContributionPolicy

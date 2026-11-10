@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{Site,SiteAdmin};
+use app\cms\model\Site;
+use app\cms\model\SiteAdmin;
 final class SiteAccess
 {
     public function isSuper(string $adminId): bool { return Input::id($adminId)===(string)config('auth.super_admin_id',1); }

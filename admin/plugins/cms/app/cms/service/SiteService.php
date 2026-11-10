@@ -1,7 +1,12 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{ContentModel,Domain,Site,SiteAdmin,SiteLocale,SiteModel};
+use app\cms\model\ContentModel;
+use app\cms\model\Domain;
+use app\cms\model\Site;
+use app\cms\model\SiteAdmin;
+use app\cms\model\SiteLocale;
+use app\cms\model\SiteModel;
 use support\Db;
 use InvalidArgumentException;
 final class SiteService

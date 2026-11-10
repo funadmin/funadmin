@@ -1,7 +1,11 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use app\cms\model\{Category,CategoryLocale,Menu,MenuItem,TemplateTag};
+use app\cms\model\Category;
+use app\cms\model\CategoryLocale;
+use app\cms\model\Menu;
+use app\cms\model\MenuItem;
+use app\cms\model\TemplateTag;
 use support\Db;
 
 /** Resolve the same key and defaults as each writer; IDs supplied by a browser are never proof of intent. */

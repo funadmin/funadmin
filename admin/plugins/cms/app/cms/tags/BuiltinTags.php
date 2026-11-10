@@ -10,7 +10,8 @@ use app\cms\service\MenuService;
 use app\cms\service\SiteService;
 use app\cms\service\RouteService;
 use app\cms\service\Input;
-use app\cms\model\{CategoryLocale,ContentLocale};
+use app\cms\model\CategoryLocale;
+use app\cms\model\ContentLocale;
 final class BuiltinTags
 {
     private ?array $pagination=null;
