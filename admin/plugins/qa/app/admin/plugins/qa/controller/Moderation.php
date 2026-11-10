@@ -7,8 +7,9 @@ use app\cms\service\Input;
 use app\cms\service\SiteAccess;
 use app\cms\service\SiteAuthorization;
 use app\qa\service\QuestionService;
-use support\{Db,Response};
+use support\Response;
 use support\annotation\route\{Get,Post,RouteGroup};
+use app\cms\model\MemberSubmission;
 #[RouteGroup('/admin/plugins/qa/moderation')]
 final class Moderation extends AdminController
 {
@@ -19,7 +20,7 @@ final class Moderation extends AdminController
             $site=$this->site('cms:submission:list');$input=$this->input();$locale=Input::locale($input['locale']??'zh-cn');$status=Input::text($input['status']??'pending',20);
             if(!in_array($status,['pending','published','rejected','withdrawn','hidden'],true))throw new \InvalidArgumentException('投稿状态无效',422);
             $raw=Input::text($input['page']??'1',10);if(!preg_match('/^[1-9][0-9]{0,8}$/D',$raw))throw new \InvalidArgumentException('页码无效',422);$page=(int)$raw;
-            $query=Db::table('cms_member_submission')->where('site_id',$site)->where('locale',$locale)->whereIn('kind',['question','answer'])->where('status',$status);
+            $query=MemberSubmission::query()->where('site_id',$site)->where('locale',$locale)->whereIn('kind',['question','answer'])->where('status',$status);
             $total=$query->count();$ids=$query->orderByDesc('id')->offset(($page-1)*20)->limit(20)->pluck('id');$service=new ContributionService();$items=[];
             foreach($ids as $id)$items[]=$service->get($site,(string)$id);
             return ['items'=>$items,'total'=>$total,'page'=>$page,'limit'=>20];

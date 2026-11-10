@@ -5,16 +5,18 @@ use app\common\storage\StorageDriverInterface;
 use support\Db;
 use InvalidArgumentException;
 use RuntimeException;
+use app\admin\plugins\oss\model\OssProfile;
+use app\admin\plugins\oss\model\OssSetting;
 final class ProfileService
 {
     private readonly ProfileSecret $secrets;
     public function __construct(?string $masterKey=null,private readonly mixed $driverFactory=null){$this->secrets=new ProfileSecret($masterKey??(string)config('ai.encryption_key',getenv('OAUTH_ENCRYPTION_KEY')?:''));}
     private function ready():void{if(!Schema::ready())throw new RuntimeException('请先完成 OSS 插件安装或数据库升级',503);}
     private function id(string $id):string{if(!preg_match('/^[a-f0-9]{16}$/D',$id))throw new InvalidArgumentException('云存储配置标识无效');return $id;}
-    private function row(string $id,bool $lock=false):array{$this->ready();$query=Db::table('oss_profile')->where('id',$this->id($id));if($lock)$query->lockForUpdate();return (array)($query->first()??throw new InvalidArgumentException('云存储配置不存在'));}
+    private function row(string $id,bool $lock=false):array{$this->ready();$query=OssProfile::query()->where('id',$this->id($id));if($lock)$query->lockForUpdate();return ($query->first()??throw new InvalidArgumentException('云存储配置不存在'))->getAttributes();}
     private function publicRow(array $row):array{unset($row['credentials']);$row['has_credentials']=true;return $row;}
-    public function listing():array{$this->ready();return array_map(fn($row)=>$this->publicRow((array)$row),Db::table('oss_profile')->orderByDesc('created_at')->orderBy('id')->get()->all());}
-    public function current():?string{$this->ready();$id=Db::table('oss_setting')->where('id',1)->value('current_profile_id');return $id===null?null:$this->id((string)$id);}
+    public function listing():array{$this->ready();return array_map(fn(OssProfile $row)=>$this->publicRow($row->getAttributes()),OssProfile::query()->orderByDesc('created_at')->orderBy('id')->get()->all());}
+    public function current():?string{$this->ready();$id=OssSetting::query()->where('id',1)->value('current_profile_id');return $id===null?null:$this->id((string)$id);}
     private function text(mixed $value,int $max=255):string{if(!is_scalar($value)&&$value!==null)throw new InvalidArgumentException('配置字段格式无效');$text=trim((string)$value);if(mb_strlen($text)>$max)throw new InvalidArgumentException('配置字段过长');return $text;}
     public function save(array $input):array{
         $this->ready();$allowed=['id','name','provider','bucket','region','endpoint','domain','prefix','access_key','secret_key'];if(array_diff(array_keys($input),$allowed))throw new InvalidArgumentException('包含未知云存储配置字段');
@@ -43,7 +45,7 @@ final class ProfileService
                 $cipher=$this->secrets->seal($id,$credentials);
             }
             $data['credentials']=$cipher;$data['updated_at']=gmdate('Y-m-d H:i:s');
-            if($old)Db::table('oss_profile')->where('id',$id)->update($data);else Db::table('oss_profile')->insert($data+['id'=>$id,'created_at'=>$data['updated_at']]);
+            if($old)OssProfile::query()->where('id',$id)->update($data);else OssProfile::query()->insert($data+['id'=>$id,'created_at'=>$data['updated_at']]);
             return $this->publicRow($this->row($id));
         });
     }
@@ -60,7 +62,7 @@ final class ProfileService
     }
     public function activate(string $id):array{
         $id=$this->id($id);$driver=$this->driver('oss_'.$id);if(!$driver?->available())throw new InvalidArgumentException('对应云 SDK 或配置不可用，请检查插件依赖');
-        Db::transaction(function()use($id):void{Db::table('oss_setting')->where('id',1)->lockForUpdate()->first();Db::table('oss_setting')->updateOrInsert(['id'=>1],['current_profile_id'=>$id]);});return ['current'=>$id];
+        Db::transaction(function()use($id):void{OssSetting::query()->where('id',1)->lockForUpdate()->first();OssSetting::query()->updateOrInsert(['id'=>1],['current_profile_id'=>$id]);});return ['current'=>$id];
     }
     public function testConnection(string $id):array{
         $driver=$this->driver('oss_'.$this->id($id));if(!$driver?->available())throw new InvalidArgumentException('对应云 SDK 或配置不可用');

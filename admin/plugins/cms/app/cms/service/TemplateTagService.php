@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\cms\model\{TemplateTag,TemplateTagVersion};
 use support\Db;
 use app\cms\tags\BuiltinTags;
 use app\cms\template\RenderContext;
@@ -11,8 +12,8 @@ final class TemplateTagService
 {
     public function listing(string $siteId,string $locale): array
     {
-        $rows=Input::rows(Db::table('cms_template_tag')->where('site_id',Input::id($siteId))->whereIn('locale',['',Input::locale($locale)])->whereNull('deleted_at')->orderBy('id')->get());
-        foreach($rows as &$row){$row['builtin']=false;$row['draft']=Input::row(Db::table('cms_template_tag_version')->where('tag_id',$row['id'])->orderByDesc('version')->first());$row['draft_version']=$row['draft']['version']??0;}
+        $rows=Input::rows(TemplateTag::query()->where('site_id',Input::id($siteId))->whereIn('locale',['',Input::locale($locale)])->orderBy('id')->get());
+        foreach($rows as &$row){$row['builtin']=false;$row['draft']=Input::row(TemplateTagVersion::query()->where('tag_id',$row['id'])->orderByDesc('version')->first());$row['draft_version']=$row['draft']['version']??0;}
         unset($row);
         // 内置目录只投影注册信息，不执行标签处理器，也不写入站点自定义标签表。
         $definitions=(new BuiltinTags())->registry(new RenderContext($siteId,Input::locale($locale)))->definitions(false);
@@ -48,30 +49,30 @@ final class TemplateTagService
         // 备注说明标签用途，属于标签本身而非某个版本；未提交时保留原备注。
         $remark=array_key_exists('remark',$input)?Input::text($input['remark'],255):null;
         return Db::transaction(function()use($siteId,$locale,$input,$adminId,$name,$provider,$fragment,$remark): array {
-            $old=empty($input['id'])?Db::table('cms_template_tag')->where('site_id',$siteId)->where('locale',$locale)->where('name',$name)->whereNull('deleted_at')->lockForUpdate()->first():Db::table('cms_template_tag')->where('site_id',$siteId)->where('locale',$locale)->where('id',Input::id($input['id']))->whereNull('deleted_at')->lockForUpdate()->first();
+            $old=empty($input['id'])?TemplateTag::query()->where('site_id',$siteId)->where('locale',$locale)->where('name',$name)->lockForUpdate()->first():TemplateTag::query()->where('site_id',$siteId)->where('locale',$locale)->where('id',Input::id($input['id']))->lockForUpdate()->first();
             if(!empty($input['id'])&&!$old)throw new InvalidArgumentException('标签不存在',404);if($old&&$old->name!==$name)throw new InvalidArgumentException('标签名不可修改');$now=Input::now();
-            if($old){$id=(string)$old->id;if($remark!==null)Db::table('cms_template_tag')->where('id',$id)->update(['remark'=>$remark,'updated_at'=>$now]);}
-            else $id=(string)Db::table('cms_template_tag')->insertGetId(['site_id'=>$siteId,'locale'=>$locale,'name'=>$name,'remark'=>$remark??'','current_version'=>0,'status'=>1,'created_at'=>$now,'updated_at'=>$now]);
-            $version=(int)Db::table('cms_template_tag_version')->where('tag_id',$id)->max('version')+1;
-            Db::table('cms_template_tag_version')->insert(['tag_id'=>$id,'version'=>$version,'provider'=>$provider,'parameters'=>Input::json($input['parameters']??[]),'template_fragment'=>$fragment,'created_by'=>Input::id($adminId),'created_at'=>$now]);
-            return Input::row(Db::table('cms_template_tag')->where('id',$id)->first())+['draft_version'=>$version];
+            if($old){$id=(string)$old->getRawOriginal('id');if($remark!==null)TemplateTag::query()->withTrashed()->where('id',$id)->update(['remark'=>$remark,'updated_at'=>$now]);}
+            else{$row=new TemplateTag();$row->fill(['site_id'=>$siteId,'locale'=>$locale,'name'=>$name,'remark'=>$remark??'','current_version'=>0,'status'=>1,'created_at'=>$now,'updated_at'=>$now])->save();$id=(string)$row->getKey();}
+            $version=(int)TemplateTagVersion::query()->where('tag_id',$id)->max('version')+1;
+            TemplateTagVersion::query()->insert(['tag_id'=>$id,'version'=>$version,'provider'=>$provider,'parameters'=>Input::json($input['parameters']??[]),'template_fragment'=>$fragment,'created_by'=>Input::id($adminId),'created_at'=>$now]);
+            return Input::row(TemplateTag::query()->withTrashed()->where('id',$id)->first())+['draft_version'=>$version];
         });
     }
     public function publish(string $siteId,string $id,int $version): void
     {
-        $tag=Db::table('cms_template_tag')->where('site_id',Input::id($siteId))->where('id',Input::id($id))->whereNull('deleted_at')->first();if(!$tag||!Db::table('cms_template_tag_version')->where('tag_id',$id)->where('version',$version)->exists())throw new InvalidArgumentException('标签版本不存在');
-        Db::table('cms_template_tag')->where('site_id',$siteId)->where('id',$id)->update(['current_version'=>$version,'updated_at'=>Input::now()]);
+        $tag=TemplateTag::query()->where('site_id',Input::id($siteId))->where('id',Input::id($id))->first();if(!$tag||!TemplateTagVersion::query()->where('tag_id',$id)->where('version',$version)->exists())throw new InvalidArgumentException('标签版本不存在');
+        TemplateTag::query()->withTrashed()->where('site_id',$siteId)->where('id',$id)->update(['current_version'=>$version,'updated_at'=>Input::now()]);
     }
     public function register(TagRegistry $registry,RenderContext $context,?string $excludeName=null): void
     {
-        $tags=Input::rows(Db::table('cms_template_tag')->where('site_id',$context->siteId)->whereIn('locale',['',$context->locale])->where('status',1)->where('current_version','>',0)->whereNull('deleted_at')->get());$selected=[];
+        $tags=Input::rows(TemplateTag::query()->where('site_id',$context->siteId)->whereIn('locale',['',$context->locale])->where('status',1)->where('current_version','>',0)->get());$selected=[];
         foreach($tags as $tag)if(!isset($selected[$tag['name']])||$tag['locale']===$context->locale)$selected[$tag['name']]=$tag;
-        foreach($selected as $tag){if($tag['name']===$excludeName)continue;$version=Input::row(Db::table('cms_template_tag_version')->where('tag_id',$tag['id'])->where('version',$tag['current_version'])->first());if($version)$registry->alias($tag['name'],$version['provider'],$version['parameters'],$version['template_fragment']??'');}
+        foreach($selected as $tag){if($tag['name']===$excludeName)continue;$version=Input::row(TemplateTagVersion::query()->where('tag_id',$tag['id'])->where('version',$tag['current_version'])->first());if($version)$registry->alias($tag['name'],$version['provider'],$version['parameters'],$version['template_fragment']??'');}
     }
     public function preview(string $siteId,string $locale,string $id,int $version): string
     {
-        $tag=Db::table('cms_template_tag')->where('site_id',Input::id($siteId))->whereIn('locale',['',$locale])->where('id',Input::id($id))->whereNull('deleted_at')->first();if(!$tag)throw new InvalidArgumentException('标签不存在',404);
-        $revision=Input::row(Db::table('cms_template_tag_version')->where('tag_id',$id)->where('version',$version)->first());if(!$revision)throw new InvalidArgumentException('标签版本不存在');
+        $tag=TemplateTag::query()->where('site_id',Input::id($siteId))->whereIn('locale',['',$locale])->where('id',Input::id($id))->first();if(!$tag)throw new InvalidArgumentException('标签不存在',404);
+        $revision=Input::row(TemplateTagVersion::query()->where('tag_id',$id)->where('version',$version)->first());if(!$revision)throw new InvalidArgumentException('标签版本不存在');
         $context=new RenderContext($siteId,Input::locale($locale));$registry=(new BuiltinTags())->registry($context);$this->register($registry,$context,$tag->name);$registry->alias($tag->name,$revision['provider'],$revision['parameters'],$revision['template_fragment']??'');
         $registry->beginRender();
         return (new CmsTags($registry,dirname(__DIR__).'/view/default',[],$context))->tag($tag->name)->value;

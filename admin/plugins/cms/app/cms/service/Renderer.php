@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\cms\model\ModelVersion;
+use app\common\model\Attach;
 use app\cms\template\RenderContext;
 use app\cms\template\ThemeEngine;
 use app\cms\template\TrustedHtml;
@@ -11,11 +13,11 @@ final class Renderer
     {
         $fields=[];
         if(!empty($content['model_version_id'])) {
-            $schema=Input::row(\support\Db::table('cms_model_version')->where('id',$content['model_version_id'])->first());
+            $schema=Input::row(ModelVersion::query()->where('id',$content['model_version_id'])->first());
             foreach($schema['field_schema']??[] as $field){$value=$content['data'][$field['name']]??null;if($value===null||$value==='')continue;
                 if(in_array($field['type'],['image','file','gallery'],true)){
                     $html='';foreach($field['type']==='gallery'?$value:[$value] as $id){
-                        $file=\support\Db::table('attach')->where('id',Input::id($id))->where('status',1)->whereNull('deleted_at')->first();if(!$file)continue;
+                        $file=Attach::query()->withoutGlobalScopes()->where('id',Input::id($id))->where('status',1)->whereNull('deleted_at')->first();if(!$file)continue;
                         $url=$file->url?:$file->path;if(!HtmlSanitizer::safeUrl($url))continue;
                         $html.=$field['type']==='file'?'<a href="'.Seo::escape($url).'" download>'.Seo::escape($file->original_name).'</a>':'<img src="'.Seo::escape($url).'" alt="'.Seo::escape($file->original_name).'" loading="lazy">';
                     }$value=new TrustedHtml($html);

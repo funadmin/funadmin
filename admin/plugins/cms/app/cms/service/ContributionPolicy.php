@@ -3,6 +3,7 @@
 declare (strict_types=1);
 namespace app\cms\service;
 
+use app\cms\model\{ModelVersion,Site};
 use InvalidArgumentException;
 use support\Db;
 final class ContributionPolicy
@@ -30,7 +31,7 @@ final class ContributionPolicy
             }
             $settings = $row['settings'] ?? [];
             $settings['member_content'] = ['enabled' => $input['enabled'], 'model_codes' => array_values(array_unique($codes))];
-            Db::table('cms_site')->where('id', $site)->update(['settings' => Input::json($settings), 'updated_at' => Input::now()]);
+            Site::query()->withTrashed()->where('id', $site)->update(['settings' => Input::json($settings), 'updated_at' => Input::now()]);
             return $this->read($site);
         });
     }
@@ -42,7 +43,7 @@ final class ContributionPolicy
             }
         }
         $sites = [];
-        foreach (Input::rows(Db::table('cms_site')->where('status', 1)->whereNull('deleted_at')->orderBy('id')->get()) as $site) {
+        foreach (Input::rows(Site::query()->where('status', 1)->orderBy('id')->get()) as $site) {
             $policy = $this->read($site['id']);
             $locales = [];
             foreach ((new SiteService())->locales($site['id'], true) as $locale) {
@@ -58,7 +59,7 @@ final class ContributionPolicy
         $models = [];
         $rows = Db::table('cms_content_model as m')->join('cms_site_model as s', 's.model_id', '=', 'm.id')->where('s.site_id', Input::id($site))->where('s.status', 1)->where('m.status', 1)->orderBy('m.id')->select('m.id', 'm.code', 'm.name', 'm.current_version')->get();
         foreach ($rows as $row) {
-            $version = Input::row(Db::table('cms_model_version')->where('model_id', $row->id)->where('version', $row->current_version)->first());
+            $version = Input::row(ModelVersion::query()->where('model_id', $row->id)->where('version', $row->current_version)->first());
             if (!$version) {
                 continue;
             }

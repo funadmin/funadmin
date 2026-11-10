@@ -3,6 +3,8 @@
 declare (strict_types=1);
 namespace app\cms\service;
 
+use app\cms\model\{ContentModel,MemberSubmission,ModelVersion};
+use app\common\model\Member;
 use InvalidArgumentException;
 use support\Db;
 final class ContributionService
@@ -29,7 +31,7 @@ final class ContributionService
             (new SiteService())->lock($site);
             $this->scope($site, $locale);
             $this->activeMember($member);
-            $existing = Db::table('cms_member_submission')->where('site_id', $site)->where('member_id', $member)->where('request_key', $key)->first();
+            $existing = MemberSubmission::query()->where('site_id', $site)->where('member_id', $member)->where('request_key', $key)->first();
             if ($existing) {
                 if (!hash_equals($existing->payload_hash, $hash)) {
                     throw new InvalidArgumentException('请求标识已用于其他投稿', 409);
@@ -47,26 +49,28 @@ final class ContributionService
             if ($kind === 'answer') {
                 $this->parent($site, $locale, $parent);
             }
-            $recent = Db::table('cms_member_submission')->where('site_id', $site)->where('member_id', $member)->where('created_at', '>=', gmdate('Y-m-d H:i:s', time() - 60))->count();
+            $recent = MemberSubmission::query()->where('site_id', $site)->where('member_id', $member)->where('created_at', '>=', gmdate('Y-m-d H:i:s', time() - 60))->count();
             if ($recent >= 10) {
                 throw new InvalidArgumentException('投稿过于频繁，请稍后重试', 429);
             }
             $now = Input::now();
-            $id = (string) Db::table('cms_member_submission')->insertGetId(['site_id' => $site, 'locale' => $locale, 'member_id' => $member, 'kind' => $kind, 'parent_id' => $parent, 'title' => $payload['title'], 'body_html' => $payload['body_html'], 'data' => Input::json($data), 'result' => Input::json([]), 'request_key' => $key, 'payload_hash' => $hash, 'status' => 'pending', 'lock_version' => 0, 'reviewer_admin_id' => null, 'review_reason' => '', 'reviewed_at' => null, 'created_at' => $now, 'updated_at' => $now]);
+            $submission = new MemberSubmission();
+            $submission->fill(['site_id' => $site, 'locale' => $locale, 'member_id' => $member, 'kind' => $kind, 'parent_id' => $parent, 'title' => $payload['title'], 'body_html' => $payload['body_html'], 'data' => Input::json($data), 'result' => Input::json([]), 'request_key' => $key, 'payload_hash' => $hash, 'status' => 'pending', 'lock_version' => 0, 'reviewer_admin_id' => null, 'review_reason' => '', 'reviewed_at' => null, 'created_at' => $now, 'updated_at' => $now])->save();
+            $id = (string) $submission->getKey();
             return $this->get($site, $id);
         });
     }
     public function get(string $site, string $id): array
     {
         $this->ready();
-        return $this->normalize(Db::table('cms_member_submission')->where('site_id', Input::id($site))->where('id', Input::id($id))->first() ?? throw new InvalidArgumentException('投稿不存在', 404));
+        return $this->normalize(MemberSubmission::query()->where('site_id', Input::id($site))->where('id', Input::id($id))->first() ?? throw new InvalidArgumentException('投稿不存在', 404));
     }
     public function mine(string $site, string $locale, string $member, int $page = 1): array
     {
         $this->ready();
         $this->scope($site, $locale);
         $this->activeMember($member);
-        return $this->paginate(Db::table('cms_member_submission')->where('site_id', Input::id($site))->where('locale', Input::locale($locale))->where('member_id', Input::id($member)), $page);
+        return $this->paginate(MemberSubmission::query()->where('site_id', Input::id($site))->where('locale', Input::locale($locale))->where('member_id', Input::id($member)), $page);
     }
     public function listing(string $site, string $locale, string $kind = 'content', string $status = 'pending', int $page = 1): array
     {
@@ -75,7 +79,7 @@ final class ContributionService
         if (!in_array($kind, self::KINDS, true) || !in_array($status, self::STATUSES, true)) {
             throw new InvalidArgumentException('投稿筛选无效', 422);
         }
-        return $this->paginate(Db::table('cms_member_submission')->where('site_id', Input::id($site))->where('locale', Input::locale($locale))->where('kind', $kind)->where('status', $status), $page);
+        return $this->paginate(MemberSubmission::query()->where('site_id', Input::id($site))->where('locale', Input::locale($locale))->where('kind', $kind)->where('status', $status), $page);
     }
     public function withdraw(string $site, string $member, string $id, int $version): array
     {
@@ -181,9 +185,9 @@ final class ContributionService
         if (!in_array($payload['model_code'], $policy['model_codes'], true)) {
             throw new InvalidArgumentException('本站未开放此投稿模型', 422);
         }
-        $model = Db::table('cms_content_model')->where('code', $payload['model_code'])->where('status', 1)->first() ?? throw new InvalidArgumentException('投稿模型不可用', 422);
-        $schema = Db::table('cms_model_version')->where('model_id', $model->id)->where('version', $model->current_version)->first() ?? throw new InvalidArgumentException('模型版本不存在', 422);
-        return ['model_code' => $model->code, 'model_id' => (string) $model->id, 'model_version_id' => (string) $schema->id, 'fields' => (new ModelService())->validate((string) $schema->id, $payload['fields'])];
+        $model = ContentModel::query()->where('code', $payload['model_code'])->where('status', 1)->first() ?? throw new InvalidArgumentException('投稿模型不可用', 422);
+        $schema = ModelVersion::query()->where('model_id', $model->getRawOriginal('id'))->where('version', $model->current_version)->first() ?? throw new InvalidArgumentException('模型版本不存在', 422);
+        return ['model_code' => $model->code, 'model_id' => (string) $model->getRawOriginal('id'), 'model_version_id' => (string) $schema->getRawOriginal('id'), 'fields' => (new ModelService())->validate((string) $schema->getRawOriginal('id'), $payload['fields'])];
     }
     private function publishContent(array $row, string $actor): array
     {
@@ -206,7 +210,7 @@ final class ContributionService
     }
     private function activeMember(string $member): void
     {
-        if (!Db::schema()->hasTable('member') || !Db::table('member')->where('id', Input::id($member))->where('status', 1)->whereNull('deleted_at')->exists()) {
+        if (!Db::schema()->hasTable('member') || !Member::query()->withoutGlobalScopes()->where('id', Input::id($member))->where('status', 1)->whereNull('deleted_at')->exists()) {
             throw new InvalidArgumentException('会员未登录或已停用', 401);
         }
     }
@@ -219,18 +223,18 @@ final class ContributionService
     }
     private function locked(string $site, string $id): array
     {
-        return $this->normalize(Db::table('cms_member_submission')->where('site_id', Input::id($site))->where('id', Input::id($id))->lockForUpdate()->first() ?? throw new InvalidArgumentException('投稿不存在', 404));
+        return $this->normalize(MemberSubmission::query()->where('site_id', Input::id($site))->where('id', Input::id($id))->lockForUpdate()->first() ?? throw new InvalidArgumentException('投稿不存在', 404));
     }
     private function update(array $row, array $changes): void
     {
-        $changed = Db::table('cms_member_submission')->where('site_id', $row['site_id'])->where('id', $row['id'])->where('lock_version', $row['lock_version'])->update($changes + ['lock_version' => $row['lock_version'] + 1, 'updated_at' => Input::now()]);
+        $changed = MemberSubmission::query()->where('site_id', $row['site_id'])->where('id', $row['id'])->where('lock_version', $row['lock_version'])->update($changes + ['lock_version' => $row['lock_version'] + 1, 'updated_at' => Input::now()]);
         if ($changed !== 1) {
             throw new InvalidArgumentException('投稿版本已变化', 409);
         }
     }
     private function normalize(object|array $row): array
     {
-        $row = (array) $row;
+        $row = Input::attributes($row);
         foreach (['id', 'site_id', 'member_id', 'parent_id', 'reviewer_admin_id'] as $key) {
             if ($row[$key] !== null) {
                 $row[$key] = (string) $row[$key];
@@ -244,7 +248,7 @@ final class ContributionService
         $row['lock_version'] = (int) $row['lock_version'];
         return $row;
     }
-    private function paginate(\Illuminate\Database\Query\Builder $query, int $page): array
+    private function paginate(\Illuminate\Database\Eloquent\Builder $query, int $page): array
     {
         $page = max(1, min(10000, $page));
         $total = (clone $query)->count();

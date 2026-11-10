@@ -4,10 +4,11 @@ namespace app\admin\plugins\oss\service;
 use Illuminate\Database\Schema\{Blueprint,Builder};
 use Illuminate\Database\MySqlConnection;
 use support\Db;
+use app\admin\plugins\oss\model\OssSetting;
 final class Schema
 {
     public static function ready():bool{return Db::schema()->hasTable('oss_profile')&&Db::schema()->hasTable('oss_setting');}
-    public static function install():void{self::create(Db::schema(),true);Db::table('oss_setting')->insertOrIgnore(['id'=>1,'current_profile_id'=>null]);}
+    public static function install():void{self::create(Db::schema(),true);OssSetting::query()->insertOrIgnore(['id'=>1,'current_profile_id'=>null]);}
     private static function create(Builder $schema,bool $skip):void{
         if(!$skip||!$schema->hasTable('oss_profile'))$schema->create('oss_profile',static function(Blueprint $t):void{
             $t->string('id',16)->primary();$t->string('name',100);$t->string('provider',20);$t->string('bucket',100);$t->string('region',60)->default('');$t->string('endpoint',255)->default('');$t->string('domain',500);$t->string('prefix',200)->default('');$t->text('credentials');$t->timestamps();

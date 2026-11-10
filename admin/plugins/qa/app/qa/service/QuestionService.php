@@ -3,9 +3,11 @@ declare(strict_types=1);
 namespace app\qa\service;
 use app\cms\service\{ContributionService,Input,SiteService};
 use app\common\service\member\MemberAuthService;
-use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder;
 use support\Db;
 use InvalidArgumentException;
+use app\cms\model\MemberSubmission;
+use app\qa\model\QaQuestion;
 final class QuestionService
 {
     public function ask(string $site,string $locale,string $member,array $input): array
@@ -14,8 +16,8 @@ final class QuestionService
         return Db::transaction(function()use($site,$locale,$member,$input):array {
             (new SiteService())->lock($site);
             $submission=(new ContributionService())->submit($site,$locale,$member,'question',$this->payload($input));
-            if(!Db::table('qa_question')->where('id',$submission['id'])->exists()) {
-                $now=Input::now();Db::table('qa_question')->insert(['id'=>$submission['id'],'site_id'=>$site,'locale'=>$locale,'accepted_answer_id'=>null,'closed'=>false,'lock_version'=>0,'created_at'=>$now,'updated_at'=>$now]);
+            if(!QaQuestion::query()->where('id',$submission['id'])->exists()) {
+                $now=Input::now();QaQuestion::query()->insert(['id'=>$submission['id'],'site_id'=>$site,'locale'=>$locale,'accepted_answer_id'=>null,'closed'=>false,'lock_version'=>0,'created_at'=>$now,'updated_at'=>$now]);
             }
             return $this->withState($submission,$this->state($site,$locale,$submission['id']));
         });
@@ -29,7 +31,7 @@ final class QuestionService
             $key=Input::text($payload['request_key']??'',64);
             // Let the shared service authenticate and compare the full payload hash
             // before applying parent eligibility rules that only govern new writes.
-            if(Db::table('cms_member_submission')->where('site_id',$site)->where('member_id',$member)->where('request_key',$key)->exists()) {
+            if(MemberSubmission::query()->where('site_id',$site)->where('member_id',$member)->where('request_key',$key)->exists()) {
                 return $service->submit($site,$locale,$member,'answer',$payload,$question);
             }
             $state=$this->state($site,$locale,$question,true);$this->publishedQuestion($site,$locale,$question,true);
@@ -49,7 +51,7 @@ final class QuestionService
     {
         $site=Input::id($site);$locale=Input::locale($locale);$id=Input::id($id);$this->context($site,$locale);
         $row=$this->publicQuestions($site,$locale)->where('s.id',$id)->first()??throw new InvalidArgumentException('问题不存在',404);
-        $answers=Db::table('cms_member_submission as s')->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','answer')->where('s.parent_id',$id)->where('s.status','published');
+        $answers=MemberSubmission::query()->from('cms_member_submission as s')->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','answer')->where('s.parent_id',$id)->where('s.status','published');
         $total=$answers->count();$rows=$answers->select($this->publicColumns())->orderBy('s.id')->limit(100)->get();
         return $this->publicQuestion($row)+['answers'=>array_map($this->publicSubmission(...),$rows->all()),'answers_total'=>$total];
     }
@@ -62,9 +64,9 @@ final class QuestionService
             $state=$this->state($site,$locale,$question,true);$submission=$this->publishedQuestion($site,$locale,$question,true);
             if((string)$submission['member_id']!==$member)throw new InvalidArgumentException('仅问题作者可以采纳回答',403);
             if((int)$state['lock_version']!==$questionVersion||(bool)$state['closed'])throw new InvalidArgumentException('问题状态已变更，请刷新',409);
-            $candidate=Db::table('cms_member_submission')->where('id',$answer)->where('site_id',$site)->where('locale',$locale)->where('parent_id',$question)->where('kind','answer')->where('status','published')->lockForUpdate()->first();
+            $candidate=MemberSubmission::query()->where('id',$answer)->where('site_id',$site)->where('locale',$locale)->where('parent_id',$question)->where('kind','answer')->where('status','published')->lockForUpdate()->first();
             if(!$candidate)throw new InvalidArgumentException('回答不存在',404);
-            $changed=Db::table('qa_question')->where('id',$question)->where('site_id',$site)->where('lock_version',$questionVersion)->update(['accepted_answer_id'=>$answer,'closed'=>true,'lock_version'=>$questionVersion+1,'updated_at'=>Input::now()]);
+            $changed=QaQuestion::query()->where('id',$question)->where('site_id',$site)->where('lock_version',$questionVersion)->update(['accepted_answer_id'=>$answer,'closed'=>true,'lock_version'=>$questionVersion+1,'updated_at'=>Input::now()]);
             if($changed!==1)throw new InvalidArgumentException('问题状态已变更，请刷新',409);
             return $this->detail($site,$locale,$question);
         });
@@ -80,7 +82,7 @@ final class QuestionService
             $state=$this->state($site,$record['locale'],Input::id($question),true);
             $result=$service->review($site,$actor,$submission,$version,$decision,$reason);
             if($result['status']==='hidden'&&$record['kind']==='answer'&&$state['accepted_answer_id']===$submission) {
-                Db::table('qa_question')->where('id',$question)->where('site_id',$site)->update(['accepted_answer_id'=>null,'closed'=>false,'lock_version'=>(int)$state['lock_version']+1,'updated_at'=>Input::now()]);
+                QaQuestion::query()->where('id',$question)->where('site_id',$site)->update(['accepted_answer_id'=>null,'closed'=>false,'lock_version'=>(int)$state['lock_version']+1,'updated_at'=>Input::now()]);
             }
             return $record['kind']==='question'?$this->withState($result,$this->state($site,$record['locale'],$question)):$result;
         });
@@ -89,23 +91,23 @@ final class QuestionService
     private function context(string $site,string $locale): void { $sites=new SiteService();$sites->get($site,true);$sites->language($site,$locale); }
     private function state(string $site,string $locale,string $question,bool $lock=false): array
     {
-        $q=Db::table('qa_question')->where('id',$question)->where('site_id',$site)->where('locale',$locale);if($lock)$q->lockForUpdate();
+        $q=QaQuestion::query()->where('id',$question)->where('site_id',$site)->where('locale',$locale);if($lock)$q->lockForUpdate();
         return Input::row($q->first())??throw new InvalidArgumentException('问题不存在',404);
     }
     private function publishedQuestion(string $site,string $locale,string $question,bool $lock=false): array
     {
-        $q=Db::table('cms_member_submission')->where('id',$question)->where('site_id',$site)->where('locale',$locale)->where('kind','question')->where('status','published');if($lock)$q->lockForUpdate();
+        $q=MemberSubmission::query()->where('id',$question)->where('site_id',$site)->where('locale',$locale)->where('kind','question')->where('status','published');if($lock)$q->lockForUpdate();
         return Input::row($q->first())??throw new InvalidArgumentException('问题不存在',404);
     }
     private function withState(array $submission,array $state): array { return $submission+['accepted_answer_id'=>$state['accepted_answer_id'],'closed'=>(bool)$state['closed'],'question_version'=>(int)$state['lock_version']]; }
     private function publicColumns(): array { return ['s.id','s.title','s.body_html','s.member_id','s.status','s.lock_version','s.created_at','m.nickname as author_name']; }
     private function publicQuestions(string $site,string $locale): Builder
     {
-        return Db::table('cms_member_submission as s')->join('qa_question as q',function($j):void {$j->on('q.id','=','s.id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','question')->where('s.status','published')->select([...$this->publicColumns(),'q.accepted_answer_id','q.closed','q.lock_version as question_version']);
+        return MemberSubmission::query()->from('cms_member_submission as s')->join('qa_question as q',function($j):void {$j->on('q.id','=','s.id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','question')->where('s.status','published')->select([...$this->publicColumns(),'q.accepted_answer_id','q.closed','q.lock_version as question_version']);
     }
     private function publicSubmission(object $row): array
     {
-        $row=(array)$row;return ['id'=>(string)$row['id'],'title'=>(string)$row['title'],'body_html'=>(string)$row['body_html'],'member_id'=>(string)$row['member_id'],'author_name'=>(string)($row['author_name']?:'会员'),'status'=>(string)$row['status'],'lock_version'=>(int)$row['lock_version'],'created_at'=>$row['created_at']];
+        $row=Input::attributes($row);return ['id'=>(string)$row['id'],'title'=>(string)$row['title'],'body_html'=>(string)$row['body_html'],'member_id'=>(string)$row['member_id'],'author_name'=>(string)($row['author_name']?:'会员'),'status'=>(string)$row['status'],'lock_version'=>(int)$row['lock_version'],'created_at'=>$row['created_at']];
     }
-    private function publicQuestion(object $row): array { $state=(array)$row;return $this->publicSubmission($row)+['question_version'=>(int)$state['question_version'],'accepted_answer_id'=>$state['accepted_answer_id']===null?null:(string)$state['accepted_answer_id'],'closed'=>(bool)$state['closed']]; }
+    private function publicQuestion(object $row): array { $state=Input::attributes($row);return $this->publicSubmission($row)+['question_version'=>(int)$state['question_version'],'accepted_answer_id'=>$state['accepted_answer_id']===null?null:(string)$state['accepted_answer_id'],'closed'=>(bool)$state['closed']]; }
 }
