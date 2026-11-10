@@ -98,12 +98,13 @@ class CasbinService extends AbstractService
     public function permissionCodesForAdmin(int $adminId, ?string $domain = null): array
     {
         if ($adminId <= 0) return [];
-        $enforcer = $this->enforcer($domain);
+        // 一次求出主体（含全部隐式角色）在该域的策略，再与有效权限行求交；等价于逐条 enforce()。
+        $pairs = $this->policyPairs($this->enforcer($domain)->getImplicitPermissionsForUser(PermissionResource::subject($adminId), PermissionResource::domain($domain)));
         $permissions = Permission::where('status', 1)->whereNull('deleted_at')
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->get();
         $codes = [];
         foreach ($permissions as $permission) {
-            if ($permission->is_public || $enforcer->enforce(PermissionResource::subject($adminId), PermissionResource::domain($domain), (string) $permission->obj, (string) $permission->act)) {
+            if ($permission->is_public || isset($pairs[(string) $permission->obj . "\0" . (string) $permission->act])) {
                 if ($permission->code !== null && $permission->code !== '') $codes[] = (string) $permission->code;
             }
         }
@@ -199,7 +200,8 @@ class CasbinService extends AbstractService
         // 不保留跨调用快照；策略变更在下一次授权操作中从当前数据库连接重新加载。
     }
 
-    private function permissionIdsFromPolicies(array $policies): array
+    /** @return array<string, true> 以 "obj\0act" 为键的策略集合。 */
+    private function policyPairs(array $policies): array
     {
         $pairs = [];
         foreach ($policies as $policy) {
@@ -207,6 +209,12 @@ class CasbinService extends AbstractService
                 $pairs[$policy[2] . "\0" . $policy[3]] = true;
             }
         }
+        return $pairs;
+    }
+
+    private function permissionIdsFromPolicies(array $policies): array
+    {
+        $pairs = $this->policyPairs($policies);
         if (!$pairs) {
             return [];
         }
