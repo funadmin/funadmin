@@ -370,6 +370,8 @@ class MigrationService extends AbstractService
 
     /**
      * 原样转发词法项，遇到会改变 MySQL 会话词法状态的引用即抛出 SqlLexerException（静态代码与每层动态 SQL 共用）：
+     * - 代码中（字符串常量之外）任何含非 ASCII 字节的词或反引号标识符：MySQL 按 utf8mb3_general_ci 折叠系统变量名，
+     *   ſql_mode、sql_mòde、charactér_set_client 等与 sql_mode / character_set_client 等价，只做 ASCII 比较会被绕过；
      * - 任何位置引用 sql_mode 或 character_set_*：裸词、反引号标识符、@@x / @@SESSION.x / @@GLOBAL.x 都拆成这些词法项；
      * - 任何位置的 NAMES（SET NAMES，包括 SET @a=1, NAMES gbk 这种列表续项）；
      * - CHARSET / CHARACTER SET，除非所在语句是 CREATE [TEMPORARY] TABLE 或 ALTER TABLE（列/表的字符集选项，
@@ -390,6 +392,10 @@ class MigrationService extends AbstractService
                 continue;
             }
             if ($kind === SqlLexer::WORD || $kind === SqlLexer::IDENTIFIER) {
+                // MySQL 按 utf8mb3_general_ci 折叠变量名（ſ → s、ò → o），ASCII 比较拦不住；代码里的词/标识符一律只许 ASCII。
+                if (preg_match('/[\x80-\xFF]/', $text) === 1) {
+                    throw new SqlLexerException('迁移代码中不允许非 ASCII 的词或标识符：' . $text);
+                }
                 $name = strtolower($text);
                 if ($name === 'sql_mode' || str_starts_with($name, 'character_set_')) {
                     throw new SqlLexerException('迁移不允许引用 ' . $text . '（会改变 MySQL 的引号/字符集词法）');

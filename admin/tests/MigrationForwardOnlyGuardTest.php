@@ -192,6 +192,18 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         yield 'character set in dynamic sql' => ["SET @s='SET CHARACTER SET gbk';" . $run];
         yield 'character_set_client in dynamic sql' => ["SET @s='SET @@SESSION.character_set_client=gbk';" . $run];
         yield 'character_set_client in nested dynamic literal' => ["SET @s='SELECT \"SET `character_set_client`=gbk\"';" . $run];
+        // MySQL 按 utf8mb3_general_ci 折叠变量名：非 ASCII 的同形写法同样生效，代码里的非 ASCII 词/标识符一律拒绝（静态与动态 SQL）。
+        foreach ([
+            'long s sql_mode' => "SET ſql_mode='NO_BACKSLASH_ESCAPES'",
+            'long s sql_mode backticked' => "SET `ſql_mode`='NO_BACKSLASH_ESCAPES'",
+            'accented sql_mode' => "SET sql_mòde='NO_BACKSLASH_ESCAPES'",
+            'long s character_set_client' => 'SET character_ſet_client=gbk',
+            'accented character_set_client session variable' => 'SET @@SESSION.charactér_set_client=gbk',
+        ] as $name => $statement) {
+            yield $name => [$statement . ';'];
+            yield $name . ' in dynamic sql' => ["SET @s='" . str_replace("'", "''", $statement) . "';" . $run];
+            yield $name . ' in nested dynamic literal' => ["SET @s='SELECT \"" . str_replace("'", "''", $statement) . "\"';" . $run];
+        }
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('sessionLexingChanges')]
