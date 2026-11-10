@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\cms\service;
 
+use app\cms\model\{Form,FormEvent,FormFile,FormSubmission};
 use Illuminate\Database\Query\Builder;
 use InvalidArgumentException;
 use support\Db;
@@ -113,21 +114,23 @@ final class FormSubmissionService
         try {
             Db::transaction(function () use ($siteId, $form, $row, $inspected, &$stored): void {
                 // 与 FormService::delete 抢同一行锁，避免删除表单与新提交交错留下孤儿提交。
-                $current = Db::table('cms_form')->where('site_id', $siteId)->where('id', $form['id'])->lockForUpdate()->first();
+                $current = Form::query()->where('site_id', $siteId)->where('id', $form['id'])->lockForUpdate()->first();
                 if (!$current || (int)$current->status !== 1) throw new InvalidArgumentException('表单不存在', 404);
                 $now = Input::now();
                 // 已持有表单行锁，同表单的并发提交在此串行，查重与写入之间不会插入同指纹记录。
-                if (Db::table('cms_form_submission')->where('site_id', $siteId)->where('form_id', $form['id'])->where('fingerprint', $row['fingerprint'])
+                if (FormSubmission::query()->where('site_id', $siteId)->where('form_id', $form['id'])->where('fingerprint', $row['fingerprint'])
                     ->where('created_at', '>=', gmdate('Y-m-d H:i:s', time() - self::DUPLICATE_WINDOW))->exists()) return;
-                $id = (string)Db::table('cms_form_submission')->insertGetId($row + ['created_at' => $now, 'updated_at' => $now]);
+                $submission = new FormSubmission();
+                $submission->fill($row + ['created_at' => $now, 'updated_at' => $now])->save();
+                $id = (string)$submission->getKey();
                 $this->event($siteId, $id, 'created', null, $now);
                 foreach ($inspected as [$name, $file]) {
                     $saved = $this->storage->store($siteId, $file);
                     $stored[] = $saved['path'];
-                    Db::table('cms_form_file')->insert([
+                    (new FormFile())->fill([
                         'site_id' => $siteId, 'submission_id' => $id, 'field' => $name, 'original_name' => $file['name'], 'mime' => $file['mime'],
                         'size' => $file['size'], 'sha256' => $saved['sha256'], 'path' => $saved['path'], 'created_at' => $now,
-                    ]);
+                    ])->save();
                 }
             });
         } catch (Throwable $e) {
@@ -166,11 +169,11 @@ final class FormSubmissionService
     public function detail(string $siteId, string $id): array
     {
         $siteId = Input::id($siteId);
-        $row = Db::table('cms_form_submission')->where('site_id', $siteId)->where('id', Input::id($id))->first();
+        $row = FormSubmission::query()->where('site_id', $siteId)->where('id', Input::id($id))->first();
         $item = $this->format($row ?? throw self::notFound());
         $files = array_map(static fn(object $file): array => [
             'id' => (string)$file->id, 'field' => $file->field, 'name' => $file->original_name, 'mime' => $file->mime, 'size' => (int)$file->size, 'created_at' => $file->created_at,
-        ], Db::table('cms_form_file')->where('site_id', $siteId)->where('submission_id', $item['id'])->orderBy('id')->get()->all());
+        ], FormFile::query()->where('site_id', $siteId)->where('submission_id', $item['id'])->orderBy('id')->get()->all());
         $byField = [];
         foreach ($files as $file) $byField[$file['field']][] = $file;
         $fields = [];
@@ -188,7 +191,7 @@ final class FormSubmissionService
         $events = array_map(static fn(object $event): array => [
             'id' => (string)$event->id, 'type' => $event->type, 'admin_id' => $event->admin_id === null ? null : (string)$event->admin_id, 'body' => $event->body,
             'from_status' => $event->from_status, 'to_status' => $event->to_status, 'created_at' => $event->created_at,
-        ], Db::table('cms_form_event')->where('site_id', $siteId)->where('submission_id', $item['id'])->orderBy('id')->get()->all());
+        ], FormEvent::query()->where('site_id', $siteId)->where('submission_id', $item['id'])->orderBy('id')->get()->all());
         unset($item['values']);
         return ['fields' => $fields, 'files' => $files, 'events' => $events] + $item + ($this->formNames($siteId)[$item['form_id']] ?? ['form_code' => '', 'form_name' => '']);
     }
@@ -204,7 +207,7 @@ final class FormSubmissionService
             $row = $this->locked($siteId, $id);
             $now = Input::now();
             $this->event($siteId, $row['id'], 'note', $adminId, $now, $body);
-            Db::table('cms_form_submission')->where('site_id', $siteId)->where('id', $row['id'])->update(['updated_at' => $now]);
+            FormSubmission::query()->where('site_id', $siteId)->where('id', $row['id'])->update(['updated_at' => $now]);
             return $row['id'];
         });
         return $this->detail($siteId, $id);
@@ -233,7 +236,7 @@ final class FormSubmissionService
         $ids = self::ids($ids);
         if ($ids === []) return 0;
         return Db::transaction(function () use ($siteId, $ids, $adminId): int {
-            $rows = Db::table('cms_form_submission')->where('site_id', $siteId)->whereIn('id', $ids)->where('status', '<>', 'invalid')->orderBy('id')->lockForUpdate()->get(['id', 'status', 'lock_version']);
+            $rows = FormSubmission::query()->where('site_id', $siteId)->whereIn('id', $ids)->where('status', '<>', 'invalid')->orderBy('id')->lockForUpdate()->get(['id', 'status', 'lock_version']);
             foreach ($rows as $row) $this->changeStatus($siteId, ['id' => (string)$row->id, 'status' => $row->status, 'lock_version' => (int)$row->lock_version], $adminId, 'invalid');
             return count($rows);
         });
@@ -246,11 +249,11 @@ final class FormSubmissionService
         $ids = self::ids($ids);
         if ($ids === []) return 0;
         [$count, $paths] = Db::transaction(function () use ($siteId, $ids): array {
-            $found = Db::table('cms_form_submission')->where('site_id', $siteId)->whereIn('id', $ids)->lockForUpdate()->pluck('id')->all();
+            $found = FormSubmission::query()->where('site_id', $siteId)->whereIn('id', $ids)->lockForUpdate()->pluck('id')->all();
             if ($found === []) return [0, []];
-            $paths = Db::table('cms_form_file')->where('site_id', $siteId)->whereIn('submission_id', $found)->pluck('path')->all();
+            $paths = FormFile::query()->where('site_id', $siteId)->whereIn('submission_id', $found)->pluck('path')->all();
             foreach (['cms_form_file', 'cms_form_event'] as $table) Db::table($table)->where('site_id', $siteId)->whereIn('submission_id', $found)->delete();
-            Db::table('cms_form_submission')->where('site_id', $siteId)->whereIn('id', $found)->delete();
+            FormSubmission::query()->where('site_id', $siteId)->whereIn('id', $found)->delete();
             return [count($found), $paths];
         });
         $this->unlink($siteId, $paths);
@@ -273,7 +276,7 @@ final class FormSubmissionService
     public function file(string $siteId, string $fileId): array
     {
         $siteId = Input::id($siteId);
-        $row = Db::table('cms_form_file')->where('site_id', $siteId)->where('id', Input::id($fileId))->first() ?? throw new InvalidArgumentException('附件不存在', 404);
+        $row = FormFile::query()->where('site_id', $siteId)->where('id', Input::id($fileId))->first() ?? throw new InvalidArgumentException('附件不存在', 404);
         $absolute = $this->storage->absolute($siteId, $row->path);
         if (!is_file($absolute)) throw new InvalidArgumentException('附件不存在', 404);
         return ['absolute' => $absolute, 'name' => $row->original_name, 'mime' => $row->mime];
@@ -365,19 +368,19 @@ final class FormSubmissionService
         $now = Input::now();
         $changes = ['status' => $status, 'lock_version' => $row['lock_version'] + 1, 'updated_at' => $now];
         if (in_array($status, ['done', 'invalid'], true)) $changes['handled_at'] = $now;
-        $changed = Db::table('cms_form_submission')->where('site_id', $siteId)->where('id', $row['id'])->where('lock_version', $row['lock_version'])->update($changes);
+        $changed = FormSubmission::query()->where('site_id', $siteId)->where('id', $row['id'])->where('lock_version', $row['lock_version'])->update($changes);
         if ($changed !== 1) throw new InvalidArgumentException('提交已被他人处理，请刷新后重试', 409);
         $this->event($siteId, $row['id'], 'status', $adminId, $now, '', $row['status'], $status);
     }
 
     private function event(string $siteId, string $submissionId, string $type, ?string $adminId, string $now, string $body = '', string $from = '', string $to = ''): void
     {
-        Db::table('cms_form_event')->insert(['site_id' => $siteId, 'submission_id' => $submissionId, 'type' => $type, 'admin_id' => $adminId, 'body' => $body, 'from_status' => $from, 'to_status' => $to, 'created_at' => $now]);
+        (new FormEvent())->fill(['site_id' => $siteId, 'submission_id' => $submissionId, 'type' => $type, 'admin_id' => $adminId, 'body' => $body, 'from_status' => $from, 'to_status' => $to, 'created_at' => $now])->save();
     }
 
     private function locked(string $siteId, string $id): array
     {
-        $row = Db::table('cms_form_submission')->where('site_id', $siteId)->where('id', Input::id($id))->lockForUpdate()->first(['id', 'status', 'lock_version']);
+        $row = FormSubmission::query()->where('site_id', $siteId)->where('id', Input::id($id))->lockForUpdate()->first(['id', 'status', 'lock_version']);
         if (!$row) throw self::notFound();
         return ['id' => (string)$row->id, 'status' => $row->status, 'lock_version' => (int)$row->lock_version];
     }
@@ -436,7 +439,7 @@ final class FormSubmissionService
     private function formNames(string $siteId): array
     {
         $forms = [];
-        foreach (Db::table('cms_form')->where('site_id', $siteId)->get(['id', 'code', 'name']) as $form) $forms[(string)$form->id] = ['form_code' => $form->code, 'form_name' => $form->name];
+        foreach (Form::query()->where('site_id', $siteId)->get(['id', 'code', 'name']) as $form) $forms[(string)$form->id] = ['form_code' => $form->code, 'form_name' => $form->name];
         return $forms;
     }
 

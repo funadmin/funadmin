@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\cms\service;
 
+use app\cms\model\{Form,FormSubmission,Site,SiteLocale};
 use InvalidArgumentException;
 use support\Db;
 
@@ -20,7 +21,7 @@ final class FormService
         $total = $this->counts($siteId, null);
         $fresh = $this->counts($siteId, 'new');
         $forms = [];
-        foreach (Db::table('cms_form')->where('site_id', $siteId)->orderBy('id')->get() as $row) {
+        foreach (Form::query()->where('site_id', $siteId)->orderBy('id')->get() as $row) {
             $form = $this->format($row);
             $form['submission_count'] = $total[$form['id']] ?? 0;
             $form['new_count'] = $fresh[$form['id']] ?? 0;
@@ -31,7 +32,7 @@ final class FormService
 
     public function get(string $siteId, string $formId): array
     {
-        $row = Db::table('cms_form')->where('site_id', Input::id($siteId))->where('id', Input::id($formId))->first();
+        $row = Form::query()->where('site_id', Input::id($siteId))->where('id', Input::id($formId))->first();
         return $this->format($row ?? throw new InvalidArgumentException('表单不存在', 404));
     }
 
@@ -46,7 +47,7 @@ final class FormService
                 throw new InvalidArgumentException('表单已被修改，请刷新后重试', 409);
             }
             $code = Input::code($input['code'] ?? $old['code'] ?? '');
-            $taken = Db::table('cms_form')->where('site_id', $siteId)->where('code', $code)->when($old, fn($q) => $q->where('id', '<>', $old['id']))->exists();
+            $taken = Form::query()->where('site_id', $siteId)->where('code', $code)->when($old, fn($q) => $q->where('id', '<>', $old['id']))->exists();
             if ($taken) throw new InvalidArgumentException('表单调用代码已被使用', 409);
             $name = self::text($input['name'] ?? $old['name'] ?? '', 100);
             if ($name === '') throw new InvalidArgumentException('表单名称不能为空', 422);
@@ -63,10 +64,12 @@ final class FormService
                 'updated_at' => Input::now(),
             ];
             if ($old) {
-                Db::table('cms_form')->where('site_id', $siteId)->where('id', $old['id'])->update($data + ['lock_version' => $old['lock_version'] + 1]);
+                Form::query()->where('site_id', $siteId)->where('id', $old['id'])->update($data + ['lock_version' => $old['lock_version'] + 1]);
                 return $this->get($siteId, $old['id']);
             }
-            $id = (string)Db::table('cms_form')->insertGetId($data + ['site_id' => $siteId, 'lock_version' => 0, 'created_at' => $data['updated_at']]);
+            $form = new Form();
+            $form->fill($data + ['site_id' => $siteId, 'lock_version' => 0, 'created_at' => $data['updated_at']])->save();
+            $id = (string)$form->getKey();
             return $this->get($siteId, $id);
         });
         // 事务提交后再刷新公开页缓存：附带该表单的页面需重新渲染。
@@ -82,7 +85,7 @@ final class FormService
             (new SiteService())->lock($siteId);
             $form = $this->locked($siteId, $formId);
             if ($form['lock_version'] !== $version) throw new InvalidArgumentException('表单已被修改，请刷新后重试', 409);
-            Db::table('cms_form')->where('site_id', $siteId)->where('id', $formId)->update(['status' => $enabled ? 1 : 0, 'lock_version' => $version + 1, 'updated_at' => Input::now()]);
+            Form::query()->where('site_id', $siteId)->where('id', $formId)->update(['status' => $enabled ? 1 : 0, 'lock_version' => $version + 1, 'updated_at' => Input::now()]);
             return $this->get($siteId, $formId);
         });
         // 事务提交后再刷新公开页缓存：附带该表单的页面需重新渲染。
@@ -97,10 +100,10 @@ final class FormService
         Db::transaction(function () use ($siteId, $formId): void {
             (new SiteService())->lock($siteId);
             $this->locked($siteId, $formId);
-            if (Db::table('cms_form_submission')->where('site_id', $siteId)->where('form_id', $formId)->exists()) {
+            if (FormSubmission::query()->where('site_id', $siteId)->where('form_id', $formId)->exists()) {
                 throw new InvalidArgumentException('表单已有提交，只能停用', 409);
             }
-            Db::table('cms_form')->where('site_id', $siteId)->where('id', $formId)->delete();
+            Form::query()->where('site_id', $siteId)->where('id', $formId)->delete();
         });
         (new PublicPageCache())->invalidateSite($siteId);
     }
@@ -114,8 +117,8 @@ final class FormService
         } catch (InvalidArgumentException) {
             return null;
         }
-        $row = Db::table('cms_form')->where('site_id', $siteId)->where('code', $code)->where('status', 1)->first();
-        $default = Db::table('cms_site')->where('id', $siteId)->whereNull('deleted_at')->value('default_locale');
+        $row = Form::query()->where('site_id', $siteId)->where('code', $code)->where('status', 1)->first();
+        $default = Site::query()->where('id', $siteId)->value('default_locale');
         if (!$row || $default === null) return null;
         $form = $this->format($row);
         try {
@@ -153,7 +156,7 @@ final class FormService
     public function options(string $siteId): array
     {
         return array_map(static fn(object $row): array => ['code' => (string)$row->code, 'name' => (string)$row->name, 'status' => (int)$row->status],
-            Db::table('cms_form')->where('site_id', Input::id($siteId))->orderBy('name')->orderBy('code')->get(['code', 'name', 'status'])->all());
+            Form::query()->where('site_id', Input::id($siteId))->orderBy('name')->orderBy('code')->get(['code', 'name', 'status'])->all());
     }
 
     /** 校验要附带的表单代码：空串表示不附带；否则必须是本站已有的表单（停用的也可选，前台不显示）。 */
@@ -165,13 +168,13 @@ final class FormService
         } catch (InvalidArgumentException) {
             throw new InvalidArgumentException('附带的表单不存在', 422);
         }
-        if (!Db::table('cms_form')->where('site_id', Input::id($siteId))->where('code', $code)->exists()) throw new InvalidArgumentException('附带的表单不存在', 422);
+        if (!Form::query()->where('site_id', Input::id($siteId))->where('code', $code)->exists()) throw new InvalidArgumentException('附带的表单不存在', 422);
         return $code;
     }
 
     public function newCount(string $siteId): int
     {
-        return Db::table('cms_form_submission')->where('site_id', Input::id($siteId))->where('status', 'new')->count();
+        return FormSubmission::query()->where('site_id', Input::id($siteId))->where('status', 'new')->count();
     }
 
     /** @return array{success_message:string,submit_text:string,captcha:bool,rate_limit:int} */
@@ -195,7 +198,7 @@ final class FormService
     private function texts(string $siteId, mixed $texts, array $fields): array
     {
         if (!is_array($texts)) throw new InvalidArgumentException('多语言文字配置无效', 422);
-        $locales = Db::table('cms_site_locale')->where('site_id', $siteId)->pluck('locale')->all();
+        $locales = SiteLocale::query()->where('site_id', $siteId)->pluck('locale')->all();
         $known = array_column($fields, null, 'name');
         $result = [];
         foreach ($texts as $locale => $entry) {
@@ -230,7 +233,7 @@ final class FormService
 
     private function locked(string $siteId, string $formId): array
     {
-        $row = Db::table('cms_form')->where('site_id', $siteId)->where('id', $formId)->lockForUpdate()->first();
+        $row = Form::query()->where('site_id', $siteId)->where('id', $formId)->lockForUpdate()->first();
         return $this->format($row ?? throw new InvalidArgumentException('表单不存在', 404));
     }
 
