@@ -115,8 +115,8 @@ The webman is open-sourced software licensed under the MIT.
 - 权限资源树由权限码推导：模块分组 → 资源分组 → 接口/能力权限，由 `PermissionTreeService` 在同步权限和插件登记资源后自动整理。管理员手工创建的权限保持原位，被菜单引用的分组不删除。两份基线都已按这个结构整理，并删除了没有对应后台方法的旧格式权限码。
 - 只向前守卫（`MigrationService` + 共用词法器 `SqlLexer`，守卫检查的语句与实际执行的语句一致，词法出错即拒绝）：
   - 迁移 SQL 中的 `DROP` / `TRUNCATE` / `RENAME` 一律拒绝。唯一例外是 `PREPARE` 字符串内的 `DROP INDEX <名>` 与 `DROP PRIMARY KEY`，用于按 information_schema 重建索引、换主键。
-  - 以任何形式引用 `sql_mode` 或修改客户端字符集（`SET NAMES`、`character_set_*`、`@@…` 等）都会被拒绝。代码中（字符串之外）含非 ASCII 字符的词或标识符也会被拒绝，因为 MySQL 会把 `ſql_mode` 一类写法折叠成系统变量名。
-  - 用到 `PREPARE` / `EXECUTE` 的文件里，**每个**字符串常量都会当作 SQL 重新分词检查，包括 `COMMENT '…'` 和 INSERT 的数据值。其中含非 ASCII 文字（如中文注释）、`$`、落单的撇号或 DROP / RENAME 字样时，整个文件都会被拒绝。这类注释和数据应放在不含 `PREPARE` 的单独文件里。
+  - 以任何形式引用 `sql_mode` 或修改客户端字符集（`SET NAMES`、`character_set_*`、`@@sql_mode`、`@@character_set_*` 等）都会被拒绝。代码中（字符串之外）含非 ASCII 字符的词或标识符也会被拒绝，因为 MySQL 会把 `ſql_mode` 一类写法折叠成系统变量名。
+  - 用到 `PREPARE` / `EXECUTE` 的文件里，**每个**字符串常量都会当作 SQL 重新分词检查，包括 `COMMENT '…'` 和 INSERT 的数据值。其中含非 ASCII 文字（如中文注释）、`$`、落单的撇号或其他 DROP / TRUNCATE / RENAME 字样时，整个文件都会被拒绝。这类注释和数据应放在不含 `PREPARE` 的单独文件里。
   - 守卫只是防误操作的安全网，看不到 `CHAR()`、十六进制等拼出的动态 SQL。
 - `CORE_DATABASE_PATH` 可覆盖核心 SQL 的父目录（其下必须有 `migrations/001_baseline.sql`）；未设置时默认 `admin/database/core/`。
 - 在 `admin/` 中执行 `php bin/console.php migrate`。MySQL 使用核心 SQL，其他受支持驱动沿用 PHP 迁移。
@@ -132,11 +132,11 @@ The webman is open-sourced software licensed under the MIT.
 - 主键为 `id`；带 `deleted_at DATETIME NULL` 及其索引，以及 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（0 表示未删除，软删除时写入该行 `id`）。
 - 唯一索引以 `deleted_token` 结尾，例如 `UNIQUE KEY username (username, deleted_token)`，这样删除后可以用相同的值重建。
 - 模型使用 `app\common\model\concern\LaravelSoftDelete`（内含 `TokenSoftDeletingScope`，删除时写 `deleted_token`，恢复时清零）。
-- 绕过模型的读取（`Db::table`、join、原生 SQL）必须自行加 `deleted_at IS NULL`。
+- 绕过模型的读取（`Db::table`、join、原生 SQL）必须自行加 `deleted_at IS NULL`；通过 `Db::table` 或原生 SQL 删除时，必须同时写入 `deleted_at` 和 `deleted_token = id`，不能调用物理删除。
 - 关联表保存按差异处理（参考 `RelationRowSync`）：只软删除被移除的行，只插入缺少的行，不要先全删再全插。
-- 系统不会自动删除数据，没有定时清理。软删除行一直保留，只有管理员在回收站明确操作时才执行 `forceDelete`（操作日志的“彻底删除 / 清空回收站”只作用于已删除记录，会员回收站的“彻底删除”同理）。
+- 系统不会自动物理删除数据，没有定时物理清理。`auth:prune` 只软删除过期且尚未删除的令牌、会话和登录尝试，记录一直保留；普通配置、语言（含译文）和附件删除也只做软删除，附件文件保留。真实删除只能由管理员在回收站明确操作时执行 `forceDelete`（操作日志的“彻底删除 / 清空回收站”只作用于已删除记录，会员回收站的“彻底删除”同理）。
 
-**恢复冲突**：恢复时如果相同唯一值已被现有记录占用，抛出 `RestoreConflictException`，接口返回 409“已存在相同的记录，无法恢复，请先修改或删除现有记录”。
+**恢复冲突**：恢复时如果相同唯一值已被现有记录占用，抛出继承 `DomainException` 的 `RestoreConflictException`（code 409），所有恢复接口（含通用 `Crud::restore`）统一返回 409“已存在相同的记录，无法恢复，请先修改或删除现有记录”。
 
 **会员注销冷静期**：天数由 `config/soft_delete.php` 的 `member_cooling_days` 设置（默认 30）。冷静期内，被删会员的用户名、手机号、邮箱仍然占用，只有管理员能在回收站恢复。期满后这些值放开，旧账号仍保留为软删除。删除会员会连带软删除其接口会话与分组、标签关联（已登录设备立即失效）；恢复时关联一起恢复，会话不恢复。会员等级、分组、标签仍被未删除会员使用时不能删除。会员等级已删除时拒绝恢复；已删除的分组、标签在恢复时跳过。
 

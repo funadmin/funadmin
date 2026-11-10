@@ -1,6 +1,6 @@
 # 后台数据全部软删除：验证记录
 
-日期：2026-11-10　分支：Rbac　验证时 HEAD：`6668a0958`（文档提交）
+日期：2026-11-10　分支：Rbac　初轮验证时 HEAD：`6668a0958`（文档提交）；本轮代码提交：`6ff990e6e`
 
 计划：`docs/superpowers/plans/2026-11-10-backend-soft-delete.md`　设计：`docs/superpowers/specs/2026-11-10-backend-soft-delete-design.md`
 
@@ -11,7 +11,7 @@
 - 迁移守卫改为共用 SQL 词法器（`SqlLexer`），规则写在 `admin/README.md`“数据库迁移目录”一节。
 - 文档：软删除规则、恢复冲突（409）、会员冷静期和升级说明写在 `admin/README.md`“软删除”一节。
 
-## 1. 后端测试
+## 1. 初轮后端测试（本轮复测见第 5 节）
 
 | 命令（在 `admin/` 中执行） | 结果 |
 | --- | --- |
@@ -20,7 +20,7 @@
 
 基线（开始前）为 1483 个测试、跳过 107 个、0 失败。新增的测试都来自本工作和同期其他会话，没有新的失败。跳过的主要是只在 MySQL 下运行的测试（`TEST_MYSQL` / docker）。
 
-## 2. 前端测试
+## 2. 初轮前端测试（本轮全量见第 5 节）
 
 | 命令（在 `web/` 中执行） | 结果 |
 | --- | --- |
@@ -49,12 +49,11 @@
 - 开发库升级后的人工检查（见第 3 节）。
 - 其他只在 MySQL 下走的路径（Task 4 记录），在 SQLite 测试中没有覆盖。
 
-**已知遗留，会影响行为**（来自执行台账的 minor (deferred)）
+**已知风险与行为限制**（来自执行台账的 minor (deferred)；不影响当前行为的事项另列于下文）
 
 - 迁移守卫只是词法层面的安全网，看不到 `CHAR()`、十六进制、`UNHEX` 或从表中读出拼接的动态 SQL，也不检查 `SET GLOBAL init_connect`。
-- 005 的 id 主键替换假设表上已有主键，结构漂移的安装可能失败。PHP 版 005 重建唯一索引时会丢掉 DESC、注释和 invisible 属性，目前没有表用到。SQLite 重建会丢掉排序规则、CHECK 和外键细节，目前也没有表用到。
+- 005 的 id 主键替换假设表上已有主键，结构漂移的安装可能失败。
 - `TEST_MYSQL=1` 引导模式在 005 处对约 20 个测试类抛错，没有 CI 使用这个模式。
-- 006 在推送后改过名，执行过原 006 的库需要手动补执行。按台账，没有共享库执行过它。
 - 恢复相关：
   - 拿着过期模型实例调用 restore 不会生效（框架行为）。
   - 同一秒内编辑又删除，恢复时可能误匹配。
@@ -63,14 +62,80 @@
 - 会员相关：
   - 旧数据 `member.group_id` 里残留的值，会在界面上看不出原因的情况下阻止删除分组。
   - 恢复被拒时，422 提示“修改会员等级”，但已删除的会员无法修改。
-  - 注册提示会暴露账号已注销，这是设计要求。
 - `system_secret` 的 `Db::table` 读取没有过滤 `deleted_at`，目前没有代码软删除它。
 - `PluginInfrastructureService`、`Ai.php` 中有两处应改用 `SystemMigration::ledger()`。
 - 已被 gitignore 的 `database/business/*_permissions*.sql` 旧文件仍写着 `deleted_at=NULL`，可能被 `assertSafe` 拒绝。
-- 表上没有 `deleted_token` 列时（只剩插件表），每次删除或恢复都会查一次 `hasColumn`。
 - 前端：
   - 操作日志页面的 http 层没有测试。
   - 详情抽屉重复打开存在竞态。
   - 生成页面的列表请求被更新的请求取代时会弹出刷新提示。
+
+**不影响当前行为的维护 / 历史事项**
+
 - 插件（CMS 等）不在本次范围内，CMS 运行时存在重复的 `whereNull`，不影响结果。
-- 提交 `b0f3a9ad`（已推送）的提交说明声称清理、日志界面、会员冷静期都已完成。实际提交时只完成了 Task 1–2，需要用户知悉。
+- PHP 版 005 重建唯一索引时丢弃 DESC、注释和 invisible 属性，SQLite 重建丢弃排序规则、CHECK 和外键细节；目前没有表依赖这些属性（有结构漂移的安装仍须单独验证）。
+- 表上没有 `deleted_token` 列时（插件兼容路径）会额外查 `hasColumn`，属于性能开销，不改变软删除结果。
+- 注册提示会暴露账号已注销，这是设计要求，不是恢复缺陷。
+- 006 在推送后改过名，但按台账没有共享库执行过旧名，属于发布记录提醒；执行过旧名的安装仍需补执行。
+- 提交 `b0f3a9ad`（已推送）的提交说明声称清理、日志界面、会员冷静期都已完成。实际提交时只完成了 Task 1–2，属于历史提交说明不准确。
+
+
+## 5. 本轮文档审查补漏（2026-11-10）
+
+### 实现与审计
+
+- `SystemConfig` 的配置项 / 分组普通删除改用共享 trait；分组保留“有未删除配置项则拒绝”的行为，不连带删配置项。已删除配置项不再永久阻止删除分组。配置 code、分组 name 的新建 / 编辑查重只看未删除行，支持删除后同键重建。
+- `SystemLanguage` 同事务软删除语言和所有未删除译文，不改已有墓碑。语言 name 查重只看未删除行；`saveLine` 优先更新未删除同键译文，没有时才恢复最近删除的一条，避免重建后误恢复旧行造成冲突。
+- `SystemAttachment` 只软删除附件行，**停止删除本地和云端存储文件**，也不再因驱动停用或历史对象 key 缺失而阻止软删除。保留成功的 removed 计数、失败 removed / failed 响应及原路由 / 权限。
+- `auth:prune` 调用 `AuthPruneService`，通过三个认证模型的批量 delete 只标记过期未删除行；旧墓碑和未过期记录不变，命令帮助和输出明确写“软删除、记录保留”。
+- `RestoreConflictException` 改继承 `DomainException`，保留 code 409 和原消息。通用 `Crud::restore` 的冲突由 `ExceptionHandle` 统一返回 HTTP / JSON 409。排查全部 RuntimeException / DomainException catch 后，补上宿主 `DevPlugin`、`SystemPlugin` 包装器的专门 409 catch，防止其兜底 Throwable 误转 500；其他 catch 不包围恢复调用，无需改动。
+- 核对迁移 005：配置 code、分组 name、语言 name、译文 locale/key 的 UNIQUE 都以 deleted_token 结尾；测试使用真实迁移后结构验证同键重建。
+- 额外发现 `ProductionTemplateContext` 生成的语言资源卸载说明仍建议 `DELETE FROM fun_language_line`；改成带 `deleted_at IS NULL` 的 UPDATE，同时写 deleted_at / deleted_token=id。未修改插件或已生成业务模块。
+- 搜索范围为 `admin/app`、`admin/bin`、`admin/support`，排除任务列出的插件 / 生成模块目录。剩余物理删除仅有：`Crud` 的显式回收站 destroy / 无软删除模型兼容分支、会员 / 日志回收站彻底删除、`MemberCascade` 和 `MemberReferenceGuard` 在显式彻底删除时的关联清理、`PluginService::restoreDeploymentState` 首次安装回滚，以及范围外的 `FormDataService` 业务表操作。核心模型均带共享 trait，普通路径不进入无软删除模型的兼容分支。未发现其他核心表 Db::table 物理删除、raw DELETE FROM、TRUNCATE 或 detach。
+- 文件层面的 ftruncate 是附件上传游标 / 确认令牌文件写入，不是核心表删除；上传失败时清理尚未成功入库的临时存储对象不属于已保存附件删除。
+
+### 本轮验证与共享工作树边界
+
+- 后端执行包含**其他会话尚未提交的测试改动**（例如大量测试改用 `Tests\Support\TestDatabase::migrate()`、tests/bootstrap.php 和测试库模板工具）；没有提交这些文件。CMS / OSS 插件测试按规则只运行、不修改。
+- 新增测试覆盖配置 / 分组软删除与同键重建、语言 / 译文连带软删除与同键重建及 live 译文优先、附件文件保留及不可用云驱动、auth:prune 过期边界 / 旧墓碑 / 幂等、通用恢复 409、宿主插件控制器包装器 409。原 trait 测试改断言 DomainException。
+- 前端 CRUD 契约原来硬编码 PHPUnit 恰好 2 个测试；本轮增加通用 409 测试后改为匹配 OK 的测试数量，不把新增测试误判为失败。
+
+| 本轮命令 | 结果 |
+| --- | --- |
+| `cd admin && vendor/bin/phpunit` | 1780 测试、24712 断言，5 errors、5 failures、110 skipped，耗时 3 分 58.872 秒；本轮触发的生成语言 SQL hash 断言已随后修正并定向通过，4 个 OSS 旧删除契约因保留文件的新规则不再成立（按任务禁止修改插件测试）；其他 5 个 errors 属于其他会话范围，明细如下。未宣称全量通过 |
+| 后端定向：`vendor/bin/phpunit tests/RemainingSoftDeleteGapTest.php tests/Console/CrudTraitExecutionTest.php tests/SoftDeleteTraitTest.php tests/ConfigIntegrationTest.php tests/LanguageIntegrationTest.php tests/ExceptionTest.php tests/AttachmentDeleteTest.php` | OK：49 测试、234 断言 |
+| 宿主插件 / 资源生成定向：`vendor/bin/phpunit tests/PluginCenterHttpTest.php tests/PluginComposerHttpTest.php tests/PluginHttpActivationTest.php tests/Console/BusinessGenerationResourceTest.php` | OK：9 测试、95 断言 |
+| `vendor/bin/phpunit tests/Cms` | 322 测试、10415 断言，1 error、4 skipped；其他会话范围内 `SiteRoleDelegationTest.php:18` 把 91 / 92 / 93 三个角色都命名为 Delegate，违反已有 name/deleted_token 唯一键，未改该文件 |
+| `cd web && npx vitest run`（修正硬编码测试数后完整重跑） | 234 文件：227 通过、7 失败；1956 测试：1944 通过、12 失败，耗时 55.95 秒 |
+| `cd web && npx vitest run tests/contracts/crud-model-resolution.spec.ts` | 1 文件、7 测试通过 |
+| `cd web && npx vue-tsc --noEmit` | 退出 0，无类型错误 |
+| 本轮 9 个生产 PHP 文件 `php -l` / `git diff --check` | 全部通过 |
+
+前端剩余失败均在本轮工作以外，记录为其他会话 / 历史契约未同步，不修改其业务代码：
+
+- `web/tests/contracts/admin-email-length.spec.ts`：2 个源码契约（会员关联保存 / 分组引用保护）。
+- `web/tests/contracts/field-hygiene-migration.spec.ts`：3 个源码契约（FieldVerify 主键、会员邮箱查重、角色 name/code 查重）。
+- `web/tests/contracts/legacy-schema-debt.spec.ts`：1 个会员标签契约。
+- `web/tests/contracts/member-registration-admin-scope.spec.ts`：1 个运行时契约，简化表重复添加 nickname（duplicate column name）。
+- `web/tests/contracts/schema-integrity-migration.spec.ts`：1 个 pivot 源码契约。
+- `web/tests/contracts/service-cache-invalidation.spec.ts`：3 个公共缓存清理能力源码契约；本轮只改宿主插件控制器的冲突 catch，没有修改其检查的服务缓存方法。
+- `web/tests/contracts/title-to-name-migration.spec.ts`：1 个菜单名称映射源码契约。
+
+首次全前端运行是 226 文件 / 1943 测试通过、8 文件 / 13 测试失败，其中 CRUD 测试数硬编码由本轮新增测试触发，已修正并完整重跑，上表是最终结果，不将该项归于其他会话。
+
+### 后端全量失败归属
+
+全量运行不是绿色，不能套用初轮 1770 OK 的结论：
+
+- 本轮发现并修复：`admin/tests/Console/CodeGeneratorRelationsTest.php` 的语言资源 SQL hash 随卸载说明从 DELETE 改 UPDATE 必须更新。随后完整定向运行该文件 **11 测试、98 断言全部通过**。全量运行在该修正前完成，未重跑第二遍全量。
+- 本轮规则变更导致、受禁止修改插件测试约束而保留：`admin/tests/Oss/DeletionTest.php` 的 4 项旧契约要求云驱动失败时阻止删除、或真实删除云对象。现在正确行为是 200 软删除行、驱动完全不被调用、存储对象保留。本轮新核心测试覆盖本地文件保留和不可用云驱动仍可软删除。不能把这 4 个失败误归为其他会话造成。
+- 其他会话 / 本轮范围之外的 5 个 errors（未修改相关文件）：
+  - `admin/tests/Cms/SiteRoleDelegationTest.php:18`：三个角色使用相同 name=Delegate，触发 auth_group 唯一键；CMS 单独复测也报同一错误。
+  - `admin/tests/Console/AiProfileImageConsumerTest.php:31` → `AiSandboxConsumerExecutionTest.php:35`：重复创建 fun_ai_change_set；前者已有其他会话的未提交改动。
+  - `admin/tests/Console/BusinessGenerationRecoveryTest.php:28` → `BusinessGenerationFixture.php:14`：重复创建 fun_form，属测试库结构 / 简化夹具冲突。
+  - `admin/tests/Console/BusinessGenerationStateTest.php:97`：重复创建 fun_form_schema_version；该文件已有其他会话未提交改动。
+  - `admin/tests/PluginCenterIntegrationTest.php:28`：插入 plugin_operation 未提供不可空 source；该文件已有其他会话未提交改动。
+
+修改宿主插件包装器和附件失败响应后，又跑了上述 49 项定向测试，全部通过；全量可能在开始收集之后才看到部分修改，最终行为以定向复测和已提交代码为准。
+
+测试输出保留在本机 `/tmp/task9-backend-full.log`、`/tmp/task9-cms.log`、`/tmp/task9-frontend-final.log`、`/tmp/task9-typecheck.log`（临时文件，不入库）。共享工作树内其他会话的改动完整保留，本轮代码提交不包含它们；未执行开发库迁移、未推送。
