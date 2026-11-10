@@ -34,7 +34,6 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'ai:sandbox-cleanup' => ['ai', 'AiSandboxCleanup', AiSandboxCleanupTest::class, 'test_cleanup_command_only_claims_expired_terminal_sandboxes', 'test_cleanup_failure_returns_nonzero_and_preserves_foreign_container'],
             'mcp' => ['common', 'McpServer', McpStdioProtocolTest::class, 'test_stdio_handshake_tools_resources_calls_and_eof_are_clean', 'test_command_rejects_unknown_action_with_nonzero_exit'],
             'upgrade:recover-stale' => ['system', 'UpgradeRecover', UpgradeRecoveryExecutionTest::class, 'test_pre_deploy_stale_task_releases_slot_and_repeat_is_noop', 'test_missing_post_deploy_backup_requires_manual_recovery_without_releasing_slot'],
-            'soft-delete:purge' => ['system', 'SoftDeletePurge', \Tests\SoftDeletePurgeTest::class, 'test_command_prints_per_table_counts', 'test_command_returns_nonzero_when_storage_is_unavailable'],
         ];
     }
 
@@ -68,16 +67,16 @@ final class CommandAcceptanceMatrixTest extends TestCase
                 'storage' => ['admin'], 'paths' => ['public/uploads'], 'external' => ['mcp/sdk STDIO'],
             ],
             'system' => [
-                'services' => ['app/admin/system/service/UpgradeService.php', 'app/admin/system/service/UpgradeDatabaseBackup.php', 'app/common/service/database/MigrationService.php', 'app/common/service/database/SoftDeletePurgeService.php'],
-                'configuration' => ['database.default', 'database.connections', 'soft_delete.retention_days', 'soft_delete.batch_size', 'soft_delete.tables'],
-                'storage' => ['upgrade_task', 'system_migration', 'soft_delete.tables'], 'paths' => ['runtime/upgrade'], 'external' => ['mysql', 'PDO'],
+                'services' => ['app/admin/system/service/UpgradeService.php', 'app/admin/system/service/UpgradeDatabaseBackup.php', 'app/common/service/database/MigrationService.php'],
+                'configuration' => ['database.default', 'database.connections'],
+                'storage' => ['upgrade_task', 'system_migration'], 'paths' => ['runtime/upgrade'], 'external' => ['mysql', 'PDO'],
             ],
         ];
     }
 
     public function test_all_live_commands_have_traceable_normal_and_failure_execution_evidence(): void
     {
-        self::assertCount(22, self::matrix());
+        self::assertCount(21, self::matrix());
         $discovered = [];
         foreach (glob(app_path('admin/*/command/*.php')) as $file) {
             $class = 'app\\admin\\' . basename(dirname($file, 2)) . '\\command\\' . basename($file, '.php');

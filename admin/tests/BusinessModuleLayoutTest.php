@@ -68,7 +68,6 @@ final class BusinessModuleLayoutTest extends TestCase
             'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
             'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:migrate', 'plugin:package',
             'plugin:publication-recover', 'plugin:rebaseline', 'plugin:sync', 'plugin:validate', 'upgrade:recover-stale',
-            'soft-delete:purge',
         ] as $name) {
             self::assertArrayHasKey($name, $commands, '业务命令未接入 webman/console：' . $name);
             self::assertNotSame('', $commands[$name]['description']);
@@ -218,7 +217,7 @@ final class BusinessModuleLayoutTest extends TestCase
                 'PluginSync' => 'plugin:sync',
                 'PluginValidate' => 'plugin:validate',
             ],
-            'system' => ['UpgradeRecover' => 'upgrade:recover-stale', 'SoftDeletePurge' => 'soft-delete:purge'],
+            'system' => ['UpgradeRecover' => 'upgrade:recover-stale'],
             'common' => ['McpServer' => 'mcp'],
         ] as $module => $commands) {
             foreach ($commands as $class => $command) {
