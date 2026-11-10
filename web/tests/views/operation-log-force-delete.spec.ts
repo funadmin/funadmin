@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { defineComponent, h, reactive } from 'vue';
-import ElementPlus, { ElMessageBox, ElTable } from 'element-plus';
+import ElementPlus, { ElMessage, ElMessageBox, ElTable } from 'element-plus';
 import OperationPage from '@/views/system/log/operation.vue';
 import SearchForm from '@/components/SearchForm/index.vue';
 import DataTableShell from '@/components/DataTable/DataTableShell.vue';
@@ -26,7 +26,19 @@ const row = (id: number, deletedAt = ''): OperationLog => ({
   name: `op-${id}`, method: 'DELETE', url: '/x', ip: '127.0.0.1', status: 1, responseCode: 200, durationMs: 3,
   requestId: '', createdAt: '2026-11-10 10:00:00', deletedAt
 });
+const trashed = (id: number) => row(id, '2026-11-10 11:00:00');
 const wrappers: VueWrapper[] = [];
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+}
+const page = (rows: OperationLog[]) => ({ list: rows, total: rows.length, page: 1, pageSize: 10 });
+const tableIds = (wrapper: VueWrapper) => (wrapper.findComponent(ElTable).props('data') as OperationLog[]).map(item => item.id);
+/** 表格行内按钮（按文案精确匹配）。 */
+const rowButtons = (wrapper: VueWrapper, text: string) =>
+  wrapper.findComponent(ElTable).findAll('button').filter(button => button.text().trim() === text);
 
 async function mountPage(permissions = ALL) {
   user.state = reactive({ permissions: [...permissions] });
@@ -112,7 +124,7 @@ describe('操作日志回收站与彻底删除', () => {
     const confirm = vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
     const wrapper = await mountPage();
     await switchToTrash(wrapper);
-    await select(wrapper, [row(3), row(5)]);
+    await select(wrapper, [trashed(3), trashed(5)]);
     const listCalls = vi.mocked(operationLogApi.list).mock.calls.length;
     await toolbarButton(wrapper, '彻底删除')!.trigger('click');
     await flushPromises();
@@ -127,7 +139,7 @@ describe('操作日志回收站与彻底删除', () => {
     vi.spyOn(ElMessageBox, 'confirm').mockRejectedValue('cancel');
     const wrapper = await mountPage();
     await switchToTrash(wrapper);
-    await select(wrapper, [row(3)]);
+    await select(wrapper, [trashed(3)]);
     await toolbarButton(wrapper, '彻底删除')!.trigger('click');
     await flushPromises();
     expect(operationLogApi.forceRemove).not.toHaveBeenCalled();
@@ -205,5 +217,108 @@ describe('操作日志回收站与彻底删除', () => {
     await detail!.trigger('click');
     await flushPromises();
     expect(operationLogApi.detail).toHaveBeenCalledWith(3);
+  });
+
+  it('切换视图前发出的普通列表慢响应不会覆盖回收站列表', async () => {
+    const slow = deferred<ReturnType<typeof page>>();
+    vi.mocked(operationLogApi.list).mockImplementationOnce(() => slow.promise as never);
+    const wrapper = await mountPage();
+    await switchToTrash(wrapper);
+    expect(tableIds(wrapper)).toEqual([3, 5]);
+    slow.resolve(page([row(1), row(2)]));
+    await flushPromises();
+    expect(tableIds(wrapper)).toEqual([3, 5]);
+    expect(wrapper.findComponent(ElTable).text()).not.toContain('op-1');
+  });
+
+  it('普通视图选中后切换到回收站会清空选择，彻底删除按钮不可用', async () => {
+    const wrapper = await mountPage();
+    await select(wrapper, [row(1), row(2)]);
+    expect(toolbarButton(wrapper, '批量删除')!.text()).toContain('(2)');
+    await switchToTrash(wrapper);
+    const force = toolbarButton(wrapper, '彻底删除')!;
+    expect(force.text()).not.toContain('(');
+    expect(force.attributes('disabled')).toBeDefined();
+    await force.trigger('click');
+    await flushPromises();
+    expect(operationLogApi.forceRemove).not.toHaveBeenCalled();
+  });
+
+  it('回收站行内彻底删除确认后以该行 ID 调用 forceRemove', async () => {
+    const confirm = vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
+    const wrapper = await mountPage();
+    await switchToTrash(wrapper);
+    const buttons = rowButtons(wrapper, '彻底删除');
+    expect(buttons).toHaveLength(2);
+    expect(rowButtons(wrapper, '删除')).toHaveLength(0);
+    await buttons[1].trigger('click');
+    await flushPromises();
+    expect(String(confirm.mock.calls[0][0])).toContain('不可恢复');
+    expect(operationLogApi.forceRemove).toHaveBeenCalledWith([5]);
+  });
+
+  it('缺少彻底删除权限时隐藏行内彻底删除按钮', async () => {
+    const wrapper = await mountPage(['system:operation-log:index', 'system:operation-log:detail']);
+    await switchToTrash(wrapper);
+    const buttons = rowButtons(wrapper, '彻底删除');
+    expect(buttons).toHaveLength(2);
+    expect(buttons.every(button => !button.isVisible())).toBe(true);
+    expect(rowButtons(wrapper, '详情').every(button => button.isVisible())).toBe(true);
+  });
+
+  it('没有彻底删除权限时直接调用处理器既不确认也不请求', async () => {
+    const confirm = vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
+    const wrapper = await mountPage(['system:operation-log:index']);
+    await switchToTrash(wrapper);
+    await (wrapper.vm as unknown as { onForceDelete: (rows: OperationLog[]) => Promise<void> }).onForceDelete([trashed(3)]);
+    await select(wrapper, [trashed(3)]);
+    await toolbarButton(wrapper, '彻底删除')!.trigger('click');
+    await rowButtons(wrapper, '彻底删除')[0].trigger('click');
+    await flushPromises();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(operationLogApi.forceRemove).not.toHaveBeenCalled();
+  });
+
+  it('选中行包含未删除日志时提示并拒绝彻底删除', async () => {
+    const confirm = vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
+    const warning = vi.spyOn(ElMessage, 'warning').mockImplementation((() => undefined) as never);
+    const wrapper = await mountPage();
+    await switchToTrash(wrapper);
+    await select(wrapper, [trashed(3), row(1)]);
+    await toolbarButton(wrapper, '彻底删除')!.trigger('click');
+    await flushPromises();
+    expect(warning).toHaveBeenCalledTimes(1);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(operationLogApi.forceRemove).not.toHaveBeenCalled();
+  });
+
+  it('彻底删除被后端拒绝（403/422）时吞掉错误、清空选择并刷新列表', async () => {
+    vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
+    vi.mocked(operationLogApi.forceRemove).mockRejectedValueOnce({ code: 403, msg: '只能彻底删除回收站中的日志' });
+    const wrapper = await mountPage();
+    await switchToTrash(wrapper);
+    await select(wrapper, [trashed(3), trashed(5)]);
+    const listCalls = vi.mocked(operationLogApi.list).mock.calls.length;
+    await toolbarButton(wrapper, '彻底删除')!.trigger('click');
+    await flushPromises();
+    expect(operationLogApi.forceRemove).toHaveBeenCalledWith([3, 5]);
+    expect(vi.mocked(operationLogApi.list).mock.calls.length).toBe(listCalls + 1);
+    expect(lastListParams()?.trashed).toBe(1);
+    const force = toolbarButton(wrapper, '彻底删除')!;
+    expect(force.text()).not.toContain('(');
+    expect(force.attributes('disabled')).toBeDefined();
+  });
+
+  it('清空回收站被后端拒绝时吞掉错误并刷新列表', async () => {
+    vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
+    vi.mocked(operationLogApi.clearForce).mockRejectedValueOnce({ code: 403, msg: '没有访问权限' });
+    const wrapper = await mountPage();
+    await switchToTrash(wrapper);
+    const listCalls = vi.mocked(operationLogApi.list).mock.calls.length;
+    await toolbarButton(wrapper, '清空回收站')!.trigger('click');
+    await flushPromises();
+    expect(operationLogApi.clearForce).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(operationLogApi.list).mock.calls.length).toBe(listCalls + 1);
+    expect(lastListParams()?.trashed).toBe(1);
   });
 });

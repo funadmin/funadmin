@@ -6,5 +6,5 @@ export default {
     deleteOneConfirm: 'Delete this log? It will be moved to the recycle bin.', deleteManyConfirm: 'Delete the selected {n} log(s)? They will be moved to the recycle bin.', clearAll: 'Clear All', clearAllConfirm: 'Clear all operation logs? They will be moved to the recycle bin.', clearAllTitle: 'Clear Logs',
     viewLive: 'Logs', viewTrash: 'Recycle Bin', deletedAt: 'Deleted At', forceRemove: 'Delete Permanently', forceRemoveTitle: 'Delete Logs Permanently',
     forceRemoveOneConfirm: 'Permanently delete this log? This cannot be undone.', forceRemoveManyConfirm: 'Permanently delete the selected {n} log(s)? This cannot be undone.',
-    clearTrash: 'Empty Recycle Bin', clearTrashConfirm: 'Empty the recycle bin? All logs in it will be permanently deleted. This cannot be undone.'
+    forceRemoveLiveRejected: 'Only logs in the recycle bin can be permanently deleted', clearTrash: 'Empty Recycle Bin', clearTrashConfirm: 'Empty the recycle bin? All logs in it will be permanently deleted. This cannot be undone.'
   };

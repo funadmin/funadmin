@@ -6,5 +6,5 @@ export default {
     deleteOneConfirm: '确认删除该日志？删除后将移入回收站。', deleteManyConfirm: '确认删除选中的 {n} 条日志？删除后将移入回收站。', clearAll: '清空', clearAllConfirm: '确认清空全部操作日志？清空后日志将移入回收站。', clearAllTitle: '清空日志',
     viewLive: '日志列表', viewTrash: '回收站', deletedAt: '删除时间', forceRemove: '彻底删除', forceRemoveTitle: '彻底删除日志',
     forceRemoveOneConfirm: '确认彻底删除该日志？日志将被永久删除，此操作不可恢复。', forceRemoveManyConfirm: '确认彻底删除选中的 {n} 条日志？日志将被永久删除，此操作不可恢复。',
-    clearTrash: '清空回收站', clearTrashConfirm: '确认清空回收站？回收站中的日志将被彻底删除，此操作不可恢复。'
+    forceRemoveLiveRejected: '只能彻底删除回收站中的日志', clearTrash: '清空回收站', clearTrashConfirm: '确认清空回收站？回收站中的日志将被彻底删除，此操作不可恢复。'
   };

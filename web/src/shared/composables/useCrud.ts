@@ -59,10 +59,14 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
   const drawerVisible = ref(false);
   const current = ref<T | null>(null);
 
+  // 请求序号：并发加载时只采纳最后一次发起的响应，避免慢响应覆盖新查询结果。
+  let loadSeq = 0;
   async function loadData() {
+    const seq = ++loadSeq;
     loading.value = true;
     try {
       const res = await api.list(query);
+      if (seq !== loadSeq) return;
       if (Array.isArray(res)) {
         list.value = res;
         total.value = res.length;
@@ -71,7 +75,7 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
         total.value = res.total;
       }
     } finally {
-      loading.value = false;
+      if (seq === loadSeq) loading.value = false;
     }
   }
 

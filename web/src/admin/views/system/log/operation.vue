@@ -167,7 +167,7 @@
 import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { ref } from 'vue';
-import { ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import type { TableInstance, TagProps } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { operationLogApi, type OperationLog, type OperationLogQuery } from '@/api/system/log';
@@ -235,10 +235,14 @@ function onToggleTrash(value: string | number | boolean | undefined) {
   trashView.value = value === true;
   query.trashed = trashView.value ? 1 : undefined;
   query.page = 1;
+  resetSelection();
+  detailVisible.value = false;
+  // useCrud.loadData 只采纳最后一次请求的响应，切换前发出的慢响应会被丢弃。
+  loadData();
+}
+function resetSelection() {
   selection.value = [];
   tableRef.value?.clearSelection();
-  detailVisible.value = false;
-  loadData();
 }
 /** 确认框被取消时返回 false，不向上抛出 cancel。 */
 async function confirmDanger(message: string, title: string, confirmButtonText: string) {
@@ -252,15 +256,18 @@ async function confirmDanger(message: string, title: string, confirmButtonText: 
 async function onForceDelete(rows: OperationLog[]) {
   const permission = 'system:operation-log:force-delete';
   if (!trashView.value || !rows.length || !hasPermission(permission)) return;
+  // 只允许彻底删除回收站中的日志；未删除日志（deletedAt 为空）直接拒绝，不发请求。
+  if (rows.some(item => !item.deletedAt)) {
+    ElMessage.warning(t('systemLog.forceRemoveLiveRejected', '只能彻底删除回收站中的日志'));
+    return;
+  }
   const ids = rows.map(item => item.id);
   const message = ids.length === 1
     ? t('systemLog.forceRemoveOneConfirm', '确认彻底删除该日志？日志将被永久删除，此操作不可恢复。')
     : t('systemLog.forceRemoveManyConfirm', { n: ids.length }, { default: '确认彻底删除选中的 {n} 条日志？日志将被永久删除，此操作不可恢复。' });
   if (!await confirmDanger(message, t('systemLog.forceRemoveTitle', '彻底删除日志'), t('systemLog.forceRemove', '彻底删除'))) return;
   if (!hasPermission(permission)) return;
-  await operationLogApi.forceRemove(ids);
-  selection.value = [];
-  await loadData();
+  await runAndReload(() => operationLogApi.forceRemove(ids));
 }
 async function onClearForce() {
   const permission = 'system:operation-log:clear-force';
@@ -271,8 +278,17 @@ async function onClearForce() {
     t('systemLog.clearTrash', '清空回收站')
   );
   if (!confirmed || !hasPermission(permission)) return;
-  await operationLogApi.clearForce();
-  selection.value = [];
+  await runAndReload(() => operationLogApi.clearForce());
+}
+/** 执行彻底删除类请求；失败（403/422 等）时 http 层已提示，这里只负责清空选择并刷新列表。 */
+async function runAndReload(action: () => Promise<unknown>) {
+  try {
+    await action();
+  } catch {
+    // 错误提示由 http 拦截器统一展示。
+  } finally {
+    resetSelection();
+  }
   await loadData();
 }
 async function showDetail(row: OperationLog) {
