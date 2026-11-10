@@ -8,9 +8,13 @@ use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupDepartment;
+use app\admin\authorization\controller\SystemAdmin;
+use app\admin\authorization\controller\SystemRole;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\OwnerLock;
 use app\admin\authorization\service\RelationRowSync;
+use app\admin\authorization\service\RoleAuthorizationService;
+use app\admin\system\controller\SystemMember;
 use app\admin\form\service\FormDataService;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberGroupRelation;
@@ -30,10 +34,11 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use support\Context;
 use support\Db;
+use support\Request;
 
 /**
  * 软删除最终评审修复回归：
- * I1 授权/关系整组替换先锁所属行；I2 拒绝旧版生成的权限菜单 SQL；I3 动态表单软删除/恢复维护 deleted_token；
+ * I1 授权/关系整组替换先锁所属行，且锁是事务首句（MySQL 可重复读快照由首条普通读取确定）；I2 拒绝旧版生成的权限菜单 SQL；I3 动态表单软删除/恢复维护 deleted_token；
  * M1 迁移登记查询在 005 之前的结构上可用。
  */
 #[RunTestsInSeparateProcesses]
@@ -119,6 +124,59 @@ final class SoftDeleteFinalReviewFixTest extends TestCase
             self::assertSame('rollback', $error->getMessage());
         }
         self::assertSame(0, Db::table('auth_group_department')->where('role_id', $roleId)->count());
+    }
+
+    public function test_relation_replacing_transactions_lock_owner_as_first_statement(): void
+    {
+        if (!Db::table('auth_group')->where('id', 1)->exists()) Db::table('auth_group')->insert(['id' => 1, 'name' => '超级管理员', 'code' => 'super_admin', 'level' => 1, 'status' => 1]);
+        if (!Db::table('admin')->where('id', 1)->exists()) Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => 'hidden', 'status' => 1]);
+        $this->actAs(1, 'GET');
+        Db::table('permission')->insert(['id' => 9001, 'name' => '能力', 'code' => 'lockdemo:read', 'obj' => 'lockdemo', 'act' => 'read', 'resource_type' => 'capability', 'status' => 1]);
+        $source = AuthGroup::forceCreate(['name' => '锁源', 'code' => 'lock_source', 'level' => 50, 'data_scope' => 'self', 'status' => 1]);
+        $target = AuthGroup::forceCreate(['name' => '锁目标', 'code' => 'lock_target', 'level' => 50, 'data_scope' => 'self', 'status' => 1]);
+        $service = new RoleAuthorizationService();
+        $payload = ['permissionIds' => [9001], 'fieldPermissions' => [], 'dataScope' => 'self', 'departmentIds' => []];
+
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => $service->save($source, $payload)), AuthGroup::class, (int) $source->id, 'save');
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => $service->copy($target, $source)), AuthGroup::class, (int) $target->id, 'copy');
+        self::assertSame([9001], CasbinService::instance()->rolePermissionIds((int) $target->id));
+
+        $this->actAs(1, 'POST', ['permissionIds' => [9001]]);
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => self::assertSame(200, $this->code((new SystemRole())->permissions((int) $target->id)))), AuthGroup::class, (int) $target->id, 'permissions endpoint');
+
+        $this->actAs(1, 'PUT', ['name' => '锁目标2', 'code' => 'lock_target', 'level' => 50, 'dataScope' => 'self', 'parentId' => 0, 'status' => 1]);
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => self::assertSame(200, $this->code((new SystemRole())->update((int) $target->id)))), AuthGroup::class, (int) $target->id, 'role update');
+
+        $adminId = (int) Db::table('admin')->insertGetId(['username' => 'lock_admin', 'password' => 'x', 'status' => 1]);
+        CasbinService::instance()->syncAdminRoles($adminId, [(int) $target->id]);
+        $this->actAs(1, 'PUT', ['nickname' => '锁管理员', 'roleIds' => [(int) $source->id]]);
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => self::assertSame(200, $this->code((new SystemAdmin())->update($adminId)))), Admin::class, $adminId, 'admin update');
+        self::assertSame(1, Db::table('casbin_rule')->where('v0', 'admin:' . $adminId)->where('v1', 'role:' . $source->id)->whereNull('deleted_at')->count());
+
+        $memberId = (int) Db::table('member')->insertGetId(['username' => 'lock_member', 'mobile' => '13800000000', 'password' => 'x', 'status' => 1, 'level_id' => (int) Db::table('member_level')->value('id')]);
+        $groupId = (int) Db::table('member_group')->insertGetId(['name' => '锁会员组', 'status' => 1]);
+        $this->actAs(1, 'PUT', ['nickname' => '锁会员', 'groupIds' => [$groupId], 'tagIds' => []]);
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => self::assertSame(200, $this->code((new SystemMember())->update($memberId)))), Member::class, $memberId, 'member update');
+
+        $otherRoleId = (int) Db::table('auth_group')->insertGetId(['name' => '锁其他', 'code' => 'lock_other', 'level' => 50, 'status' => 1]);
+        $otherAdminId = (int) Db::table('admin')->insertGetId(['username' => 'lock_admin2', 'password' => 'x', 'status' => 1]);
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => CasbinService::instance()->deleteAdmin($otherAdminId)), Admin::class, $otherAdminId, 'casbin deleteAdmin');
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => CasbinService::instance()->deleteRole($otherRoleId)), AuthGroup::class, $otherRoleId, 'casbin deleteRole');
+
+        $this->actAs(1, 'DELETE', ['ids' => [$adminId]]);
+        $this->assertFirstTransactionStatementLocks($this->recordQueries(fn () => self::assertSame(200, $this->code((new SystemAdmin())->delete()))), Admin::class, $adminId, 'admin delete');
+
+        // 批量删除：按 ID 升序先锁全部角色，再写关系行。
+        $this->actAs(1, 'DELETE', ['ids' => [(int) $target->id, (int) $source->id]]);
+        $log = $this->recordQueries(fn () => self::assertSame(200, $this->code((new SystemRole())->delete())));
+        $ids = [(int) $source->id, (int) $target->id];
+        sort($ids);
+        $inside = array_values(array_filter($log, static fn (array $entry): bool => $entry['level'] > 0));
+        foreach ($ids as $index => $id) {
+            self::assertSame(OwnerLock::query(AuthGroup::class, $id)->limit(1)->toSql(), $inside[$index]['sql'] ?? null, 'role delete：第 ' . ($index + 1) . ' 句锁角色 ' . $id);
+            self::assertEquals([$id], $inside[$index]['bindings']);
+        }
+        self::assertSame(0, Db::table('auth_group')->whereIn('id', $ids)->whereNull('deleted_at')->count());
     }
 
     // ---- I2 ----
@@ -295,6 +353,30 @@ final class SoftDeleteFinalReviewFixTest extends TestCase
         self::assertNotNull($relationAt, $label . '：应读取现有集合');
         self::assertLessThan($relationAt, $ownerAt, $label . '：先锁所属行，再读取现有集合');
         self::assertGreaterThan(0, $log[$ownerAt]['level'], $label . '：加锁在事务内');
+    }
+
+    /** 事务内第一条语句必须是锁所属行的 SELECT ... FOR UPDATE（MySQL 下的编译见 test_owner_lock_compiles_to_select_for_update_on_mysql）。 */
+    private function assertFirstTransactionStatementLocks(array $log, string $model, int $ownerId, string $label): void
+    {
+        $inside = array_values(array_filter($log, static fn (array $entry): bool => $entry['level'] > 0));
+        self::assertNotEmpty($inside, $label . '：应在事务内执行');
+        self::assertSame(OwnerLock::query($model, $ownerId)->limit(1)->toSql(), $inside[0]['sql'], $label . '：事务首句应为锁所属行');
+        self::assertEquals([$ownerId], $inside[0]['bindings'], $label);
+    }
+
+    private function actAs(int $adminId, string $method, array $payload = []): void
+    {
+        $body = json_encode($payload);
+        $request = new Request("$method /admin/test HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+        $request->context['admin'] = ['id' => $adminId];
+        Context::set(\Webman\Http\Request::class, $request);
+    }
+
+    private function code(\support\Response $response): int
+    {
+        $data = json_decode($response->rawBody(), true);
+        self::assertSame(200, (int) ($data['code'] ?? 0), (string) $response->rawBody());
+        return (int) ($data['code'] ?? 0);
     }
 
     private function installer(string $sql, array &$executed, int &$transactions): CrudResourceInstaller

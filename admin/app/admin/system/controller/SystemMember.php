@@ -25,6 +25,7 @@ use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
+use app\admin\authorization\service\OwnerLock;
 use support\Db;
 use support\Response;
 
@@ -253,6 +254,8 @@ class SystemMember extends AdminController
         unset($data['groupIds'], $data['tagIds']);
         try {
             Db::transaction(function () use ($member, $data, $groupIds, $tagIds): void {
+                // 事务首句锁会员行：之后的分组/标签关系读取都在锁之后建立快照，见 OwnerLock。
+                OwnerLock::lock(Member::class, (int) $member->id);
                 $member->forceFill($data)->save();
                 $this->syncRelations($member, $groupIds, $tagIds);
             });

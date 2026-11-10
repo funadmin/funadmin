@@ -26,6 +26,7 @@ use support\annotation\route\RouteGroup;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\Response;
+use app\admin\authorization\service\OwnerLock;
 use support\Db;
 use app\admin\authentication\service\AdminSessionService;
 
@@ -229,6 +230,8 @@ class SystemAdmin extends AdminController
             }
             $this->assertPayloadAccess($data);
             Db::transaction(function () use ($admin, $data): void {
+                // 事务首句锁管理员行：之后的部门与角色关系读取都在锁之后建立快照，见 OwnerLock。
+                OwnerLock::lock(Admin::class, (int) $admin->id);
                 $admin->update([
                     'real_name' => $data['nickname'],
                     'email' => $data['email'],
@@ -325,6 +328,9 @@ class SystemAdmin extends AdminController
                 }
             }
             Db::transaction(function () use ($admins): void {
+                // 先按 ID 升序锁住全部待删管理员，再删关系行；与保存路径同为"所属行在前"。
+                $admins = $admins->sortBy('id')->values();
+                foreach ($admins as $admin) OwnerLock::lock(Admin::class, (int) $admin->id);
                 foreach ($admins as $admin) {
                     AdminDepartment::where('admin_id', (int) $admin->id)->delete();
                     CasbinService::instance()->deleteAdmin((int) $admin->id);

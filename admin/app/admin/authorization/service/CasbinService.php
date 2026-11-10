@@ -232,48 +232,59 @@ class CasbinService extends AbstractService
         $domain = PermissionResource::domain($domain);
         $role = PermissionResource::role($roleId);
         $permissionIds = $this->normalizeIds($permissionIds);
-        $permissions = Permission::where('status', 1)
-            ->whereIn('id', $permissionIds ?: [0])
-            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
-            ->where('obj', '<>', '')
-            ->where('act', '<>', '')
-            ->select(['obj', 'act'])
-            ->get()
-            ->toArray();
-        $publicPermissions = Permission::where('status', 1)
-            ->where('is_public', 1)
-            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
-            ->select(['obj', 'act'])
-            ->get()
-            ->toArray();
-        $publicCodes = [];
-        foreach ($publicPermissions as $permission) {
-            $publicCodes[$permission['obj'] . "\0" . $permission['act']] = true;
-        }
-        $permissions = array_values(array_filter(
-            $permissions,
-            static fn (array $permission): bool => !isset($publicCodes[$permission['obj'] . "\0" . $permission['act']])
-        ));
-        $rows = [];
-        foreach ($permissions as $permission) {
-            $rows[] = $this->makeRuleRow('p', [$role, $domain, $permission['obj'], $permission['act']]);
-        }
-        $this->replacePolicies('p', $role, $domain, $rows, AuthGroup::class, $roleId);
+        // 权限行查询放在加锁之后（同一事务内），即使由外层事务调用也不会先于锁读取快照。
+        $this->replacePolicies('p', $role, $domain, function () use ($role, $domain, $permissionIds): array {
+            $permissions = Permission::where('status', 1)
+                ->whereIn('id', $permissionIds ?: [0])
+                ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
+                ->where('obj', '<>', '')
+                ->where('act', '<>', '')
+                ->select(['obj', 'act'])
+                ->get()
+                ->toArray();
+            $publicPermissions = Permission::where('status', 1)
+                ->where('is_public', 1)
+                ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
+                ->select(['obj', 'act'])
+                ->get()
+                ->toArray();
+            $publicCodes = [];
+            foreach ($publicPermissions as $permission) {
+                $publicCodes[$permission['obj'] . "\0" . $permission['act']] = true;
+            }
+            $permissions = array_values(array_filter(
+                $permissions,
+                static fn (array $permission): bool => !isset($publicCodes[$permission['obj'] . "\0" . $permission['act']])
+            ));
+            $rows = [];
+            foreach ($permissions as $permission) {
+                $rows[] = $this->makeRuleRow('p', [$role, $domain, $permission['obj'], $permission['act']]);
+            }
+            return $rows;
+        }, AuthGroup::class, $roleId);
     }
 
+    /** 先锁管理员行再删关系，与 syncAdminRoles 加锁顺序一致（所属行在前），删除与保存不会交叉死锁。 */
     public function deleteAdmin(int $adminId): void
     {
-        CasbinRule::where('ptype', 'g')->where('v0', PermissionResource::subject($adminId))->delete();
+        Db::transaction(static function () use ($adminId): void {
+            OwnerLock::lock(Admin::class, $adminId);
+            CasbinRule::where('ptype', 'g')->where('v0', PermissionResource::subject($adminId))->delete();
+        });
     }
 
+    /** 先锁角色行再删关系，与角色授权保存的加锁顺序一致。 */
     public function deleteRole(int $roleId): void
     {
-        $role = PermissionResource::role($roleId);
-        CasbinRule::where('ptype', 'g')->where(function ($query) use ($role) {
-            $query->where('v0', $role)->orWhere('v1', $role);
-        })->delete();
-        CasbinRule::where('ptype', 'p')->where('v0', $role)->delete();
-        AuthGroupInherit::where('role_id', $roleId)->orWhere('parent_role_id', $roleId)->delete();
+        Db::transaction(static function () use ($roleId): void {
+            OwnerLock::lock(AuthGroup::class, $roleId);
+            $role = PermissionResource::role($roleId);
+            CasbinRule::where('ptype', 'g')->where(function ($query) use ($role) {
+                $query->where('v0', $role)->orWhere('v1', $role);
+            })->delete();
+            CasbinRule::where('ptype', 'p')->where('v0', $role)->delete();
+            AuthGroupInherit::where('role_id', $roleId)->orWhere('parent_role_id', $roleId)->delete();
+        });
     }
 
     /**
@@ -317,12 +328,16 @@ class CasbinService extends AbstractService
      * 整组替换某个主体的策略。读取现有策略前先锁住所属的管理员/角色行，
      * 同一主体的并发替换因此串行化（原集合为空时也成立），不会留下两次提交的并集。
      *
+     * 外层事务调用时，外层必须同样以锁所属行作为事务首句（快照由第一条普通读取确定）。
+     *
+     * @param array|\Closure(): array $rows 目标策略行；闭包在加锁之后才求值
      * @param class-string<\Illuminate\Database\Eloquent\Model> $ownerModel
      */
-    private function replacePolicies(string $ptype, string $subject, string $domain, array $rows, string $ownerModel, int $ownerId): void
+    private function replacePolicies(string $ptype, string $subject, string $domain, array|\Closure $rows, string $ownerModel, int $ownerId): void
     {
         Db::transaction(function () use ($ptype, $subject, $domain, $rows, $ownerModel, $ownerId) {
             OwnerLock::lock($ownerModel, $ownerId);
+            if ($rows instanceof \Closure) $rows = $rows();
             // 按差异同步：只软删除移除的规则、只添加缺少的规则，未变化的规则行不动（规则表不清理，整组重建会持续膨胀）。
             $adapter = new DatabaseAdapter($domain);
             $indexes = range(0, $ptype === 'p' ? 3 : 2);

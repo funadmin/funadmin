@@ -21,6 +21,7 @@ use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
+use app\admin\authorization\service\OwnerLock;
 use support\Db;
 use support\Response;
 
@@ -450,6 +451,8 @@ class SystemRole extends AdminController
             $guard->assertManageRole($role);
             $guard->assertRolePayload($id, $data);
             Db::transaction(function () use ($role, $data): void {
+                // 事务首句锁角色行：之后的继承/部门/策略读取都在锁之后建立快照，见 OwnerLock。
+                OwnerLock::lock(AuthGroup::class, (int) $role->id);
                 $role->forceFill([
                     'pid' => $data['parentId'],
                     'name' => $data['name'],
@@ -557,6 +560,9 @@ class SystemRole extends AdminController
                 }
             }
             Db::transaction(function () use ($roles, $casbin): void {
+                // 先按 ID 升序锁住全部待删角色，再删关系行；与保存路径同为"所属行在前"，不会交叉死锁。
+                $roles = $roles->sortBy('id')->values();
+                foreach ($roles as $role) OwnerLock::lock(AuthGroup::class, (int) $role->id);
                 foreach ($roles as $role) {
                     $roleId = (int) $role->id;
                     AuthGroupDepartment::where('role_id', $roleId)->delete();

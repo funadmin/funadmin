@@ -56,6 +56,9 @@ final class RoleAuthorizationService
         $this->assertDataScope($role, $dataScope, $departmentIds);
 
         Db::transaction(function () use ($role, $permissionIds, $fieldGrants, $dataScope, $departmentIds): void {
+            // 事务首句锁住角色行：MySQL 可重复读的快照由事务内第一条普通读取确定，
+            // 先锁再读，等锁的并发保存才能看到前一次已提交的策略、字段与部门集合。
+            OwnerLock::lock(AuthGroup::class, (int) $role->id);
             CasbinService::instance()->syncRolePermissions((int) $role->id, $permissionIds);
             $this->syncFields((int) $role->id, $fieldGrants);
             $this->syncDataScope($role, $dataScope, $departmentIds);
