@@ -157,8 +157,57 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         yield 'executable comment end hidden in string' => ["/*!99999 '*/ DROP TABLE fun_admin; -- ' */;"];
         yield 'trailing backslash in string' => ["SELECT 'abc\\"];
         yield 'dollar quoting' => ['SELECT $$ \'$$; DROP TABLE fun_admin; -- \';'];
-        yield 'sql mode can change quoting' => ["SET SESSION sql_mode='ANSI_QUOTES,NO_BACKSLASH_ESCAPES';\nSELECT 1;"];
         yield 'dynamic literal fragment does not lex' => ["SET @s=CONCAT('ALTER TABLE t COMMENT ', '''', 'x');\nPREPARE s FROM @s;\nEXECUTE s;"];
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function sessionLexingChanges(): iterable
+    {
+        $run = "\nPREPARE s FROM @s;\nEXECUTE s;";
+        // sql_mode（ANSI_QUOTES / NO_BACKSLASH_ESCAPES）与客户端字符集（GBK 的 0x5C 尾字节）都会让 MySQL 看到不同的字符串边界。
+        yield 'sql_mode bare' => ["SET sql_mode='NO_BACKSLASH_ESCAPES';"];
+        yield 'sql_mode session scope' => ["SET SESSION SQL_MODE='ANSI_QUOTES';"];
+        yield 'sql_mode backticked' => ["SET `sql_mode`='NO_BACKSLASH_ESCAPES';"];
+        yield 'sql_mode system variable' => ["SET @@sql_mode='NO_BACKSLASH_ESCAPES';"];
+        yield 'sql_mode session variable backticked' => ["SET @@SESSION.`sql_mode`='NO_BACKSLASH_ESCAPES';"];
+        yield 'sql_mode global variable' => ["SET @@GLOBAL.sql_mode='ANSI';"];
+        yield 'sql_mode in executable comment' => ["/*!40101 SET SQL_MODE='NO_BACKSLASH_ESCAPES' */;"];
+        yield 'sql_mode in dynamic sql' => ["SET @s='SET sql_mode=\"NO_BACKSLASH_ESCAPES\"';" . $run];
+        yield 'sql_mode backticked in dynamic sql' => ["SET @s='SET @@SESSION.`sql_mode`=''ANSI_QUOTES''';" . $run];
+        yield 'sql_mode in nested dynamic literal' => ["SET @s='SELECT ''SET sql_mode=1''';" . $run];
+        yield 'set names' => ["SET NAMES gbk;\nALTER TABLE t COMMENT '中\\', DROP COLUMN c -- ';"];
+        yield 'set names lower case quoted' => ["set names 'gbk';"];
+        yield 'set names after other assignment' => ['SET @a=1, NAMES gbk;'];
+        yield 'set names in executable comment' => ['/*!40101 SET NAMES gbk */;'];
+        yield 'set character set' => ['SET CHARACTER SET gbk;'];
+        yield 'set charset' => ['SET CHARSET gbk;'];
+        yield 'character set in procedure body' => ['CREATE PROCEDURE p() SET CHARACTER SET gbk;'];
+        yield 'character_set_client' => ['SET character_set_client=gbk;'];
+        yield 'character_set_client session' => ['SET SESSION character_set_client=gbk;'];
+        yield 'character_set_client system variable' => ['SET @@character_set_client=gbk;'];
+        yield 'character_set_client session variable' => ['SET @@SESSION.character_set_client=gbk;'];
+        yield 'character_set_connection global backticked' => ['SET @@GLOBAL.`character_set_connection`=gbk;'];
+        yield 'character_set_client backticked' => ['SET `CHARACTER_SET_CLIENT`=gbk;'];
+        yield 'set names in dynamic sql' => ["SET @s='SET NAMES gbk';" . $run];
+        yield 'character set in dynamic sql' => ["SET @s='SET CHARACTER SET gbk';" . $run];
+        yield 'character_set_client in dynamic sql' => ["SET @s='SET @@SESSION.character_set_client=gbk';" . $run];
+        yield 'character_set_client in nested dynamic literal' => ["SET @s='SELECT \"SET `character_set_client`=gbk\"';" . $run];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('sessionLexingChanges')]
+    public function test_changing_session_lexing_state_is_rejected(string $sql): void
+    {
+        $this->expectExceptionMessage('Migration 无法安全解析');
+        $this->guard($sql);
+    }
+
+    public function test_charset_table_and_column_options_stay_allowed(): void
+    {
+        $this->guard("CREATE TABLE `fun_probe` (`a` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n"
+            . "CREATE TEMPORARY TABLE `fun_tmp` (`a` int) CHARSET=utf8mb4;\n"
+            . "ALTER TABLE `fun_probe` MODIFY `a` varchar(30) CHARACTER SET utf8mb4 NOT NULL, DEFAULT CHARSET=utf8mb4;\n"
+            . "INSERT INTO `fun_probe` VALUES ('SET NAMES gbk; sql_mode');");
+        $this->addToAssertionCount(1);
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('unparsable')]
@@ -210,6 +259,16 @@ final class MigrationForwardOnlyGuardTest extends TestCase
             $rewritten = MigrationService::rewritePrefix($sql, 'fun_', 'custom_');
             self::assertSame(self::legacyStatements($rewritten), $this->statements($rewritten), $version . '（改写前缀后）');
         }
+    }
+
+    public function test_core_migrations_001_to_005_pass_the_guard(): void
+    {
+        $directory = base_path() . '/database/core/migrations';
+        foreach (['001_baseline', '002_code_generator', '003_system_secret', '004_plugin_admin_web_directory', '005_soft_delete'] as $version) {
+            $file = $directory . '/' . $version . '.sql';
+            (new \ReflectionMethod(MigrationService::class, 'assertForwardOnly'))->invoke(new MigrationService(), (string) file_get_contents($file), $file);
+        }
+        $this->addToAssertionCount(5);
     }
 
     public function test_every_core_migration_passes_the_guard(): void

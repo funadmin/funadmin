@@ -307,8 +307,13 @@ class MigrationService extends AbstractService
      * - 文件在代码中使用 PREPARE / EXECUTE 时字符串会被当作 SQL 执行：每个字符串常量按 MySQL 规则反转义后用同一词法器
      *   重新分词，其中只允许 `DROP INDEX <索引名>` 与 `DROP PRIMARY KEY`（重建索引、换主键，不丢数据），其余 DROP、
      *   TRUNCATE、RENAME 拒绝；其中的字符串常量递归同样处理；全部字符串按顺序拼接后再查一次，防止关键字被拆到相邻字符串。
-     * - 失败即拒绝：任何词法错误（未闭合的字符串或注释、边界有歧义的可执行注释、动态字符串不是完整 SQL 等）、
-     *   修改 sql_mode（会改变引号与转义规则）或任何内部异常都拒绝执行该文件。
+     *   因此用到 PREPARE / EXECUTE 的文件里**每个**字符串常量都必须能单独按 SQL 分词：含 $、落单的撇号或引号片段、
+     *   DROP / TRUNCATE / RENAME 字样的数据值都会被拒绝——迁移作者应把数据写入放在不含 PREPARE 的文件里。
+     * - 会话词法状态：引用 sql_mode（ANSI_QUOTES / NO_BACKSLASH_ESCAPES 改变引号与转义）或改客户端字符集
+     *   （SET NAMES、SET CHARACTER SET / CHARSET、character_set_*；GBK 等字符集的尾字节可以是 0x5C）都会让 MySQL
+     *   看到与词法器不同的字符串边界，静态代码与各层动态字符串一律拒绝，见 rejectSessionLexingChanges()。
+     * - 失败即拒绝：任何词法错误（未闭合的字符串或注释、边界有歧义的可执行注释、动态字符串不是完整 SQL 等）
+     *   或任何内部异常都拒绝执行该文件。
      */
     private function assertForwardOnly(string $sql, string $file): void
     {
@@ -327,10 +332,7 @@ class MigrationService extends AbstractService
     {
         $dynamic = false;
         $items = (static function () use ($sql, &$dynamic): \Generator {
-            foreach (SqlLexer::items(SqlLexer::scan($sql)) as $item) {
-                if ($item[0] === SqlLexer::WORD && strcasecmp($item[1], 'sql_mode') === 0) {
-                    throw new SqlLexerException('迁移不允许修改 sql_mode');
-                }
+            foreach (self::rejectSessionLexingChanges(SqlLexer::items(SqlLexer::scan($sql))) as $item) {
                 if (in_array(self::keyword($item), ['PREPARE', 'EXECUTE'], true)) $dynamic = true;
                 yield $item;
             }
@@ -359,10 +361,55 @@ class MigrationService extends AbstractService
                 $error ??= $exception;
                 continue;
             }
-            if (self::destructiveIn(SqlLexer::items($nested), true) || self::dynamicViolation($nested, $depth + 1)) return true;
+            if (self::destructiveIn(self::rejectSessionLexingChanges(SqlLexer::items($nested)), true)
+                || self::dynamicViolation($nested, $depth + 1)) return true;
         }
         if ($error !== null) throw new SqlLexerException('动态 SQL 字符串无法分词：' . $error->getMessage(), 0, $error);
         return false;
+    }
+
+    /**
+     * 原样转发词法项，遇到会改变 MySQL 会话词法状态的引用即抛出 SqlLexerException（静态代码与每层动态 SQL 共用）：
+     * - 任何位置引用 sql_mode 或 character_set_*：裸词、反引号标识符、@@x / @@SESSION.x / @@GLOBAL.x 都拆成这些词法项；
+     * - 任何位置的 NAMES（SET NAMES，包括 SET @a=1, NAMES gbk 这种列表续项）；
+     * - CHARSET / CHARACTER SET，除非所在语句是 CREATE [TEMPORARY] TABLE 或 ALTER TABLE（列/表的字符集选项，
+     *   001 基线大量使用）；SET CHARACTER SET、存储过程体里的 SET CHARSET 等都会被拒绝。
+     * @param iterable<array{0: string, 1: string}> $items
+     * @return \Generator<int, array{0: string, 1: string}>
+     */
+    private static function rejectSessionLexingChanges(iterable $items): \Generator
+    {
+        $words = [];       // 当前语句的前两个词，用来识别 CREATE/ALTER TABLE
+        $previous = null;  // 紧邻的上一个词（识别 CHARACTER SET）
+        foreach ($items as $item) {
+            [$kind, $text] = $item;
+            if ($kind === SqlLexer::SYMBOL && $text === ';') {
+                $words = [];
+                $previous = null;
+                yield $item;
+                continue;
+            }
+            if ($kind === SqlLexer::WORD || $kind === SqlLexer::IDENTIFIER) {
+                $name = strtolower($text);
+                if ($name === 'sql_mode' || str_starts_with($name, 'character_set_')) {
+                    throw new SqlLexerException('迁移不允许引用 ' . $text . '（会改变 MySQL 的引号/字符集词法）');
+                }
+            }
+            if ($kind !== SqlLexer::WORD) {
+                $previous = null;
+                yield $item;
+                continue;
+            }
+            $word = strtoupper($text);
+            $charset = $word === 'CHARSET' || ($word === 'SET' && $previous === 'CHARACTER');
+            $tableOption = in_array($words[0] ?? '', ['CREATE', 'ALTER'], true) && in_array($words[1] ?? '', ['TABLE', 'TEMPORARY'], true);
+            if ($word === 'NAMES' || ($charset && !$tableOption)) {
+                throw new SqlLexerException('迁移不允许修改客户端字符集（' . ($word === 'NAMES' ? 'NAMES' : 'CHARACTER SET / CHARSET') . '）');
+            }
+            if (count($words) < 2) $words[] = $word;
+            $previous = $word;
+            yield $item;
+        }
     }
 
     /**
