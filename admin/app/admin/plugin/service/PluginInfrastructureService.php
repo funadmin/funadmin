@@ -482,8 +482,17 @@ final class PluginInfrastructureService
             $versions = $migrations->runDirectory($directory, $scope);
             return ['executed' => $versions, 'version' => $migrations->latestAppliedVersion($scope)];
         } catch (\Throwable $exception) {
-            throw new \RuntimeException('migration: ' . $exception->getMessage(), 0, $exception);
+            throw new \RuntimeException('migration: ' . $exception->getMessage() . self::adoptHint($manifest->code(), $exception), 0, $exception);
         }
+    }
+
+    /** 迁移因“已存在”失败（效果可能已由运行时 DDL 落库）时，提示核对后接管的命令。 */
+    public static function adoptHint(string $code, \Throwable $exception): string
+    {
+        $message = '';
+        for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) $message .= ' ' . $cause->getMessage();
+        if (preg_match('/Duplicate column|Duplicate key name|already exists|\b1060\b|\b1061\b|\b1050\b/i', $message) !== 1) return '';
+        return '（结构可能已存在：可先运行 php webman plugin:migrate ' . $code . ' --adopt=<版本> --dry-run 核对后接管）';
     }
 
     public function registerResources(array $permissions, array $menus, string $code): void

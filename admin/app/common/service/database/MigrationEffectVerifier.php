@@ -119,7 +119,11 @@ final class MigrationEffectVerifier
     private function table(string $physical): ?array
     {
         if (!array_key_exists($physical, $this->tables)) {
-            $exists = in_array($physical, array_column($this->inspector->tables(), 'name'), true);
+            // 只看当前库：getTables() 在 MySQL 上会列出账号可见的所有库，同名表可能来自别的库。
+            $reader = clone $this->connection;
+            $reader->setTablePrefix('');
+            $reader->useDefaultSchemaGrammar();
+            $exists = $reader->getSchemaBuilder()->hasTable($physical);
             $this->tables[$physical] = $exists ? $this->inspector->inspect($physical) : null;
         }
         return $this->tables[$physical];
@@ -127,19 +131,32 @@ final class MigrationEffectVerifier
 
     private function compatibleType(string $expected, string $actual): bool
     {
-        if ($this->connection->getDriverName() === 'mysql') {
-            return self::normalizeType($expected) === self::normalizeType($actual);
+        $driver = $this->connection->getDriverName();
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            $mariaDb = $driver === 'mariadb' || (method_exists($this->connection, 'isMaria') && $this->connection->isMaria());
+            return self::normalizeType($expected, $mariaDb) === self::normalizeType($actual, $mariaDb);
         }
         return self::family($expected) === self::family($actual);
     }
 
-    public static function normalizeType(string $type): string
+    /**
+     * MySQL 列类型的规范形式（比较 migration 声明与 information_schema.COLUMN_TYPE）：
+     * - 小写，空白折叠为单个空格；括号与逗号两侧的空白去掉，`)` 之后的空格保留（`bigint(20) unsigned` → `bigint unsigned`）；
+     * - 整数显示宽度不影响存储与取值范围，一律去掉（MySQL 8.0.19+ 已不再报告，5.7 / MariaDB 仍报告 `int(11)`、`bigint(20)`）；
+     *   唯一例外是 `tinyint(1)`：它是 MySQL 的布尔约定（BOOL / BOOLEAN 的别名，8.0 也保留这一宽度），保持原样，
+     *   因此布尔列与 `tinyint` 列（5.7 报告为 `tinyint(4)`）不会互相接管；
+     * - 别名：integer → int，bool / boolean → tinyint(1)，dec / numeric / fixed → decimal，无长度的 char → char(1)；
+     * - MariaDB 的 JSON 是 LONGTEXT 的别名（COLUMN_TYPE 报告 `longtext`），仅在 MariaDB 上 json 规范为 longtext；
+     *   MySQL 上二者是不同类型，不互相接管。
+     */
+    public static function normalizeType(string $type, bool $mariaDb = false): string
     {
-        $type = strtolower(trim(preg_replace('/\s+/', ' ', $type)));
-        $type = preg_replace('/\s*([(),])\s*/', '$1', $type);
-        $type = preg_replace(['/^integer\b/', '/^(?:bool|boolean)\b/', '/^(?:dec|numeric|fixed)\b/'], ['int', 'tinyint(1)', 'decimal'], $type);
-        $type = preg_replace('/^(tinyint|smallint|mediumint|int|bigint)\(\d+\)/', '$1', $type);
-        return preg_replace('/^char(?=$| )/', 'char(1)', $type);
+        $type = strtolower(trim((string) preg_replace('/\s+/', ' ', $type)));
+        $type = (string) preg_replace(['/\s*\(\s*/', '/\s*,\s*/', '/\s*\)/'], ['(', ',', ')'], $type);
+        $type = (string) preg_replace(['/^integer\b/', '/^(?:bool|boolean)\b/', '/^(?:dec|numeric|fixed)\b/'], ['int', 'tinyint(1)', 'decimal'], $type);
+        $type = (string) preg_replace('/^(tinyint(?!\(1\))|smallint|mediumint|int|bigint)\(\d+\)/', '$1', $type);
+        $type = (string) preg_replace('/^char(?=$| )/', 'char(1)', $type);
+        return $mariaDb ? (string) preg_replace('/^json$/', 'longtext', $type) : $type;
     }
 
     private static function family(string $type): string

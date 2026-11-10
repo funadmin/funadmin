@@ -12,6 +12,7 @@ use support\Db;
 /**
  * 运行时兜底（LifecycleHookDdlDetector 的静态检查看不到的路径）：执行 install / enabled / beforeUpdate / afterUpdate
  * 钩子期间，默认连接上任何按 MigrationService DDL 规则判定为 DDL 的语句都在执行前被拒绝。
+ * webman 的 DatabaseManager 不暴露已解析的命名连接，因此只覆盖默认连接（现有插件均只用默认连接）。
  * 回调按连接只注册一次（WeakMap，不随请求增长）；当前钩子标记在 finally 中复原，常驻 worker 不残留状态。
  */
 final class LifecycleDdlGuard

@@ -171,9 +171,10 @@ class MigrationService extends AbstractService
      * 文件解析、编码检查、只向前守卫、前缀改写与语句切分都和执行路径相同，登记的 checksum 与 runFiles 登记的完全一致
      * （文件原文的 sha256）。每条语句必须是能从当前结构证明已生效的结构新增（CREATE TABLE、ADD COLUMN、
      * ADD INDEX / UNIQUE、CREATE INDEX），由 MigrationEffectVerifier 逐项核对；任一语句不受支持或效果缺失即拒绝，
-     * 不写任何记录。已登记且 checksum 相同时为无操作；checksum 不同则拒绝。
+     * 不写任何记录；目录中更早的版本尚未登记（未执行也未接管）时同样拒绝，接管只能按版本顺序进行。
+     * 已登记且 checksum 相同时为无操作；checksum 不同则拒绝。
      * $onRecorded 与登记写入在同一事务内执行（用于审计记录）。
-     * @return array{scope: string, version: string, checksum: string, effects: list<array>, adoptable: bool, alreadyRecorded: bool, recorded: bool, dryRun: bool}
+     * @return array{scope: string, version: string, checksum: string, effects: list<array>, pendingEarlier: list<string>, adoptable: bool, alreadyRecorded: bool, recorded: bool, dryRun: bool}
      */
     public function adoptVersion(string $directory, string $version, string $scope, bool $dryRun = false, ?callable $onRecorded = null): array
     {
@@ -185,8 +186,8 @@ class MigrationService extends AbstractService
             DdlEncodingGuard::assertUtf8($sql);
             $this->assertForwardOnly($sql, $file);
             $checksum = hash('sha256', $sql);
-            $report = ['scope' => $scope, 'version' => $version, 'checksum' => $checksum, 'effects' => [], 'adoptable' => false,
-                'alreadyRecorded' => false, 'recorded' => false, 'dryRun' => $dryRun];
+            $report = ['scope' => $scope, 'version' => $version, 'checksum' => $checksum, 'effects' => [], 'pendingEarlier' => [],
+                'adoptable' => false, 'alreadyRecorded' => false, 'recorded' => false, 'dryRun' => $dryRun];
             $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
             if ($record !== null) {
                 if (!hash_equals((string) $record->checksum, $checksum)) {
@@ -197,13 +198,24 @@ class MigrationService extends AbstractService
             $statements = $this->statements(self::rewritePrefix($sql, config('funadmin.mysqlPrefix', 'fun_'), Db::connection()->getTablePrefix()));
             if (!$statements) throw new RuntimeException('Migration 没有可执行 SQL：' . $file);
             $report['effects'] = (new MigrationEffectVerifier(Db::connection()))->verify($statements);
-            $report['adoptable'] = !in_array(false, array_map(static fn (array $effect): bool => $effect['status'] === 'present', $report['effects']), true);
+            // 只能按顺序接管：更早的版本须先执行或接管，否则 latestAppliedVersion 会越过未执行的迁移。
+            $recorded = SystemMigration::query()->where('scope', $scope)->pluck('version')->all();
+            foreach (glob(dirname($file) . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $candidate) {
+                $name = pathinfo($candidate, PATHINFO_FILENAME);
+                if (strcmp($this->migrationSortKey($candidate), $this->migrationSortKey($file)) < 0 && !in_array($name, $recorded, true)) {
+                    $report['pendingEarlier'][] = $name;
+                }
+            }
+            sort($report['pendingEarlier'], SORT_NATURAL);
+            $report['adoptable'] = $report['pendingEarlier'] === []
+                && !in_array(false, array_map(static fn (array $effect): bool => $effect['status'] === 'present', $report['effects']), true);
             if ($dryRun) return $report;
             if (!$report['adoptable']) {
                 $problems = array_map(
                     static fn (array $effect): string => $effect['status'] . ' ' . $effect['target'] . '（' . $effect['detail'] . '）',
                     array_values(array_filter($report['effects'], static fn (array $effect): bool => $effect['status'] !== 'present'))
                 );
+                if ($report['pendingEarlier'] !== []) $problems[] = '更早的版本尚未执行或接管：' . implode('、', $report['pendingEarlier']);
                 throw new RuntimeException("拒绝接管 {$scope}/{$version}：当前库结构不能证明迁移已生效：" . implode('；', $problems));
             }
             if (!hash_equals($checksum, (string) hash_file('sha256', $file))) throw new RuntimeException('Migration 文件在预检后发生变化：' . $file);

@@ -178,8 +178,14 @@ php webman plugin:migrate cms --adopt=005_form_fingerprint
   - `CREATE TABLE`：表存在，表内的列、主键、索引也都存在；
   - `ADD [COLUMN]`：列存在，类型兼容，并且声明了可空性时可空性一致；
   - `ADD INDEX` / `ADD UNIQUE` / `CREATE INDEX`：存在列顺序完全相同、唯一性也相同的索引。
-- 其他语句一律拒绝，包括数据变更、`MODIFY` / `CHANGE`、外键、生成列和动态 SQL。只要有一项效果缺失或不一致，就拒绝整个文件，什么也不写。`--dry-run` 中 `adoptable: false` 表示正式执行会被拒绝。
-- 类型比较方式取决于驱动：MySQL 比较完整的列类型，忽略整数显示宽度；其他驱动按类型族比较。
+- 其他语句一律拒绝，包括数据变更、`MODIFY` / `CHANGE`、外键、生成列和动态 SQL。只要有一项效果缺失或不一致，就拒绝整个文件，什么也不写。
+- 只能按版本顺序接管：目录中更早的版本还没有执行或接管时也拒绝（`pendingEarlier` 列出这些版本）。
+- `--dry-run` 中 `adoptable: false` 表示正式执行会被拒绝，此时退出码为 1，JSON 照常输出。
+- 类型比较方式取决于驱动：
+  - MySQL / MariaDB 比较完整的列类型，忽略整数显示宽度：`bigint(20) unsigned` 等于 `bigint unsigned`，`int(11)` 等于 `int`。
+  - `tinyint(1)` 是布尔约定（`boolean` 的写法），保留宽度，不与普通 `tinyint` 互相接管。
+  - MariaDB 上 `json` 等于 `longtext`（MariaDB 的 JSON 是 LONGTEXT 的别名）；MySQL 上二者不同。
+  - 其他驱动按类型族比较。
 - 文件的编码检查、只向前守卫和 checksum 与正常执行时相同，登记的 checksum 就是正常执行会写入的值。版本已登记且 checksum 相同时，命令什么也不做；checksum 不同则拒绝。
 - 插件必须已安装。写入在生命周期锁和迁移锁内完成，并在 `plugin_operation` 记录一条 `migration_adopt` 审计。
 - 命令只登记 `system_migration`，不改插件状态。之后照常更新或迁移，已登记的版本会被跳过。

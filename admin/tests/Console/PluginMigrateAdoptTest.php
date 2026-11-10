@@ -134,8 +134,10 @@ final class PluginMigrateAdoptTest extends TestCase
     public function test_adopt_refuses_and_records_nothing_when_any_effect_is_missing(string $variant, string $mentioned): void
     {
         $this->liveSchema($variant);
+        $this->record('001_base', self::BASE);
         $command = new CommandTester(new PluginMigrate($this->root));
-        self::assertSame(0, $command->execute(['code' => self::CODE, '--adopt' => '002_extend', '--dry-run' => true]), $command->getDisplay());
+        // dry-run 的退出码同样表达“不可接管”，JSON 照常输出。
+        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '002_extend', '--dry-run' => true]), $command->getDisplay());
         $plan = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
         self::assertFalse($plan['adoptable']);
         self::assertContains('missing', array_column($plan['effects'], 'status'));
@@ -143,7 +145,7 @@ final class PluginMigrateAdoptTest extends TestCase
         self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '002_extend']));
         self::assertStringContainsString('拒绝接管', $command->getDisplay());
         self::assertStringContainsString($mentioned, $command->getDisplay());
-        self::assertSame(0, Db::table('system_migration')->count());
+        self::assertSame(1, Db::table('system_migration')->count());
         self::assertSame(0, Db::table('plugin_operation')->count());
     }
 
@@ -165,14 +167,34 @@ final class PluginMigrateAdoptTest extends TestCase
     {
         $this->liveSchema();
         $this->migration('003_change', $sql);
+        $this->record('001_base', self::BASE);
+        $this->record('002_extend', self::EXTEND);
         $command = new CommandTester(new PluginMigrate($this->root));
-        self::assertSame(0, $command->execute(['code' => self::CODE, '--adopt' => '003_change', '--dry-run' => true]), $command->getDisplay());
+        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '003_change', '--dry-run' => true]), $command->getDisplay());
         $plan = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
         self::assertFalse($plan['adoptable']);
         self::assertContains('unsupported', array_column($plan['effects'], 'status'));
         self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '003_change']));
         self::assertStringContainsString('拒绝接管', $command->getDisplay());
+        self::assertSame(2, Db::table('system_migration')->count());
+    }
+
+    public function test_adopt_only_in_version_order(): void
+    {
+        $this->liveSchema();
+        $command = new CommandTester(new PluginMigrate($this->root));
+        // 002 的效果都在，但 001 尚未执行或接管：拒绝，避免 latestAppliedVersion 越过未执行的迁移。
+        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '002_extend', '--dry-run' => true]), $command->getDisplay());
+        $plan = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(['001_base'], $plan['pendingEarlier']);
+        self::assertSame(['present', 'present'], array_column($plan['effects'], 'status'));
+        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '002_extend']));
+        self::assertStringContainsString('001_base', $command->getDisplay());
         self::assertSame(0, Db::table('system_migration')->count());
+        // 按顺序接管即可。
+        self::assertSame(0, $command->execute(['code' => self::CODE, '--adopt' => '001_base']), $command->getDisplay());
+        self::assertSame(0, $command->execute(['code' => self::CODE, '--adopt' => '002_extend']), $command->getDisplay());
+        self::assertSame(['001_base', '002_extend'], Db::table('system_migration')->orderBy('version')->pluck('version')->all());
     }
 
     public function test_adopt_keeps_runner_preflight_and_requires_explicit_installed_target(): void
@@ -189,8 +211,12 @@ final class PluginMigrateAdoptTest extends TestCase
         // 必须显式给出 --adopt；普通迁移经插件更新/迁移流程执行。
         self::assertSame(1, $command->execute(['code' => self::CODE]));
         self::assertStringContainsString('--adopt', $command->getDisplay());
+        // 已卸载（软删除）的记录不算已安装。
+        Db::table('plugin')->update(['deleted_at' => date('Y-m-d H:i:s')]);
+        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '001_base']));
+        self::assertStringContainsString('尚未安装', $command->getDisplay());
         Db::table('plugin')->delete();
-        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '002_extend']));
+        self::assertSame(1, $command->execute(['code' => self::CODE, '--adopt' => '001_base']));
         self::assertStringContainsString('尚未安装', $command->getDisplay());
         self::assertSame(0, Db::table('system_migration')->count());
     }
@@ -208,22 +234,31 @@ final class PluginMigrateAdoptTest extends TestCase
         \app\cms\service\PageFormSchema::install();
         Db::table('plugin')->insert(['code' => 'cms', 'version' => '1.5.1', 'lifecycle_state' => 'failed']);
         $command = new CommandTester(new PluginMigrate());
-        foreach (['001_cms', '002_template_tag_remark', '004_forms', '005_form_fingerprint', '006_page_form'] as $version) {
-            self::assertSame(0, $command->execute(['code' => 'cms', '--adopt' => $version, '--dry-run' => true]), $command->getDisplay());
+        // 只做 dry-run（不在真实项目目录取锁）；每个版本核对通过后按其 checksum 补登记，模拟按顺序接管。
+        foreach (['001_cms', '002_template_tag_remark', '003_remove_legacy_site_role', '004_forms', '005_form_fingerprint', '006_page_form'] as $version) {
+            $checksum = hash_file('sha256', base_path('plugins/cms/database/migrations/' . $version . '.sql'));
+            if ($version === '006_page_form') {
+                // 列存在但 006 的另一半缺失：拒绝。
+                Db::schema()->table('cms_category_locale', static fn (Blueprint $t) => $t->dropColumn('form_code'));
+                self::assertSame(1, $command->execute(['code' => 'cms', '--adopt' => $version, '--dry-run' => true]));
+                $plan = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
+                self::assertFalse($plan['adoptable']);
+                self::assertSame(['present', 'missing'], array_column($plan['effects'], 'status'));
+                Db::schema()->table('cms_category_locale', static fn (Blueprint $t) => $t->string('form_code', 64)->default(''));
+            }
+            $exit = $command->execute(['code' => 'cms', '--adopt' => $version, '--dry-run' => true]);
             $plan = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
-            self::assertTrue($plan['adoptable'], $version . ': ' . $command->getDisplay());
-            self::assertSame(hash_file('sha256', base_path('plugins/cms/database/migrations/' . $version . '.sql')), $plan['checksum']);
+            if ($version === '003_remove_legacy_site_role') {
+                // 003 是数据清理，无法从结构证明“已生效”，必须真正执行；这里模拟它已执行。
+                self::assertSame(1, $exit);
+                self::assertFalse($plan['adoptable']);
+            } else {
+                self::assertSame(0, $exit, $command->getDisplay());
+                self::assertTrue($plan['adoptable'], $version . ': ' . $command->getDisplay());
+                self::assertSame($checksum, $plan['checksum']);
+            }
+            Db::table('system_migration')->insert(['scope' => 'plugin:cms', 'version' => $version, 'checksum' => $checksum, 'executed_at' => time()]);
         }
-        // 003 是数据清理，无法从结构证明“已生效”，必须真正执行。
-        self::assertSame(0, $command->execute(['code' => 'cms', '--adopt' => '003_remove_legacy_site_role', '--dry-run' => true]));
-        self::assertFalse(json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR)['adoptable']);
-        // 列存在但 006 的另一半缺失：拒绝。
-        Db::schema()->table('cms_category_locale', static fn (Blueprint $t) => $t->dropColumn('form_code'));
-        self::assertSame(0, $command->execute(['code' => 'cms', '--adopt' => '006_page_form', '--dry-run' => true]));
-        $plan = json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertFalse($plan['adoptable']);
-        self::assertSame(['present', 'missing'], array_column($plan['effects'], 'status'));
-        self::assertSame(0, Db::table('system_migration')->count());
     }
 
     private function liveSchema(string $variant = ''): void
