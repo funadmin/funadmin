@@ -406,7 +406,7 @@ final class PluginInfrastructureService
         $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), (string) ($data['migrations']['path'] ?? 'migrations'), '插件迁移');
         $tables = Db::schema()->getTableListing(schemaQualified: false);
         $applied = Db::schema()->hasTable('system_migration')
-            ? SystemMigration::query()->where('scope', 'plugin:' . $manifest->code())->pluck('checksum', 'version')->all() : [];
+            ? SystemMigration::ledger()->where('scope', 'plugin:' . $manifest->code())->pluck('checksum', 'version')->all() : [];
         foreach (glob($directory . '/*.sql') ?: [] as $file) {
             if (is_link($file) || !is_file($file)) {
                 throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: migration 路径不安全');

@@ -1046,6 +1046,8 @@ final class Data extends AdminController
                 return $this->fail(msg: '表单发布版本已更新，请刷新后重试', data: ['code' => 'FORM_SCHEMA_CONFLICT'], code: 409);
             }
             return $this->fail(msg: $exception->getMessage(), code: 422);
+        } catch (\app\common\model\concern\RestoreConflictException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 409);
         } catch (Throwable $exception) {
             return $this->fail(msg: '服务器内部错误', code: 500);
         }

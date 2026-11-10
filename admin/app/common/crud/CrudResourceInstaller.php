@@ -40,6 +40,8 @@ final class CrudResourceInstaller
         $statements = $permission['statements'];
         $langStatements = $lang['statements'] ?? [];
         foreach (array_merge($statements, $langStatements) as $statement) $this->assertSafe($statement);
+        // 在执行任何语句之前拒绝旧版制品：哈希只证明文件未被改动，不证明它符合软删除契约。
+        foreach ($statements as $statement) $this->assertSoftDeleteCompatible($statement);
         if ($forceRefresh) {
             $langStatements = array_map([$this, 'forceRefreshStatement'], $langStatements);
         }
@@ -161,6 +163,23 @@ final class CrudResourceInstaller
         }
         if (preg_match('/\bfun_(?!permission\b|admin_menu\b|language_line\b)[a-z0-9_]+/i', (string) $plain)) {
             throw new RuntimeException('权限菜单 migration 引用了非白名单表');
+        }
+    }
+
+    /**
+     * 软删除前生成的权限菜单 SQL 用 `deleted_at`=NULL 复活已删除行（不重置 deleted_token，会造成重复的有效行），
+     * 或 UPDATE 不限定 `deleted_at` IS NULL 而改写墓碑。此类制品不自动修补，必须重新生成。
+     */
+    private function assertSoftDeleteCompatible(string $statement): void
+    {
+        $plain = (string) preg_replace('/^\s*--.*$/m', '', $statement);
+        // 只看 SQL 结构，字符串字面量（名称、路径等）不参与判断。
+        $plain = (string) preg_replace('/\x27(?:\\\\.|\x27\x27|[^\x27\\\\])*\x27/s', "''", $plain);
+        $reviving = preg_match('/`?deleted_at`?\s*=\s*NULL\b/i', $plain) === 1;
+        $unguardedUpdate = preg_match('/^\s*UPDATE\s+`?fun_(?:permission|admin_menu)`?\s/i', $plain) === 1
+            && preg_match('/\bWHERE\b.*`?deleted_at`?\s+IS\s+NULL\b/is', $plain) !== 1;
+        if ($reviving || $unguardedUpdate) {
+            throw new RuntimeException('权限菜单 migration 是软删除前的旧版生成制品（会恢复或改写已删除的权限/菜单），已拒绝执行，需要重新生成（regenerate required）');
         }
     }
 

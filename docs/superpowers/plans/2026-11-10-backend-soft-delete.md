@@ -165,15 +165,15 @@ The user decided that soft-deleted records are always kept, with no automatic de
 - Test: extend `admin/tests/OperationLogIntegrationTest.php`
 
 **Interfaces:**
-- Produces: `GET /admin/system/log/operation?trashed=1` (only soft-deleted rows, same shape as the normal list), `DELETE /admin/system/log/operation/force` with `{ids}` (real deletion of live or trashed rows within the data scope; returns `{removed}`), and `DELETE /admin/system/log/operation/clear-force` (real deletion of all rows within the data scope, including trashed; returns `{removed}`).
+- Produces: `GET /admin/system/log/operation?trashed=1` (only soft-deleted rows, same shape as the normal list), `DELETE /admin/system/log/operation/force` with `{ids}` (real deletion of **trashed rows only** within the data scope; live rows are never physically deleted, so live IDs are rejected; returns `{removed}`), and `DELETE /admin/system/log/operation/clear-force` (empties the recycle bin: real deletion of **only the trashed rows** within the data scope; live rows are kept; returns `{removed}`). Physical deletion happens only through these explicit recycle-bin actions.
 
 - [ ] **Step 1: Write failing tests.**
   - `test_soft_delete_moves_log_to_recycle_bin`
-  - `test_force_delete_removes_live_and_trashed_logs`
-  - `test_clear_force_removes_everything_in_scope_only`
+  - `test_force_delete_removes_only_trashed_logs` (live IDs are refused and nothing is deleted)
+  - `test_clear_force_empties_only_the_recycle_bin_in_scope` (live rows are kept)
   - `test_force_endpoints_require_their_own_permission`
 - [ ] **Step 2: Run.** Expect FAIL.
-- [ ] **Step 3: Implement.** Use `withTrashed()`/`onlyTrashed()` together with `AdminLog::scopedQuery()`, and use `forceDelete()`.
+- [ ] **Step 3: Implement.** Use `onlyTrashed()` together with `AdminLog::scopedQuery()` for both force endpoints, and use `forceDelete()`. Do not use `withTrashed()` on these paths; live rows must never be physically deleted.
 - [ ] **Step 4: Run** `vendor/bin/phpunit tests/OperationLogIntegrationTest.php tests/AuthRequirementSnapshotTest.php` and the full suite.
 - [ ] **Step 5: Commit** with `feat: 操作日志回收站与彻底删除接口`.
 

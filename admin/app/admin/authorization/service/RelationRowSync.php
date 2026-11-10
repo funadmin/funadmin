@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\admin\authorization\service;
 
 use Illuminate\Database\Eloquent\Model;
+use support\Db;
 
 /**
  * 关系行按差异同步：只软删除移除的行、只插入缺少的行，未变化的行不动（附加列变化时原地更新）。
@@ -19,8 +20,18 @@ final class RelationRowSync
      * @param array<int|string, array<string, mixed>> $rows 目标集合：$key 的值 => 需要保持一致的附加列
      * @param array<string, mixed> $insertDefaults 仅新插入行写入的列（如 created_at）
      * @param bool $modelEvents 新行逐条经模型创建（触发 created 事件），否则批量插入
+     *
+     * 读取现有集合前先锁住所属行（见 OwnerLock），并发的整组替换按所属串行化，不会得到两次提交的并集。
      */
     public static function sync(string $model, array $owner, string $key, array $rows, array $insertDefaults = [], bool $modelEvents = false): void
+    {
+        Db::transaction(static function () use ($model, $owner, $key, $rows, $insertDefaults, $modelEvents): void {
+            OwnerLock::lockOwner($owner);
+            self::replace($model, $owner, $key, $rows, $insertDefaults, $modelEvents);
+        });
+    }
+
+    private static function replace(string $model, array $owner, string $key, array $rows, array $insertDefaults, bool $modelEvents): void
     {
         $kept = [];
         $removed = [];

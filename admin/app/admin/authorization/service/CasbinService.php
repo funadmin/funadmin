@@ -2,6 +2,7 @@
 
 namespace app\admin\authorization\service;
 
+use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\CasbinRule;
@@ -212,7 +213,7 @@ class CasbinService extends AbstractService
         foreach ($this->normalizeIds($roleIds) as $roleId) {
             $rows[] = $this->makeRuleRow('g', [$subject, PermissionResource::role($roleId), $domain]);
         }
-        $this->replacePolicies('g', $subject, $domain, $rows);
+        $this->replacePolicies('g', $subject, $domain, $rows, Admin::class, $adminId);
     }
 
     public function syncRoleInheritance(int $roleId, array $parentRoleIds, ?string $domain = null): void
@@ -223,7 +224,7 @@ class CasbinService extends AbstractService
         foreach ($this->normalizeIds($parentRoleIds) as $parentRoleId) {
             $rows[] = $this->makeRuleRow('g', [$role, PermissionResource::role($parentRoleId), $domain]);
         }
-        $this->replacePolicies('g', $role, $domain, $rows);
+        $this->replacePolicies('g', $role, $domain, $rows, AuthGroup::class, $roleId);
     }
 
     public function syncRolePermissions(int $roleId, $permissionIds, ?string $domain = null): void
@@ -257,7 +258,7 @@ class CasbinService extends AbstractService
         foreach ($permissions as $permission) {
             $rows[] = $this->makeRuleRow('p', [$role, $domain, $permission['obj'], $permission['act']]);
         }
-        $this->replacePolicies('p', $role, $domain, $rows);
+        $this->replacePolicies('p', $role, $domain, $rows, AuthGroup::class, $roleId);
     }
 
     public function deleteAdmin(int $adminId): void
@@ -312,9 +313,16 @@ class CasbinService extends AbstractService
         return $this->normalizeIds($ids);
     }
 
-    private function replacePolicies(string $ptype, string $subject, string $domain, array $rows): void
+    /**
+     * 整组替换某个主体的策略。读取现有策略前先锁住所属的管理员/角色行，
+     * 同一主体的并发替换因此串行化（原集合为空时也成立），不会留下两次提交的并集。
+     *
+     * @param class-string<\Illuminate\Database\Eloquent\Model> $ownerModel
+     */
+    private function replacePolicies(string $ptype, string $subject, string $domain, array $rows, string $ownerModel, int $ownerId): void
     {
-        Db::transaction(function () use ($ptype, $subject, $domain, $rows) {
+        Db::transaction(function () use ($ptype, $subject, $domain, $rows, $ownerModel, $ownerId) {
+            OwnerLock::lock($ownerModel, $ownerId);
             // 按差异同步：只软删除移除的规则、只添加缺少的规则，未变化的规则行不动（规则表不清理，整组重建会持续膨胀）。
             $adapter = new DatabaseAdapter($domain);
             $indexes = range(0, $ptype === 'p' ? 3 : 2);

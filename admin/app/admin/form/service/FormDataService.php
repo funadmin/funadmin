@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\form\service;
 
+use app\common\model\concern\RestoreConflictException;
 use app\common\form\action\FormActionRegistry;
 use app\common\form\component\PluginFormComponentRegistry;
 use app\common\form\dataSource\FormDataSourceRegistry;
@@ -653,12 +654,26 @@ final class FormDataService
             if (!(clone $connection)->lockForUpdate()->first()) throw new InvalidArgumentException('数据不存在');
             $this->guardTreeWrite((string) $form->form_key, $id, [], true);
             if (in_array('deleted_at', $columns, true)) {
-                $connection->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                $connection->update($this->softDeletePayload($database, $columns, $primary['name']));
                 return ['removed' => 1, 'mode' => 'soft'];
             }
             $connection->delete();
             return ['removed' => 1, 'mode' => 'hard'];
         });
+    }
+
+    /**
+     * 软删除写入：含 deleted_token 的表同时写入 deleted_token = 行主键（与模型软删除一致，释放唯一键给新建记录），
+     * 不含该列的业务表保持只写 deleted_at。
+     * @param list<string> $columns
+     */
+    private function softDeletePayload($connection, array $columns, string $primaryColumn): array
+    {
+        $payload = ['deleted_at' => date('Y-m-d H:i:s')];
+        if (in_array('deleted_token', $columns, true)) {
+            $payload['deleted_token'] = $connection->raw($connection->getQueryGrammar()->wrap($primaryColumn));
+        }
+        return $payload;
     }
 
     /** 回收站 scope 解析：仅 normal/recycled，且回收站要求表含 deleted_at。 */
@@ -687,7 +702,7 @@ final class FormDataService
             if (in_array('deleted_at', $columns, true)) $query->whereNull('deleted_at');
             foreach ($ids as $id) $this->guardTreeWrite((string) $form->form_key, $id, [], true);
             if (in_array('deleted_at', $columns, true)) {
-                $removed = $query->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                $removed = $query->update($this->softDeletePayload($database, $columns, $primary['name']));
                 return ['removed' => (int) $removed, 'mode' => 'soft'];
             }
             return ['removed' => (int) $query->delete(), 'mode' => 'hard'];
@@ -708,8 +723,16 @@ final class FormDataService
         $primary = $this->primaryKey($schema);
         $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
-            $restored = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))
-                ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at')->update(['deleted_at' => null]);
+            $query = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))
+                ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at');
+            // 含 deleted_token 的表（迁移 005 后的核心表）恢复时令牌归零；与现有有效记录唯一值冲突统一返回 409。
+            $payload = in_array('deleted_token', $columns, true) ? ['deleted_at' => null, 'deleted_token' => 0] : ['deleted_at' => null];
+            try {
+                $restored = $query->update($payload);
+            } catch (\Illuminate\Database\QueryException $error) {
+                if (RestoreConflictException::isUniqueViolation($error)) throw new RestoreConflictException($error);
+                throw $error;
+            }
             return ['restored' => (int) $restored];
         });
     }
@@ -1690,7 +1713,7 @@ final class FormDataService
                 $removed = array_values(array_diff($existingIds, array_keys($submitted)));
                 if ($removed !== []) {
                     $query = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->whereIn($primaryName, $removed);
-                    if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update(['deleted_at' => date('Y-m-d H:i:s')]);
+                    if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update($this->softDeletePayload($connection, array_keys($context['schema']), $primaryName));
                     else $query->delete();
                 }
             }

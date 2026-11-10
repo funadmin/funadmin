@@ -1240,7 +1240,7 @@ final class Ai extends AdminController
     private function databaseMaximumMigration(): int
     {
         $maximum = 0;
-        foreach ((array) SystemMigration::where('scope', 'core')->pluck('version')->all() as $version) {
+        foreach ((array) SystemMigration::ledger()->where('scope', 'core')->pluck('version')->all() as $version) {
             if (preg_match('/^(\d+)_/', (string) $version, $matches) === 1) $maximum = max($maximum, (int) $matches[1]);
         }
         return $maximum;
