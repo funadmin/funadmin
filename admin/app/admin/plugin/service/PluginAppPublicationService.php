@@ -145,6 +145,79 @@ final class PluginAppPublicationService
         return $lock ? $this->locked($operation) : $operation();
     }
 
+    /**
+     * 按指定一侧（installed 已安装目录 / source 插件源）重算原生 App 登记，并列出两侧差异。
+     * 登记行与 publish 使用同一 recordsForUnit/treeHash，保证 sha256 与 tree_hash 完全一致。
+     *
+     * @return array{records: list<array<string, mixed>>, differences: list<string>}
+     */
+    public function rebaseline(Manifest $manifest, string $from, string $token): array
+    {
+        $this->assertToken($token);
+        if (!in_array($from, ['installed', 'source'], true)) {
+            throw new RuntimeException('rebaseline 来源只能是 installed 或 source');
+        }
+        $code = $manifest->code();
+        $units = [];
+        foreach ($this->sourceUnits($manifest) as $unit => $definition) {
+            $units[$unit] = $definition['source'];
+        }
+        foreach (array_keys($this->recordsByUnit($this->ownedRecords($code))) as $unit) {
+            $units[$unit] ??= null;
+        }
+        ksort($units, SORT_STRING);
+        $records = [];
+        $differences = [];
+        foreach ($units as $unit => $source) {
+            $target = $this->unitTarget($unit, $code);
+            $this->assertNoTargetSymlink($target);
+            $sourceHashes = $source !== null ? $this->fileHashes($source) : [];
+            $targetHashes = is_dir($target) ? $this->fileHashes($target) : [];
+            $paths = array_unique(array_merge(array_keys($sourceHashes), array_keys($targetHashes)));
+            sort($paths, SORT_STRING);
+            foreach ($paths as $relative) {
+                $path = $this->targetRegistryPath($target . DIRECTORY_SEPARATOR . $relative);
+                if (!isset($targetHashes[$relative])) {
+                    $differences[] = 'missing:' . $path;
+                } elseif (!isset($sourceHashes[$relative])) {
+                    $differences[] = 'extra:' . $path;
+                } elseif (!hash_equals($sourceHashes[$relative], $targetHashes[$relative])) {
+                    $differences[] = 'modified:' . $path;
+                }
+            }
+            if ($paths !== [] && $sourceHashes === $targetHashes && $source !== null && is_dir($target)
+                && !hash_equals($this->treeHash($source), $this->treeHash($target))) {
+                $differences[] = 'tree:' . $unit;
+            }
+            $side = $from === 'source' ? $source : $target;
+            if ($side !== null && is_dir($side) && $this->files($side) !== []) {
+                $records = array_merge($records, $this->recordsForUnit(
+                    $code,
+                    $manifest->version(),
+                    $token,
+                    $unit,
+                    $side,
+                    $target,
+                    $this->treeHash($side)
+                ));
+            }
+        }
+        return ['records' => $records, 'differences' => $differences];
+    }
+
+    /** 以 rebaseline 结果整体替换插件原生 App 登记；调用方负责事务与锁。 */
+    public function replaceRegistry(string $pluginCode, array $records): void
+    {
+        $this->assertPluginCode($pluginCode);
+        foreach ($records as $record) {
+            if (($record['plugin_code'] ?? '') !== $pluginCode || ($record['resource_type'] ?? '') !== self::RESOURCE_TYPE) {
+                throw new RuntimeException('rebaseline 原生 App 登记归属无效');
+            }
+            $this->registryTarget((string) ($record['target_path'] ?? ''));
+        }
+        $this->repository->replaceAppForPlugin($pluginCode, $records);
+    }
+
     public function inspect(string $token): array
     {
         $this->assertToken($token);
@@ -532,7 +605,7 @@ final class PluginAppPublicationService
     ): array {
         $existing = $this->repository->all();
         $owned = $this->ownedRecords($pluginCode, $existing);
-        $this->assertCurrentUnmodified($pluginCode, $owned);
+        $this->assertCurrentUnmodified($pluginCode, $owned, $removing ? [] : $sourceUnits);
         $oldByUnit = $this->recordsByUnit($owned);
         if (!$removing) {
             foreach ($oldByUnit as $unit => $records) {
@@ -712,7 +785,13 @@ final class PluginAppPublicationService
         return $units;
     }
 
-    private function assertCurrentUnmodified(string $pluginCode, array $owned): void
+    /**
+     * 三方比对：已安装文件等于 registry 基线或等于即将发布的源文件时都视为未修改；
+     * 后者表示更新已被手工同步，发布会以同样内容覆盖并重写登记，不会丢失二次开发内容。
+     *
+     * @param array<string, array{source: ?string, target: string}> $sourceUnits 发布时传入的源单元，删除时为空
+     */
+    private function assertCurrentUnmodified(string $pluginCode, array $owned, array $sourceUnits = []): void
     {
         if ($owned === []) {
             return;
@@ -721,8 +800,11 @@ final class PluginAppPublicationService
         $byUnit = $this->recordsByUnit($owned);
         foreach ($byUnit as $unit => $records) {
             $targetRoot = $this->unitTarget($unit, $pluginCode);
+            $sourceRoot = $sourceUnits[$unit]['source'] ?? null;
+            $incoming = $sourceRoot !== null ? $this->fileHashes($sourceRoot) : null;
             $expectedTreeHash = (string) ($records[0]['tree_hash'] ?? '');
-            if (is_dir($targetRoot) && $expectedTreeHash !== ''
+            // 无源可比时（删除或单元退役）保留整树校验；有源时由逐文件三方比对裁决。
+            if ($incoming === null && is_dir($targetRoot) && $expectedTreeHash !== ''
                 && !hash_equals($expectedTreeHash, $this->treeHash($targetRoot))) {
                 $conflicts[] = 'modified-unit:' . $unit;
             }
@@ -732,18 +814,25 @@ final class PluginAppPublicationService
                 $relative = $this->relativePath($targetRoot, $target);
                 $registered[$relative] = true;
                 if (!is_file($target)) {
-                    $conflicts[] = 'deleted:' . $record['target_path'];
+                    if ($incoming === null || isset($incoming[$relative])) {
+                        $conflicts[] = 'deleted:' . $record['target_path'];
+                    }
                     continue;
                 }
                 $hash = hash_file('sha256', $target);
-                if ($hash === false || !hash_equals((string) $record['sha256'], $hash)) {
+                if ($hash === false || (!hash_equals((string) $record['sha256'], $hash)
+                    && !hash_equals((string) ($incoming[$relative] ?? ''), $hash))) {
                     $conflicts[] = 'modified:' . $record['target_path'];
                 }
             }
             if (is_dir($targetRoot)) {
                 foreach ($this->files($targetRoot) as $file) {
                     $relative = $this->relativePath($targetRoot, $file);
-                    if (!isset($registered[$relative])) {
+                    if (isset($registered[$relative])) {
+                        continue;
+                    }
+                    $hash = hash_file('sha256', $file);
+                    if ($hash === false || !hash_equals((string) ($incoming[$relative] ?? ''), $hash)) {
                         $conflicts[] = 'untracked:' . $this->targetRegistryPath($file);
                     }
                 }
@@ -769,11 +858,33 @@ final class PluginAppPublicationService
                     throw new RuntimeException('publication unit 已属于其他插件：' . $unit);
                 }
             }
-            if (file_exists($definition['target']) && !isset($oldByUnit[$unit])) {
+            $this->assertNoTargetSymlink($definition['target']);
+            if (file_exists($definition['target']) && !isset($oldByUnit[$unit])
+                && !$this->sameTree($definition['source'] ?? null, $definition['target'])) {
                 throw new RuntimeException('拒绝覆盖未登记的核心目标：' . $this->targetRegistryPath($definition['target']));
             }
-            $this->assertNoTargetSymlink($definition['target']);
         }
+    }
+
+    /** 未登记目标与即将发布的源目录逐字节一致时视为已手工同步，可安全接管。 */
+    private function sameTree(?string $source, string $target): bool
+    {
+        return $source !== null && is_dir($source) && is_dir($target) && !is_link($target)
+            && hash_equals($this->treeHash($source), $this->treeHash($target));
+    }
+
+    /** @return array<string, string> 相对路径 => SHA-256 */
+    private function fileHashes(string $directory): array
+    {
+        $hashes = [];
+        foreach ($this->files($directory) as $file) {
+            $hash = hash_file('sha256', $file);
+            if ($hash === false) {
+                throw new RuntimeException('无法计算原生 App SHA-256：' . $file);
+            }
+            $hashes[$this->relativePath($directory, $file)] = $hash;
+        }
+        return $hashes;
     }
 
     private function swap(array $unit): void
@@ -875,6 +986,11 @@ final class PluginAppPublicationService
 
     private function restoreNativeRegistryFromJournal(array $journal): void
     {
+        // 没有任何发布单元说明 execute 尚未捕获 registry_before（如冲突检测阶段失败）或插件本无原生单元；
+        // 此时空的 registry_before 不代表"原登记为空"，覆盖会清空现有登记。
+        if ((array) ($journal['units'] ?? []) === []) {
+            return;
+        }
         $this->repository->replaceAppForPlugin(
             (string) $journal['plugin'],
             (array) ($journal['registry_before'] ?? [])

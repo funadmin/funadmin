@@ -122,6 +122,41 @@ CRUD、业务生成和 ZIP 打包使用同一套目录。校验、发布、修�
 
 开发环境由 Vite 将 `/admin/...`、Hook 描述接口及 `/plugin-assets/...` 等请求代理到 `VITE_APP_PROXY_TARGET`，默认 Webman 地址为 `http://127.0.0.1:8787`。同端口部署直接请求后端；独立前端域名部署需要配置对应接口和公开资源代理，参见 `web/README.md`。
 
+## 发布登记与手工同步
+
+安装、更新和重新部署会把插件源复制到上表的安装位置，并在 `plugin_resource` 中登记每个文件的 `sha256`（原生 App 单元另记 `tree_hash`）。下一次更新以这份登记为基线判断安装位置是否被二次开发：
+
+- 安装位置的文件等于登记基线，或等于即将发布的插件源文件（逐字节相同），都视为未修改。后者表示新版本已被手工同步，更新会直接接管并重写登记。
+- 未登记但与插件源逐字节相同的公开资源或前端文件同样直接接管；内容不同仍拒绝覆盖（`拒绝覆盖未登记的核心文件`）。
+- 既不等于基线也不等于新源的文件，以及插件源中没有的未登记文件，仍报 `原生 App 存在二次开发冲突`。
+
+### `plugin:rebaseline`
+
+手工复制过插件文件后，登记会停在旧版本。用下面的命令按某一侧重写该插件的全部登记行（路径、`sha256`、单元 `tree_hash`），哈希与真实发布使用同一套算法：
+
+```sh
+cd admin
+php webman plugin:rebaseline cms --dry-run                 # 只列出差异与登记变更，不写库
+php webman plugin:rebaseline cms                           # 默认 --from=installed
+php webman plugin:rebaseline cms --from=source
+php webman plugin:rebaseline cms --from=installed --force  # 安装位置与源不一致时仍以安装位置为准
+```
+
+- `--from=installed` 按安装位置的文件登记，`--from=source` 按插件源登记。
+- 安装位置与插件源不一致（`modified:`、`missing:`、`extra:`、`tree:`）时默认拒绝，不写库；确认以所选一侧为准时加 `--force`。`--dry-run` 输出中的 `blocked` 表示正式执行会被拒绝。
+- 插件必须已安装且没有进行中的生命周期操作。存在未完成的 publication journal 时会拒绝，先运行 `php webman plugin:publication-recover <token>`（`--dry-run` 的 `staleJournals` 列出 token）。
+- 写入在生命周期锁、发布锁和数据库事务内完成，并在 `plugin_operation` 记录一条 `rebaseline` 审计。
+- 只改写 `plugin_resource`，不改 `plugin.version`、不执行迁移、不登记权限或菜单。随后照常运行更新（版本高于记录时）或重新部署。
+
+### `plugin:sync`（仅开发环境）
+
+```sh
+cd admin
+php webman plugin:sync cms
+```
+
+把插件源完整同步到所有安装位置（原生 App 单元、公开资源和前端源码），然后按插件源重建登记。安装位置上的手工改动和多余文件会被插件源覆盖或删除。复制经由 publication journal 执行，失败时自动回滚。只有 `APP_DEBUG=true` 或 `APP_ENV` 为 `dev`、`development`、`local` 时可用，否则直接拒绝。同步后会重建激活快照；新增路由或 PHP 类仍需 `php start.php reload`，迁移、权限和菜单仍需更新或重新部署。
+
 ## 后端钩子、前端钩子与跨插件调用
 
 插件可仅提供钩子，不必包含 `app/`、控制器、菜单或路由。安装和启用仍通过原有插件生命周期；停用插件、依赖失效或激活快照损坏时，不会加载该插件的处理器。

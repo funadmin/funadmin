@@ -25,6 +25,8 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'plugin:make-crud' => ['plugin', 'PluginMakeCrud', MySqlPluginCommandTest::class, 'test_make_crud_infers_real_schema_in_temporary_plugin_without_mutating_table', 'test_make_crud_infers_real_schema_in_temporary_plugin_without_mutating_table'],
             'plugin:package' => ['plugin', 'PluginPackage', PluginPackageExecutionTest::class, 'test_package_cli_round_trips_stage_and_is_reproducible', 'test_signed_archive_verifies_and_tampering_is_rejected_before_extraction'],
             'plugin:publication-recover' => ['plugin', 'PluginPublicationRecover', PluginPublicationExecutionTest::class, 'test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently', 'test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently'],
+            'plugin:rebaseline' => ['plugin', 'PluginRebaseline', PluginRebaselineExecutionTest::class, 'test_rebaseline_repairs_stale_registry_after_hand_sync_and_unblocks_update', 'test_rebaseline_refuses_when_installed_differs_from_source_unless_forced'],
+            'plugin:sync' => ['plugin', 'PluginSync', PluginRebaselineExecutionTest::class, 'test_sync_copies_source_over_installed_drift_and_rebaselines', 'test_sync_refuses_outside_development'],
             'plugin:validate' => ['plugin', 'PluginValidate', PluginScaffoldExecutionTest::class, 'test_validate_reads_logical_plugin_registry_and_rejects_missing_dependency', 'test_validate_reads_logical_plugin_registry_and_rejects_missing_dependency'],
             'ai:change-set-recover' => ['ai', 'AiChangeSetRecover', AiChangeSetRecoveryTest::class, 'test_recovery_command_rolls_back_proven_changes_and_is_idempotent', 'test_recovery_command_refuses_unknown_external_writes'],
             'ai:outbox-dispatch' => ['ai', 'AiOutboxDispatch', MySqlAiQueueTest::class, 'test_real_outbox_redis_transport_consumer_and_retry', [AiOutboxExecutionTest::class, 'test_command_returns_nonzero_when_outbox_storage_is_unavailable']],
@@ -73,7 +75,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
 
     public function test_all_live_commands_have_traceable_normal_and_failure_execution_evidence(): void
     {
-        self::assertCount(18, self::matrix());
+        self::assertCount(20, self::matrix());
         $discovered = [];
         foreach (glob(app_path('admin/*/command/*.php')) as $file) {
             $class = 'app\\admin\\' . basename(dirname($file, 2)) . '\\command\\' . basename($file, '.php');

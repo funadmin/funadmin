@@ -39,6 +39,20 @@ final class PluginOperationAuditService
         ], $columns));
     }
 
+    /** 记录 rebaseline/sync 等运维操作；兼容核心表（metadata）与精简生命周期表结构。 */
+    public function maintenance(string $code, string $operation, string $token, string $fromVersion, string $toVersion, array $metadata): void
+    {
+        $columns = array_flip(\support\Db::schema()->getColumnListing('plugin_operation'));
+        $encoded = json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $operationRecord = new PluginOperation();
+        $operationRecord->fill(array_intersect_key([
+            'plugin_code' => $code, 'operation' => $operation, 'operation_token' => $token,
+            'stage' => 'complete', 'progress' => 100, 'result' => 'success', 'status' => 1,
+            'from_version' => $fromVersion, 'to_version' => $toVersion, 'source' => 'local',
+            'package_hash' => str_repeat('0', 64), 'metadata' => $encoded, 'error_message' => null,
+        ], $columns))->save();
+    }
+
     private function start(string $code, string $operation, string $token, array $context): void
     {
         if (isset($this->startedTokens[$token])) {

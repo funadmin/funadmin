@@ -67,7 +67,7 @@ final class BusinessModuleLayoutTest extends TestCase
             'business:generation-recover', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
             'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
             'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:package',
-            'plugin:publication-recover', 'plugin:validate', 'upgrade:recover-stale',
+            'plugin:publication-recover', 'plugin:rebaseline', 'plugin:sync', 'plugin:validate', 'upgrade:recover-stale',
         ] as $name) {
             self::assertArrayHasKey($name, $commands, '业务命令未接入 webman/console：' . $name);
             self::assertNotSame('', $commands[$name]['description']);
@@ -212,6 +212,8 @@ final class BusinessModuleLayoutTest extends TestCase
                 'PluginMakeCrud' => 'plugin:make-crud',
                 'PluginPackage' => 'plugin:package',
                 'PluginPublicationRecover' => 'plugin:publication-recover',
+                'PluginRebaseline' => 'plugin:rebaseline',
+                'PluginSync' => 'plugin:sync',
                 'PluginValidate' => 'plugin:validate',
             ],
             'system' => ['UpgradeRecover' => 'upgrade:recover-stale'],

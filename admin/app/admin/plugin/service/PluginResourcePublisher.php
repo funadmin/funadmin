@@ -74,7 +74,10 @@ final class PluginResourcePublisher
                 $target = $targetRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
                 $rootRelative = str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($resource['root']) + 1));
                 $targetPath = $this->registryPath($resource['type'], $rootRelative);
-                $this->assertAvailable($target, $targetPath, $manifest->code(), $existing);
+                if ($this->assertAvailable($target, $targetPath, $manifest->code(), $existing, $source)) {
+                    // 接管与源一致的未登记文件前先快照，回滚时原样恢复而不是删除。
+                    $artifacts[] = $this->snapshotArtifact($targetPath, $target);
+                }
                 $index = count($writes);
                 $this->fault('before_prepare_hash', $index, $source);
                 $sha256 = hash_file('sha256', $source);
@@ -103,6 +106,128 @@ final class PluginResourcePublisher
         $plan['artifacts'] = $artifacts;
         $plan['materialization_state'] = 'planned';
         return $plan;
+    }
+
+    /**
+     * 按指定一侧（installed 已发布目录 / source 插件源）重算文件资源登记，并列出两侧差异。
+     * 使用与 planPublish 相同的路径映射与 SHA-256，保证登记行与真实发布一致。
+     *
+     * @return array{records: list<array<string, mixed>>, differences: list<string>}
+     */
+    public function rebaseline(Manifest $manifest, string $from, string $token): array
+    {
+        $this->assertToken($token);
+        if (!in_array($from, ['installed', 'source'], true)) {
+            throw new RuntimeException('rebaseline 来源只能是 installed 或 source');
+        }
+        $code = $manifest->code();
+        $roots = $this->roots();
+        $existing = $this->repository->all();
+        $owned = $this->ownedRecords($code, $existing);
+        $this->assertSnapshotTargets($owned, $roots);
+        $now = date('Y-m-d H:i:s');
+        $records = [];
+        $differences = [];
+        $seen = [];
+        foreach ($this->publicationSources($manifest, $roots) as $resource) {
+            $sourceRoot = $this->canonicalSourceDirectory($manifest->directory(), $resource['source']);
+            $targetRoot = $this->targetDirectory($resource['root'], $code, $resource['target'], $resource['type']);
+            $sourceFiles = $this->relativeFiles($sourceRoot);
+            $targetFiles = is_dir($targetRoot) ? $this->relativeFiles($targetRoot) : [];
+            $paths = array_unique(array_merge(array_keys($sourceFiles), array_keys($targetFiles)));
+            sort($paths, SORT_STRING);
+            foreach ($paths as $relative) {
+                $target = $targetRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+                $targetPath = $this->registryPath(
+                    $resource['type'],
+                    str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($resource['root']) + 1))
+                );
+                foreach ($existing as $record) {
+                    if (($record['target_path'] ?? '') === $targetPath && ($record['plugin_code'] ?? '') !== $code) {
+                        throw new RuntimeException('资源目标已属于其他插件：' . $targetPath);
+                    }
+                }
+                $seen[$targetPath] = true;
+                $sourceHash = isset($sourceFiles[$relative]) ? $this->sha256($sourceFiles[$relative]) : null;
+                $targetHash = isset($targetFiles[$relative]) ? $this->sha256($targetFiles[$relative]) : null;
+                if ($targetHash === null) {
+                    $differences[] = 'missing:' . $targetPath;
+                } elseif ($sourceHash === null) {
+                    $differences[] = 'extra:' . $targetPath;
+                } elseif (!hash_equals($sourceHash, $targetHash)) {
+                    $differences[] = 'modified:' . $targetPath;
+                }
+                $sha256 = $from === 'source' ? $sourceHash : $targetHash;
+                if ($sha256 === null) {
+                    continue;
+                }
+                $records[] = [
+                    'plugin_code' => $code, 'version' => $manifest->version(), 'resource_type' => 'file',
+                    'publication_unit' => null, 'operation_token' => $token,
+                    'source_path' => rtrim((string) $resource['source'], '/') . '/' . $relative,
+                    'target_path' => $targetPath, 'sha256' => $sha256,
+                    'created_at' => $now, 'updated_at' => $now,
+                ];
+            }
+        }
+        foreach ($owned as $record) {
+            $targetPath = (string) $record['target_path'];
+            if (isset($seen[$targetPath])) {
+                continue;
+            }
+            [$root, $relative] = $this->resolveRegistryPath($roots, $targetPath);
+            $target = $this->safeTarget($root, $relative);
+            if (!is_file($target)) {
+                continue;
+            }
+            // 源中已不存在但仍在磁盘上的旧登记文件：installed 侧保留所有权，下一次发布会按登记删除。
+            $differences[] = 'extra:' . $targetPath;
+            if ($from === 'installed') {
+                $records[] = array_replace(
+                    array_intersect_key($record, array_flip(['plugin_code', 'version', 'resource_type', 'publication_unit', 'source_path', 'target_path'])),
+                    ['version' => $manifest->version(), 'operation_token' => $token, 'sha256' => $this->sha256($target), 'created_at' => $now, 'updated_at' => $now]
+                );
+            }
+        }
+        sort($differences, SORT_STRING);
+        return ['records' => $records, 'differences' => array_values(array_unique($differences))];
+    }
+
+    /** 以 rebaseline 结果整体替换插件文件资源登记；调用方负责事务与锁。 */
+    public function replaceRegistry(string $pluginCode, array $records): void
+    {
+        $this->assertPluginCode($pluginCode);
+        $roots = $this->roots();
+        foreach ($records as $record) {
+            $targetPath = (string) ($record['target_path'] ?? '');
+            if (($record['plugin_code'] ?? '') !== $pluginCode || ($record['resource_type'] ?? '') !== 'file'
+                || (!str_starts_with($targetPath, self::ADMIN_WEB_PREFIX . 'src/admin/plugins/' . $pluginCode . '/')
+                    && !str_starts_with($targetPath, self::PUBLIC_PREFIX . 'plugin-assets/' . $pluginCode . '/'))) {
+                throw new RuntimeException('rebaseline 文件资源登记归属无效：' . $targetPath);
+            }
+            [$root, $relative] = $this->resolveRegistryPath($roots, $targetPath);
+            $this->safeTarget($root, $relative);
+        }
+        $this->repository->replaceForPlugin($pluginCode, $records);
+    }
+
+    /** @return array<string, string> 相对路径（/ 分隔）=> 绝对路径 */
+    private function relativeFiles(string $directory): array
+    {
+        $files = [];
+        foreach ($this->files($directory) as $file) {
+            $files[str_replace(DIRECTORY_SEPARATOR, '/', substr($file, strlen($directory) + 1))] = $file;
+        }
+        return $files;
+    }
+
+    private function sha256(string $file): string
+    {
+        $hash = hash_file('sha256', $file);
+        if ($hash === false) {
+            throw new RuntimeException('无法计算资源 SHA-256：' . $file);
+        }
+        return $hash;
     }
 
     public function prepareRemove(string $pluginCode, string $token): array
@@ -416,20 +541,25 @@ final class PluginResourcePublisher
             if (!is_file($source)) {
                 continue;
             }
-            $sha256 = hash_file('sha256', $source);
-            if ($sha256 === false) {
-                throw new RuntimeException('无法计算资源恢复文件 SHA-256：' . $targetPath);
-            }
-            $artifacts[] = [
-                'kind' => 'snapshot',
-                'source' => $source,
-                'relative_path' => 'resource-files/' . hash('sha256', $targetPath) . '.snapshot',
-                'target_path' => $targetPath,
-                'sha256' => $sha256,
-                'state' => 'planned',
-            ];
+            $artifacts[] = $this->snapshotArtifact($targetPath, $source);
         }
         return $artifacts;
+    }
+
+    private function snapshotArtifact(string $targetPath, string $source): array
+    {
+        $sha256 = hash_file('sha256', $source);
+        if ($sha256 === false) {
+            throw new RuntimeException('无法计算资源恢复文件 SHA-256：' . $targetPath);
+        }
+        return [
+            'kind' => 'snapshot',
+            'source' => $source,
+            'relative_path' => 'resource-files/' . hash('sha256', $targetPath) . '.snapshot',
+            'target_path' => $targetPath,
+            'sha256' => $sha256,
+            'state' => 'planned',
+        ];
     }
 
     private function snapshotFromArtifacts(string $pluginCode, array $records, string $token, array $artifacts): array
@@ -508,7 +638,10 @@ final class PluginResourcePublisher
         return $this->safeTarget($tokenReal, $relative);
     }
 
-    private function assertAvailable(string $target, string $targetPath, string $pluginCode, array $registry): void
+    /**
+     * @return bool 目标是未登记、但与即将发布的源文件逐字节一致的已有文件（手工同步后接管）
+     */
+    private function assertAvailable(string $target, string $targetPath, string $pluginCode, array $registry, string $source): bool
     {
         if (is_link($target)) {
             throw new RuntimeException('资源目标路径禁止符号链接：' . $targetPath);
@@ -520,11 +653,17 @@ final class PluginResourcePublisher
             if (($record['plugin_code'] ?? '') !== $pluginCode) {
                 throw new RuntimeException('资源目标已属于其他插件：' . $targetPath);
             }
-            return;
+            return false;
         }
-        if (is_file($target)) {
+        if (!is_file($target)) {
+            return false;
+        }
+        $current = hash_file('sha256', $target);
+        $incoming = hash_file('sha256', $source);
+        if ($current === false || $incoming === false || !hash_equals($incoming, $current)) {
             throw new RuntimeException('拒绝覆盖未登记的核心文件：' . $targetPath);
         }
+        return true;
     }
 
     private function publicationSources(Manifest $manifest, array $roots): array
