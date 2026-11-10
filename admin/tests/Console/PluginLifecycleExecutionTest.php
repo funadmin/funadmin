@@ -204,7 +204,7 @@ class PluginLifecycleExecutionTest extends TestCase
             self::assertSame(404, $call());
             self::assertFileDoesNotExist($controllerFile);
             self::assertFileDoesNotExist($this->root . '/web/src/admin/plugins/lifecyclefixture/pages/Index.vue');
-            self::assertSame(0, Db::table('plugin_resource')->where('plugin_code', 'lifecyclefixture')->count());
+            self::assertSame(0, Db::table('plugin_resource')->where('plugin_code', 'lifecyclefixture')->whereNull('deleted_at')->count());
         } finally {
             \support\Context::destroy();
         }

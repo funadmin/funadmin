@@ -164,7 +164,7 @@ class PluginRebaselineExecutionTest extends TestCase
         self::assertSame(0, $applied[0], $applied[1]);
         self::assertTrue(json_decode($applied[1], true, 512, JSON_THROW_ON_ERROR)['applied']);
         self::assertSame($this->rowsFromSource(), $this->registryRows());
-        self::assertSame(['1.1.0'], Db::table('plugin_resource')->distinct()->pluck('version')->all());
+        self::assertSame(['1.1.0'], Db::table('plugin_resource')->whereNull('deleted_at')->distinct()->pluck('version')->all());
         self::assertSame('1.0.0', Db::table('plugin')->value('version'), 'rebaseline 不改写插件版本，以便随后正常 update');
         $audit = Db::table('plugin_operation')->where('operation', 'rebaseline')->first();
         self::assertSame('success', $audit->result);

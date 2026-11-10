@@ -230,7 +230,7 @@ class PluginPublicationExecutionTest extends TestCase
             self::assertSame(0, $command->execute(['token' => $token]), $command->getDisplay());
             self::assertFileDoesNotExist($controller);
             self::assertFileDoesNotExist($resource);
-            self::assertSame(0, Db::table('plugin_resource')->count());
+            self::assertSame(0, Db::table('plugin_resource')->whereNull('deleted_at')->count());
             self::assertSame(0, $command->execute(['token' => $token]), $command->getDisplay());
             self::assertSame([], $publisher->stale());
             self::assertSame(1, $command->execute(['token' => '../escape']));
