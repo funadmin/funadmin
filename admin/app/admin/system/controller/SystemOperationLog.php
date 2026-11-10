@@ -11,6 +11,7 @@ use app\admin\system\model\AdminLog;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
 use support\annotation\route\RouteGroup;
+use support\Db;
 use support\Response;
 
 /**
@@ -105,7 +106,7 @@ class SystemOperationLog extends AdminController
     }
 
     /**
-     * 读取当前数据范围内的操作日志详情。
+     * 读取当前数据范围内的操作日志详情（含回收站中已软删除的日志，deletedAt 为删除时间）。
      *
      * @param int $id 路由中的目标记录 ID。
      * @return Response JSON 格式的接口响应。
@@ -114,7 +115,7 @@ class SystemOperationLog extends AdminController
      *     path="/admin/system/log/operation/{id}",
      *     operationId="admin_system_controller_SystemOperationLog_detail_get",
      *     tags={"操作日志"},
-     *     summary="读取当前数据范围内的操作日志详情。",
+     *     summary="读取当前数据范围内的操作日志详情（含回收站中已软删除的日志）。",
      *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
      *     security={{"AdminSession"={}}},
      *     @OA\Parameter(name="id", in="path", required=true, description="路由中的目标记录 ID。", @OA\Schema(type="integer", minimum=1)),
@@ -128,7 +129,7 @@ class SystemOperationLog extends AdminController
     #[Get('/{id:\d+}')]
     public function detail(int $id): Response
     {
-        $log = AdminLog::scopedQuery()->where('id', $id)->first();
+        $log = AdminLog::scopedQuery()->withTrashed()->where('id', $id)->first();
         return $log ? $this->ok(data: $log->toApiData(true)) : $this->fail(msg: '日志不存在或无权访问', code: 404);
     }
 
@@ -236,7 +237,8 @@ class SystemOperationLog extends AdminController
     /**
      * 彻底删除指定操作日志（未删除与回收站中的均可），不可恢复。
      *
-     * 请求字段：ids。任一 ID 不存在或不在当前数据范围内时整体拒绝，不删除任何记录。
+     * 请求字段：ids（正整数，不可重复）。含无法解析、为 0 或重复的 ID 时返回 422；任一 ID 不存在或不在当前数据范围内时返回 403；
+     * 两种情况都不删除任何记录。范围校验与删除在同一事务中完成。
      *
      * @return Response JSON 格式的接口响应。
      *
@@ -260,20 +262,30 @@ class SystemOperationLog extends AdminController
     #[Delete('/force')]
     public function forceDelete(): Response
     {
-        $ids = $this->ids();
+        $value = $this->request->post('ids', null) ?? $this->request->get('ids', []);
+        try {
+            $ids = $this->normalizeIds($value, strict: true);
+        } catch (\InvalidArgumentException $error) {
+            return $this->fail(msg: 'ID 无效：' . $error->getMessage(), code: 422);
+        }
         if (!$ids) {
             return $this->fail(msg: '请选择要彻底删除的日志', code: 422);
         }
-        $query = AdminLog::scopedQuery()->withTrashed()->whereIn('id', $ids);
-        if ((clone $query)->count() !== count($ids)) {
+        $removed = Db::transaction(static function () use ($ids): ?int {
+            $query = AdminLog::scopedQuery()->withTrashed()->whereIn('id', $ids);
+            if ((clone $query)->lockForUpdate()->count() !== count($ids)) {
+                return null;
+            }
+            return (int) $query->forceDelete();
+        });
+        if ($removed === null) {
             return $this->fail(msg: '包含不存在或无权删除的日志', code: 403);
         }
-        $removed = $query->forceDelete();
-        return $this->ok('彻底删除成功', ['removed' => (int) $removed]);
+        return $this->ok('彻底删除成功', ['removed' => $removed]);
     }
 
     /**
-     * 彻底清空当前管理员数据范围内的全部操作日志（含回收站），不可恢复。
+     * 清空回收站：彻底删除当前管理员数据范围内已软删除的操作日志，不可恢复；未删除的日志不受影响。
      *
      * @return Response JSON 格式的接口响应。
      *
@@ -281,7 +293,7 @@ class SystemOperationLog extends AdminController
      *     path="/admin/system/log/operation/clear-force",
      *     operationId="admin_system_controller_SystemOperationLog_clearForce_delete",
      *     tags={"操作日志"},
-     *     summary="彻底清空当前管理员数据范围内的全部操作日志（含回收站），不可恢复。",
+     *     summary="清空回收站：彻底删除当前管理员数据范围内已软删除的操作日志，不可恢复；未删除的日志不受影响。",
      *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
      *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
@@ -293,8 +305,8 @@ class SystemOperationLog extends AdminController
     #[Delete('/clear-force')]
     public function clearForce(): Response
     {
-        $removed = AdminLog::scopedQuery()->withTrashed()->forceDelete();
-        return $this->ok('彻底清空成功', ['removed' => (int) $removed]);
+        $removed = AdminLog::scopedQuery()->onlyTrashed()->forceDelete();
+        return $this->ok('回收站已清空', ['removed' => (int) $removed]);
     }
 
 }

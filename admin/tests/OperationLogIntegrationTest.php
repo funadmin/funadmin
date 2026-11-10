@@ -179,14 +179,12 @@ final class OperationLogIntegrationTest extends TestCase
         self::assertSame(2, Db::table('admin_log')->whereIn('id', [$kept, $other])->count());
     }
 
-    public function test_clear_force_removes_everything_in_scope_only(): void
+    public function test_clear_force_empties_only_the_recycle_bin_in_scope(): void
     {
         Db::table('admin')->insert(['id' => 22, 'username' => 'auditor', 'password' => 'hidden', 'status' => 1]);
         $now = date('Y-m-d H:i:s');
-        Db::table('admin_log')->insert([
-            ['admin_id' => 22, 'name' => '本人未删除', 'deleted_at' => null],
-            ['admin_id' => 22, 'name' => '本人已删除', 'deleted_at' => $now],
-        ]);
+        $ownLive = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '本人未删除']);
+        $ownTrashed = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '本人已删除', 'deleted_at' => $now]);
         $others = [
             Db::table('admin_log')->insertGetId(['admin_id' => 33, 'name' => '其他未删除']),
             Db::table('admin_log')->insertGetId(['admin_id' => 33, 'name' => '其他已删除', 'deleted_at' => $now]),
@@ -195,10 +193,43 @@ final class OperationLogIntegrationTest extends TestCase
         $this->asActor(22);
         $result = $this->json((new SystemOperationLog())->clearForce());
         self::assertSame(200, $result['code']);
-        self::assertSame(['removed' => 2], $result['data']);
-        self::assertFalse(Db::table('admin_log')->where('admin_id', 22)->exists());
+        self::assertSame(['removed' => 1], $result['data']);
+        self::assertFalse(Db::table('admin_log')->where('id', $ownTrashed)->exists(), '回收站中的本人日志被真实删除');
+        self::assertTrue(Db::table('admin_log')->where('id', $ownLive)->whereNull('deleted_at')->exists(), '清空回收站不得触碰未删除的日志');
         self::assertSame($others, Db::table('admin_log')->where('admin_id', 33)->orderBy('id')->pluck('id')->map('intval')->all(), '数据范围外的日志（含回收站）保持不动');
         self::assertNull(Db::table('admin_log')->where('id', $others[0])->value('deleted_at'));
+        self::assertNotNull(Db::table('admin_log')->where('id', $others[1])->value('deleted_at'));
+    }
+
+    public function test_force_delete_rejects_invalid_ids_without_deleting(): void
+    {
+        $five = Db::table('admin_log')->insertGetId(['id' => 5, 'admin_id' => 1, 'name' => '五号']);
+        self::assertSame(5, $five);
+        foreach (['?ids[]=5&ids[]=abc', '?ids[]=5&ids[]=0', '?ids=5,abc', '?ids[]=5&ids[]=5', '?ids[]=5&ids[]=-1'] as $query) {
+            $this->asActor(1, $query);
+            self::assertSame(422, $this->json((new SystemOperationLog())->forceDelete())['code'], $query);
+            self::assertTrue(Db::table('admin_log')->where('id', 5)->exists(), $query . ' 不得删除任何记录');
+        }
+        $body = json_encode(['ids' => [5, 'abc']], JSON_THROW_ON_ERROR);
+        $request = new Request("DELETE /admin/system/log/operation/force HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+        $request->context['admin'] = ['id' => 1, 'username' => 'operator'];
+        Context::set(\Webman\Http\Request::class, $request);
+        self::assertSame(422, $this->json((new SystemOperationLog())->forceDelete())['code'], 'JSON 请求体');
+        self::assertTrue(Db::table('admin_log')->where('id', 5)->exists());
+    }
+
+    public function test_detail_returns_trashed_logs_within_scope(): void
+    {
+        Db::table('admin')->insert(['id' => 22, 'username' => 'auditor', 'password' => 'hidden', 'status' => 1]);
+        $now = date('Y-m-d H:i:s');
+        $own = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '本人已删除', 'deleted_at' => $now]);
+        $other = Db::table('admin_log')->insertGetId(['admin_id' => 33, 'name' => '其他已删除', 'deleted_at' => $now]);
+        $this->asActor(22);
+        $detail = $this->json((new SystemOperationLog())->detail($own));
+        self::assertSame(200, $detail['code']);
+        self::assertSame('本人已删除', $detail['data']['name']);
+        self::assertSame($now, $detail['data']['deletedAt']);
+        self::assertSame(404, $this->json((new SystemOperationLog())->detail($other))['code'], '回收站详情同样受数据范围约束');
     }
 
     public function test_force_endpoints_require_their_own_permission(): void
@@ -208,7 +239,7 @@ final class OperationLogIntegrationTest extends TestCase
         self::assertSame('system:operation-log:force-delete', $force);
         self::assertSame('system:operation-log:clear-force', $clearForce);
         $sibling = Db::table('permission')->where('code', 'system:operation-log:delete')->first();
-        foreach ([$force => '彻底删除', $clearForce => '彻底清空'] as $code => $name) {
+        foreach ([$force => '彻底删除', $clearForce => '清空回收站'] as $code => $name) {
             $row = Db::table('permission')->where('code', $code)->first();
             self::assertNotNull($row, $code . ' 必须登记');
             self::assertSame(['system/operation-log', PermissionCode::resource($code)['act'], 'route', 1, 0, $name], [$row->obj, $row->act, $row->resource_type, (int) $row->status, (int) $row->is_public, $row->name]);
@@ -265,7 +296,7 @@ final class OperationLogIntegrationTest extends TestCase
         (new \ReflectionMethod(MigrationService::class, 'assertForwardOnly'))->invoke(new MigrationService(), $sql, $file);
         $code = (string) preg_replace('/^\s*--.*$/m', '', $sql);
         self::assertDoesNotMatchRegularExpression('/[^\x00-\x7F]/', $code, '语句中的中文必须使用 UTF-8 十六进制字面量');
-        foreach (['彻底删除', '彻底清空'] as $text) {
+        foreach (['彻底删除', '清空回收站'] as $text) {
             self::assertStringContainsString("CONVERT(X'" . strtoupper(bin2hex($text)) . "' USING utf8mb4)", $code, $text);
         }
         foreach (["'system:operation-log:force-delete'", "'system:operation-log:clear-force'", "'system:operation-log:delete'"] as $needle) {

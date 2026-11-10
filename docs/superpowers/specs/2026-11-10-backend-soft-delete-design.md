@@ -60,7 +60,7 @@
 - 后端 `SystemOperationLog` 新增：
   - 列表参数 `trashed=1`：只看已删除的日志（回收站）。
   - `DELETE /admin/system/log/operation/force`：按 `ids` 真实删除，对未删除和已删除的日志都有效。
-  - `DELETE /admin/system/log/operation/clear-force`：真实清空当前数据范围内的全部日志，包括回收站。
+  - `DELETE /admin/system/log/operation/clear-force`：清空回收站：真实删除当前数据范围内已软删除的日志，不碰未删除的日志（用户规则：真实删除只能在回收站进行）。
 - 新方法按现有约定得到各自的推导权限码，并登记到权限和鉴权快照。
 - 前端 `operation.vue`：
   - 保留“删除”“清空”，它们是软删除。
