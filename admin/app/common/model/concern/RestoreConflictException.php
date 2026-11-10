@@ -33,6 +33,6 @@ class RestoreConflictException extends \RuntimeException
 
         return $driverCode === 1062
             || $sqlState === '23505'
-            || str_contains($error->getMessage(), 'UNIQUE constraint failed');
+            || str_contains((string) ($info[2] ?? ''), 'UNIQUE constraint failed');
     }
 }

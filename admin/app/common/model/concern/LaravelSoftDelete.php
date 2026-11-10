@@ -86,10 +86,10 @@ trait LaravelSoftDelete
 
         $this->exists = true;
 
+        // 恢复失败（异常或监听器否决）时回滚内存中的属性，避免模型误以为已经恢复。
         try {
             $result = $this->save();
         } catch (QueryException $error) {
-            // 恢复失败时回滚内存中的属性，避免模型误以为已经恢复。
             $this->setRawAttributes($attributes);
             $this->exists = $exists;
             if (RestoreConflictException::isUniqueViolation($error)) {
@@ -98,10 +98,15 @@ trait LaravelSoftDelete
             throw $error;
         }
 
-        if ($result) {
-            $this->fireModelEvent('restored', false);
+        if (!$result) {
+            $this->setRawAttributes($attributes);
+            $this->exists = $exists;
+
+            return false;
         }
 
-        return $result;
+        $this->fireModelEvent('restored', false);
+
+        return true;
     }
 }

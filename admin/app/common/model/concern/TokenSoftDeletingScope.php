@@ -21,7 +21,7 @@ class TokenSoftDeletingScope extends SoftDeletingScope
 {
     public const TOKEN_COLUMN = 'deleted_token';
 
-    /** @var array<string, bool> 按 连接|带前缀表名 缓存列检测结果 */
+    /** @var array<string, true> 按 连接|带前缀表名 缓存“列存在”的检测结果 */
     private static array $tokenColumnCache = [];
 
     public function extend(Builder $builder)
@@ -81,7 +81,7 @@ class TokenSoftDeletingScope extends SoftDeletingScope
     }
 
     /**
-     * 判断模型所在表是否有 deleted_token 列，按连接与带前缀的表名缓存。
+     * 判断模型所在表是否有 deleted_token 列；按连接与带前缀的表名只缓存存在的结果。
      */
     public static function modelHasDeletedToken(Model $model): bool
     {
@@ -89,8 +89,17 @@ class TokenSoftDeletingScope extends SoftDeletingScope
         $table = $model->getTable();
         $key = $connection->getName() . '|' . $connection->getTablePrefix() . $table;
 
-        return self::$tokenColumnCache[$key]
-            ??= $connection->getSchemaBuilder()->hasColumn($table, self::TOKEN_COLUMN);
+        if (isset(self::$tokenColumnCache[$key])) {
+            return true;
+        }
+
+        // 只缓存“存在”：列只会被迁移补上，不会被删除；不缓存“不存在”，
+        // 这样在线升级（不重启 worker）补列后立即生效。
+        if (!$connection->getSchemaBuilder()->hasColumn($table, self::TOKEN_COLUMN)) {
+            return false;
+        }
+
+        return self::$tokenColumnCache[$key] = true;
     }
 
     /**

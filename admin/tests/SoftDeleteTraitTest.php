@@ -22,6 +22,21 @@ final class SoftDeleteTokenItem extends BaseModel
     protected $guarded = [];
 }
 
+final class SoftDeleteVetoItem extends BaseModel
+{
+    use LaravelSoftDelete;
+
+    protected $table = 'soft_delete_token_items';
+    protected $guarded = [];
+
+    public static bool $veto = false;
+
+    protected static function booted(): void
+    {
+        static::updating(static fn () => self::$veto ? false : null);
+    }
+}
+
 final class SoftDeletePlainItem extends BaseModel
 {
     use LaravelSoftDelete;
@@ -210,5 +225,58 @@ final class SoftDeleteTraitTest extends TestCase
         self::assertSame(2, SoftDeletePlainItem::onlyTrashed()->restore());
         self::assertNull($this->row('soft_delete_plain_items', $other->id)->deleted_at);
         self::assertSame(2, SoftDeletePlainItem::count());
+    }
+
+    public function test_column_added_after_check_is_used_without_flush(): void
+    {
+        $item = SoftDeletePlainItem::create(['code' => 'late']);
+        self::assertFalse($item->hasDeletedToken());
+
+        Db::schema()->table('soft_delete_plain_items', static function (Blueprint $table): void {
+            $table->unsignedBigInteger('deleted_token')->default(0);
+        });
+
+        self::assertTrue($item->hasDeletedToken());
+        $item->delete();
+        self::assertSame($item->id, (int) $this->row('soft_delete_plain_items', $item->id)->deleted_token);
+
+        $other = SoftDeletePlainItem::create(['code' => 'late-batch']);
+        SoftDeletePlainItem::query()->where('id', $other->id)->delete();
+        self::assertSame($other->id, (int) $this->row('soft_delete_plain_items', $other->id)->deleted_token);
+    }
+
+    public function test_restore_vetoed_by_listener_keeps_model_trashed(): void
+    {
+        $item = SoftDeleteVetoItem::create(['code' => 'veto']);
+        $item->delete();
+        $trashed = SoftDeleteVetoItem::withTrashed()->find($item->id);
+
+        SoftDeleteVetoItem::$veto = true;
+        self::assertFalse($trashed->restore());
+
+        self::assertTrue($trashed->trashed());
+        self::assertSame($item->id, (int) $trashed->deleted_token);
+        self::assertFalse($trashed->isDirty());
+        $row = $this->row('soft_delete_token_items', $item->id);
+        self::assertNotNull($row->deleted_at);
+        self::assertSame($item->id, (int) $row->deleted_token);
+    }
+
+    public function test_not_null_failure_with_unique_text_in_bindings_is_not_unique_violation(): void
+    {
+        Db::schema()->dropIfExists('soft_delete_not_null_items');
+        Db::schema()->create('soft_delete_not_null_items', static function (Blueprint $table): void {
+            $table->increments('id');
+            $table->string('label', 64);
+            $table->string('required', 64);
+        });
+
+        try {
+            Db::table('soft_delete_not_null_items')->insert(['label' => 'UNIQUE constraint failed', 'required' => null]);
+            self::fail('NOT NULL insert should fail');
+        } catch (QueryException $error) {
+            self::assertStringContainsString('UNIQUE constraint failed', $error->getMessage());
+            self::assertFalse(RestoreConflictException::isUniqueViolation($error));
+        }
     }
 }
