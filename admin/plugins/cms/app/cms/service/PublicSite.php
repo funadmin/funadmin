@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
-use support\{Request,Response,Db};
+use app\cms\model\Route;
+use support\{Request,Response};
 use InvalidArgumentException;
 final class PublicSite
 {
@@ -77,7 +78,7 @@ final class PublicSite
     private function sitemap(array $site): string
     {
         $xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-        foreach(Db::table('cms_route')->where('site_id',$site['id'])->where('kind','page')->orderBy('id')->limit(50000)->cursor() as $route){
+        foreach(Route::query()->forSite($site['id'])->where('kind','page')->orderBy('id')->limit(50000)->cursor() as $route){
             try{(new SiteService())->language($site['id'],$route->locale);}catch(InvalidArgumentException){continue;}
             $detail=null;if($route->target_type==='content'){$detail=(new ContentService())->publicDetail($site['id'],(string)$route->target_id);if(!$detail||str_contains($detail['robots'],'noindex'))continue;}
             elseif($route->target_type==='category'&&!(new CategoryService())->detail($site['id'],(string)$route->target_id))continue;

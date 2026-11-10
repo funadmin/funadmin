@@ -1,10 +1,13 @@
 {
     "slug": "plugin-development-quick-start",
     "title": "插件开发快速开始",
-    "summary": "创建、校验和打包一个 FunAdmin 插件的最小流程。",
+    "summary": "用脚手架生成 demo 插件，校验、打包，再在插件中心安装并启用。",
     "scope": "plugin_dev",
     "type": "guide",
-    "category": "plugin-dev-structure",
+    "category": "plugin-dev",
+    "sort": 10,
+    "appliesTo": "1.2",
+    "visibility": "public",
     "content": {
         "type": "doc",
         "content": [
@@ -16,7 +19,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "创建插件"
+                        "text": "1. 生成骨架"
                     }
                 ]
             },
@@ -25,7 +28,46 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "插件源码位于 admin/plugins/{code}，前端源码位于 web/src/admin/plugins/{code}。"
+                        "text": "在 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "admin",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 目录执行 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "plugin:make",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，生成插件源包 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "admin/plugins/demo/",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。"
                     }
                 ]
             },
@@ -37,12 +79,524 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "cd admin\nphp webman plugin:make demo --title=示例\nphp webman plugin:validate demo"
+                        "text": "cd admin\nphp webman plugin:make demo --title=示例"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "默认同时生成独立应用、Admin 应用和 Admin Web 模块。只需要其中一部分时加 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "--no-application",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "、"
+                    },
+                    {
+                        "type": "text",
+                        "text": "--no-admin",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 或 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "--no-web",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "；想先看会生成哪些文件，加 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "--preview",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "2. 认识生成的文件"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "plugin.json",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：插件 Manifest，声明版本、迁移、后台菜单、权限和前端路由。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Plugin.php",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：生命周期入口，提供 install、enabled、disabled、uninstall 等钩子。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "app/admin/plugins/demo/controller/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：后台接口。每个带路由注解的方法就是一个权限。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "app/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：独立应用，放公开页面或公开接口。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/admin/plugins/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：后台前端页面。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "database/migrations/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：迁移 SQL，按文件名顺序执行。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "3. 校验与打包"
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "bash"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "php webman plugin:validate demo\nphp webman plugin:package demo"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "plugin:validate",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 检查 Manifest、目录约定和路径安全；"
+                    },
+                    {
+                        "type": "text",
+                        "text": "plugin:package",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 生成可分发的 ZIP 包，可用 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "--output",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 指定输出位置。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "4. 在插件中心安装并启用"
+                    }
+                ]
+            },
+            {
+                "type": "orderedList",
+                "attrs": {
+                    "start": 1
+                },
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "登录后台，在插件中心的本地插件里找到 demo。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "点击安装：登记插件、执行数据库迁移、登记权限与菜单。安装完成后插件处于停用状态。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "点击启用：发布资源并刷新激活清单，菜单和接口随即生效。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "在角色管理中给普通管理员分配插件权限；超级管理员默认拥有全部权限。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "5. 开发调试"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "新增或修改 PHP 类、路由后执行 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "php start.php reload",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "开发前端时在 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "web",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 目录运行 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "pnpm dev:webman",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "；发布前执行 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "pnpm build:webman",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "后台页面地址为 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "/#/admin/plugins/demo/...",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "，后台接口为 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "/admin/plugins/demo/...",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "callout",
+                "attrs": {
+                    "tone": "tip"
+                },
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "下一步：阅读「插件目录与 Manifest」了解完整目录和安装位置，再阅读「插件后端接口与前端路由」写第一个页面。"
+                            }
+                        ]
                     }
                 ]
             }
         ]
-    },
-    "visibility": "public",
-    "appliesTo": "1.2"
+    }
 }

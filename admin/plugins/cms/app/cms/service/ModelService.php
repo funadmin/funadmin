@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\cms\model\{ContentModel,ModelVersion};
+use app\common\model\Attach;
 use support\Db;
 use InvalidArgumentException;
 final class ModelService
@@ -8,12 +10,12 @@ final class ModelService
     public static function seed(): void
     {
         $definitions=['article'=>['文章',[['name'=>'source','label'=>'来源','type'=>'text']]],'page'=>['单页',[]],'product'=>['产品',[['name'=>'sku','label'=>'型号','type'=>'text'],['name'=>'parameters','label'=>'参数','type'=>'textarea'],['name'=>'gallery','label'=>'图库','type'=>'gallery']]],'case'=>['案例',[['name'=>'client','label'=>'客户','type'=>'text'],['name'=>'industry','label'=>'行业','type'=>'text'],['name'=>'project_date','label'=>'项目日期','type'=>'text']]],'download'=>['下载',[['name'=>'file','label'=>'附件','type'=>'file'],['name'=>'version','label'=>'版本号','type'=>'text']]]];
-        foreach($definitions as $code=>[$name,$fields]) if(!Db::table('cms_content_model')->where('code',$code)->exists()) (new self())->save(compact('code','name','fields'));
+        foreach($definitions as $code=>[$name,$fields]) if(!ContentModel::query()->where('code',$code)->exists()) (new self())->save(compact('code','name','fields'));
     }
     public function listing(): array
     {
-        $rows=Input::rows(Db::table('cms_content_model')->orderBy('id')->get());
-        foreach($rows as &$row) $row['schema']=Input::row(Db::table('cms_model_version')->where('model_id',$row['id'])->where('version',$row['current_version'])->first());
+        $rows=Input::rows(ContentModel::query()->orderBy('id')->get());
+        foreach($rows as &$row) $row['schema']=Input::row(ModelVersion::query()->where('model_id',$row['id'])->where('version',$row['current_version'])->first());
         return $rows;
     }
     public function save(array $input): array
@@ -28,20 +30,20 @@ final class ModelService
             $field=$this->definition($field);
         }unset($field);
         return Db::transaction(function()use($input,$fields): array {
-            $old=isset($input['id'])?Input::row(Db::table('cms_content_model')->where('id',Input::id($input['id']))->lockForUpdate()->first()):null;
+            $old=isset($input['id'])?Input::row(ContentModel::query()->where('id',Input::id($input['id']))->lockForUpdate()->first()):null;
             if(isset($input['id'])&&!$old) throw new InvalidArgumentException('模型不存在');
             $code=Input::code($input['code']??$old['code']??'');if($old&&$code!==$old['code']) throw new InvalidArgumentException('模型标识不可修改');
             $version=$old?(int)$old['current_version']+1:1;$now=Input::now();
             $data=['code'=>$code,'name'=>Input::text($input['name']??$code,100),'current_version'=>$version,'status'=>(int)($input['status']??1),'updated_at'=>$now];
-            if($old) { $id=$old['id'];Db::table('cms_content_model')->where('id',$id)->update($data); }
-            else $id=(string)Db::table('cms_content_model')->insertGetId($data+['created_at'=>$now]);
-            Db::table('cms_model_version')->insert(['model_id'=>$id,'version'=>$version,'field_schema'=>Input::json($fields),'created_at'=>$now]);
-            return Input::row(Db::table('cms_content_model')->where('id',$id)->first());
+            if($old) { $id=$old['id'];ContentModel::query()->where('id',$id)->update($data); }
+            else { $row=new ContentModel();$row->fill($data+['created_at'=>$now])->save();$id=(string)$row->getKey(); }
+            ModelVersion::query()->insert(['model_id'=>$id,'version'=>$version,'field_schema'=>Input::json($fields),'created_at'=>$now]);
+            return Input::row(ContentModel::query()->where('id',$id)->first());
         });
     }
     public function validate(string $versionId,array $data): array
     {
-        $version=Input::row(Db::table('cms_model_version')->where('id',Input::id($versionId))->first());if(!$version) throw new InvalidArgumentException('模型版本不存在');
+        $version=Input::row(ModelVersion::query()->where('id',Input::id($versionId))->first());if(!$version) throw new InvalidArgumentException('模型版本不存在');
         $allowed=array_column($version['field_schema'],'name');if(array_diff(array_keys($data),$allowed)) throw new InvalidArgumentException('包含未声明的模型字段');
         $result=[];
         foreach($version['field_schema'] as $field) {
@@ -97,6 +99,6 @@ final class ModelService
     }
     public function attachment(mixed $id): string
     {
-        $id=Input::id($id);if(!Db::schema()->hasTable('attach')||!Db::table('attach')->where('id',$id)->where('status',1)->whereNull('deleted_at')->exists()) throw new InvalidArgumentException('附件不存在或不可访问');return $id;
+        $id=Input::id($id);if(!Db::schema()->hasTable('attach')||!Attach::query()->withoutGlobalScopes()->where('id',$id)->where('status',1)->whereNull('deleted_at')->exists()) throw new InvalidArgumentException('附件不存在或不可访问');return $id;
     }
 }

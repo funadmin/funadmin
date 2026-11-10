@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\document\service;
 
+use app\document\model\{Document, DocumentRevision};
 use InvalidArgumentException;
 use support\Db;
 
@@ -23,7 +24,7 @@ final class DocumentVersionService
         $clean = ContentValidator::clean($content);
         Db::transaction(function () use ($id, $clean, $lockVersion): void {
             $row = $this->lock($id, $lockVersion);
-            Db::table('documents')->where('id', $id)->update([
+            Document::query()->where('id', $id)->update([
                 'content_json' => json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'plain_text' => ContentValidator::plainText($clean),
                 // 保存不改变发布状态：只有发布权限才能发布或取消归档。
@@ -42,14 +43,14 @@ final class DocumentVersionService
         Db::transaction(function () use ($id, $changeSummary, $lockVersion): void {
             $row = $this->lock($id, $lockVersion);
             $next = (int) $row->current_revision_no + 1;
-            Db::table('document_revisions')->insert([
+            DocumentRevision::query()->insert([
                 'document_id' => $id, 'revision_no' => $next, 'title' => $row->title, 'summary' => $row->summary,
                 'content_json' => $row->content_json,
                 'change_summary' => Rules::text($changeSummary, 500, '变更说明'),
                 'created_by' => Rules::actor(), 'created_at' => Rules::now(),
             ]);
             // 正文未变，不递增 lock_version，避免正在编辑的人被迫丢弃修改。
-            Db::table('documents')->where('id', $id)->update([
+            Document::query()->where('id', $id)->update([
                 'status' => 'published', 'current_revision_no' => $next,
                 'has_unpublished_changes' => false, 'updated_at' => Rules::now(),
             ]);
@@ -62,7 +63,7 @@ final class DocumentVersionService
     {
         Db::transaction(function () use ($id, $lockVersion): void {
             $row = $this->lock($id, $lockVersion);
-            Db::table('documents')->where('id', $id)->update(['status' => 'archived', 'updated_at' => Rules::now()]);
+            Document::query()->where('id', $id)->update(['status' => 'archived', 'updated_at' => Rules::now()]);
             Events::record($id, 'archive', (int) $row->current_revision_no);
         });
         return $this->documents->find($id);
@@ -73,7 +74,7 @@ final class DocumentVersionService
         $this->documents->row($id);
         $page = max(1, $page);
         $pageSize = max(1, min(100, $pageSize));
-        $query = Db::table('document_revisions')->where('document_id', $id);
+        $query = DocumentRevision::query()->where('document_id', $id);
         $total = (clone $query)->count();
         $list = $query->orderByDesc('revision_no')->forPage($page, $pageSize)
             ->get(['revision_no', 'title', 'change_summary', 'created_by', 'created_at'])
@@ -87,7 +88,7 @@ final class DocumentVersionService
     public function revision(int $id, int $revisionNo): array
     {
         $this->documents->row($id);
-        $row = Db::table('document_revisions')->where('document_id', $id)->where('revision_no', $revisionNo)->first();
+        $row = DocumentRevision::query()->where('document_id', $id)->where('revision_no', $revisionNo)->first();
         if (!$row) throw new InvalidArgumentException('修订不存在', 404);
         return [
             'revisionNo' => (int) $row->revision_no, 'title' => (string) $row->title, 'summary' => (string) $row->summary,
@@ -102,7 +103,7 @@ final class DocumentVersionService
         $revision = $this->revision($id, $revisionNo);
         Db::transaction(function () use ($id, $revision, $lockVersion): void {
             $row = $this->lock($id, $lockVersion);
-            Db::table('documents')->where('id', $id)->update([
+            Document::query()->where('id', $id)->update([
                 'content_json' => json_encode($revision['content'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'plain_text' => ContentValidator::plainText($revision['content']),
                 'has_unpublished_changes' => $revision['revisionNo'] !== (int) $row->current_revision_no,
@@ -117,7 +118,7 @@ final class DocumentVersionService
     /** 锁定文档行；传入 lockVersion 时校验乐观锁。 */
     private function lock(int $id, ?int $lockVersion): object
     {
-        $row = Db::table('documents')->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
+        $row = Document::query()->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
         if (!$row) throw new InvalidArgumentException('文档不存在', 404);
         if ($lockVersion !== null && (int) $row->lock_version !== $lockVersion) {
             throw new InvalidArgumentException('文档已被他人修改，请重新载入后再保存', 409);

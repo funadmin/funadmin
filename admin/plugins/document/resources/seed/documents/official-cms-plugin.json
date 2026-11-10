@@ -5,6 +5,7 @@
     "scope": "official_plugin",
     "type": "guide",
     "category": "official-plugins",
+    "sort": 10,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

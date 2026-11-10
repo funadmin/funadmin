@@ -8,6 +8,9 @@ use app\common\model\Member;
 use RuntimeException;
 use support\Cache;
 use support\Db;
+use app\admin\system\model\MemberLevel;
+use app\admin\system\model\MemberGroup;
+use app\common\model\MemberGroupRelation;
 
 /** 通用会员账号：注册、资料与密码。登录会话由 MemberApiSessionService（会员 API v2）负责。 */
 final class MemberAccountService
@@ -38,7 +41,7 @@ final class MemberAccountService
         if (Member::withTrashed()->where('email', $email)->first()) {
             throw new RuntimeException('邮箱已被注册');
         }
-        $level = Db::table('member_level')->where('status', 1)->whereNull('deleted_at')->orderBy('id', 'asc')->value('id');
+        $level = MemberLevel::query()->where('status', 1)->orderBy('id', 'asc')->value('id');
         if (!$level) {
             throw new RuntimeException('站点未配置可用的会员等级，请联系管理员');
         }
@@ -60,9 +63,9 @@ final class MemberAccountService
                     'scores' => 0,
                     'status' => 1,
                 ])->save();
-                $groupId = (int) Db::table('member_group')->where('status', 1)->whereNull('deleted_at')->orderBy('id', 'asc')->value('id');
+                $groupId = (int) MemberGroup::query()->where('status', 1)->orderBy('id', 'asc')->value('id');
                 if ($groupId > 0) {
-                    Db::table('member_group_relation')->insert(['member_id' => (int) $member->id, 'group_id' => $groupId, 'created_at' => date('Y-m-d H:i:s')]);
+                    MemberGroupRelation::query()->insert(['member_id' => (int) $member->id, 'group_id' => $groupId, 'created_at' => date('Y-m-d H:i:s')]);
                 }
                 return $member;
             });

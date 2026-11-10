@@ -4,7 +4,8 @@
     "summary": "掌握 Webman 路由、控制器、服务、模型、事务、异常和测试的推荐写法。",
     "scope": "framework",
     "type": "guide",
-    "category": "framework-backend",
+    "category": "framework",
+    "sort": 10,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\cms\model\{Category,CategoryLocale,SiteModel};
 use support\Db;
 use InvalidArgumentException;
 final class CategoryService
@@ -10,22 +11,22 @@ final class CategoryService
         (new SiteService())->language($siteId,$locale);
         return Db::transaction(function()use($siteId,$locale,$input): array {
             (new SiteService())->lock($siteId);
-            $id=empty($input['id'])?null:Input::id($input['id']);$old=$id?Db::table('cms_category')->where('site_id',$siteId)->where('id',$id)->whereNull('deleted_at')->lockForUpdate()->first():null;
+            $id=empty($input['id'])?null:Input::id($input['id']);$old=$id?Category::query()->forSite($siteId)->where('id',$id)->lockForUpdate()->first():null;
             if($id&&!$old)throw new InvalidArgumentException('栏目不存在',404);
             $parent=empty($input['parent_id'])?null:Input::id($input['parent_id']);$visited=[];
             for($cursor=$parent;$cursor!==null;) {
                 if($cursor===$id||in_array($cursor,$visited,true)||count($visited)>32)throw new InvalidArgumentException('栏目不能循环嵌套');$visited[]=$cursor;
-                $p=Db::table('cms_category')->where('site_id',$siteId)->where('id',$cursor)->whereNull('deleted_at')->first();if(!$p)throw new InvalidArgumentException('上级栏目不属于本站');$cursor=$p->parent_id===null?null:(string)$p->parent_id;
+                $p=Category::query()->forSite($siteId)->where('id',$cursor)->first();if(!$p)throw new InvalidArgumentException('上级栏目不属于本站');$cursor=$p->parent_id===null?null:(string)$p->parent_id;
             }
-            $model=empty($input['model_id'])?null:Input::id($input['model_id']);if($model&&!Db::table('cms_site_model')->where('site_id',$siteId)->where('model_id',$model)->where('status',1)->exists())throw new InvalidArgumentException('栏目模型未启用');
+            $model=empty($input['model_id'])?null:Input::id($input['model_id']);if($model&&!SiteModel::query()->forSite($siteId)->where('model_id',$model)->enabled()->exists())throw new InvalidArgumentException('栏目模型未启用');
             $now=Input::now();$data=['site_id'=>$siteId,'parent_id'=>$parent,'model_id'=>$model,'sort_order'=>max(0,(int)($input['sort_order']??50)),'status'=>(int)($input['status']??1),'updated_at'=>$now];
-            if($id)Db::table('cms_category')->where('id',$id)->update($data);else $id=(string)Db::table('cms_category')->insertGetId($data+['created_at'=>$now]);
+            if($id)Category::query()->withTrashed()->where('id',$id)->update($data);else{$row=new Category();$row->fill($data+['created_at'=>$now])->save();$id=(string)$row->getKey();}
             $name=Input::text($input['name']??'',100);if($name==='')throw new InvalidArgumentException('栏目名称不能为空');
             $translated=['site_id'=>$siteId,'category_id'=>$id,'locale'=>$locale,'name'=>$name,'description'=>Input::text($input['description']??'',20000),'list_template'=>Input::template($input['list_template']??'category'),'detail_template'=>Input::template($input['detail_template']??'detail'),'seo_title'=>Input::text($input['seo_title']??''),'seo_description'=>Input::text($input['seo_description']??'',500),'status'=>(int)($input['locale_status']??$input['status']??1),'updated_at'=>$now];
-            $existing=Db::table('cms_category_locale')->where('category_id',$id)->where('locale',$locale)->first();
+            $existing=CategoryLocale::query()->where('category_id',$id)->forLocale($locale)->first();
             // 只有显式提交 form_code 才修改附带表单，其他字段的保存保留原值。
             if(array_key_exists('form_code',$input))$translated['form_code']=FormService::attachable($siteId,$input['form_code']);
-            if($existing){$localeId=(string)$existing->id;Db::table('cms_category_locale')->where('id',$localeId)->update($translated);}else $localeId=(string)Db::table('cms_category_locale')->insertGetId($translated+['created_at'=>$now]);
+            if($existing){$localeId=(string)$existing->getRawOriginal('id');CategoryLocale::query()->where('id',$localeId)->update($translated);}else{$row=new CategoryLocale();$row->fill($translated+['created_at'=>$now])->save();$localeId=(string)$row->getKey();}
             (new RouteService())->publish($siteId,$locale,'category',$localeId,(string)($input['desired_path']??''));
             (new PublicPageCache())->invalidateSite($siteId);
             return $this->detail($siteId,$localeId,false)??throw new InvalidArgumentException('栏目保存失败');
@@ -33,8 +34,8 @@ final class CategoryService
     }
     public function detail(string $siteId,string $localeId,bool $public=true): ?array
     {
-        $translation=Input::row(Db::table('cms_category_locale')->where('site_id',Input::id($siteId))->where('id',Input::id($localeId))->first());if(!$translation||$public&&!(int)$translation['status'])return null;
-        $category=Input::row(Db::table('cms_category')->where('site_id',$siteId)->where('id',$translation['category_id'])->whereNull('deleted_at')->first());if(!$category||$public&&!(int)$category['status'])return null;
+        $translation=Input::row(CategoryLocale::query()->forSite(Input::id($siteId))->where('id',Input::id($localeId))->first());if(!$translation||$public&&!(int)$translation['status'])return null;
+        $category=Input::row(Category::query()->forSite($siteId)->where('id',$translation['category_id'])->first());if(!$category||$public&&!(int)$category['status'])return null;
         $route=(new RouteService())->canonical($siteId,'category',$localeId);
         return array_replace($translation,['id'=>$category['id'],'locale_id'=>$translation['id'],'parent_id'=>$category['parent_id'],'model_id'=>$category['model_id'],'sort_order'=>$category['sort_order'],'status'=>$category['status'],'locale_status'=>$translation['status'],'url'=>$route?RouteService::encoded($route['path']):'']);
     }
@@ -42,13 +43,13 @@ final class CategoryService
     {
         if(!$public) {
             $site=(new SiteService())->get($siteId);$result=[];$prefix=(new SiteService())->language($siteId,$locale)['url_prefix'];
-            foreach(Db::table('cms_category')->where('site_id',Input::id($siteId))->whereNull('deleted_at')->orderBy('sort_order')->orderBy('id')->limit(100)->get() as $category){
+            foreach(Category::query()->forSite(Input::id($siteId))->orderBy('sort_order')->orderBy('id')->limit(100)->get() as $category){
                 if($parent!==null&&($parent==='0'?$category->parent_id!==null:(string)$category->parent_id!==$parent))continue;
-                $local=Db::table('cms_category_locale')->where('site_id',$siteId)->where('category_id',$category->id)->where('locale',$locale)->first();
-                if($local){$row=$this->detail($siteId,(string)$local->id,false);$row['translated']=true;}
+                $local=CategoryLocale::query()->forSite($siteId)->where('category_id',$category->getRawOriginal('id'))->forLocale($locale)->first();
+                if($local){$row=$this->detail($siteId,(string)$local->getRawOriginal('id'),false);$row['translated']=true;}
                 else {
-                    $fallback=Db::table('cms_category_locale')->where('site_id',$siteId)->where('category_id',$category->id)->orderByRaw('CASE WHEN locale = ? THEN 0 ELSE 1 END',[$site['default_locale']])->first();
-                    $row=$fallback?$this->detail($siteId,(string)$fallback->id,false):Input::row($category)+['name'=>'未命名栏目','url'=>''];
+                    $fallback=CategoryLocale::query()->forSite($siteId)->where('category_id',$category->getRawOriginal('id'))->orderByRaw('CASE WHEN locale = ? THEN 0 ELSE 1 END',[$site['default_locale']])->first();
+                    $row=$fallback?$this->detail($siteId,(string)$fallback->getRawOriginal('id'),false):Input::row($category)+['name'=>'未命名栏目','url'=>''];
                     $last=basename(rtrim(rawurldecode($row['url']),'/'));$row['url']='/'.($prefix!==''?$prefix.'/':'').$last.'/';$row['locale']=$locale;$row['locale_id']=null;$row['translated']=false;
                 }
                 $result[]=$row;

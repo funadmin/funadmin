@@ -26,11 +26,10 @@
   <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="收起目录" aria-expanded="true">{!! Page::icon('chevron') !!}</button>
   <aside class="sidebar"><details class="navigation" data-navigation open><summary class="mobile-nav-heading">{!! Page::icon('menu') !!}<span>文档目录</span>{!! Page::icon('chevron') !!}</summary><div class="sidebar-content">
     <form class="sidebar-search" action="/docs" method="get" role="search"><button type="submit" aria-label="提交搜索">{!! Page::icon('search') !!}</button><input data-docs-search id="docs-search" type="search" name="keyword" value="{{ $keyword }}" placeholder="搜索文档…" aria-label="搜索文档标题与摘要" maxlength="100" autocomplete="off"></form>
-    <nav class="scope-nav" aria-label="文档分类"><a class="nav-link {{ $scope === '' ? 'active' : '' }}" href="/docs">文档首页</a>@foreach(Page::SCOPES as $key => $name)<a class="nav-link {{ $scope === $key ? 'active' : '' }}" href="{{ Page::url(['scope' => $key]) }}">{{ $name }}</a>@endforeach</nav>
-    @if($categories)<div class="sidebar-label">文档目录</div><nav class="category-nav" aria-label="文档目录">@php($openGroups = 0)@foreach($categories as $category)@php($level = $depth($category))@while($openGroups > $level)</details>@php($openGroups--)@endwhile<details class="category-group" data-category-id="{{ $category['id'] }}" style="--depth:{{ $level }}" open><summary class="category-link">{{ $category['name'] }}</summary>@foreach($category['documents'] ?? [] as $item)@php($current = $document && $item['slug'] === $document['slug'])<a class="chapter-link {{ $current ? 'active' : '' }}" href="/docs/{{ rawurlencode($item['slug']) }}" {!! $current ? 'aria-current="page"' : '' !!}>{{ $item['title'] }}</a>@endforeach @php($openGroups = $level + 1)@endforeach @while($openGroups > 0)</details>@php($openGroups--)@endwhile</nav>@endif
+    @if($categories)<nav class="category-nav" aria-label="文档目录">@php($openGroups = 0)@foreach($categories as $category)@php($level = $depth($category))@while($openGroups > $level)</details>@php($openGroups--)@endwhile<details class="category-group" data-category-id="{{ $category['id'] }}" style="--depth:{{ $level }}" open><summary class="category-link">{{ $category['name'] }}</summary>@foreach($category['documents'] ?? [] as $item)@php($current = $document && $item['slug'] === $document['slug'])<a class="chapter-link {{ $current ? 'active' : '' }}" href="/docs/{{ rawurlencode($item['slug']) }}" {!! $current ? 'aria-current="page"' : '' !!}>{{ $item['title'] }}</a>@endforeach @php($openGroups = $level + 1)@endforeach @while($openGroups > 0)</details>@php($openGroups--)@endwhile</nav>@endif
   </div></details></aside>
 
-  <main id="main-content" class="main-content" tabindex="-1">
+  <main id="main-content" class="main-content" tabindex="-1"><div class="main-inner">
     @if($error)
       <h1>{{ $error }}</h1><p class="muted">这篇文档暂时无法访问，你可以从左侧目录寻找其他内容。</p><a class="text-link" href="/docs">返回文档首页 →</a>
     @elseif($document)
@@ -49,10 +48,11 @@
       <div class="document-list">@foreach($listing['list'] as $item)<a class="document-item" href="/docs/{{ rawurlencode($item['slug']) }}"><h2>{{ $item['title'] }}</h2>@if($item['summary'] !== '')<p>{{ $item['summary'] }}</p>@endif<small>{{ Page::SCOPES[$item['scope']] ?? '' }} · {{ substr($item['publishedAt'], 0, 10) }}</small></a>@endforeach</div>
       @php($pages = max(1, (int) ceil($listing['total'] / $listing['pageSize'])))@if($pages > 1)<nav class="pager" aria-label="文档分页">@if($listing['page'] > 1)<a href="{{ Page::url(array_replace($filters, ['page' => $listing['page'] - 1])) }}">← 上一页</a>@else<span></span>@endif<span>{{ (int) $listing['page'] }} / {{ $pages }}</span>@if($listing['page'] < $pages)<a href="{{ Page::url(array_replace($filters, ['page' => $listing['page'] + 1])) }}">下一页 →</a>@endif</nav>@endif
     @endif
+  </div>
+  <footer class="site-footer"><span>Powered by <a href="{{ $sourceUrl }}" target="_blank" rel="noopener noreferrer">FunAdmin</a></span><span>框架指南与插件开发文档</span></footer>
   </main>
   <aside class="context-rail">@if($document)@include('public.feedback', ['placement' => 'rail'])@if($content['outline'])<div class="toc-title">本页目录</div><nav class="toc-nav" aria-label="本页导航">@foreach($content['outline'] as $heading)<a data-toc-link style="--level:{{ max(0, $heading['level'] - 2) }}" href="#{{ $heading['id'] }}">{{ $heading['title'] }}</a>@endforeach</nav>@endif<a class="back-top" href="#top">返回顶部 ↑</a>@endif</aside>
 </div>
-<footer class="site-footer"><span>Powered by <a href="{{ $sourceUrl }}" target="_blank" rel="noopener noreferrer">FunAdmin</a></span><span>框架指南与插件开发文档</span></footer>
 <div class="copy-feedback" data-copy-feedback role="status" aria-live="polite"></div>
 </body>
 </html>

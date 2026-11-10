@@ -57,6 +57,14 @@ final class Rules
         return $code;
     }
 
+    /** 排序值：0～9999 的整数（与目录排序一致），数值小的在前。 */
+    public static function sortOrder(mixed $value): int
+    {
+        if (is_string($value) && preg_match('/\A(0|[1-9][0-9]{0,3})\z/D', $value)) $value = (int) $value;
+        if (!is_int($value) || $value < 0 || $value > 9999) throw new InvalidArgumentException('排序须为 0～9999 的整数', 422);
+        return $value;
+    }
+
     public static function id(mixed $value): int
     {
         if (is_int($value) && $value > 0) return $value;

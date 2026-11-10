@@ -103,7 +103,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible {
 .category-group:has(.chapter-link.active) > summary { color: var(--accent); }
 
 /* ── Article ────────────────────────────── */
-.main-content { min-width: 0; width: 100%; padding: 28px 48px 56px; outline: none; }
+.main-content { display: flex; flex-direction: column; min-width: 0; width: 100%; min-height: calc(100vh - var(--header-height)); padding: 28px 48px 0; outline: none; }
+.main-inner { flex: 1 0 auto; }
 h1,h2,h3,p { margin-top: 0; }
 h1 { font-size: 34px; font-weight: 700; line-height: 1.35; margin: 0 0 16px; letter-spacing: -.3px; overflow-wrap: anywhere; }
 .breadcrumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 28px; color: var(--muted); font-size: 14px; }
@@ -232,7 +233,8 @@ h1 { font-size: 34px; font-weight: 700; line-height: 1.35; margin: 0 0 16px; let
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 28px; color: var(--muted); font-size: 13px; }
 
 /* ── Footer & toast ─────────────────────── */
-.site-footer { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 18px 20px; border-top: 1px solid var(--line); background: var(--fill); color: var(--muted); font-size: 12px; }
+/* 版权信息跟随正文列，左侧目录栏一直延伸到页面底部 */
+.site-footer { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 32px; padding: 10px 0 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.5; }
 .site-footer a { color: var(--text-2); }
 .copy-feedback { position: fixed; z-index: 40; top: calc(var(--header-height) + 16px); left: 50%; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 9px 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,.08); font-size: 13px; }
 .copy-feedback:empty { display: none; }
@@ -279,7 +281,7 @@ h1 { font-size: 34px; font-weight: 700; line-height: 1.35; margin: 0 0 16px; let
   .sidebar-search button { display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--muted); }
   .sidebar-search .icon { width: 15px; height: 15px; }
   .sidebar-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: none; color: var(--text); font-size: 14px; }
-  .main-content { padding: 24px 20px 48px; }
+  .main-content { padding: 24px 20px 0; }
 }
 @media(max-width:600px) {
   .header-tabs { display: none; }

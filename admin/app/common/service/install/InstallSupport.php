@@ -9,6 +9,9 @@ use app\common\service\database\MigrationService;
 use DomainException;
 use RuntimeException;
 use support\Db;
+use app\admin\authentication\model\Admin;
+use app\admin\authorization\model\AuthGroup;
+use app\admin\authorization\model\CasbinRule;
 
 /** Web 与 CLI 共用的 Webman 安装内核。 */
 final class InstallSupport
@@ -113,17 +116,17 @@ final class InstallSupport
         Db::transaction(static function () use ($admin): void {
             self::assertNoAdministrator();
             $now = date('Y-m-d H:i:s');
-            Db::table('admin')->insert([
+            Admin::query()->insert([
                 'id' => 1, 'username' => $admin['username'], 'email' => $admin['email'],
                 'password' => password_hash($admin['password'], PASSWORD_DEFAULT), 'status' => 1,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
-            Db::table('auth_group')->insertOrIgnore([
+            AuthGroup::query()->insertOrIgnore([
                 'id' => 1, 'name' => '超级管理员', 'code' => 'super_admin', 'level' => 1,
                 'data_scope' => 'all', 'status' => 1, 'created_at' => $now, 'updated_at' => $now,
             ]);
             $values = ['g', 'admin:1', 'role:1', 'default'];
-            Db::table('casbin_rule')->insertOrIgnore([
+            CasbinRule::query()->insertOrIgnore([
                 'ptype' => 'g', 'v0' => 'admin:1', 'v1' => 'role:1', 'v2' => 'default',
                 'rule_hash' => hash('sha256', implode("\x1f", $values)),
             ]);
@@ -137,11 +140,11 @@ final class InstallSupport
         }
         (new MigrationService())->runDirectory($directory);
         Db::transaction(static function () use ($admin): void {
-            $seed = Db::table('admin')->lockForUpdate()->first();
-            if (Db::table('admin')->count() !== 1 || !$seed || (int) $seed->id !== 1 || $seed->username !== 'admin') {
+            $seed = Admin::query()->lockForUpdate()->first();
+            if (Admin::query()->count() !== 1 || !$seed || (int) $seed->id !== 1 || $seed->username !== 'admin') {
                 throw new RuntimeException('核心基线管理员种子不符合安装契约');
             }
-            Db::table('admin')->where('id', 1)->update([
+            Admin::query()->where('id', 1)->update([
                 'username' => $admin['username'], 'email' => $admin['email'],
                 'password' => password_hash($admin['password'], PASSWORD_DEFAULT),
                 'status' => 1, 'updated_at' => date('Y-m-d H:i:s'),
@@ -151,7 +154,7 @@ final class InstallSupport
 
     private static function assertNoAdministrator(): void
     {
-        if (Db::schema()->hasTable('admin') && Db::table('admin')->exists()) {
+        if (Db::schema()->hasTable('admin') && Admin::query()->exists()) {
             throw new DomainException('目标数据库已有管理员，禁止通过安装流程覆盖；请使用已有账号登录', 409);
         }
     }

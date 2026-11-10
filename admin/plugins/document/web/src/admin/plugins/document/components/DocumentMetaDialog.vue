@@ -13,7 +13,7 @@ const { t } = useI18n();
 const tt = (key: string) => t(`pluginDocument.meta.${key}`);
 
 const formRef = ref<FormInstance>();
-const blank = (): DocumentMetaInput => ({ visibility: 'public', title: '', slug: '', summary: '', scope: 'framework', type: 'guide', pluginCode: '', appliesTo: '', categoryIds: [] });
+const blank = (): DocumentMetaInput => ({ visibility: 'public', title: '', slug: '', summary: '', scope: 'framework', type: 'guide', pluginCode: '', appliesTo: '', sortOrder: 0, categoryIds: [] });
 const form = reactive<DocumentMetaInput>(blank());
 const rules = computed<FormRules>(() => ({
   title: [{ required: true, message: tt('titleRequired'), trigger: 'blur' }, { max: 200, message: tt('titleMax'), trigger: 'blur' }],
@@ -27,7 +27,7 @@ const flatten = (nodes: DocumentCategory[], depth = 0): Array<DocumentCategory &
 watch(visible, (open) => {
   if (!open) return;
   Object.assign(form, blank(), props.row
-    ? { visibility: props.row.visibility ?? 'admin', title: props.row.title, slug: props.row.slug, summary: props.row.summary, scope: props.row.scope, type: props.row.type, pluginCode: props.row.pluginCode, appliesTo: props.row.appliesTo, categoryIds: [...props.row.categoryIds] }
+    ? { visibility: props.row.visibility ?? 'admin', title: props.row.title, slug: props.row.slug, summary: props.row.summary, scope: props.row.scope, type: props.row.type, pluginCode: props.row.pluginCode, appliesTo: props.row.appliesTo, sortOrder: props.row.sortOrder ?? 0, categoryIds: [...props.row.categoryIds] }
     : { scope: props.defaultScope || 'framework', categoryIds: props.defaultCategoryId ? [props.defaultCategoryId] : [] });
 });
 // 切换范围时清掉不属于新范围的目录，避免后端拒绝。
@@ -67,6 +67,10 @@ async function submit() {
           <el-option v-for="c in flatten(tree).filter((x) => x.scope === form.scope)" :key="c.id" :label="'　'.repeat(c.depth) + c.name" :value="c.id" />
         </el-select>
       </el-form-item>
+      <el-form-item :label="tt('sortOrder')">
+        <el-input-number v-model="form.sortOrder" :min="0" :max="9999" :step="10" controls-position="right" />
+        <span class="meta-hint">{{ tt('sortOrderHint') }}</span>
+      </el-form-item>
       <el-form-item v-if="form.scope === 'official_plugin' || form.scope === 'third_party'" :label="tt('pluginCode')" prop="pluginCode">
         <el-input v-model="form.pluginCode" :placeholder="tt('pluginCodePh')" />
       </el-form-item>
@@ -82,5 +86,6 @@ async function submit() {
 
 <style scoped>
 .visibility-field { width: 100%; }
+.meta-hint { margin-left: 10px; font-size: 12px; color: var(--el-text-color-secondary); }
 .visibility-field small { display: block; margin-top: 6px; color: var(--el-text-color-secondary); line-height: 1.6; }
 </style>

@@ -17,11 +17,12 @@ final class Schema
         return ['document_categories', 'documents', 'document_category_links', 'document_revisions', 'document_events', 'document_seed_entries', 'document_feedback'];
     }
 
-    /** 按迁移顺序建全部表：基线（001）+ 读者反馈（002）。 */
+    /** 按迁移顺序建全部表：基线（001）+ 读者反馈（002）+ 文档排序（003）。 */
     public static function install(): void
     {
         self::create(Db::schema());
         self::feedback(Db::schema());
+        self::documentSort(Db::schema());
     }
 
     public static function drop(): void
@@ -43,10 +44,29 @@ final class Schema
     /** 1.4.0 新增的读者反馈表，对应 database/migrations/002_document_feedback.sql。 */
     public static function feedbackMysql(): string
     {
+        return self::export(self::feedback(...), 'Document 1.4.0 reader feedback; generated from Schema::feedback().');
+    }
+
+    /** 1.4.0 新增的文档排序字段，对应 database/migrations/003_document_sort_order.sql。 */
+    public static function documentSortMysql(): string
+    {
+        return self::export(self::documentSort(...), 'Document 1.4.0 document sort order; generated from Schema::documentSort().');
+    }
+
+    private static function export(\Closure $definition, string $title): string
+    {
         $connection = new MySqlConnection(static fn () => throw new \RuntimeException('Schema export must not connect'), '', 'fun_', ['driver' => 'mysql', 'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'engine' => 'InnoDB']);
-        $queries = $connection->pretend(static fn () => self::feedback($connection->getSchemaBuilder()));
-        return "-- Document 1.4.0 reader feedback; generated from Schema::feedback(). Prefix rewritten by host migration runner.\n"
+        $queries = $connection->pretend(static fn () => $definition($connection->getSchemaBuilder()));
+        return "-- {$title} Prefix rewritten by host migration runner.\n"
             . implode(";\n", array_map(static fn ($q) => $q['query'], $queries)) . ";\n";
+    }
+
+    /** 同一目录内文档的阅读顺序：数值小的在前，相同时按创建顺序。 */
+    private static function documentSort(Builder $s): void
+    {
+        $s->table('documents', static function (Blueprint $t): void {
+            $t->integer('sort_order')->default(0)->after('applies_to');
+        });
     }
 
     /** 读者「有帮助 / 无帮助」反馈：同一访客对同一文档只保留最后一次选择。 */

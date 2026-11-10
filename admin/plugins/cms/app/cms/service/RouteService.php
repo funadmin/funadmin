@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\cms\model\Route;
 use support\Db;
 use InvalidArgumentException;
 final class RouteService
@@ -24,12 +25,12 @@ final class RouteService
             if(!$target) throw new InvalidArgumentException('路由目标不属于本站或当前语言');
             if($path==='/'&&$type!=='home') throw new InvalidArgumentException('根路径保留给首页');
             $alternatives=array_unique([$path,$path==='/'?'/':(str_ends_with($path,'/')?rtrim($path,'/'):$path.'/')]);
-            foreach(Db::table('cms_route')->where('site_id',$siteId)->whereIn('path',$alternatives)->lockForUpdate()->get() as $occupied) if($occupied->target_type!==$type||(string)$occupied->target_id!==$targetId) throw new InvalidArgumentException('访问路径已被其他页面或历史地址占用',409);
+            foreach(Route::query()->forSite($siteId)->whereIn('path',$alternatives)->lockForUpdate()->get() as $occupied) if($occupied->target_type!==$type||(string)$occupied->target_id!==$targetId) throw new InvalidArgumentException('访问路径已被其他页面或历史地址占用',409);
             $now=Input::now();
-            Db::table('cms_route')->where('site_id',$siteId)->where('target_type',$type)->where('target_id',$targetId)->update(['kind'=>'redirect','updated_at'=>$now]);
-            $old=Db::table('cms_route')->where('site_id',$siteId)->where('path',$path)->first();
-            if($old) { $id=(string)$old->id;Db::table('cms_route')->where('id',$id)->update(['kind'=>'page','updated_at'=>$now]); }
-            else $id=(string)Db::table('cms_route')->insertGetId(['site_id'=>$siteId,'path'=>$path,'locale'=>$locale,'kind'=>'page','target_type'=>$type,'target_id'=>$targetId,'created_at'=>$now,'updated_at'=>$now]);
+            Route::query()->forSite($siteId)->where('target_type',$type)->where('target_id',$targetId)->update(['kind'=>'redirect','updated_at'=>$now]);
+            $old=Route::query()->forSite($siteId)->where('path',$path)->first();
+            if($old) { $id=(string)$old->getRawOriginal('id');Route::query()->where('id',$id)->update(['kind'=>'page','updated_at'=>$now]); }
+            else { $row=new Route();$row->fill(['site_id'=>$siteId,'path'=>$path,'locale'=>$locale,'kind'=>'page','target_type'=>$type,'target_id'=>$targetId,'created_at'=>$now,'updated_at'=>$now])->save();$id=(string)$row->getKey(); }
             Db::table($table)->where('id',$targetId)->where('site_id',$siteId)->update(['canonical_route_id'=>$id]);
             return $id;
         });
@@ -37,15 +38,15 @@ final class RouteService
     public function resolve(string $siteId,string $path): ?array
     {
         $path=self::normalize($path,false);
-        $row=Db::table('cms_route')->where('site_id',Input::id($siteId))->where('path',$path)->first();
-        if(!$row&&$path!=='/') $row=Db::table('cms_route')->where('site_id',$siteId)->where('path',str_ends_with($path,'/')?rtrim($path,'/'):$path.'/')->first();
+        $row=Route::query()->forSite(Input::id($siteId))->where('path',$path)->first();
+        if(!$row&&$path!=='/') $row=Route::query()->forSite($siteId)->where('path',str_ends_with($path,'/')?rtrim($path,'/'):$path.'/')->first();
         return Input::row($row);
     }
     public function canonical(string $siteId,string $type,string|int $targetId): ?array
     {
         $target=Db::table($this->targetTable($type))->where('site_id',Input::id($siteId))->where('id',Input::id($targetId))->first();
         if(!$target||!$target->canonical_route_id) return null;
-        return Input::row(Db::table('cms_route')->where('id',$target->canonical_route_id)->where('site_id',$siteId)->where('target_type',$type)->where('target_id',$targetId)->where('kind','page')->first());
+        return Input::row(Route::query()->where('id',$target->canonical_route_id)->forSite($siteId)->where('target_type',$type)->where('target_id',$targetId)->where('kind','page')->first());
     }
     public function targetTable(string $type): string
     {

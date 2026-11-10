@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\document\service;
 
+use app\document\model\{Document, DocumentCategory, DocumentCategoryLink};
 use InvalidArgumentException;
 use support\Db;
 
@@ -17,7 +18,7 @@ final class DocumentService
         $content = ContentValidator::clean($payload['content'] ?? ['type' => 'doc', 'content' => []]);
         $now = Rules::now();
         $id = Db::transaction(function () use ($meta, $content, $payload, $now): int {
-            $id = (int) Db::table('documents')->insertGetId($meta + [
+            $id = (int) Document::query()->insertGetId($meta + [
                 'status' => 'draft',
                 'content_json' => json_encode($content, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 'plain_text' => ContentValidator::plainText($content),
@@ -38,19 +39,20 @@ final class DocumentService
         $meta = $this->meta($payload + [
             'title' => $current->title, 'slug' => $current->slug, 'scope' => $current->scope, 'type' => $current->type,
             'visibility' => $current->visibility, 'summary' => $current->summary, 'pluginCode' => $current->plugin_code, 'appliesTo' => $current->applies_to,
+            'sortOrder' => (int) $current->sort_order,
         ]);
         if ($meta['slug'] !== $current->slug) $this->assertSlugFree($meta['slug']);
         Db::transaction(function () use ($id, $meta, $payload, $current): void {
-            $locked = Db::table('documents')->where('id', $id)->lockForUpdate()->first();
+            $locked = Document::query()->where('id', $id)->lockForUpdate()->first();
             if (array_key_exists('metaVersion', $payload) && (int) $locked->meta_version !== Rules::id($payload['metaVersion'])) {
                 throw new InvalidArgumentException('文档信息已被他人修改，请刷新后再保存', 409);
             }
-            Db::table('documents')->where('id', $id)->update($meta + ['meta_version' => (int) $locked->meta_version + 1, 'updated_at' => Rules::now()]);
+            Document::query()->where('id', $id)->update($meta + ['meta_version' => (int) $locked->meta_version + 1, 'updated_at' => Rules::now()]);
             if (array_key_exists('categoryIds', $payload)) {
                 $this->syncCategories($id, Rules::ids($payload['categoryIds']), $meta['scope']);
             } elseif ($meta['scope'] !== $current->scope) {
                 // 换范围但没给新目录：去掉旧范围的目录关联，避免跨范围挂载。
-                Db::table('document_category_links')->where('document_id', $id)->delete();
+                DocumentCategoryLink::query()->where('document_id', $id)->delete();
             }
             Events::record($id, 'update_meta');
         });
@@ -61,8 +63,8 @@ final class DocumentService
     {
         $this->row($id);
         Db::transaction(static function () use ($id): void {
-            Db::table('documents')->where('id', $id)->update(['deleted_at' => Rules::now()]);
-            Db::table('document_category_links')->where('document_id', $id)->delete();
+            Document::query()->where('id', $id)->update(['deleted_at' => Rules::now()]);
+            DocumentCategoryLink::query()->where('document_id', $id)->delete();
             Events::record($id, 'delete');
         });
     }
@@ -77,7 +79,7 @@ final class DocumentService
     {
         $page = max(1, (int) ($query['page'] ?? 1));
         $pageSize = max(1, min(100, (int) ($query['pageSize'] ?? 20)));
-        $builder = Db::table('documents')->whereNull('deleted_at');
+        $builder = Document::query()->whereNull('deleted_at');
         if (!empty($query['scope'])) $builder->where('scope', Rules::scope($query['scope']));
         if (!empty($query['type'])) $builder->where('type', Rules::type($query['type']));
         if (!empty($query['pluginCode'])) $builder->where('plugin_code', Rules::pluginCode($query['pluginCode']));
@@ -89,7 +91,7 @@ final class DocumentService
             $builder->where('status', '<>', 'archived');
         }
         if (!empty($query['categoryId'])) {
-            $builder->whereIn('id', Db::table('document_category_links')->select('document_id')->where('category_id', Rules::id($query['categoryId'])));
+            $builder->whereIn('id', DocumentCategoryLink::query()->select('document_id')->where('category_id', Rules::id($query['categoryId'])));
         }
         $keyword = is_string($query['keyword'] ?? null) ? trim($query['keyword']) : '';
         if ($keyword !== '') {
@@ -108,7 +110,7 @@ final class DocumentService
     /** @internal 供版本服务在事务内复用。 */
     public function row(int $id): object
     {
-        $row = Db::table('documents')->where('id', $id)->whereNull('deleted_at')->first();
+        $row = Document::query()->where('id', $id)->whereNull('deleted_at')->first();
         if (!$row) throw new InvalidArgumentException('文档不存在', 404);
         return $row;
     }
@@ -124,24 +126,25 @@ final class DocumentService
             'type' => Rules::type($payload['type'] ?? 'guide'),
             'plugin_code' => Rules::pluginCode($payload['pluginCode'] ?? ''),
             'applies_to' => Rules::text($payload['appliesTo'] ?? '', 64, '适用版本'),
+            'sort_order' => Rules::sortOrder($payload['sortOrder'] ?? 0),
         ];
     }
 
     private function assertSlugFree(string $slug): void
     {
         // 软删除的文档仍占用标识，避免旧链接指向新文档。
-        if (Db::table('documents')->where('slug', $slug)->exists()) throw new InvalidArgumentException('文档标识已存在', 409);
+        if (Document::query()->where('slug', $slug)->exists()) throw new InvalidArgumentException('文档标识已存在', 409);
     }
 
     private function syncCategories(int $id, array $categoryIds, string $scope): void
     {
         if ($categoryIds) {
-            $valid = Db::table('document_categories')->whereIn('id', $categoryIds)->where('scope', $scope)->count();
+            $valid = DocumentCategory::query()->whereIn('id', $categoryIds)->where('scope', $scope)->count();
             if ($valid !== count($categoryIds)) throw new InvalidArgumentException('目录不存在或不属于该文档范围', 422);
         }
-        Db::table('document_category_links')->where('document_id', $id)->delete();
+        DocumentCategoryLink::query()->where('document_id', $id)->delete();
         if ($categoryIds) {
-            Db::table('document_category_links')->insert(array_map(static fn (int $c) => ['document_id' => $id, 'category_id' => $c], $categoryIds));
+            DocumentCategoryLink::query()->insert(array_map(static fn (int $c) => ['document_id' => $id, 'category_id' => $c], $categoryIds));
         }
     }
 
@@ -151,10 +154,11 @@ final class DocumentService
             'id' => (int) $row->id, 'title' => (string) $row->title, 'slug' => (string) $row->slug,
             'summary' => (string) $row->summary, 'scope' => (string) $row->scope, 'pluginCode' => (string) $row->plugin_code,
             'type' => (string) $row->type, 'status' => (string) $row->status, 'visibility' => (string) $row->visibility, 'appliesTo' => (string) $row->applies_to,
+            'sortOrder' => (int) $row->sort_order,
             'lockVersion' => (int) $row->lock_version, 'currentRevisionNo' => (int) $row->current_revision_no,
             'hasUnpublishedChanges' => (bool) $row->has_unpublished_changes,
             'metaVersion' => (int) $row->meta_version,
-            'categoryIds' => array_map('intval', Db::table('document_category_links')->where('document_id', $row->id)->orderBy('category_id')->pluck('category_id')->all()),
+            'categoryIds' => array_map('intval', DocumentCategoryLink::query()->where('document_id', $row->id)->orderBy('category_id')->pluck('category_id')->all()),
             'updatedAt' => (string) $row->updated_at,
         ];
         if ($withContent) $dto['content'] = json_decode((string) $row->content_json, true, 512, JSON_THROW_ON_ERROR);

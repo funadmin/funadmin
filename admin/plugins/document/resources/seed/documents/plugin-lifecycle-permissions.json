@@ -4,7 +4,8 @@
     "summary": "说明安装、启用、停用、升级、卸载和回滚期间的资源状态。",
     "scope": "plugin_dev",
     "type": "reference",
-    "category": "plugin-dev-lifecycle",
+    "category": "plugin-dev",
+    "sort": 40,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

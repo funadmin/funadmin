@@ -1,10 +1,11 @@
 {
     "slug": "plugin-structure-manifest",
     "title": "插件目录与 Manifest",
-    "summary": "从目录结构、plugin.json 到源码复制和前端构建，建立一个可安装插件。",
+    "summary": "插件源包的目录结构、安装位置和 plugin.json 必填字段。",
     "scope": "plugin_dev",
     "type": "guide",
-    "category": "plugin-dev-structure",
+    "category": "plugin-dev",
+    "sort": 20,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {
@@ -23,6 +24,28 @@
                 ]
             },
             {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "插件源包放在 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "admin/plugins/{code}/",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，包内路径与安装后的位置一一对应。以 demo 为例，常用目录如下（按需创建，不必全部存在）："
+                    }
+                ]
+            },
+            {
                 "type": "codeBlock",
                 "attrs": {
                     "language": "text"
@@ -30,7 +53,251 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "admin/plugins/demo/\n├── plugin.json\n├── Plugin.php\n├── app/\n│   ├── admin/plugins/demo/controller/\n│   └── demo/service/\n├── database/migrations/\n├── resources/\n└── web/src/admin/plugins/demo/"
+                        "text": "admin/plugins/demo/\n├── plugin.json              # Manifest\n├── Plugin.php               # 生命周期钩子\n├── config.php\n├── app/\n│   ├── admin/plugins/demo/  # 后台接口：controller、service、model…\n│   └── demo/                # 独立应用：公开页面与接口\n├── web/src/admin/plugins/demo/   # 后台前端页面\n├── public/plugin-assets/demo/public/   # 公开静态资源（可选）\n├── database/migrations/     # 迁移 SQL\n└── storage/                 # 私有数据（可选）"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "安装位置"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "app/admin/plugins/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "admin/app/admin/plugins/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "，命名空间 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "app\\admin\\plugins\\demo\\controller",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "app/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "admin/app/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "，命名空间 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "app\\demo\\controller",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/admin/plugins/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "web/src/admin/plugins/demo/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "public/plugin-assets/demo/public/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "admin/public/plugin-assets/demo/public/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "plugin.json",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "、"
+                    },
+                    {
+                        "type": "text",
+                        "text": "Plugin.php",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "、"
+                    },
+                    {
+                        "type": "text",
+                        "text": "config.php",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 和迁移留在源包中；私有运行数据写入 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "admin/runtime/plugins-data/demo/storage/",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，发布新版本时不会被覆盖。"
                     }
                 ]
             },
@@ -54,7 +321,29 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "{\n  \"schema_version\": 2,\n  \"code\": \"demo\",\n  \"name\": \"示例插件\",\n  \"version\": \"1.0.0\",\n  \"entry\": { \"class\": \"plugins\\\\demo\\\\Plugin\", \"file\": \"Plugin.php\" },\n  \"adminWeb\": {\n    \"source\": \"web/src/admin/plugins/demo\",\n    \"components\": { \"Index\": \"Index.vue\" },\n    \"routes\": []\n  }\n}"
+                        "text": "{\n  \"schema_version\": 2,\n  \"code\": \"demo\",\n  \"name\": \"示例插件\",\n  \"version\": \"1.0.0\",\n  \"entry\": { \"class\": \"plugins\\\\demo\\\\Plugin\", \"file\": \"Plugin.php\" },\n  \"migrations\": { \"path\": \"database/migrations\" },\n  \"adminWeb\": {\n    \"source\": \"web/src/admin/plugins/demo\",\n    \"components\": { \"Index\": \"pages/Index.vue\" },\n    \"routes\": []\n  }\n}"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "没有数据库表的插件可以不声明 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "migrations",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "；一旦有过迁移就必须一直保留。"
                     }
                 ]
             },
@@ -95,7 +384,20 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "Manifest 中的路径必须位于插件目录内，不能使用 ..、绝对路径或符号链接逃逸。"
+                                        "text": "Manifest 中的路径必须位于插件目录内，不能使用 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "..",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "、绝对路径或符号链接逃逸。"
                                     }
                                 ]
                             }
@@ -123,7 +425,20 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "不要在插件 entry 文件加载时执行数据库写入或注册全局状态。"
+                                        "text": "不要在 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "Plugin.php",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 加载时执行数据库写入或注册全局状态，放进生命周期钩子里。"
                                     }
                                 ]
                             }
@@ -151,7 +466,42 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "cd admin\nphp webman plugin:validate demo\nphp webman plugin:install demo\nphp webman plugin:enable demo"
+                        "text": "cd admin\nphp webman plugin:validate demo"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "校验通过后在后台插件中心安装、启用。"
+                    },
+                    {
+                        "type": "text",
+                        "text": "php webman plugin:install",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 和 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "plugin:enable",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 是 Webman 自带的 Composer 插件命令，不用于 FunAdmin 插件。"
                     }
                 ]
             },
@@ -166,7 +516,7 @@
                         "content": [
                             {
                                 "type": "text",
-                                "text": "插件源码和安装后的 frontend module 必须使用同一份内容；宿主只从 enabledModules 接收已启用插件的组件和路由。"
+                                "text": "宿主只从启用插件列表接收前端组件和路由；插件源码和安装后的前端模块必须是同一份内容。"
                             }
                         ]
                     }

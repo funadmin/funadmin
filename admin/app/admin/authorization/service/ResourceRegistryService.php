@@ -12,6 +12,7 @@ use app\admin\authorization\model\Permission;
 use app\admin\authorization\model\PermissionField;
 use app\common\service\AbstractService;
 use support\Db;
+use app\common\model\LanguageLine;
 
 /** 菜单与权限资源注册入口，供后台、CRUD 生成器和插件共用。 */
 class ResourceRegistryService extends AbstractService
@@ -181,7 +182,7 @@ class ResourceRegistryService extends AbstractService
         $existing = [];
         foreach ($byLocale as $locale => $keys) {
             foreach (array_chunk(array_values(array_unique($keys)), 500) as $chunk) {
-                foreach (Db::table('language_line')->where('locale', $locale)->whereIn('key', $chunk)->pluck('key')->all() as $key) {
+                foreach (LanguageLine::withTrashed()->where('locale', $locale)->whereIn('key', $chunk)->pluck('key')->all() as $key) {
                     $existing[$locale . "\0" . $key] = true;
                 }
             }
@@ -194,7 +195,7 @@ class ResourceRegistryService extends AbstractService
             }
         }
         if ($missing !== []) {
-            Db::table('language_line')->insert($missing);
+            LanguageLine::query()->insert($missing);
         }
         return ['inserted' => count($missing), 'skipped' => count($rows) - count($missing)];
     }

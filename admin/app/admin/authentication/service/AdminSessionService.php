@@ -9,6 +9,9 @@ use app\common\model\Blacklist;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use support\Db;
+use app\admin\authentication\model\AdminAuthToken;
+use app\admin\authentication\model\BrowserSession;
+use app\admin\authentication\model\LoginAttempt;
 
 final class AdminSessionService
 {
@@ -45,7 +48,7 @@ final class AdminSessionService
             if ($error->getCode() === 401) $this->recordFailure($ip);
             throw $error;
         }
-        Db::table('login_attempts')->where('key', hash('sha256', $ip))->delete();
+        LoginAttempt::query()->where('key', hash('sha256', $ip))->delete();
         return $result;
     }
 
@@ -60,7 +63,7 @@ final class AdminSessionService
             if (!$valid || !$admin || !$admin->status) throw new DomainException('账号或密码错误', 401);
             $token = bin2hex(random_bytes(32));
             $ttl = max(60, min(86400, (int) config('auth.token_ttl', 7200)));
-            Db::table('admin_auth_tokens')->insert([
+            AdminAuthToken::query()->insert([
                 'token_hash' => hash('sha256', $token), 'admin_id' => $admin->id, 'purpose' => $purpose,
                 'credential_version' => self::credentialVersion($admin),
                 'expires_at' => date('Y-m-d H:i:s', time() + $ttl), 'created_at' => date('Y-m-d H:i:s'),
@@ -73,7 +76,7 @@ final class AdminSessionService
     public function authenticate(string $token, string $purpose = 'api'): array
     {
         if (!preg_match('/\A[a-f0-9]{64}\z/', $token)) throw new DomainException('登录已失效', 401);
-        $record = Db::table('admin_auth_tokens')->where('token_hash', hash('sha256', $token))
+        $record = AdminAuthToken::query()->where('token_hash', hash('sha256', $token))
             ->where('purpose', $purpose)->where('expires_at', '>', date('Y-m-d H:i:s'))->first();
         $admin = $record ? Admin::whereNull('deleted_at')->where('id', $record->admin_id)->where('status', 1)->first() : null;
         if (!$admin || !hash_equals($record->credential_version, self::credentialVersion($admin))) {
@@ -84,14 +87,14 @@ final class AdminSessionService
 
     public function logout(string $token, string $purpose = 'api'): void
     {
-        Db::table('admin_auth_tokens')->where('token_hash', hash('sha256', $token))->where('purpose', $purpose)->delete();
+        AdminAuthToken::query()->where('token_hash', hash('sha256', $token))->where('purpose', $purpose)->delete();
     }
 
     public function revokeAll(int $adminId): void
     {
-        $hashes = Db::table('admin_auth_tokens')->where('admin_id', $adminId)->pluck('token_hash')->all();
-        Db::table('browser_sessions')->whereIn('session_hash', $hashes)->delete();
-        Db::table('admin_auth_tokens')->where('admin_id', $adminId)->delete();
+        $hashes = AdminAuthToken::query()->where('admin_id', $adminId)->pluck('token_hash')->all();
+        BrowserSession::query()->whereIn('session_hash', $hashes)->delete();
+        AdminAuthToken::query()->where('admin_id', $adminId)->delete();
     }
 
     /** 令牌绑定签发时的密码哈希：改密后旧令牌一律失效。 */
@@ -102,7 +105,7 @@ final class AdminSessionService
 
     private function assertNotLocked(string $ip): void
     {
-        $row = Db::table('login_attempts')->where('key', hash('sha256', $ip))->first();
+        $row = LoginAttempt::query()->where('key', hash('sha256', $ip))->first();
         if ($row && $row->window_start > time() - 900 && (int) $row->attempts >= 5) {
             throw new DomainException('登录尝试过多，请稍后重试', 429);
         }
@@ -112,11 +115,11 @@ final class AdminSessionService
     {
         $key = hash('sha256', $ip);
         $now = time();
-        Db::table('login_attempts')->insertOrIgnore(['key' => $key, 'attempts' => 0, 'window_start' => $now]);
+        LoginAttempt::query()->insertOrIgnore(['key' => $key, 'attempts' => 0, 'window_start' => $now]);
         Db::transaction(static function () use ($key, $now): void {
-            $row = Db::table('login_attempts')->where('key', $key)->lockForUpdate()->first();
+            $row = LoginAttempt::query()->where('key', $key)->lockForUpdate()->first();
             $expired = $row->window_start <= $now - 900;
-            Db::table('login_attempts')->where('key', $key)->update([
+            LoginAttempt::query()->where('key', $key)->update([
                 'attempts' => ($expired ? 0 : (int) $row->attempts) + 1,
                 'window_start' => $expired ? $now : $row->window_start,
             ]);

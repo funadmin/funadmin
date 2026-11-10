@@ -1,10 +1,11 @@
 {
     "slug": "official-document-plugin",
     "title": "文档插件使用与公开阅读",
-    "summary": "介绍文档后台编辑、发布、公开可见性和 /docs 阅读站。",
+    "summary": "在后台编写、排序和发布文档，通过 /docs 公开阅读并收集读者反馈。",
     "scope": "official_plugin",
     "type": "guide",
     "category": "official-plugins",
+    "sort": 20,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {
@@ -27,7 +28,102 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "后台地址为 /#/admin/plugins/document/docs。可以创建文档、选择范围和目录、使用 Tiptap 编辑器、保存草稿、查看版本和发布。"
+                        "text": "后台地址为 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/#/admin/plugins/document/docs",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。在这里创建文档、选择范围和目录、使用编辑器编写正文、保存草稿、查看版本历史和发布。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "目录与排序"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "左侧目录对应公开站的菜单。目录和文档都有「排序」值，数值小的在前；同一目录里的文档按排序值决定阅读顺序，也决定页面底部的上一篇、下一篇。"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "快速入门：架构总览、安装与部署。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "主框架开发：后端、前端、认证与权限。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "插件开发：快速开始、目录与 Manifest、接口与路由、生命周期、数据库迁移。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "官方插件、第三方插件：各插件的使用和接入说明。"
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             },
@@ -48,7 +144,33 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "公开入口为 /docs，详情为 /docs/{slug}。只有 status=published 且 visibility=public 的文档会对外显示。后台保存草稿不会改变访客看到的发布修订。"
+                        "text": "公开入口为 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/docs",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，详情为 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/docs/{slug}",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。只有已发布且可见性为「公开阅读」的文档会对外显示；后台继续保存草稿不会改变访客看到的版本。"
                     }
                 ]
             },
@@ -60,68 +182,16 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "章节组织"
+                        "text": "读者反馈"
                     }
                 ]
             },
             {
-                "type": "bulletList",
+                "type": "paragraph",
                 "content": [
                     {
-                        "type": "listItem",
-                        "content": [
-                            {
-                                "type": "paragraph",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "FunAdmin 主框架：架构、安装、后端、前端和认证。"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "type": "listItem",
-                        "content": [
-                            {
-                                "type": "paragraph",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "插件开发：Manifest、生命周期、权限、路由和迁移。"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "type": "listItem",
-                        "content": [
-                            {
-                                "type": "paragraph",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "官方插件：CMS、文档、OSS 等官方扩展的使用方式。"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "type": "listItem",
-                        "content": [
-                            {
-                                "type": "paragraph",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "第三方插件：外部存储、支付或行业插件的接入边界。"
-                                    }
-                                ]
-                            }
-                        ]
+                        "type": "text",
+                        "text": "每篇公开文档都有「本文是否对您有帮助？」。读者选择「无帮助」时可以勾选原因并填写说明。后台文档列表显示 👍 / 👎 计数，在「更多 → 读者反馈」查看单篇文档的反馈，在列表顶部的「读者反馈」查看全部。"
                     }
                 ]
             },
@@ -142,7 +212,7 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "服务端会清理不支持的节点、危险 URL 和脚本。代码块、表格、图片和链接可以安全展示；Mermaid 当前以源码形式展示，便于复制。"
+                        "text": "服务端会清理不支持的节点、危险链接和脚本。代码块、表格、图片和链接可以安全展示；Mermaid 图表以源码形式展示，便于复制。"
                     }
                 ]
             },
@@ -172,7 +242,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "填写文档信息并将可见性设为公开或仅后台。"
+                                        "text": "填写文档信息：标题、标识、目录、排序和可见性。"
                                     }
                                 ]
                             }
@@ -200,7 +270,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "确认标题、摘要、链接和代码示例。"
+                                        "text": "检查标题、摘要、链接和代码示例。"
                                     }
                                 ]
                             }
@@ -214,7 +284,20 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "点击发布，再打开 /docs 检查公开版本。"
+                                        "text": "点击发布，再打开 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "/docs",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 检查公开版本。"
                                     }
                                 ]
                             }
@@ -225,7 +308,7 @@
             {
                 "type": "callout",
                 "attrs": {
-                    "tone": "warning"
+                    "tone": "tip"
                 },
                 "content": [
                     {
@@ -233,7 +316,7 @@
                         "content": [
                             {
                                 "type": "text",
-                                "text": "旧文档默认为仅后台，升级不会自动公开；只有明确选择公开并发布后才可分享。"
+                                "text": "内置文档在被修改之前会随插件升级自动更新；一旦在后台编辑、发布或调整过，升级就不会再覆盖它。"
                             }
                         ]
                     }

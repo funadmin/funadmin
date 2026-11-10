@@ -4,7 +4,8 @@
     "summary": "理解 Vue 路由、动态菜单、公共表单渲染、API 请求和前端插件模块。",
     "scope": "framework",
     "type": "guide",
-    "category": "framework-frontend",
+    "category": "framework",
+    "sort": 20,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

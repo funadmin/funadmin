@@ -11,6 +11,9 @@ use Casbin\Persist\AdapterHelper;
 use InvalidArgumentException;
 use LogicException;
 use support\Db;
+use app\admin\authorization\model\AuthGroup;
+use app\admin\authorization\model\AuthGroupInherit;
+use app\admin\authorization\model\CasbinRule;
 
 /** 使用当前连接及表前缀，加载单个 domain 的有效角色策略。 */
 final class DatabaseAdapter implements Adapter
@@ -23,12 +26,12 @@ final class DatabaseAdapter implements Adapter
 
     public function loadPolicy(Model $model): void
     {
-        $roles = Db::table('auth_group')->where('status', 1)->whereNull('deleted_at')->get(['id', 'pid']);
+        $roles = AuthGroup::query()->where('status', 1)->get(['id', 'pid']);
         $active = [];
         foreach ($roles as $role) {
             $active[PermissionResource::role((int) $role->id)] = true;
         }
-        $rules = Db::table('casbin_rule')->where(function ($query): void {
+        $rules = CasbinRule::query()->where(function ($query): void {
             $query->where('ptype', 'p')->where('v1', $this->domain);
         })->orWhere(function ($query): void {
             $query->where('ptype', 'g')->where('v2', $this->domain);
@@ -51,7 +54,7 @@ final class DatabaseAdapter implements Adapter
                 if (isset($active[$parent])) $links[$child . "\0" . $parent] = [$child, $parent];
             }
             if (Db::schema()->hasTable('auth_group_inherit')) {
-                foreach (Db::table('auth_group_inherit')->get(['role_id', 'parent_role_id']) as $relation) {
+                foreach (AuthGroupInherit::query()->get(['role_id', 'parent_role_id']) as $relation) {
                     $child = PermissionResource::role((int) $relation->role_id);
                     $parent = PermissionResource::role((int) $relation->parent_role_id);
                     if (isset($active[$child], $active[$parent])) $links[$child . "\0" . $parent] = [$child, $parent];
@@ -74,13 +77,13 @@ final class DatabaseAdapter implements Adapter
         $this->validateRule($ptype, $rule);
         $row = ['ptype' => $ptype, 'rule_hash' => hash('sha256', implode("\x1f", array_merge([$ptype], $rule)))];
         foreach (range(0, 5) as $index) $row['v' . $index] = (string) ($rule[$index] ?? '');
-        Db::table('casbin_rule')->insertOrIgnore($row);
+        CasbinRule::query()->insertOrIgnore($row);
     }
 
     public function removePolicy(string $sec, string $ptype, array $rule): void
     {
         $this->validateRule($ptype, $rule);
-        $query = Db::table('casbin_rule')->where('ptype', $ptype);
+        $query = CasbinRule::query()->where('ptype', $ptype);
         foreach ($rule as $index => $value) $query->where('v' . $index, $value);
         $query->delete();
     }
@@ -91,7 +94,7 @@ final class DatabaseAdapter implements Adapter
         if (!$length || $fieldIndex < 0 || $fieldIndex + count($fieldValues) > $length) {
             throw new InvalidArgumentException('策略过滤字段不合法');
         }
-        $query = Db::table('casbin_rule')->where('ptype', $ptype)->where($ptype === 'p' ? 'v1' : 'v2', $this->domain);
+        $query = CasbinRule::query()->where('ptype', $ptype)->where($ptype === 'p' ? 'v1' : 'v2', $this->domain);
         foreach ($fieldValues as $index => $value) {
             if ($value !== '') $query->where('v' . ($fieldIndex + $index), $value);
         }

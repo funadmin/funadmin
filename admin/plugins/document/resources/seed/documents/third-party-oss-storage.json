@@ -5,6 +5,7 @@
     "scope": "third_party",
     "type": "guide",
     "category": "third-party-plugins",
+    "sort": 10,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

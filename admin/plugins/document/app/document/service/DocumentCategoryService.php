@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace app\document\service;
 
+use app\document\model\{DocumentCategory, DocumentCategoryLink};
 use InvalidArgumentException;
-use support\Db;
 
 /** 文档目录树：按范围组织，删除前要求目录为空。 */
 final class DocumentCategoryService
 {
     public function tree(): array
     {
-        $rows = Db::table('document_categories')->orderBy('sort_order')->orderBy('id')->get()
-            ->map(fn ($row) => $this->dto($row))->all();
+        // 每个目录直接关联的未删除文档数，供后台显示和判断能否删除。
+        $rows = DocumentCategory::query()->withCount(['documents' => static fn ($query) => $query->alive()])
+            ->orderBy('sort_order')->orderBy('id')->get()
+            ->map(fn ($row) => $this->dto($row) + ['documentCount' => (int) $row->documents_count])->all();
         $byParent = [];
         foreach ($rows as $row) $byParent[$row['parentId']][] = $row;
         $build = static function (int $parent) use (&$build, $byParent): array {
@@ -27,7 +29,7 @@ final class DocumentCategoryService
         $data = $this->validate($payload);
         $this->assertSlugFree($data['slug']);
         $now = Rules::now();
-        $id = (int) Db::table('document_categories')->insertGetId($data + ['source' => 'manual', 'created_at' => $now, 'updated_at' => $now]);
+        $id = (int) DocumentCategory::query()->insertGetId($data + ['source' => 'manual', 'created_at' => $now, 'updated_at' => $now]);
         return $this->find($id);
     }
 
@@ -39,28 +41,28 @@ final class DocumentCategoryService
             throw new InvalidArgumentException('不能把目录移动到它自己或它的子目录下', 422);
         }
         if ($data['scope'] !== $current['scope']
-            && (Db::table('document_categories')->where('parent_id', $id)->exists()
-                || Db::table('document_category_links')->where('category_id', $id)->exists())) {
+            && (DocumentCategory::query()->where('parent_id', $id)->exists()
+                || DocumentCategoryLink::query()->where('category_id', $id)->exists())) {
             throw new InvalidArgumentException('目录下还有子目录或文档，不能修改范围', 409);
         }
         if ($data['slug'] !== $current['slug']) $this->assertSlugFree($data['slug']);
-        Db::table('document_categories')->where('id', $id)->update($data + ['updated_at' => Rules::now()]);
+        DocumentCategory::query()->where('id', $id)->update($data + ['updated_at' => Rules::now()]);
         return $this->find($id);
     }
 
     public function delete(int $id): void
     {
         $this->find($id);
-        if (Db::table('document_categories')->where('parent_id', $id)->exists()
-            || Db::table('document_category_links')->where('category_id', $id)->exists()) {
+        if (DocumentCategory::query()->where('parent_id', $id)->exists()
+            || DocumentCategoryLink::query()->where('category_id', $id)->exists()) {
             throw new InvalidArgumentException('目录下还有子目录或文档，请先移走后再删除', 409);
         }
-        Db::table('document_categories')->where('id', $id)->delete();
+        DocumentCategory::query()->where('id', $id)->delete();
     }
 
     public function find(int $id): array
     {
-        $row = Db::table('document_categories')->where('id', $id)->first();
+        $row = DocumentCategory::query()->where('id', $id)->first();
         if (!$row) throw new InvalidArgumentException('目录不存在', 404);
         return $this->dto($row);
     }
@@ -69,7 +71,7 @@ final class DocumentCategoryService
     private function descendantIds(int $id): array
     {
         $children = [];
-        foreach (Db::table('document_categories')->get(['id', 'parent_id']) as $row) $children[(int) $row->parent_id][] = (int) $row->id;
+        foreach (DocumentCategory::query()->get(['id', 'parent_id']) as $row) $children[(int) $row->parent_id][] = (int) $row->id;
         $result = [];
         $queue = $children[$id] ?? [];
         while ($queue) {
@@ -87,7 +89,7 @@ final class DocumentCategoryService
         $parentId = isset($payload['parentId']) && $payload['parentId'] !== 0 && $payload['parentId'] !== '0' && $payload['parentId'] !== null
             ? Rules::id($payload['parentId']) : 0;
         if ($parentId > 0) {
-            $parent = Db::table('document_categories')->where('id', $parentId)->first();
+            $parent = DocumentCategory::query()->where('id', $parentId)->first();
             if (!$parent) throw new InvalidArgumentException('上级目录不存在', 422);
             if ($parent->scope !== $scope) throw new InvalidArgumentException('上级目录必须属于同一范围', 422);
         }
@@ -102,7 +104,7 @@ final class DocumentCategoryService
 
     private function assertSlugFree(string $slug): void
     {
-        if (Db::table('document_categories')->where('slug', $slug)->exists()) {
+        if (DocumentCategory::query()->where('slug', $slug)->exists()) {
             throw new InvalidArgumentException('目录标识已存在', 422);
         }
     }

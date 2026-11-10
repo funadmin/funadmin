@@ -5,6 +5,7 @@
     "scope": "third_party",
     "type": "deployment",
     "category": "third-party-plugins",
+    "sort": 20,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

@@ -4,7 +4,8 @@
     "summary": "从开发环境安装到生产部署的完整步骤，包含数据库、前端构建、反向代理和升级检查。",
     "scope": "framework",
     "type": "deployment",
-    "category": "framework-deployment",
+    "category": "getting-started",
+    "sort": 20,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

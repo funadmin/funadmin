@@ -1,10 +1,11 @@
 {
     "slug": "plugin-backend-routes",
     "title": "插件后端接口与前端路由",
-    "summary": "讲解插件控制器、权限推导、Admin Web 路由和前端组件挂载。",
+    "summary": "编写插件后台接口，声明菜单、前端路由和权限，让页面出现在后台并受权限控制。",
     "scope": "plugin_dev",
     "type": "guide",
-    "category": "plugin-dev-structure",
+    "category": "plugin-dev",
+    "sort": 30,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {
@@ -18,7 +19,81 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "后台控制器"
+                        "text": "后台接口"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台控制器放在 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "app/admin/plugins/{code}/controller/",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，命名空间为 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "app\\admin\\plugins\\{code}\\controller",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，继承 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "AdminController",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，路由组以 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/admin/plugins/{code}",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 开头。下面是 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "plugin:make demo",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 生成的控制器："
                     }
                 ]
             },
@@ -30,7 +105,42 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "#[RouteGroup('/admin/plugins/demo')]\nfinal class Index extends AdminController\n{\n    #[Get('/items')]\n    public function index(): Response\n    {\n        return $this->ok(data: (new ItemService())->list());\n    }\n}"
+                        "text": "<?php\n\ndeclare(strict_types=1);\n\nnamespace app\\admin\\plugins\\demo\\controller;\n\nuse app\\common\\controller\\AdminController;\nuse support\\annotation\\route\\Get;\nuse support\\annotation\\route\\RouteGroup;\nuse support\\Response;\n\n#[RouteGroup('/admin/plugins/demo')]\nfinal class Index extends AdminController\n{\n    // 权限码由控制器方法推导：demo:index:index\n    #[Get('/index')]\n    public function index(): Response\n    {\n        return $this->ok(data: []);\n    }\n}"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "插件后台接口总是要求登录，并由宿主的 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "CheckAdminApiRoleMiddleware",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 校验权限，插件没有专用的权限中间件。新增或修改控制器、路由后执行 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "php start.php reload",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。"
                     }
                 ]
             },
@@ -51,43 +161,33 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "插件后台方法的权限码由插件 code、控制器和方法推导。Manifest 中可以为推导码提供展示名称，但不能通过前端 meta.permission 代替服务端校验。"
-                    }
-                ]
-            },
-            {
-                "type": "heading",
-                "attrs": {
-                    "level": 2
-                },
-                "content": [
+                        "text": "每个带路由注解的方法就是一个独立权限。权限码按 "
+                    },
                     {
                         "type": "text",
-                        "text": "前端模块"
-                    }
-                ]
-            },
-            {
-                "type": "codeBlock",
-                "attrs": {
-                    "language": "json"
-                },
-                "content": [
+                        "text": "{插件}:{资源}:{方法}",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
                     {
                         "type": "text",
-                        "text": "\"adminWeb\": {\n  \"source\": \"web/src/admin/plugins/demo\",\n  \"components\": { \"Index\": \"Index.vue\" },\n  \"routes\": [{\n    \"path\": \"/plugins/demo/items\",\n    \"name\": \"Plugin_demo_Items\",\n    \"component\": \"Index\",\n    \"meta\": { \"title\": \"示例列表\", \"permission\": \"demo:index:index\" }\n  }]\n}"
-                    }
-                ]
-            },
-            {
-                "type": "heading",
-                "attrs": {
-                    "level": 2
-                },
-                "content": [
+                        "text": " 自动推导，全部使用 kebab-case，资源为类名去掉 "
+                    },
                     {
                         "type": "text",
-                        "text": "常见错误"
+                        "text": "Controller",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 后缀："
                     }
                 ]
             },
@@ -102,7 +202,25 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "路径不是 /plugins/{code}/ 前缀，路由 DTO 会被拒绝。"
+                                        "text": "app\\admin\\plugins\\demo\\controller\\Index::index",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "demo:index:index",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -116,7 +234,25 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "组件文件没有复制到 web/src/admin/plugins/{code}，会进入插件错误页。"
+                                        "text": "app\\admin\\plugins\\demo\\controller\\ItemController::saveDraft",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "demo:item:save-draft",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -130,25 +266,94 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "把 Layout 作为插件页面组件，造成重复后台布局；插件路由外层由宿主统一提供 Layout。"
+                                        "text": "app\\admin\\plugins\\demo\\controller\\admin\\OrderController::close",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " → "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "demo:admin-order:close",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "（子目录并入资源名）"
                                     }
                                 ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "安装、启用和升级时，宿主扫描控制器并自动登记这些权限码；方法删除或改名后，旧权限码在下次启用时停用。方法上的 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "#[Permission]",
+                        "marks": [
+                            {
+                                "type": "code"
                             }
                         ]
                     },
                     {
-                        "type": "listItem",
-                        "content": [
+                        "type": "text",
+                        "text": "、"
+                    },
+                    {
+                        "type": "text",
+                        "text": "#[NoNeedLogin]",
+                        "marks": [
                             {
-                                "type": "paragraph",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": "停用插件后仍能访问接口，通常是 activation snapshot 或 worker 没有重载。"
-                                    }
-                                ]
+                                "type": "code"
                             }
                         ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "、"
+                    },
+                    {
+                        "type": "text",
+                        "text": "#[NoNeedPermission]",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 对插件后台控制器不生效。在 plugin.json 的 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "adminWeb.permissions",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 里写同一个 code，只是给它设置在角色授权里显示的名称。"
                     }
                 ]
             },
@@ -160,19 +365,691 @@
                 "content": [
                     {
                         "type": "text",
-                        "text": "验证"
+                        "text": "菜单与前端路由"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "后台页面要在 plugin.json 的 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "adminWeb",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 里同时声明组件、菜单和路由，缺一项页面就无法从侧栏进入："
                     }
                 ]
             },
             {
                 "type": "codeBlock",
                 "attrs": {
-                    "language": "bash"
+                    "language": "json"
                 },
                 "content": [
                     {
                         "type": "text",
-                        "text": "vendor/bin/phpunit tests/PluginCenterHttpTest.php\npnpm vitest run src/admin/router/pluginModules.spec.ts"
+                        "text": "\"adminWeb\": {\n  \"source\": \"web/src/admin/plugins/demo\",\n  \"components\": { \"Index\": \"pages/Index.vue\" },\n  \"permissions\": [{ \"code\": \"demo:index:index\", \"name\": \"查看示例\" }],\n  \"menu\": [{ \"name\": \"示例\", \"path\": \"/plugins/demo/items\", \"permission\": \"demo:index:index\" }],\n  \"routes\": [{\n    \"path\": \"/plugins/demo/items\",\n    \"name\": \"Plugin_demo_Index\",\n    \"component\": \"Index\",\n    \"meta\": { \"permission\": \"demo:index:index\" }\n  }]\n}"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "components",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：组件名到文件的映射，文件路径相对于 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "source",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "menu",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "：后台侧栏菜单。"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "path",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 与路由一致，"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "permission",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 绑定该页面列表接口的推导码。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "routes",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "："
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "path",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 必须以 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "/plugins/{code}/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 开头；"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "name",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 必须是 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "Plugin_{code}",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 或以 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "Plugin_{code}_",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 开头；"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "component",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 引用 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "components",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 中的名称；"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "meta.permission",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 决定能否打开页面。"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "页面的实际地址是 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/#/admin/plugins/demo/items",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。宿主会自动给插件页面套上后台布局，组件里不要再包一层 Layout。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "页面调用接口"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "插件页面统一使用宿主的 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "@/utils/http",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 发请求，路径写 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/plugins/{code}/...",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "，请求会自动加上 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/admin",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 前缀和 CSRF Token，并统一处理业务错误和登录失效："
+                    }
+                ]
+            },
+            {
+                "type": "codeBlock",
+                "attrs": {
+                    "language": "ts"
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "import http from '@/utils/http';\nimport type { Item } from './types';\n\nexport const listItems = () => http.get<Item[]>('/plugins/demo/index');"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "按钮级权限用 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "v-perm",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 或 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "hasPermission",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 检查对应方法的推导码，例如 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "v-perm=\"'demo:index:index'\"",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "。前端检查只决定是否显示，真正的拦截在服务端。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "前端构建"
+                    }
+                ]
+            },
+            {
+                "type": "paragraph",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "宿主通过启用插件列表下发组件名和路由，但组件代码来自前端构建。插件安装或新增页面后，在 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "web",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 目录执行 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "pnpm build:webman",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": "；开发时运行 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "pnpm dev:webman",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 会自动包含插件目录。组件不在当前构建中时，插件页面不会挂载，控制台提示「插件组件未包含在当前构建中」，详情可在 "
+                    },
+                    {
+                        "type": "text",
+                        "text": "/#/admin/plugins/{code}/error",
+                        "marks": [
+                            {
+                                "type": "code"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "text",
+                        "text": " 查看。"
+                    }
+                ]
+            },
+            {
+                "type": "heading",
+                "attrs": {
+                    "level": 2
+                },
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "常见问题"
+                    }
+                ]
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "侧栏没有菜单：检查 plugin.json 的 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "menu",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "，以及当前角色是否拥有菜单绑定的权限。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "打开页面跳到 403：路由 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "meta.permission",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 对应的权限没有授予当前角色。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "页面无法加载：组件文件不在当前前端构建中，或 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "component",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 与 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "components",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 中的名称不一致。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "接口返回 404：插件没有启用，或新增控制器后没有执行 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "php start.php reload",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "页面里出现两层后台布局：组件内部又包了一层 Layout。"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "路由注册失败："
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "path",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 或 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "name",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 不符合 "
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "/plugins/{code}/",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "、"
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "Plugin_{code}_",
+                                        "marks": [
+                                            {
+                                                "type": "code"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": " 的约定。"
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             }

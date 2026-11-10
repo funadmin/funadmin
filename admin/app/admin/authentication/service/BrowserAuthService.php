@@ -6,6 +6,7 @@ namespace app\admin\authentication\service;
 
 use DomainException;
 use support\Db;
+use app\admin\authentication\model\BrowserSession;
 
 final class BrowserAuthService
 {
@@ -60,7 +61,7 @@ final class BrowserAuthService
     private function revoke(string $cookie): void
     {
         (new AdminSessionService())->logout($cookie, 'browser');
-        Db::table('browser_sessions')->where('session_hash', hash('sha256', $cookie))->delete();
+        BrowserSession::query()->where('session_hash', hash('sha256', $cookie))->delete();
     }
 
     private function session(string $cookie): ?object
@@ -68,14 +69,14 @@ final class BrowserAuthService
         if (!preg_match('/\A[a-f0-9]{64}\z/', $cookie)) {
             return null;
         }
-        return Db::table('browser_sessions')->where('session_hash', hash('sha256', $cookie))
+        return BrowserSession::query()->where('session_hash', hash('sha256', $cookie))
             ->where('expires_at', '>', date('Y-m-d H:i:s'))->first();
     }
 
     private function createSession(string $cookie, int $ttl): array
     {
         $csrf = bin2hex(random_bytes(32));
-        Db::table('browser_sessions')->insert([
+        BrowserSession::query()->insert([
             'session_hash' => hash('sha256', $cookie),
             'csrf_token' => $csrf,
             'expires_at' => date('Y-m-d H:i:s', time() + $ttl),

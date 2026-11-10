@@ -7,6 +7,7 @@ use app\common\model\Config;
 use InvalidArgumentException;
 use support\Cache;
 use support\Db;
+use app\common\model\ConfigGroup;
 
 /** Dynamic admin login entry stored in the system configuration table. */
 final class AdminLoginPath
@@ -50,7 +51,7 @@ final class AdminLoginPath
     public static function ensure(): void
     {
         if (!Db::schema()->hasTable('config')) return;
-        $group = Db::schema()->hasTable('config_group') && Db::table('config_group')->where('name', 'site')->exists()
+        $group = Db::schema()->hasTable('config_group') && ConfigGroup::withTrashed()->where('name', 'site')->exists()
             ? 'site'
             : null;
         if ($group === null || Config::where('code', self::CODE)->exists()) return;

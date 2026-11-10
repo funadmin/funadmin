@@ -24,6 +24,7 @@ use RuntimeException;
 use support\Db;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use app\admin\authentication\model\Admin;
 
 /**
  * MCP(Model Context Protocol)服务类
@@ -239,13 +240,13 @@ class McpService extends AbstractService
         try {
             switch ($action) {
                 case 'list':
-                    $users = Db::table('admin')->whereNull('deleted_at')
+                    $users = Admin::query()->whereNull('deleted_at')
                         ->select(['id', 'username', 'email', 'mobile', 'created_at', 'status'])
                         ->limit(max(1, min(100, $limit)))
                         ->get();
                     
                     return [
-                        'users' => array_map(static fn (object $row): array => (array) $row, $users->all()),
+                        'users' => array_map(static fn (Admin $row): array => $row->getAttributes(), $users->all()),
                         'count' => count($users)
                     ];
 
@@ -254,7 +255,7 @@ class McpService extends AbstractService
                         throw new RuntimeException('用户ID不能为空');
                     }
 
-                    $user = Db::table('admin')->whereNull('deleted_at')
+                    $user = Admin::query()->whereNull('deleted_at')
                         ->select(['id', 'username', 'real_name', 'email', 'mobile', 'created_at', 'status'])
                         ->where('id', $userId)
                         ->first();
@@ -263,11 +264,11 @@ class McpService extends AbstractService
                         throw new RuntimeException('用户不存在');
                     }
 
-                    return (array) $user;
+                    return $user->getAttributes();
 
                 case 'count':
-                    $total = Db::table('admin')->whereNull('deleted_at')->count();
-                    $active = Db::table('admin')->whereNull('deleted_at')->where('status', 1)->count();
+                    $total = Admin::query()->whereNull('deleted_at')->count();
+                    $active = Admin::query()->whereNull('deleted_at')->where('status', 1)->count();
                     
                     return [
                         'total' => $total,

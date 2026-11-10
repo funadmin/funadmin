@@ -4,7 +4,8 @@
     "summary": "说明动态后台登录入口、浏览器会话、CSRF、角色权限和插件权限如何协同。",
     "scope": "framework",
     "type": "reference",
-    "category": "framework-backend",
+    "category": "framework",
+    "sort": 30,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {

@@ -16,6 +16,8 @@ export interface DocumentCategory {
   name: string;
   slug: string;
   sortOrder: number;
+  /** 直接归属该目录的文档数（目录树接口返回） */
+  documentCount?: number;
   children: DocumentCategory[];
 }
 
@@ -30,6 +32,8 @@ export interface DocumentSummary {
   status: DocumentStatus;
   visibility?: DocumentVisibility;
   appliesTo: string;
+  /** 同一目录内的阅读顺序，数值小的在前 */
+  sortOrder: number;
   lockVersion: number;
   currentRevisionNo: number;
   /** 已发布文档的草稿与最新修订不同 */
@@ -74,6 +78,7 @@ export interface DocumentMetaInput {
   type: DocumentType;
   pluginCode?: string;
   appliesTo?: string;
+  sortOrder?: number;
   categoryIds?: number[];
 }
 

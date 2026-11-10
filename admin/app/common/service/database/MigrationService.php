@@ -6,6 +6,7 @@ use app\common\service\AbstractService;
 use RuntimeException;
 use support\Db;
 use app\common\model\SystemMigration;
+use app\common\model\PhpMigration;
 
 /**
  * 执行只向前的 SQL migration；文件按名称排序且禁止破坏性语句。
@@ -58,7 +59,7 @@ class MigrationService extends AbstractService
         foreach ($files as $file) {
             $name = basename($file);
             $checksum = hash_file('sha256', $file);
-            $record = Db::table('migrations')->where('name', $name)->first();
+            $record = PhpMigration::query()->where('name', $name)->first();
             if ($record) {
                 if (!hash_equals((string) $record->checksum, $checksum)) {
                     throw new RuntimeException('已执行的迁移文件被修改：' . $name);
@@ -70,7 +71,7 @@ class MigrationService extends AbstractService
                 throw new RuntimeException('迁移文件必须返回可调用闭包：' . $name . '（实际类型：' . get_debug_type($migration) . '）');
             }
             $migration();
-            Db::table('migrations')->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
+            PhpMigration::query()->insert(['name' => $name, 'checksum' => $checksum, 'created_at' => date('Y-m-d H:i:s')]);
             $executed[] = $name;
         }
         return $executed;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace app\document\service;
 
+use app\document\model\DocumentFeedback;
 use InvalidArgumentException;
-use support\Db;
 use Webman\Limiter\Limiter;
 
 /**
@@ -61,7 +61,7 @@ final class FeedbackService
         }
 
         $now = date('Y-m-d H:i:s');
-        Db::table('document_feedback')->upsert([[
+        DocumentFeedback::query()->upsert([[
             'document_id' => $target['id'], 'revision_no' => $target['revisionNo'], 'helpful' => $helpful,
             'reasons' => json_encode($reasons, JSON_THROW_ON_ERROR), 'comment' => $comment,
             'voter' => hash('sha256', 'document-feedback|' . $visitor), 'created_at' => $now, 'updated_at' => $now,
@@ -80,8 +80,8 @@ final class FeedbackService
         $result = [];
         foreach ($documentIds as $id) $result[(int) $id] = ['helpful' => 0, 'unhelpful' => 0];
         if ($result === []) return [];
-        $rows = Db::table('document_feedback')->whereIn('document_id', array_keys($result))
-            ->groupBy('document_id', 'helpful')->get(['document_id', 'helpful', Db::raw('count(*) as total')]);
+        $rows = DocumentFeedback::query()->whereIn('document_id', array_keys($result))
+            ->groupBy('document_id', 'helpful')->select('document_id', 'helpful')->selectRaw('count(*) as total')->get();
         foreach ($rows as $row) $result[(int) $row->document_id][(bool) $row->helpful ? 'helpful' : 'unhelpful'] = (int) $row->total;
         return $result;
     }
@@ -91,10 +91,10 @@ final class FeedbackService
     {
         $page = max(1, min(10000, (int) ($query['page'] ?? 1)));
         $pageSize = max(1, min(100, (int) ($query['pageSize'] ?? 20)));
-        $builder = Db::table('document_feedback as f')->join('documents as d', 'd.id', '=', 'f.document_id')->whereNull('d.deleted_at');
+        $builder = DocumentFeedback::query()->from('document_feedback as f')->join('documents as d', 'd.id', '=', 'f.document_id')->whereNull('d.deleted_at');
         if (($query['documentId'] ?? '') !== '' && $query['documentId'] !== null) $builder->where('f.document_id', Rules::id($query['documentId']));
         $summary = ['helpful' => 0, 'unhelpful' => 0];
-        foreach ((clone $builder)->groupBy('f.helpful')->get(['f.helpful', Db::raw('count(*) as total')]) as $row) {
+        foreach ((clone $builder)->groupBy('f.helpful')->select('f.helpful')->selectRaw('count(*) as total')->get() as $row) {
             $summary[(bool) $row->helpful ? 'helpful' : 'unhelpful'] = (int) $row->total;
         }
         $helpful = $query['helpful'] ?? '';

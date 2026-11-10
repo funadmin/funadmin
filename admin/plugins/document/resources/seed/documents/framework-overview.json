@@ -4,7 +4,8 @@
     "summary": "理解 Webman 后端、Vue 前端、权限系统、表单引擎和插件运行时之间的关系。",
     "scope": "framework",
     "type": "architecture",
-    "category": "framework-architecture",
+    "category": "getting-started",
+    "sort": 10,
     "appliesTo": "1.2",
     "visibility": "public",
     "content": {
@@ -249,7 +250,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "先完成安装并确认后台登录入口。"
+                                        "text": "按「安装、配置与部署」完成安装，确认后台登录入口。"
                                     }
                                 ]
                             }
@@ -263,7 +264,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "阅读权限与会话章节，理解接口为什么可能返回 401、403 或 422。"
+                                        "text": "阅读「认证、权限与安全边界」，理解接口为什么会返回 401、403 或 422。"
                                     }
                                 ]
                             }
@@ -277,7 +278,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "使用业务开发工具创建一个模块，再阅读生成文件和表单 Schema。"
+                                        "text": "阅读「后端开发规范」和「前端开发与表单 Schema」，再用业务开发工具生成一个模块对照学习。"
                                     }
                                 ]
                             }
@@ -291,7 +292,7 @@
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "最后阅读插件结构、生命周期和前端路由章节。"
+                                        "text": "需要扩展功能时，从「插件开发快速开始」进入插件开发。"
                                     }
                                 ]
                             }

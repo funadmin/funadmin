@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace app\document\service;
 
-use Illuminate\Database\Query\Builder;
+use app\document\model\{Document, DocumentCategory, DocumentCategoryLink};
+use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
-use support\Db;
 
 /** 匿名阅读边界：始终读取当前发布修订，不查询草稿正文。 */
 final class PublicDocumentService
 {
     private function published(): Builder
     {
-        return Db::table('documents as d')
+        return Document::query()->from('documents as d')
             ->join('document_revisions as r', static function ($join): void {
                 $join->on('r.document_id', '=', 'd.id')->on('r.revision_no', '=', 'd.current_revision_no');
             })
@@ -28,7 +28,7 @@ final class PublicDocumentService
         if (($input['scope'] ?? '') !== '') $query->where('d.scope', Rules::scope($input['scope']));
         if (($input['categoryId'] ?? '') !== '') {
             $ids = $this->categoryDescendants(Rules::id($input['categoryId']));
-            $query->whereIn('d.id', Db::table('document_category_links')->select('document_id')->whereIn('category_id', $ids));
+            $query->whereIn('d.id', DocumentCategoryLink::query()->select('document_id')->whereIn('category_id', $ids));
         }
         $keyword = $input['keyword'] ?? '';
         if (!is_string($keyword)) throw new InvalidArgumentException('搜索关键词无效', 422);
@@ -70,8 +70,8 @@ final class PublicDocumentService
     /** 只公开关联到公开文档的目录及其祖先，不泄漏仅后台目录名称。 */
     public function categories(): array
     {
-        $linked = Db::table('document_category_links')->whereIn('document_id', $this->published()->select('d.id'))->pluck('category_id')->all();
-        $rows = Db::table('document_categories')->orderBy('sort_order')->orderBy('id')->get()->keyBy('id');
+        $linked = DocumentCategoryLink::query()->whereIn('document_id', $this->published()->select('d.id'))->pluck('category_id')->all();
+        $rows = DocumentCategory::query()->orderBy('sort_order')->orderBy('id')->get()->keyBy('id');
         $visible = [];
         foreach ($linked as $id) {
             while ($id && !isset($visible[$id]) && isset($rows[$id])) {
@@ -93,7 +93,7 @@ final class PublicDocumentService
     {
         $documents = [];
         foreach ($this->published()->join('document_category_links as l', 'l.document_id', '=', 'd.id')
-            ->orderBy('d.id')->get(['l.category_id', 'd.slug', 'r.title']) as $row) {
+            ->orderBy('d.sort_order')->orderBy('d.id')->get(['l.category_id', 'd.slug', 'r.title']) as $row) {
             $documents[(int)$row->category_id][] = ['slug'=>(string)$row->slug, 'title'=>(string)$row->title];
         }
         $children = [];
@@ -107,9 +107,7 @@ final class PublicDocumentService
         };
         $walk(0);
         // 没有归属任何目录的公开文档按文档范围归入"其他"分组，保证每篇公开文档都能从菜单进入。
-        $loose = $this->published()->whereNotExists(static function ($query): void {
-            $query->selectRaw('1')->from('document_category_links as l')->whereColumn('l.document_id', 'd.id');
-        })->orderBy('d.id')->get(['d.scope', 'd.slug', 'r.title']);
+        $loose = $this->published()->whereNotIn('d.id', DocumentCategoryLink::query()->select('document_id'))->orderBy('d.sort_order')->orderBy('d.id')->get(['d.scope', 'd.slug', 'r.title']);
         $groups = [];
         foreach ($loose as $row) $groups[(string)$row->scope][] = ['slug'=>(string)$row->slug, 'title'=>(string)$row->title];
         $index = 0;
@@ -135,7 +133,7 @@ final class PublicDocumentService
 
     private function categoryDescendants(int $id): array
     {
-        $rows = Db::table('document_categories')->get(['id','parent_id']);
+        $rows = DocumentCategory::query()->get(['id','parent_id']);
         $ids = [$id];
         for ($index=0; $index<count($ids); $index++) {
             foreach ($rows as $row) if ((int)$row->parent_id === $ids[$index] && !in_array((int)$row->id, $ids, true)) $ids[] = (int)$row->id;

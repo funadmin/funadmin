@@ -10,9 +10,15 @@ final class Input
     public static function locale(mixed $value): string { $v=strtolower(self::text($value,20)); if(!preg_match('/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/D',$v)) throw new InvalidArgumentException('语言代码无效'); return $v; }
     public static function json(mixed $value): string { if(!is_array($value)) throw new InvalidArgumentException('配置必须是对象或数组'); return json_encode($value,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); }
     public static function now(): string { return gmdate('Y-m-d H:i:s'); }
+    /** 取出一行的原始列值：Eloquent 模型用 getAttributes()（直接 (array) 会得到受保护属性），其他输入按 (array) 转换。 */
+    public static function attributes(object|array|null $row): ?array
+    {
+        if($row===null) return null;
+        return $row instanceof \Illuminate\Database\Eloquent\Model ? $row->getAttributes() : (array)$row;
+    }
     public static function row(object|array|null $row): ?array
     {
-        if($row===null) return null; $row=(array)$row;
+        $row=self::attributes($row); if($row===null) return null;
         foreach($row as $key=>&$value) {
             if(($key==='id'||str_ends_with($key,'_id'))&&$value!==null) $value=(string)$value;
             if(in_array($key,['settings','field_schema','data','parameters'],true) && is_string($value)) $value=json_decode($value,true,512,JSON_THROW_ON_ERROR);

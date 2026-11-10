@@ -6,6 +6,8 @@ namespace app\admin\authorization\service;
 
 use app\admin\authorization\model\Permission;
 use support\Db;
+use app\admin\authorization\model\AdminMenu;
+use app\common\plugin\model\Plugin;
 
 /**
  * 权限资源树由权限码推导：模块分组 → 资源分组 → 接口/能力权限（权限码为 模块:资源:操作）。
@@ -122,7 +124,7 @@ final class PermissionTreeService
     {
         $removed = 0;
         do {
-            $referenced = Db::table('admin_menu')->where('permission_id', '>', 0)->pluck('permission_id')->all();
+            $referenced = AdminMenu::query()->where('permission_id', '>', 0)->pluck('permission_id')->all();
             $empty = Permission::query()->whereNull('deleted_at')->where('resource_type', Permission::TYPE_GROUP)
                 ->whereIn('source_type', self::ORGANIZED_SOURCES)
                 ->whereNotIn('id', Permission::query()->select('pid')->whereNull('deleted_at'))
@@ -136,7 +138,7 @@ final class PermissionTreeService
     private function moduleLabel(string $module, array $owner): string
     {
         if ($owner[0] !== 'plugin') return self::MODULES[$module] ?? $module;
-        $name = (string) Db::table('plugin')->where('code', $owner[1])->value('name');
+        $name = (string) Plugin::withTrashed()->where('code', $owner[1])->value('name');
         if ($name !== '') return $name;
         $name = $this->manifest($owner[1])['name'] ?? null;
         return is_string($name) && trim($name) !== '' ? trim($name) : $owner[1];
@@ -150,7 +152,7 @@ final class PermissionTreeService
         } elseif (isset(self::RESOURCES[$module . ':' . $resource])) {
             return self::RESOURCES[$module . ':' . $resource];
         }
-        $menu = Db::table('admin_menu as m')->join('permission as p', 'p.id', '=', 'm.permission_id')
+        $menu = AdminMenu::query()->from('admin_menu as m')->join('permission as p', 'p.id', '=', 'm.permission_id')
             ->whereNull('m.deleted_at')->whereNull('p.deleted_at')->where('p.code', 'like', $module . ':' . $resource . ':%')
             ->orderBy('m.id')->value('m.name');
         return is_string($menu) && $menu !== '' ? $menu : $resource;
@@ -160,7 +162,7 @@ final class PermissionTreeService
     private function manifest(string $code): array
     {
         if (isset($this->manifests[$code])) return $this->manifests[$code];
-        $installed = json_decode((string) Db::table('plugin')->where('code', $code)->value('manifest'), true);
+        $installed = json_decode((string) Plugin::withTrashed()->where('code', $code)->value('manifest'), true);
         $file = base_path('plugins/' . $code . '/plugin.json');
         $source = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
         $data = is_array($installed) ? $installed : (is_array($source) ? $source : []);

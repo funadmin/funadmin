@@ -6,6 +6,8 @@ namespace app\common\service\member;
 
 use app\common\service\authentication\TokenService;
 use support\Db;
+use app\common\model\MemberApiSession;
+use app\common\model\MemberApiSessionUsed;
 
 /**
  * 会员 API v2 会话：access 为短期 JWT（携带 sid），refresh 为随机令牌且只存哈希。
@@ -27,7 +29,7 @@ final class MemberApiSessionService
     {
         $sessionId = bin2hex(random_bytes(16));
         $refresh = $this->newRefreshToken();
-        Db::table('member_api_session')->insert([
+        MemberApiSession::query()->insert([
             'session_id' => $sessionId,
             'member_id' => $memberId,
             'refresh_hash' => hash('sha256', $refresh),
@@ -46,7 +48,7 @@ final class MemberApiSessionService
         }
         $hash = hash('sha256', $refreshToken);
         return Db::transaction(function () use ($hash): ?array {
-            $session = Db::table('member_api_session')->where('refresh_hash', $hash)->lockForUpdate()->first();
+            $session = MemberApiSession::query()->where('refresh_hash', $hash)->lockForUpdate()->first();
             if ($session === null) {
                 $this->revokeReplayedSession($hash);
                 return null;
@@ -61,8 +63,8 @@ final class MemberApiSessionService
             }
             $refresh = $this->newRefreshToken();
             $now = date('Y-m-d H:i:s');
-            Db::table('member_api_session_used')->insert(['refresh_hash' => $hash, 'session_id' => $session->session_id, 'used_at' => $now]);
-            Db::table('member_api_session')->where('id', $session->id)->update([
+            MemberApiSessionUsed::query()->insert(['refresh_hash' => $hash, 'session_id' => $session->session_id, 'used_at' => $now]);
+            MemberApiSession::query()->where('id', $session->id)->update([
                 'refresh_hash' => hash('sha256', $refresh),
                 'refresh_expires_at' => time() + $this->refreshTtl(),
                 'rotated_at' => $now,
@@ -80,7 +82,7 @@ final class MemberApiSessionService
         if ($memberId <= 0 || preg_match('/^[a-f0-9]{32}$/', $sessionId) !== 1) {
             return null;
         }
-        $active = Db::table('member_api_session')
+        $active = MemberApiSession::query()
             ->where('session_id', $sessionId)->where('member_id', $memberId)->whereNull('revoked_at')
             ->exists();
         if (!$active) {
@@ -92,20 +94,20 @@ final class MemberApiSessionService
 
     public function revoke(string $sessionId): void
     {
-        Db::table('member_api_session')->where('session_id', $sessionId)->whereNull('revoked_at')
+        MemberApiSession::query()->where('session_id', $sessionId)->whereNull('revoked_at')
             ->update(['revoked_at' => date('Y-m-d H:i:s')]);
     }
 
     /** 吊销该会员的全部会话（改密等场景，所有设备需重新登录）。 */
     public function revokeMember(int $memberId): void
     {
-        Db::table('member_api_session')->where('member_id', $memberId)->whereNull('revoked_at')
+        MemberApiSession::query()->where('member_id', $memberId)->whereNull('revoked_at')
             ->update(['revoked_at' => date('Y-m-d H:i:s')]);
     }
 
     private function revokeReplayedSession(string $hash): void
     {
-        $used = Db::table('member_api_session_used')->where('refresh_hash', $hash)->first();
+        $used = MemberApiSessionUsed::query()->where('refresh_hash', $hash)->first();
         if ($used !== null) {
             $this->revoke((string) $used->session_id);
         }

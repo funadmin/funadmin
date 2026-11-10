@@ -12,6 +12,7 @@ use app\admin\plugin\repository\DatabasePluginResourceRepository;
 use app\common\plugin\sdk\Manifest;
 use RuntimeException;
 use support\Db;
+use app\common\model\SystemMigration;
 
 /** 封装插件资源、migration 与菜单持久化基础设施。 */
 final class PluginInfrastructureService
@@ -388,7 +389,7 @@ final class PluginInfrastructureService
         $directory = \app\common\crud\PathGuard::resolve($manifest->directory(), (string) ($data['migrations']['path'] ?? 'migrations'), '插件迁移');
         $tables = Db::schema()->getTableListing(schemaQualified: false);
         $applied = Db::schema()->hasTable('system_migration')
-            ? Db::table('system_migration')->where('scope', 'plugin:' . $manifest->code())->pluck('checksum', 'version')->all() : [];
+            ? SystemMigration::query()->where('scope', 'plugin:' . $manifest->code())->pluck('checksum', 'version')->all() : [];
         foreach (glob($directory . '/*.sql') ?: [] as $file) {
             if (is_link($file) || !is_file($file)) {
                 throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: migration 路径不安全');
