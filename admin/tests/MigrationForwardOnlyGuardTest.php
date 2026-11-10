@@ -38,6 +38,14 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         yield 'executable comment' => ['/*!50001 DROP TABLE `fun_admin` */;'];
         yield 'double dash without space is not a comment' => ['SELECT 1 --1; DROP TABLE `fun_admin`;'];
         yield 'doubled quote inside string' => ["INSERT INTO `fun_probe` VALUES ('it''s -- ok');\nDROP TABLE x;"];
+        // A：MySQL 的块注释在第一个 */ 结束，注释里的 /*! 不开启可执行注释；字符串里的 /*! 也不是注释。
+        yield 'executable marker inside block comment' => ['/* note /*! */ DROP TABLE fun_admin; /* end */'];
+        yield 'executable marker inside string' => ["SELECT '/*!';\n/* c */ DROP TABLE fun_admin;\n/* x */"];
+        // C：超长字符串常量（PCRE JIT 栈上限）不能让守卫放行其后的语句。
+        yield 'long literal before drop' => ["INSERT INTO t VALUES ('" . str_repeat('a', 10000) . "');\nDROP TABLE fun_admin;"];
+        yield 'executable comment version glued to keyword' => ['/*!50001DROP TABLE `fun_admin` */;'];
+        yield 'executable comment with mysql prefix' => ['/*!M50001 DROP TABLE `fun_admin` */;'];
+        yield 'float literal glued to keyword' => ['SELECT 1e1DROP TABLE `fun_admin`;'];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('forbidden')]
@@ -61,6 +69,16 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         yield 'double quoted string' => ["SET @s=\"DROP TABLE fun_admin\";\n" . $run];
         yield 'block comment inside dynamic string' => ["SET @s='ALTER TABLE t DROP/**/COLUMN c';\n" . $run];
         yield 'comment opener in string hides dynamic drop' => ["SET @z='/*';\nSET @s='DROP TABLE fun_admin';\nSET @y='*/';\n" . $run];
+        // A：字符串里的 /*! 不开启注释，后面的动态 DROP 照常检查。
+        yield 'executable marker inside string hides dynamic drop' => ["SET @z='/*!';\n/* c */ SET @s='DROP TABLE fun_admin'; /* x */\n" . $run];
+        // B：动态 SQL 字符串反转义后按 SQL 重新分词，里面的字符串常量不能把真实的 DROP 藏进“注释”。
+        yield 'nested literal with hash' => ["SET @s='ALTER TABLE t ADD COLUMN x INT COMMENT ''#'', DROP COLUMN c';\n" . $run];
+        yield 'nested literal with dash comment marker' => ["SET @s='ALTER TABLE t ADD COLUMN x INT COMMENT ''-- '', DROP COLUMN c';\n" . $run];
+        yield 'nested literals with block comment markers' => ["SET @s='ALTER TABLE t ADD COLUMN x INT COMMENT ''/*'', DROP COLUMN c, ADD COLUMN y INT COMMENT ''*/''';\n" . $run];
+        yield 'nested backslash-escaped literals with block comment markers' => ["SET @s='ALTER TABLE t ADD COLUMN x INT COMMENT \\'/*\\', DROP COLUMN c, ADD COLUMN y INT COMMENT \\'*/\\'';\n" . $run];
+        yield 'nested single quotes inside double quoted string' => ["SET @s=\"ALTER TABLE t COMMENT '#', DROP COLUMN c\";\n" . $run];
+        yield 'drop inside nested literal' => ["SET @s='SELECT ''DROP TABLE fun_admin''';\n" . $run];
+        yield 'drop key is not drop index' => ["SET @s='ALTER TABLE t DROP KEY `k`';\n" . $run];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('forbiddenDynamic')]
@@ -107,6 +125,145 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         self::assertTrue($hasDdl("# note\nCREATE TABLE `fun_x` (`id` INT);"));
         self::assertFalse($hasDdl("/* CREATE TABLE in comment */ UPDATE `fun_x` SET `a`=1;"));
         self::assertFalse($hasDdl("SELECT '/*'; UPDATE `fun_x` SET `a`='*/';"));
+        // A：块注释在第一个 */ 结束，注释里的 /*! 不影响后面的 CREATE。
+        self::assertTrue($hasDdl('/* x /*! */ CREATE TABLE t (id int)'));
+        self::assertTrue($hasDdl('/*!50001CREATE VIEW `fun_v` AS SELECT 1 */;'));
+        self::assertFalse($hasDdl("# CREATE TABLE t\nUPDATE `fun_x` SET `a`=1;"));
+    }
+
+    public function test_core_migration_005_is_classified_as_ddl(): void
+    {
+        $service = new MigrationService();
+        $sql = (string) file_get_contents(base_path() . '/database/core/migrations/005_soft_delete.sql');
+        self::assertTrue((new \ReflectionMethod(MigrationService::class, 'hasDdl'))->invoke($service, $this->statements($sql)));
+    }
+
+    /** C：200 KB 的字符串常量后跟 DROP TABLE 也必须拒绝（不依赖正则，也不能因内部错误放行）。 */
+    public function test_huge_literal_followed_by_drop_is_rejected(): void
+    {
+        $this->expectExceptionMessage('Migration 包含破坏性语句');
+        $this->guard("INSERT INTO `fun_probe` VALUES ('" . str_repeat("ab\\'c''d", 200 * 1024 / 8) . "');\nDROP TABLE `fun_admin`;");
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function unparsable(): iterable
+    {
+        yield 'unterminated single quote' => ["INSERT INTO t VALUES ('abc);\nDROP TABLE fun_admin;"];
+        yield 'unterminated double quote' => ['SELECT "abc'];
+        yield 'unterminated backtick' => ['SELECT `abc'];
+        yield 'unterminated block comment' => ['SELECT 1; /* DROP TABLE fun_admin;'];
+        yield 'unterminated executable comment' => ['/*!50001 SELECT 1;'];
+        yield 'separator inside executable comment' => ['/*!50001 SELECT 1; SELECT 2 */;'];
+        yield 'executable comment end hidden in string' => ["/*!99999 '*/ DROP TABLE fun_admin; -- ' */;"];
+        yield 'trailing backslash in string' => ["SELECT 'abc\\"];
+        yield 'dollar quoting' => ['SELECT $$ \'$$; DROP TABLE fun_admin; -- \';'];
+        yield 'sql mode can change quoting' => ["SET SESSION sql_mode='ANSI_QUOTES,NO_BACKSLASH_ESCAPES';\nSELECT 1;"];
+        yield 'dynamic literal fragment does not lex' => ["SET @s=CONCAT('ALTER TABLE t COMMENT ', '''', 'x');\nPREPARE s FROM @s;\nEXECUTE s;"];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unparsable')]
+    public function test_sql_the_lexer_cannot_read_is_rejected(string $sql): void
+    {
+        $this->expectExceptionMessage('Migration 无法安全解析');
+        $this->guard($sql);
+    }
+
+    /** @return iterable<string, array{string, list<string>}> */
+    public static function splitterMismatch(): iterable
+    {
+        // D：旧切分器在字符串内删除 -- 行，或把注释里的引号当字符串，执行的语句与守卫看到的不同。
+        yield 'dash line inside multi-line string' => [
+            "SELECT 'a\n-- ';\nSELECT ';\nDROP TABLE fun_admin;\n';",
+            ["SELECT 'a\n-- ';", "SELECT ';\nDROP TABLE fun_admin;\n';"],
+        ];
+        yield 'quote inside hash comment' => [
+            "# it's\nSELECT ';\nDROP TABLE fun_admin;\n';",
+            ["# it's\nSELECT ';\nDROP TABLE fun_admin;\n';"],
+        ];
+        yield 'quote inside block comment' => [
+            "/* it's */ SELECT ';\nDROP TABLE fun_admin;\n';",
+            ["/* it's */ SELECT ';\nDROP TABLE fun_admin;\n';"],
+        ];
+    }
+
+    /** D：守卫放行的文件，切分后执行的每一条语句单独过守卫也必须放行，且不会出现独立的 DROP 语句。 */
+    #[\PHPUnit\Framework\Attributes\DataProvider('splitterMismatch')]
+    public function test_executed_statements_are_exactly_what_the_guard_checked(string $sql, array $expected): void
+    {
+        $this->guard($sql);
+        $statements = $this->statements($sql);
+        self::assertSame($expected, $statements);
+        foreach ($statements as $statement) {
+            $this->guard($statement);
+        }
+    }
+
+    /** 新切分器对 001–005 产出的执行语句与旧切分器逐条一致（旧实现内联在下方作对照）。 */
+    public function test_statements_match_legacy_splitter_for_core_migrations_001_to_005(): void
+    {
+        $directory = base_path() . '/database/core/migrations';
+        foreach (['001_baseline', '002_code_generator', '003_system_secret', '004_plugin_admin_web_directory', '005_soft_delete'] as $version) {
+            $sql = (string) file_get_contents($directory . '/' . $version . '.sql');
+            $legacy = self::legacyStatements($sql);
+            self::assertNotSame([], $legacy, $version);
+            self::assertSame($legacy, $this->statements($sql), $version . ' 的执行语句与旧切分器不一致');
+            $rewritten = MigrationService::rewritePrefix($sql, 'fun_', 'custom_');
+            self::assertSame(self::legacyStatements($rewritten), $this->statements($rewritten), $version . '（改写前缀后）');
+        }
+    }
+
+    public function test_every_core_migration_passes_the_guard(): void
+    {
+        $files = glob(base_path() . '/database/core/migrations/*.sql') ?: [];
+        self::assertNotSame([], $files);
+        foreach ($files as $file) {
+            (new \ReflectionMethod(MigrationService::class, 'assertForwardOnly'))->invoke(new MigrationService(), (string) file_get_contents($file), $file);
+        }
+        $this->addToAssertionCount(count($files));
+    }
+
+    private function statements(string $sql): array
+    {
+        return (new \ReflectionMethod(MigrationService::class, 'statements'))->invoke(new MigrationService(), $sql);
+    }
+
+    /** 52329d3a/b0f3a9ad 的 MigrationService::statements() 原样拷贝，仅用于对照 001–005 的切分结果。 */
+    private static function legacyStatements(string $sql): array
+    {
+        $sql = preg_replace('/^\s*--.*$/m', '', $sql);
+        $statements = [];
+        $buffer = '';
+        $quoted = false;
+        $quote = '';
+        $escaped = false;
+        $length = strlen($sql);
+        for ($index = 0; $index < $length; $index++) {
+            $char = $sql[$index];
+            $buffer .= $char;
+            if ($escaped) {
+                $escaped = false;
+                continue;
+            }
+            if ($char === '\\' && $quoted) {
+                $escaped = true;
+                continue;
+            }
+            if (($char === "'" || $char === '"') && (!$quoted || $quote === $char)) {
+                $quoted = !$quoted;
+                $quote = $quoted ? $char : '';
+                continue;
+            }
+            if ($char === ';' && !$quoted) {
+                if (trim($buffer) !== ';') {
+                    $statements[] = trim($buffer);
+                }
+                $buffer = '';
+            }
+        }
+        if (trim($buffer) !== '') {
+            $statements[] = trim($buffer);
+        }
+        return $statements;
     }
 
     public function test_comment_like_text_in_strings_without_dynamic_sql_stays_allowed(): void

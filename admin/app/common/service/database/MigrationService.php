@@ -281,103 +281,180 @@ class MigrationService extends AbstractService
         return Db::schema()->hasTable('system_migration');
     }
 
+    /** 动态 SQL 字符串的递归深度上限；每层引号都要转义，真实迁移只有一层，超过即视为无法安全解析。 */
+    private const DYNAMIC_SQL_MAX_DEPTH = 8;
+
     /**
-     * 是否含 DDL：语句（跳过开头的空白与注释，MySQL 可执行注释（以 /*! 开头）的内容按 SQL 看待）以
-     * CREATE/ALTER/DROP/TRUNCATE/RENAME 开头，或以 PREPARE/EXECUTE 执行动态 SQL（按 information_schema 守卫的动态 DDL）。
-     * DDL 会隐式提交，这类文件不能包在事务里，也禁止在外层事务中执行。
+     * 是否含 DDL：语句的第一个代码关键字（跳过注释；MySQL 可执行注释 /*!…*\/ 的内容按代码看待）是
+     * CREATE/ALTER/DROP/TRUNCATE/RENAME，或以 PREPARE/EXECUTE 执行动态 SQL（按 information_schema 守卫的动态 DDL）。
+     * DDL 会隐式提交，这类文件不能包在事务里，也禁止在外层事务中执行。分词与守卫、语句切分共用 SqlLexer。
      */
     private function hasDdl(array $statements): bool
     {
         foreach ($statements as $statement) {
-            [$code] = self::lexSql($statement);
-            if (preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|PREPARE|EXECUTE)\b/i', $code) === 1) return true;
+            foreach (SqlLexer::items(SqlLexer::scan($statement)) as [$kind, $text]) {
+                if ($kind !== SqlLexer::WORD) continue;
+                if (in_array(strtoupper($text), ['CREATE', 'ALTER', 'DR' . 'OP', 'TR' . 'UNCATE', 'RE' . 'NAME', 'PREPARE', 'EXECUTE'], true)) return true;
+                break;
+            }
         }
         return false;
     }
 
     /**
-     * 自左向右一次扫描 SQL：字符串常量（'…'、"…"，支持反斜杠转义与重复引号）、反引号标识符、注释（块注释、--、#）。
-     * 注释替换为空格（MySQL 视注释为空白）；MySQL 可执行注释（以 /*!NNNNN 开头）先去掉标记、内容按 SQL 处理；
-     * 字符串常量在代码中替换为 ''，其内容（注释同样替换为空格）单独返回。注释标记出现在字符串里不会打乱引号匹配。
-     * @return array{0: string, 1: list<string>} [去掉注释与字符串内容后的代码, 各字符串常量的内容]
-     */
-    private static function lexSql(string $sql): array
-    {
-        // MySQL 的 -- 注释要求其后是空白或结尾（"1--1" 是算术），否则会把后面的真实语句当注释漏检。
-        $comment = '\/\*.*?\*\/|--(?!\S)[^\r\n]*|#[^\r\n]*';
-        $token = '/\'(?:[^\'\\\\]|\\\\.|\'\')*\'|"(?:[^"\\\\]|\\\\.|"")*"|`[^`]*`|' . $comment . '/s';
-        $literals = [];
-        $code = (string) preg_replace_callback($token, static function (array $match) use (&$literals, $comment): string {
-            $value = $match[0];
-            if ($value[0] === "'" || $value[0] === '"') {
-                $literals[] = (string) preg_replace('/' . $comment . '/s', ' ', substr($value, 1, -1));
-                return "''";
-            }
-            if ($value[0] === '`') return $value;
-            return ' ';
-        }, (string) preg_replace('/\/\*!\d*((?:(?!\*\/).)*)\*\//s', ' $1 ', $sql));
-        return [$code, $literals];
-    }
-
-    /**
-     * 只向前守卫：注释与字符串常量之外的 DROP / TRUNCATE / RENAME 一律拒绝（INSERT 数据中的这些词不误判）。
-     * 文件含 PREPARE / EXECUTE 时字符串会被当作 SQL 执行，因此字符串常量也要检查：其中只允许
-     * `DROP INDEX <索引名>` 与 `DROP PRIMARY KEY`（重建索引、换主键，不丢数据），其余 DROP（COLUMN、TABLE、
-     * FOREIGN KEY 等）、TRUNCATE、RENAME 无论在字符串内外都拒绝。逐个字符串检查，也检查全部字符串拼接后的内容，
-     * 防止把关键字拆到相邻字符串里；注释在代码与字符串内容中都按空格处理（MySQL 视注释为空白），可执行注释（以 /*! 开头）
-     * 的内容按代码检查。这是词法安全网，不是 SQL 沙箱。
+     * 只向前守卫（词法安全网，不是 SQL 沙箱），基于 SqlLexer 的 MySQL 词法：
+     * - 代码中（含可执行注释体）任何 DROP / TRUNCATE / RENAME 一律拒绝；字符串、标识符、注释中的这些词不算。
+     * - 文件在代码中使用 PREPARE / EXECUTE 时字符串会被当作 SQL 执行：每个字符串常量按 MySQL 规则反转义后用同一词法器
+     *   重新分词，其中只允许 `DROP INDEX <索引名>` 与 `DROP PRIMARY KEY`（重建索引、换主键，不丢数据），其余 DROP、
+     *   TRUNCATE、RENAME 拒绝；其中的字符串常量递归同样处理；全部字符串按顺序拼接后再查一次，防止关键字被拆到相邻字符串。
+     * - 失败即拒绝：任何词法错误（未闭合的字符串或注释、边界有歧义的可执行注释、动态字符串不是完整 SQL 等）、
+     *   修改 sql_mode（会改变引号与转义规则）或任何内部异常都拒绝执行该文件。
      */
     private function assertForwardOnly(string $sql, string $file): void
     {
-        $destructive = '/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i';
-        [$code, $literals] = self::lexSql($sql);
-        if (preg_match($destructive, $code)) {
-            throw new RuntimeException('Migration 包含破坏性语句：' . $file);
+        try {
+            $destructive = $this->forwardOnlyViolation($sql);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException('Migration 无法安全解析，已拒绝：' . $file . '（' . $exception->getMessage() . '）', 0, $exception);
         }
-        if (preg_match('/\b(?:PREPARE|EXECUTE)\b/i', $code) !== 1) return;
-        $allowed = '/\bDR' . 'OP\s+(?:INDEX\s+(?:`[A-Za-z0-9_]+`|[A-Za-z0-9_]+)|PRIMARY\s+KEY)/i';
-        foreach ([...$literals, implode('', $literals)] as $value) {
-            if (preg_match($destructive, (string) preg_replace($allowed, '', $value))) {
-                throw new RuntimeException('Migration 包含破坏性语句：' . $file);
-            }
+        if ($destructive) {
+            throw new RuntimeException('Migration 包含破坏性语句：' . $file);
         }
     }
 
+    /** 流式扫描（001 基线近 1 MB，不能把全部词法项留在内存里）；只有用到动态 SQL 时才第二遍收集字符串常量。 */
+    private function forwardOnlyViolation(string $sql): bool
+    {
+        $dynamic = false;
+        $items = (static function () use ($sql, &$dynamic): \Generator {
+            foreach (SqlLexer::items(SqlLexer::scan($sql)) as $item) {
+                if ($item[0] === SqlLexer::WORD && strcasecmp($item[1], 'sql_mode') === 0) {
+                    throw new SqlLexerException('迁移不允许修改 sql_mode');
+                }
+                if (in_array(self::keyword($item), ['PREPARE', 'EXECUTE'], true)) $dynamic = true;
+                yield $item;
+            }
+        })();
+        if (self::destructiveIn($items, false)) return true;
+        return $dynamic && self::dynamicViolation(SqlLexer::scan($sql), 1);
+    }
+
+    /**
+     * 动态 SQL：逐个字符串常量（及其按顺序的拼接）反转义后重新分词，按白名单检查并递归其中的字符串常量。
+     * @param iterable<SqlToken> $tokens
+     */
+    private static function dynamicViolation(iterable $tokens, int $depth): bool
+    {
+        $literals = [];
+        foreach (SqlLexer::strings($tokens) as $string) $literals[] = SqlLexer::unescape($string);
+        if ($literals === []) return false;
+        if ($depth > self::DYNAMIC_SQL_MAX_DEPTH) throw new SqlLexerException('动态 SQL 字符串嵌套过深');
+        if (count($literals) > 1) $literals[] = implode('', $literals);
+        // 先查完能分词的字符串（破坏性语句给出更明确的拒绝原因），再对无法分词的字符串拒绝。
+        $error = null;
+        foreach ($literals as $literal) {
+            try {
+                $nested = SqlLexer::tokenize($literal);
+            } catch (SqlLexerException $exception) {
+                $error ??= $exception;
+                continue;
+            }
+            if (self::destructiveIn(SqlLexer::items($nested), true) || self::dynamicViolation($nested, $depth + 1)) return true;
+        }
+        if ($error !== null) throw new SqlLexerException('动态 SQL 字符串无法分词：' . $error->getMessage(), 0, $error);
+        return false;
+    }
+
+    /**
+     * 逐项扫描（不回看、不预读）：DROP 之后只接受 INDEX <名> 或 PRIMARY KEY（仅动态 SQL），其余一律视为破坏性。
+     * @param iterable<array{0: string, 1: string}> $items
+     * @param bool $dynamic 动态 SQL 内允许 DROP INDEX <名> 与 DROP PRIMARY KEY
+     */
+    private static function destructiveIn(iterable $items, bool $dynamic): bool
+    {
+        $expect = null; // DROP 之后期待的下一项：'INDEX_OR_PRIMARY'、'NAME'、'KEY'
+        foreach ($items as $item) {
+            $word = $item[0] === SqlLexer::WORD ? strtoupper($item[1]) : '';
+            $keyword = self::keyword($item);
+            if ($expect !== null) {
+                $expect = match (true) {
+                    $expect === 'INDEX_OR_PRIMARY' && $word === 'INDEX' => 'NAME',
+                    $expect === 'INDEX_OR_PRIMARY' && $word === 'PRIMARY' => 'KEY',
+                    $expect === 'NAME' && ($item[0] === SqlLexer::IDENTIFIER || ($word !== '' && $keyword === null)) => '',
+                    $expect === 'KEY' && $word === 'KEY' => '',
+                    default => false,
+                };
+                if ($expect === false) return true;
+                if ($expect === '') $expect = null;
+                continue;
+            }
+            if ($keyword === 'TR' . 'UNCATE' || $keyword === 'RE' . 'NAME') return true;
+            if ($keyword === 'DR' . 'OP') {
+                if (!$dynamic) return true;
+                $expect = 'INDEX_OR_PRIMARY';
+            }
+        }
+        return $expect !== null;
+    }
+
+    /**
+     * 词法项若是守卫关注的关键字则返回其大写形式。数字开头的词（如 1e1DROP、可执行注释版本号后紧跟的 DROP）
+     * 在 MySQL 中可能拆成数字 + 关键字，因此“以数字 + 关键字结尾”也算命中（宁可误拒）。
+     * @param array{0: string, 1: string} $item
+     */
+    private static function keyword(array $item): ?string
+    {
+        if ($item[0] !== SqlLexer::WORD) return null;
+        $word = strtoupper($item[1]);
+        foreach (['DR' . 'OP', 'TR' . 'UNCATE', 'RE' . 'NAME', 'PREPARE', 'EXECUTE'] as $keyword) {
+            if ($word === $keyword) return $keyword;
+            $prefix = strlen($word) - strlen($keyword);
+            if ($prefix > 0 && str_ends_with($word, $keyword) && ctype_digit($word[$prefix - 1])) return $keyword;
+        }
+        return null;
+    }
+
+    /**
+     * 按 SqlLexer 的分隔符切分语句（字符串、标识符、注释中的分号不切），每条语句含结尾分号并去掉首尾空白；
+     * 不含代码的片段（只有空白或注释）不执行。与历史切分结果保持一致：独占一行的 -- 注释连同其前的空白行一并去掉
+     * （等价于旧实现的 /^\s*--.*$/m，但只作用于真正的注释，不再改动字符串内容）。
+     */
     private function statements(string $sql): array
     {
-        $sql = preg_replace('/^\s*--.*$/m', '', $sql);
         $statements = [];
         $buffer = '';
-        $quoted = false;
-        $quote = '';
-        $escaped = false;
-        $length = strlen($sql);
-        for ($index = 0; $index < $length; $index++) {
-            $char = $sql[$index];
-            $buffer .= $char;
-            if ($escaped) {
-                $escaped = false;
-                continue;
-            }
-            if ($char === '\\' && $quoted) {
-                $escaped = true;
-                continue;
-            }
-            if (($char === "'" || $char === '"') && (!$quoted || $quote === $char)) {
-                $quoted = !$quoted;
-                $quote = $quoted ? $char : '';
-                continue;
-            }
-            if ($char === ';' && !$quoted) {
-                if (trim($buffer) !== ';') {
-                    $statements[] = trim($buffer);
-                }
+        $hasCode = false;
+        foreach (SqlLexer::scan($sql) as $token) {
+            if ($token->type === SqlToken::SEPARATOR) {
+                if ($hasCode) $statements[] = trim($buffer . ';');
                 $buffer = '';
+                $hasCode = false;
+                continue;
             }
+            if ($token->type === SqlToken::DASH_COMMENT) {
+                $lineStart = self::dashCommentLineStart($sql, $token->offset);
+                if ($lineStart !== null) {
+                    $buffer = substr($buffer, 0, strlen($buffer) - ($token->offset - $lineStart));
+                    continue;
+                }
+            }
+            $buffer .= $token->text;
+            if (!$token->isComment() && ($token->type !== SqlToken::CODE || !ctype_space($token->text))) $hasCode = true;
         }
-        if (trim($buffer) !== '') {
-            $statements[] = trim($buffer);
-        }
+        if ($hasCode) $statements[] = trim($buffer);
         return $statements;
+    }
+
+    /**
+     * -- 注释之前到上一个非空白字符之间若有换行（或已到文件开头），返回该空白段中第一个行首的位置，否则返回 null。
+     * 这正是 /^\s*--.*$/m 的匹配起点：注释连同它前面的空白行一起删除，注释后的换行保留。
+     */
+    private static function dashCommentLineStart(string $sql, int $offset): ?int
+    {
+        $start = $offset;
+        while ($start > 0 && strpos(" \t\n\v\f\r", $sql[$start - 1]) !== false) $start--;
+        if ($start === 0) return 0;
+        $newline = strpos(substr($sql, $start, $offset - $start), "\n");
+        return $newline === false ? null : $start + $newline + 1;
     }
 }
