@@ -176,7 +176,7 @@ class MigrationService extends AbstractService
                     throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
                 }
             }
-            if (Db::connection()->transactionLevel() > 0 && preg_match('/\b(?:CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i', $sql)) {
+            if (Db::connection()->transactionLevel() > 0 && $this->hasDdl($this->statements($sql))) {
                 throw new RuntimeException('SQL DDL migration 禁止在外层事务中执行');
             }
             $validatedFiles[$file] = ['sql' => $sql, 'checksum' => $checksum];
@@ -224,9 +224,7 @@ class MigrationService extends AbstractService
                     'executed_at' => time(),
                 ]);
             };
-            // PREPARE/EXECUTE 用于按 information_schema 守卫的动态 DDL；DDL 会隐式提交，不能包在事务里。
-            $hasDdl = array_filter($statements, static fn (string $statement): bool => preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|PREPARE|EXECUTE)\b/i', $statement) === 1) !== [];
-            if ($hasDdl) {
+            if ($this->hasDdl($statements)) {
                 $apply();
             } else {
                 Db::transaction($apply);
@@ -283,13 +281,42 @@ class MigrationService extends AbstractService
         return Db::schema()->hasTable('system_migration');
     }
 
+    /**
+     * 是否含 DDL：语句以 CREATE/ALTER/DROP/TRUNCATE/RENAME 开头，或以 PREPARE/EXECUTE 执行动态 SQL
+     * （按 information_schema 守卫的动态 DDL）。DDL 会隐式提交，这类文件不能包在事务里，也禁止在外层事务中执行。
+     */
+    private function hasDdl(array $statements): bool
+    {
+        foreach ($statements as $statement) {
+            if (preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|PREPARE|EXECUTE)\b/i', $statement) === 1) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 只向前守卫：注释与字符串常量之外的 DROP / TRUNCATE / RENAME 一律拒绝（INSERT 数据中的这些词不误判）。
+     * 文件含 PREPARE / EXECUTE 时字符串会被当作 SQL 执行，因此字符串常量也要检查：其中只允许
+     * `DROP INDEX <索引名>` 与 `DROP PRIMARY KEY`（重建索引、换主键，不丢数据），其余 DROP（COLUMN、TABLE、
+     * FOREIGN KEY 等）、TRUNCATE、RENAME 无论在字符串内外都拒绝。逐个字符串检查，也检查全部字符串拼接后的内容，
+     * 防止把关键字拆到相邻字符串里。这是词法安全网，不是 SQL 沙箱。
+     */
     private function assertForwardOnly(string $sql, string $file): void
     {
-        $withoutComments = preg_replace('#/\*.*?\*/|--[^\r\n]*#s', '', $sql);
+        $destructive = '/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i';
+        $literal = "/'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"/s";
+        $withoutComments = (string) preg_replace('#/\*.*?\*/|--[^\r\n]*#s', '', $sql);
         // 剔除字符串常量，避免 INSERT 数据中的 rename/drop 等词被误判为 DDL。
-        $withoutStrings = preg_replace("/'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"/s", "''", (string) $withoutComments);
-        if (preg_match('/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i', (string) $withoutStrings)) {
+        $withoutStrings = (string) preg_replace($literal, "''", $withoutComments);
+        if (preg_match($destructive, $withoutStrings)) {
             throw new RuntimeException('Migration 包含破坏性语句：' . $file);
+        }
+        if (preg_match('/\b(?:PREPARE|EXECUTE)\b/i', $withoutStrings) !== 1) return;
+        preg_match_all($literal, $withoutComments, $matches);
+        $allowed = '/\bDR' . 'OP\s+(?:INDEX\s+(?:`[A-Za-z0-9_]+`|[A-Za-z0-9_]+)|PRIMARY\s+KEY)/i';
+        foreach ([...$matches[0], implode('', array_map(static fn (string $value): string => substr($value, 1, -1), $matches[0]))] as $value) {
+            if (preg_match($destructive, (string) preg_replace($allowed, '', $value))) {
+                throw new RuntimeException('Migration 包含破坏性语句：' . $file);
+            }
         }
     }
 

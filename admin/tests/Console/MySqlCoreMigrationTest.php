@@ -202,6 +202,7 @@ final class MySqlCoreMigrationTest extends TestCase
         $database = Db::connection()->getDatabaseName();
         $tables = [];
         foreach (glob(MigrationService::coreDirectory() . '/*.sql') as $file) {
+            if (basename($file) > '005_soft_delete.sql') continue; // 005 之后的迁移自行建好软删除列
             preg_match_all('/^CREATE TABLE (?:IF NOT EXISTS )?`fun_([a-z0-9_]+)`/m', (string) file_get_contents($file), $matches);
             array_push($tables, ...$matches[1]);
         }

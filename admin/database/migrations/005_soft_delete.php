@@ -15,6 +15,7 @@ use support\Db;
  * fun_member 上与唯一索引首列重复的普通索引（username / mobile / email）删除。
  * 主键不是 id 的表（会话、令牌、关联表等）改为自增 id 主键，原主键列改为唯一索引 uk_{表}_pk（原列 + deleted_token），
  * 软删除后可重新写入同一组合。SQLite 不能改主键，按原列重建表。
+ * 只支持 SQLite（PHP 迁移链路只用于非 MySQL 安装与测试）；MySQL 必须执行核心 SQL 005_soft_delete.sql，这里直接拒绝。
  * 插件表不在范围内。只处理已存在的表（SQLite 的 PHP 基线只含部分核心表）。
  */
 return static function (): void {
@@ -37,21 +38,14 @@ return static function (): void {
     $schema = Db::schema();
     $connection = Db::connection();
     $driver = $connection->getDriverName();
-    $wrap = static fn (array $columns): string => implode(',', array_map(static fn (string $column): string => '`' . $column . '`', $columns));
 
-    // 主键不是 id 的表：改为自增 id 主键（存量行自动编号），原主键列改为唯一索引 uk_{表}_pk（原列 + deleted_token）。
-    $convertToId = static function (string $name, array $primary) use ($schema, $connection, $driver, $wrap): void {
+    if ($driver !== 'sqlite') {
+        throw new RuntimeException('005_soft_delete.php 只用于 SQLite；MySQL 必须执行核心 SQL database/core/migrations/005_soft_delete.sql');
+    }
+
+    // 主键不是 id 的表：改为自增 id 主键（存量行按 rowid 顺序编号），原主键列改为唯一索引 uk_{表}_pk（原列 + deleted_token）。
+    $convertToId = static function (string $name) use ($schema, $connection): void {
         $physical = $connection->getTablePrefix() . $name;
-        if ($driver === 'mysql') {
-            // 同一条 ALTER 内换主键并建唯一索引，外键依赖的前导列始终有索引支撑。
-            $sql = 'ALTER TABLE `' . $physical . '` ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST'
-                . ($primary !== [] ? ', DROP PRIMARY KEY' : '') . ', ADD PRIMARY KEY (`id`)'
-                . ($schema->hasColumn($name, 'deleted_token') ? '' : ', ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0')
-                . ($primary !== [] ? ', ADD UNIQUE KEY `uk_' . $name . '_pk` (' . $wrap([...$primary, 'deleted_token']) . ')' : '');
-            $connection->statement($sql);
-            return;
-        }
-        if ($driver !== 'sqlite') throw new RuntimeException('005_soft_delete 仅支持 MySQL 与 SQLite');
         // SQLite 不能修改主键：按原列重建表并复制数据，再恢复原有普通/唯一索引（原主键的隐式索引不恢复）。
         $quote = static fn (string $identifier): string => '"' . str_replace('"', '""', $identifier) . '"';
         $columns = $schema->getColumns($name);
@@ -83,7 +77,7 @@ return static function (): void {
         $formerPrimary = [];
         if ($primaryOf() !== ['id'] && !$schema->hasColumn($name, 'id')) {
             $formerPrimary = $primaryOf();
-            $convertToId($name, $formerPrimary);
+            $convertToId($name);
         }
         $indexes = $schema->getIndexes($name);
         $primary = $primaryOf();

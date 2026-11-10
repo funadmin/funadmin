@@ -37,17 +37,21 @@ try {
             $reportArguments = ['-e', 'CORE_REFERENCE_REPORT_PATH=/app/runtime/private/' . $reportFile];
             echo '规范结构报告：' . $private . '/' . $reportFile . PHP_EOL;
         }
-        $sql = "CREATE DATABASE `$database`;";
-        if (coreTestProcess(['docker', 'exec', '-i', $name, 'sh', '-c', 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --protocol=TCP -h127.0.0.1 -uroot'], $sql) !== 0) throw new RuntimeException('创建隔离库失败');
-        $status = coreTestProcess([
-            'docker', 'run', '--rm', '--network', 'funwebman-test', '-v', $root . ':/app', '-v', $root . '/database/core:/core-database:ro', '-w', '/app',
-            '-e', 'CONSOLE_TEST_MYSQL=1', '-e', 'DB_HOST=' . $name, '-e', 'DB_DATABASE=' . $database,
-            '-e', 'DB_USERNAME=root', '-e', 'DB_PASSWORD=' . $password, '-e', 'DB_PREFIX=' . $prefix,
-            '-e', 'CORE_DATABASE_PATH=/core-database', ...$reportArguments, 'funwebman-console:8.5', 'php', '-d', 'memory_limit=512M', 'vendor/bin/phpunit',
-            '--bootstrap', 'tests/Console/mysql-bootstrap.php', 'tests/Console/MySqlCoreMigrationTest.php',
-        ]);
-        if ($status !== 0) break;
-        $database = 'webman_console_test_' . bin2hex(random_bytes(6));
+        // 每个测试文件各用一个空库：MySqlSoftDeleteUpgradeTest 需要从 001–004 起步。
+        foreach (['tests/Console/MySqlCoreMigrationTest.php', 'tests/Console/MySqlSoftDeleteUpgradeTest.php'] as $testFile) {
+            $sql = "CREATE DATABASE `$database`;";
+            if (coreTestProcess(['docker', 'exec', '-i', $name, 'sh', '-c', 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql --protocol=TCP -h127.0.0.1 -uroot'], $sql) !== 0) throw new RuntimeException('创建隔离库失败');
+            $status = coreTestProcess([
+                'docker', 'run', '--rm', '--network', 'funwebman-test', '-v', $root . ':/app', '-v', $root . '/database/core:/core-database:ro', '-w', '/app',
+                '-e', 'CONSOLE_TEST_MYSQL=1', '-e', 'DB_HOST=' . $name, '-e', 'DB_DATABASE=' . $database,
+                '-e', 'DB_USERNAME=root', '-e', 'DB_PASSWORD=' . $password, '-e', 'DB_PREFIX=' . $prefix,
+                '-e', 'CORE_DATABASE_PATH=/core-database', ...$reportArguments, 'funwebman-console:8.5', 'php', '-d', 'memory_limit=512M', 'vendor/bin/phpunit',
+                '--bootstrap', 'tests/Console/mysql-bootstrap.php', $testFile,
+            ]);
+            $reportArguments = [];
+            $database = 'webman_console_test_' . bin2hex(random_bytes(6));
+            if ($status !== 0) break 2;
+        }
     }
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . PHP_EOL);

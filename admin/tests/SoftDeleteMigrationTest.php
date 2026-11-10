@@ -143,6 +143,52 @@ final class SoftDeleteMigrationTest extends TestCase
 
     public function test_existing_rows_keep_token_zero_and_soft_deleted_rows_get_their_id(): void
     {
+        self::runMigrationsBefore005();
+        self::assertFalse(Db::schema()->hasColumn('auth_group', 'deleted_token'));
+        $now = date('Y-m-d H:i:s');
+        $live = (int) Db::table('auth_group')->insertGetId(['name' => 'live', 'code' => 'live_role', 'created_at' => $now, 'updated_at' => $now]);
+        $deleted = (int) Db::table('auth_group')->insertGetId(['name' => 'gone', 'code' => 'gone_role', 'created_at' => $now, 'updated_at' => $now, 'deleted_at' => $now]);
+
+        self::assertSame(self::MIGRATION . '.php', (new MigrationService())->run()[0] ?? null);
+        self::assertSame(0, (int) Db::table('auth_group')->where('id', $live)->value('deleted_token'));
+        self::assertSame($deleted, (int) Db::table('auth_group')->where('id', $deleted)->value('deleted_token'));
+        self::assertSame(0, Db::table('auth_group')->whereNull('deleted_at')->where('deleted_token', '<>', 0)->count());
+        // 已删除的旧行不再占用唯一值。
+        Db::table('auth_group')->insert(['name' => 'gone', 'code' => 'gone_role', 'created_at' => $now, 'updated_at' => $now]);
+        self::assertSame(2, Db::table('auth_group')->where('code', 'gone_role')->count());
+    }
+
+    public function test_upgrade_with_data_keeps_every_row_and_assigns_unique_ids(): void
+    {
+        self::runMigrationsBefore005();
+        $before = \Tests\Support\SoftDeleteUpgradeFixture::seed();
+        self::assertGreaterThan(15, count($before));
+        self::assertFalse(Db::schema()->hasColumn('login_attempts', 'id'), 'login_attempts 走 SQLite 重建表路径');
+        self::assertSame(self::MIGRATION . '.php', (new MigrationService())->run()[0] ?? null);
+        self::assertSame([], \Tests\Support\SoftDeleteUpgradeFixture::violations($before));
+        $deleted = 0;
+        foreach (\Tests\Support\SoftDeleteUpgradeFixture::dump() as $rows) {
+            foreach ($rows as $row) if ($row['deleted_at'] !== null) $deleted++;
+        }
+        self::assertGreaterThan(5, $deleted, '夹具须包含已软删除的行');
+
+        $data = \Tests\Support\SoftDeleteUpgradeFixture::dump();
+        $schema = self::schemaSnapshot();
+        $migration = require base_path() . '/database/migrations/' . self::MIGRATION . '.php';
+        $migration();
+        self::assertSame($data, \Tests\Support\SoftDeleteUpgradeFixture::dump(), '重复执行数据不变');
+        self::assertSame($schema, self::schemaSnapshot(), '重复执行结构不变');
+    }
+
+    public function test_php_twin_refuses_mysql(): void
+    {
+        $source = (string) file_get_contents(base_path() . '/database/migrations/' . self::MIGRATION . '.php');
+        self::assertStringContainsString("if (\$driver !== 'sqlite') {", $source);
+        self::assertStringNotContainsString('ALTER TABLE `', $source, 'MySQL 只走核心 SQL，PHP 版不再拼 MySQL DDL');
+    }
+
+    private static function runMigrationsBefore005(): void
+    {
         $previous = sys_get_temp_dir() . '/soft-delete-migration-' . bin2hex(random_bytes(6));
         mkdir($previous);
         try {
@@ -154,18 +200,6 @@ final class SoftDeleteMigrationTest extends TestCase
             array_map('unlink', glob($previous . '/*.php'));
             rmdir($previous);
         }
-        self::assertFalse(Db::schema()->hasColumn('auth_group', 'deleted_token'));
-        $now = date('Y-m-d H:i:s');
-        $live = (int) Db::table('auth_group')->insertGetId(['name' => 'live', 'code' => 'live_role', 'created_at' => $now, 'updated_at' => $now]);
-        $deleted = (int) Db::table('auth_group')->insertGetId(['name' => 'gone', 'code' => 'gone_role', 'created_at' => $now, 'updated_at' => $now, 'deleted_at' => $now]);
-
-        self::assertSame([self::MIGRATION . '.php'], (new MigrationService())->run());
-        self::assertSame(0, (int) Db::table('auth_group')->where('id', $live)->value('deleted_token'));
-        self::assertSame($deleted, (int) Db::table('auth_group')->where('id', $deleted)->value('deleted_token'));
-        self::assertSame(0, Db::table('auth_group')->whereNull('deleted_at')->where('deleted_token', '<>', 0)->count());
-        // 已删除的旧行不再占用唯一值。
-        Db::table('auth_group')->insert(['name' => 'gone', 'code' => 'gone_role', 'created_at' => $now, 'updated_at' => $now]);
-        self::assertSame(2, Db::table('auth_group')->where('code', 'gone_role')->count());
     }
 
     /** @return list<string> 核心 SQL 中建表的逻辑表名 */
@@ -173,6 +207,7 @@ final class SoftDeleteMigrationTest extends TestCase
     {
         $tables = [];
         foreach (glob(MigrationService::coreDirectory() . '/*.sql') as $file) {
+            if (basename($file) > '005_soft_delete.sql') continue; // 005 之后的迁移自行建好软删除列
             preg_match_all('/^CREATE TABLE (?:IF NOT EXISTS )?`fun_([a-z0-9_]+)`/m', (string) file_get_contents($file), $matches);
             array_push($tables, ...$matches[1]);
         }
