@@ -206,6 +206,14 @@ final class MySqlCoreMigrationTest extends TestCase
             array_push($tables, ...$matches[1]);
         }
         self::assertCount(66, $tables);
+        $formerPrimary = [
+            'admin_auth_tokens' => ['token_hash'], 'admin_department' => ['admin_id', 'dept_id'],
+            'auth_group_department' => ['role_id', 'dept_id'], 'auth_group_field_permission' => ['role_id', 'field_id'],
+            'auth_group_inherit' => ['role_id', 'parent_role_id'], 'browser_sessions' => ['session_hash'],
+            'form_list_action_execution' => ['scope'], 'login_attempts' => ['key'],
+            'member_api_session_used' => ['refresh_hash'], 'member_group_relation' => ['member_id', 'group_id'],
+            'member_tag_relation' => ['member_id', 'tag_id'], 'system_secret' => ['name'],
+        ];
         $snapshot = static function () use ($tables, $prefix): array {
             $result = [];
             foreach ($tables as $table) $result[$table] = preg_replace('/ AUTO_INCREMENT=\d+/', '', (string) ((array) Db::connection()->selectOne('SHOW CREATE TABLE `' . $prefix . $table . '`'))['Create Table']);
@@ -223,11 +231,10 @@ final class MySqlCoreMigrationTest extends TestCase
                 $indexes[$row->INDEX_NAME]['columns'][] = $row->COLUMN_NAME;
             }
             self::assertNotSame([], array_filter($indexes, static fn (array $index): bool => $index['columns'][0] === 'deleted_at'), $table . ' deleted_at 缺索引');
-            if (($indexes['PRIMARY']['columns'] ?? []) === ['id']) {
-                self::assertSame(['bigint unsigned', 'NO', '0'], [$columns['deleted_token']->COLUMN_TYPE ?? null, $columns['deleted_token']->IS_NULLABLE ?? null, $columns['deleted_token']->COLUMN_DEFAULT ?? null], $table);
-            } else {
-                self::assertArrayNotHasKey('deleted_token', $columns, $table);
-            }
+            self::assertSame(['id'], $indexes['PRIMARY']['columns'] ?? [], $table . ' 主键必须是 id');
+            self::assertSame('bigint unsigned', $columns['id']->COLUMN_TYPE, $table);
+            self::assertSame(['bigint unsigned', 'NO', '0'], [$columns['deleted_token']->COLUMN_TYPE ?? null, $columns['deleted_token']->IS_NULLABLE ?? null, $columns['deleted_token']->COLUMN_DEFAULT ?? null], $table);
+            if (isset($formerPrimary[$table])) self::assertSame(['unique' => true, 'columns' => [...$formerPrimary[$table], 'deleted_token']], $indexes['uk_' . $table . '_pk'] ?? null, $table . ' 原主键须改为唯一索引');
             foreach ($indexes as $name => $index) {
                 if ($name === 'PRIMARY' || !$index['unique']) continue;
                 self::assertSame('deleted_token', end($index['columns']), $table . '.' . $name);
@@ -256,6 +263,24 @@ final class MySqlCoreMigrationTest extends TestCase
             }
         } finally {
             Db::table('config_group')->whereIn('name', ['soft_live', 'soft_gone'])->delete();
+        }
+
+        // 关联表：软删除后同一组合可重新写入，未删除的同一组合仍被拒绝。
+        $dept = (int) Db::table('department')->insertGetId(['pid' => 0, 'name' => 'soft-dept', 'created_at' => $now, 'updated_at' => $now]);
+        $pair = ['admin_id' => 1, 'dept_id' => $dept];
+        try {
+            $old = (int) Db::table('admin_department')->insertGetId($pair);
+            Db::table('admin_department')->where('id', $old)->update(['deleted_at' => $now, 'deleted_token' => $old]);
+            self::assertGreaterThan($old, (int) Db::table('admin_department')->insertGetId($pair));
+            try {
+                Db::table('admin_department')->insert($pair);
+                self::fail('未删除的同一组合仍须唯一');
+            } catch (\Illuminate\Database\QueryException $error) {
+                self::assertSame(1062, (int) ($error->errorInfo[1] ?? 0));
+            }
+        } finally {
+            Db::table('admin_department')->where('dept_id', $dept)->delete();
+            Db::table('department')->where('id', $dept)->delete();
         }
     }
 }

@@ -20,11 +20,14 @@ final class SoftDeleteMigrationTest extends TestCase
 {
     private const MIGRATION = '005_soft_delete';
 
-    /** 主键不是单列 id 的核心表：无法写入 deleted_token = id，只补 deleted_at。 */
-    private const NON_ID_TABLES = [
-        'admin_auth_tokens', 'admin_department', 'auth_group_department', 'auth_group_field_permission',
-        'auth_group_inherit', 'browser_sessions', 'form_list_action_execution', 'login_attempts',
-        'member_api_session_used', 'member_group_relation', 'member_tag_relation', 'system_secret',
+    /** 原主键不是 id 的核心表 => 原主键列；005 后改为自增 id 主键，原主键改为唯一索引 uk_{表}_pk（原列 + deleted_token）。 */
+    private const FORMER_PRIMARY = [
+        'admin_auth_tokens' => ['token_hash'], 'admin_department' => ['admin_id', 'dept_id'],
+        'auth_group_department' => ['role_id', 'dept_id'], 'auth_group_field_permission' => ['role_id', 'field_id'],
+        'auth_group_inherit' => ['role_id', 'parent_role_id'], 'browser_sessions' => ['session_hash'],
+        'form_list_action_execution' => ['scope'], 'login_attempts' => ['key'],
+        'member_api_session_used' => ['refresh_hash'], 'member_group_relation' => ['member_id', 'group_id'],
+        'member_tag_relation' => ['member_id', 'tag_id'], 'system_secret' => ['name'],
     ];
 
     public function test_every_core_table_has_soft_delete_columns_after_migration(): void
@@ -41,12 +44,8 @@ final class SoftDeleteMigrationTest extends TestCase
             self::assertTrue(Db::schema()->hasColumn($table, 'deleted_at'), $table . ' 缺 deleted_at');
             $indexed = array_filter(Db::schema()->getIndexes($table), static fn (array $index): bool => ($index['columns'][0] ?? null) === 'deleted_at');
             self::assertNotSame([], $indexed, $table . ' 的 deleted_at 缺索引');
-            if (self::primaryColumns($table) === ['id']) {
-                self::assertTrue(Db::schema()->hasColumn($table, 'deleted_token'), $table . ' 缺 deleted_token');
-            } else {
-                self::assertContains($table, self::NON_ID_TABLES, $table . ' 主键不是 id');
-                self::assertFalse(Db::schema()->hasColumn($table, 'deleted_token'), $table . ' 主键不是 id，不应有 deleted_token');
-            }
+            self::assertSame(['id'], self::primaryColumns($table), $table . ' 主键必须是 id');
+            self::assertTrue(Db::schema()->hasColumn($table, 'deleted_token'), $table . ' 缺 deleted_token');
         }
         self::assertGreaterThan(20, $checked);
     }
@@ -56,8 +55,7 @@ final class SoftDeleteMigrationTest extends TestCase
         (new MigrationService())->run();
         $uniques = 0;
         foreach (self::coreTables() as $table) {
-            // 主键不是 id 的表没有 deleted_token；其唯一性等同主键，软删除不释放。
-            if (!Db::schema()->hasTable($table) || in_array($table, self::NON_ID_TABLES, true)) continue;
+            if (!Db::schema()->hasTable($table)) continue;
             foreach (Db::schema()->getIndexes($table) as $index) {
                 if (!$index['unique'] || $index['primary']) continue;
                 $uniques++;
@@ -65,12 +63,30 @@ final class SoftDeleteMigrationTest extends TestCase
             }
         }
         self::assertGreaterThan(10, $uniques);
+        $former = 0;
+        foreach (self::FORMER_PRIMARY as $table => $columns) {
+            if (!Db::schema()->hasTable($table)) continue;
+            $former++;
+            $uniques = array_map(static fn (array $index): array => $index['columns'], array_filter(Db::schema()->getIndexes($table), static fn (array $index): bool => $index['unique'] && !$index['primary']));
+            self::assertContains([...$columns, 'deleted_token'], $uniques, $table . ' 原主键须改为以 deleted_token 结尾的唯一索引');
+        }
+        self::assertGreaterThan(8, $former);
         foreach (Db::schema()->getIndexes('member') as $index) {
             self::assertNotContains($index['columns'], [['username'], ['mobile'], ['email']], 'fun_member 与唯一索引首列重复的普通索引应删除');
         }
 
         // 删除后可用相同唯一值重建；未删除行之间仍然唯一。
         $now = date('Y-m-d H:i:s');
+        $pair = ['admin_id' => 7, 'dept_id' => 9, 'created_at' => $now, 'updated_at' => $now];
+        $old = (int) Db::table('admin_department')->insertGetId($pair);
+        Db::table('admin_department')->where('id', $old)->update(['deleted_at' => $now, 'deleted_token' => $old]);
+        self::assertGreaterThan($old, (int) Db::table('admin_department')->insertGetId($pair), '软删除后同一组合可重新写入');
+        try {
+            Db::table('admin_department')->insert($pair);
+            self::fail('未删除的同一组合仍须唯一');
+        } catch (\Illuminate\Database\QueryException $error) {
+            self::assertTrue(\app\common\model\concern\RestoreConflictException::isUniqueViolation($error));
+        }
         $first = (int) Db::table('auth_group')->insertGetId(['name' => 'soft-group', 'code' => 'soft_group', 'created_at' => $now, 'updated_at' => $now]);
         Db::table('auth_group')->where('id', $first)->update(['deleted_at' => $now, 'deleted_token' => $first]);
         $second = (int) Db::table('auth_group')->insertGetId(['name' => 'soft-group', 'code' => 'soft_group', 'created_at' => $now, 'updated_at' => $now]);
@@ -100,10 +116,12 @@ final class SoftDeleteMigrationTest extends TestCase
         foreach (self::coreTables() as $table) {
             self::assertStringContainsString("'ALTER TABLE `fun_{$table}` '", $code, $table);
             self::assertStringContainsString("TABLE_NAME='fun_{$table}'", $code, $table);
-            $backfill = "UPDATE `fun_{$table}` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;";
-            in_array($table, self::NON_ID_TABLES, true)
-                ? self::assertStringNotContainsString($backfill, $code, $table)
-                : self::assertStringContainsString($backfill, $code, $table);
+            self::assertStringContainsString("UPDATE `fun_{$table}` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;", $code, $table);
+        }
+        foreach (self::FORMER_PRIMARY as $table => $columns) {
+            $list = implode(',', array_map(static fn (string $column): string => '`' . $column . '`', [...$columns, 'deleted_token']));
+            self::assertStringContainsString("'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)'", $code);
+            self::assertStringContainsString("INDEX_NAME='uk_{$table}_pk')=0, 'ADD UNIQUE KEY `uk_{$table}_pk` ({$list})'", $code, $table);
         }
         $manifest = (new \app\common\service\database\CoreDatabaseAudit(MigrationService::coreDirectory()))->manifest();
         $rebuilt = 0;

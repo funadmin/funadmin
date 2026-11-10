@@ -1,9 +1,10 @@
 -- 005 后台数据全部软删除：每张核心表补 deleted_at（DATETIME NULL，无以它开头的索引时补 idx_{表}_deleted_at）；
--- 主键为单列 id 的表补 deleted_token（BIGINT UNSIGNED NOT NULL DEFAULT 0；0 表示未删除，软删除时写入该行 id），
+-- 每张表补 deleted_token（BIGINT UNSIGNED NOT NULL DEFAULT 0；0 表示未删除，软删除时写入该行 id），
 -- 并回填已软删除存量行 deleted_token = id；每个非主键唯一索引按原名重建为「原列 + deleted_token」，删除后可用相同唯一值重建。
 -- 与 PHP 迁移 database/migrations/005_soft_delete.php 终态一致；全部语句可重复执行。
 -- 特例：fun_member_level 的 UNIQUE KEY `id` 与主键重复，直接删除；fun_member 删除与唯一索引首列重复的普通索引 username / mobile / email。
--- 主键不是 id 的表（令牌、会话、登录尝试、关联表、系统密钥等）没有可写入的 id，只补 deleted_at；它们没有主键以外的唯一索引。
+-- 主键不是 id 的 12 张表（令牌、会话、登录尝试、关联表、系统密钥等）新增 `id` BIGINT UNSIGNED AUTO_INCREMENT 作为主键（存量行自动编号），
+-- 原主键改为唯一索引 uk_{表}_pk（原主键列 + deleted_token），软删除后可重新写入同一组合；外键依赖的前导列在同一条 ALTER 内由该索引支撑。
 -- 写法：MySQL 不支持 ADD COLUMN IF NOT EXISTS，每张表按 information_schema 拼出仍缺的子句，合成一条 ALTER 后用 PREPARE 执行；
 -- 已全部到位时执行 DO 0。重建唯一索引在同一条 ALTER 内先删后建，外键依赖的前导列始终有索引支撑。
 
@@ -23,22 +24,30 @@ UPDATE `fun_admin` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `
 -- fun_admin_auth_tokens
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_auth_tokens' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_auth_tokens' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_admin_auth_tokens_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_auth_tokens' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_admin_auth_tokens_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_auth_tokens' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_auth_tokens' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_auth_tokens' AND INDEX_NAME='uk_admin_auth_tokens_pk')=0, 'ADD UNIQUE KEY `uk_admin_auth_tokens_pk` (`token_hash`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_admin_auth_tokens` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_admin_auth_tokens` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_admin_department
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_department' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_department' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_admin_department_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_department' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_admin_department_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_department' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_department' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_admin_department' AND INDEX_NAME='uk_admin_department_pk')=0, 'ADD UNIQUE KEY `uk_admin_department_pk` (`admin_id`,`dept_id`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_admin_department` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_admin_department` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_admin_log
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -267,32 +276,44 @@ UPDATE `fun_auth_group` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL 
 -- fun_auth_group_department
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_department' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_department' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_auth_group_department_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_department' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_auth_group_department_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_department' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_department' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_department' AND INDEX_NAME='uk_auth_group_department_pk')=0, 'ADD UNIQUE KEY `uk_auth_group_department_pk` (`role_id`,`dept_id`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_auth_group_department` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_auth_group_department` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_auth_group_field_permission
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_field_permission' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_field_permission' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_auth_group_field_permission_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_field_permission' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_auth_group_field_permission_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_field_permission' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_field_permission' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_field_permission' AND INDEX_NAME='uk_auth_group_field_permission_pk')=0, 'ADD UNIQUE KEY `uk_auth_group_field_permission_pk` (`role_id`,`field_id`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_auth_group_field_permission` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_auth_group_field_permission` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_auth_group_inherit
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_inherit' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_inherit' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_auth_group_inherit_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_inherit' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_auth_group_inherit_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_inherit' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_inherit' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_auth_group_inherit' AND INDEX_NAME='uk_auth_group_inherit_pk')=0, 'ADD UNIQUE KEY `uk_auth_group_inherit_pk` (`role_id`,`parent_role_id`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_auth_group_inherit` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_auth_group_inherit` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_blacklist
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -309,12 +330,16 @@ UPDATE `fun_blacklist` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL A
 -- fun_browser_sessions
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_browser_sessions' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_browser_sessions' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_browser_sessions_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_browser_sessions' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_browser_sessions_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_browser_sessions' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_browser_sessions' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_browser_sessions' AND INDEX_NAME='uk_browser_sessions_pk')=0, 'ADD UNIQUE KEY `uk_browser_sessions_pk` (`session_hash`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_browser_sessions` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_browser_sessions` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_business_module
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -473,12 +498,16 @@ UPDATE `fun_form` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `d
 -- fun_form_list_action_execution
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_form_list_action_execution' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_form_list_action_execution' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_form_list_action_execution_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_form_list_action_execution' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_form_list_action_execution_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_form_list_action_execution' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_form_list_action_execution' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_form_list_action_execution' AND INDEX_NAME='uk_form_list_action_execution_pk')=0, 'ADD UNIQUE KEY `uk_form_list_action_execution_pk` (`scope`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_form_list_action_execution` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_form_list_action_execution` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_form_publish_attempt
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -574,12 +603,16 @@ UPDATE `fun_languages` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL A
 -- fun_login_attempts
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_login_attempts' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_login_attempts' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_login_attempts_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_login_attempts' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_login_attempts_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_login_attempts' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_login_attempts' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_login_attempts' AND INDEX_NAME='uk_login_attempts_pk')=0, 'ADD UNIQUE KEY `uk_login_attempts_pk` (`key`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_login_attempts` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_login_attempts` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_member
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -616,12 +649,16 @@ UPDATE `fun_member_api_session` SET `deleted_token`=`id` WHERE `deleted_at` IS N
 -- fun_member_api_session_used
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_api_session_used' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_api_session_used' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_member_api_session_used_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_api_session_used' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_member_api_session_used_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_api_session_used' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_api_session_used' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_api_session_used' AND INDEX_NAME='uk_member_api_session_used_pk')=0, 'ADD UNIQUE KEY `uk_member_api_session_used_pk` (`refresh_hash`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_member_api_session_used` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_member_api_session_used` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_member_group
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -638,12 +675,16 @@ UPDATE `fun_member_group` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NUL
 -- fun_member_group_relation
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_group_relation' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_group_relation' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_member_group_relation_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_group_relation' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_member_group_relation_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_group_relation' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_group_relation' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_group_relation' AND INDEX_NAME='uk_member_group_relation_pk')=0, 'ADD UNIQUE KEY `uk_member_group_relation_pk` (`member_id`,`group_id`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_member_group_relation` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_member_group_relation` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_member_level
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -674,12 +715,16 @@ UPDATE `fun_member_tag` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL 
 -- fun_member_tag_relation
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_tag_relation' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_tag_relation' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_member_tag_relation_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_tag_relation' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_member_tag_relation_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_tag_relation' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_tag_relation' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_member_tag_relation' AND INDEX_NAME='uk_member_tag_relation_pk')=0, 'ADD UNIQUE KEY `uk_member_tag_relation_pk` (`member_id`,`tag_id`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_member_tag_relation` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_member_tag_relation` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_permission
 SET @soft_delete_ddl = CONCAT_WS(', ',
@@ -797,12 +842,16 @@ UPDATE `fun_system_migration` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT
 -- fun_system_secret
 SET @soft_delete_ddl = CONCAT_WS(', ',
   IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_system_secret' AND COLUMN_NAME='deleted_at')=0, 'ADD COLUMN `deleted_at` DATETIME NULL DEFAULT NULL', NULL),
-  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_system_secret' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_system_secret_deleted_at` (`deleted_at`)', NULL)
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_system_secret' AND COLUMN_NAME='deleted_at' AND SEQ_IN_INDEX=1)=0, 'ADD INDEX `idx_system_secret_deleted_at` (`deleted_at`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_system_secret' AND COLUMN_NAME='id')=0, 'ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (`id`)', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_system_secret' AND COLUMN_NAME='deleted_token')=0, 'ADD COLUMN `deleted_token` BIGINT UNSIGNED NOT NULL DEFAULT 0', NULL),
+  IF((SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_system_secret' AND INDEX_NAME='uk_system_secret_pk')=0, 'ADD UNIQUE KEY `uk_system_secret_pk` (`name`,`deleted_token`)', NULL)
 );
 SET @soft_delete_ddl = IF(@soft_delete_ddl = '', 'DO 0', CONCAT('ALTER TABLE `fun_system_secret` ', @soft_delete_ddl));
 PREPARE soft_delete_stmt FROM @soft_delete_ddl;
 EXECUTE soft_delete_stmt;
 DEALLOCATE PREPARE soft_delete_stmt;
+UPDATE `fun_system_secret` SET `deleted_token`=`id` WHERE `deleted_at` IS NOT NULL AND `deleted_token`=0;
 
 -- fun_upgrade_manifest
 SET @soft_delete_ddl = CONCAT_WS(', ',
