@@ -39,27 +39,53 @@
       </template>
 
       <template #toolbar-left>
-        <el-button
-          type="danger"
-          plain
-          :disabled="!selection.length"
-          v-perm="'system:operation-log:delete'"
-          @click="onBatchDelete"
-        >
-          <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
-        </el-button>
-        <el-button
-          type="danger"
-          plain
-          v-perm="'system:operation-log:clear'"
-          @click="onClear"
-        >
-          <i class="i-ep-delete-filled" /> {{ t('systemLog.clearAll', '清空') }}
-        </el-button>
+        <el-radio-group :model-value="trashView" @change="onToggleTrash">
+          <el-radio-button :value="false">{{ t('systemLog.viewLive', '日志列表') }}</el-radio-button>
+          <el-radio-button :value="true">{{ t('systemLog.viewTrash', '回收站') }}</el-radio-button>
+        </el-radio-group>
+        <template v-if="!trashView">
+          <el-button
+            type="danger"
+            plain
+            :disabled="!selection.length"
+            v-perm="'system:operation-log:delete'"
+            @click="onBatchDelete"
+          >
+            <i class="i-ep-delete" /> {{ t('common.batchRemove', '批量删除') }}{{ selection.length ? `(${selection.length})` : '' }}
+          </el-button>
+          <el-button
+            type="danger"
+            plain
+            v-perm="'system:operation-log:clear'"
+            @click="onClear"
+          >
+            <i class="i-ep-delete-filled" /> {{ t('systemLog.clearAll', '清空') }}
+          </el-button>
+        </template>
+        <template v-else>
+          <el-button
+            type="danger"
+            plain
+            :disabled="!selection.length"
+            v-perm="'system:operation-log:force-delete'"
+            @click="onForceDelete(selection)"
+          >
+            <i class="i-ep-delete" /> {{ t('systemLog.forceRemove', '彻底删除') }}{{ selection.length ? `(${selection.length})` : '' }}
+          </el-button>
+          <el-button
+            type="danger"
+            plain
+            v-perm="'system:operation-log:clear-force'"
+            @click="onClearForce"
+          >
+            <i class="i-ep-delete-filled" /> {{ t('systemLog.clearTrash', '清空回收站') }}
+          </el-button>
+        </template>
       </template>
 
       <template #default="{ size, stripe, border, headerCellStyle, columnKeys }">
         <el-table
+          ref="tableRef"
           :data="list"
           v-loading="loading"
           :size="size"
@@ -95,10 +121,13 @@
             <template #default="{ row }">{{ row.durationMs }} ms</template>
           </el-table-column>
           <el-table-column v-if="columnKeys.includes('createdAt')" prop="createdAt" :label="t('systemLog.time', '时间')" width="170" />
+          <!-- 回收站专属列不进入列设置，避免历史列偏好把它隐藏。 -->
+          <el-table-column v-if="trashView" key="deletedAt" prop="deletedAt" :label="t('systemLog.deletedAt', '删除时间')" width="170" />
           <el-table-column v-if="columnKeys.includes('actions')" :label="t('common.operation', '操作')" width="150" fixed="right" align="center">
             <template #default="{ row }">
               <el-button link type="primary" @click="showDetail(row as OperationLog)">{{ t('common.detail', '详情') }}</el-button>
-              <el-button link type="danger" v-perm="'system:operation-log:delete'" @click="onDelete(row as OperationLog)">{{ t('common.remove', '删除') }}</el-button>
+              <el-button v-if="!trashView" link type="danger" v-perm="'system:operation-log:delete'" @click="onDelete(row as OperationLog)">{{ t('common.remove', '删除') }}</el-button>
+              <el-button v-else link type="danger" v-perm="'system:operation-log:force-delete'" @click="onForceDelete([row as OperationLog])">{{ t('systemLog.forceRemove', '彻底删除') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -128,6 +157,7 @@
         <el-descriptions-item :label="t('systemLog.postParams', '请求参数')"><pre>{{ detail.postData || '{}' }}</pre></el-descriptions-item>
         <el-descriptions-item label="User-Agent"><span class="break-all">{{ detail.agent || '-' }}</span></el-descriptions-item>
         <el-descriptions-item :label="t('systemLog.time', '时间')">{{ detail.createdAt }}</el-descriptions-item>
+        <el-descriptions-item v-if="detail.deletedAt" :label="t('systemLog.deletedAt', '删除时间')">{{ detail.deletedAt }}</el-descriptions-item>
       </el-descriptions>
     </el-drawer>
   </PageWrapper>
@@ -138,7 +168,7 @@ import TablePagination from '@/components/TablePagination/index.vue';
 import { hasPermission } from '@/utils/permission';
 import { ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import type { TagProps } from 'element-plus';
+import type { TableInstance, TagProps } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { operationLogApi, type OperationLog, type OperationLogQuery } from '@/api/system/log';
 import type { DataTableColumnOption } from '@/components/DataTable/types';
@@ -163,6 +193,8 @@ const columnOptions: DataTableColumnOption[] = [
   { key: 'actions', label: t('common.operation', '操作'), alwaysVisible: true }
 ];
 const dateRange = ref<[string, string] | null>(null);
+const trashView = ref(false);
+const tableRef = ref<TableInstance>();
 const detailVisible = ref(false);
 const detail = ref<OperationLog | null>(null);
 const {
@@ -175,9 +207,10 @@ const {
     remove: (id) => operationLogApi.remove(id),
     removeMany: (ids) => operationLogApi.remove(ids)
   },
-  initialQuery: () => ({ page: 1, pageSize: 10, username: '', appName: '', sourceType: '', sourceName: '', status: undefined, startTime: '', endTime: '' }),
+  // 重置筛选条件时保留当前所在视图（日志列表 / 回收站）。
+  initialQuery: () => ({ page: 1, pageSize: 10, username: '', appName: '', sourceType: '', sourceName: '', status: undefined, startTime: '', endTime: '', trashed: trashView.value ? 1 : undefined }),
   pagination: true,
-  deleteConfirm: (target) => Array.isArray(target) ? t('systemLog.deleteManyConfirm', { n: target.length }, { default: '确认删除选中的 {n} 条日志？' }) : t('systemLog.deleteOneConfirm', '确认删除该日志？')
+  deleteConfirm: (target) => Array.isArray(target) ? t('systemLog.deleteManyConfirm', { n: target.length }, { default: '确认删除选中的 {n} 条日志？删除后将移入回收站。' }) : t('systemLog.deleteOneConfirm', '确认删除该日志？删除后将移入回收站。')
 });
 
 function onDateChange(value: [string, string] | null) {
@@ -190,12 +223,56 @@ function methodTag(method: string): TagProps['type'] {
 async function onClear() {
   if (!hasPermission("system:operation-log:clear")) return;
   await ElMessageBox.confirm(
-    t('systemLog.clearAllConfirm', '确认清空全部操作日志？该操作不可恢复。'),
+    t('systemLog.clearAllConfirm', '确认清空全部操作日志？清空后日志将移入回收站。'),
     t('systemLog.clearAllTitle', '清空日志'),
     { type: 'warning', confirmButtonText: t('systemLog.clearAll', '清空') }
   );
   if (!hasPermission("system:operation-log:clear")) return;
  await operationLogApi.clear();
+  await loadData();
+}
+function onToggleTrash(value: string | number | boolean | undefined) {
+  trashView.value = value === true;
+  query.trashed = trashView.value ? 1 : undefined;
+  query.page = 1;
+  selection.value = [];
+  tableRef.value?.clearSelection();
+  detailVisible.value = false;
+  loadData();
+}
+/** 确认框被取消时返回 false，不向上抛出 cancel。 */
+async function confirmDanger(message: string, title: string, confirmButtonText: string) {
+  try {
+    await ElMessageBox.confirm(message, title, { type: 'error', confirmButtonText, confirmButtonClass: 'el-button--danger' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function onForceDelete(rows: OperationLog[]) {
+  const permission = 'system:operation-log:force-delete';
+  if (!trashView.value || !rows.length || !hasPermission(permission)) return;
+  const ids = rows.map(item => item.id);
+  const message = ids.length === 1
+    ? t('systemLog.forceRemoveOneConfirm', '确认彻底删除该日志？日志将被永久删除，此操作不可恢复。')
+    : t('systemLog.forceRemoveManyConfirm', { n: ids.length }, { default: '确认彻底删除选中的 {n} 条日志？日志将被永久删除，此操作不可恢复。' });
+  if (!await confirmDanger(message, t('systemLog.forceRemoveTitle', '彻底删除日志'), t('systemLog.forceRemove', '彻底删除'))) return;
+  if (!hasPermission(permission)) return;
+  await operationLogApi.forceRemove(ids);
+  selection.value = [];
+  await loadData();
+}
+async function onClearForce() {
+  const permission = 'system:operation-log:clear-force';
+  if (!trashView.value || !hasPermission(permission)) return;
+  const confirmed = await confirmDanger(
+    t('systemLog.clearTrashConfirm', '确认清空回收站？回收站中的日志将被彻底删除，此操作不可恢复。'),
+    t('systemLog.clearTrash', '清空回收站'),
+    t('systemLog.clearTrash', '清空回收站')
+  );
+  if (!confirmed || !hasPermission(permission)) return;
+  await operationLogApi.clearForce();
+  selection.value = [];
   await loadData();
 }
 async function showDetail(row: OperationLog) {

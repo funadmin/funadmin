@@ -45,6 +45,7 @@ pnpm-debug.log*
 !/tests/views/
 /tests/views/*
 !/tests/views/form-page-host-lifecycle.spec.ts
+!/tests/views/operation-log-force-delete.spec.ts
 !/tests/utils/
 /tests/utils/*
 !/tests/utils/consoleHttp.spec.ts
