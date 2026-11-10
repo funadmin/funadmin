@@ -145,7 +145,7 @@ class PluginLifecycleExecutionTest extends TestCase
         $this->state('disabled', 0);
         self::assertTrue($service->uninstallPlugin('lifecyclefixture'));
         self::assertNotNull(Db::table('plugin')->value('deleted_at'));
-        self::assertSame(0, Db::table('plugin_resource')->count());
+        self::assertSame(0, Db::table('plugin_resource')->whereNull('deleted_at')->count());
         self::assertTrue($service->installPlugin('lifecyclefixture'));
         $this->state('disabled', 0);
         self::assertNull(Db::table('plugin')->value('deleted_at'));
@@ -304,7 +304,7 @@ class PluginLifecycleExecutionTest extends TestCase
         self::assertStringContainsString('install_hook', $error->getMessage());
         self::assertSame('failed', Db::table('plugin')->value('lifecycle_state'));
         self::assertNull(Db::table('plugin')->value('operation_token'));
-        self::assertSame(0, Db::table('plugin_resource')->count());
+        self::assertSame(0, Db::table('plugin_resource')->whereNull('deleted_at')->count());
         self::assertSame(1, Db::table('plugin_operation')->where('result', 'failed')->count());
     }
 
@@ -406,7 +406,7 @@ class PluginLifecycleExecutionTest extends TestCase
             self::assertNotNull($error);
             self::assertStringContainsString('生命周期操作', $error->getMessage());
             self::assertSame(0, Db::table('plugin')->count());
-            self::assertSame(0, Db::table('plugin_resource')->count());
+            self::assertSame(0, Db::table('plugin_resource')->whereNull('deleted_at')->count());
         } finally { $lock->release(); }
     }
 

@@ -182,6 +182,45 @@ final class SoftDeleteCoreModelsTest extends TestCase
         self::assertSame(2, (int) $pdo->query('SELECT COUNT(*) FROM list_actions')->fetchColumn());
     }
 
+    public function test_member_relations_sync_by_difference_and_soft_delete_removed_rows(): void
+    {
+        (new MigrationService())->run();
+        foreach ([77, 78, 79] as $id) Db::table('member_group')->insert(['id' => $id, 'name' => 'sd组' . $id, 'status' => 1]);
+        $levelId = (int) Db::table('member_level')->where('status', 1)->value('id')
+            ?: (int) Db::table('member_level')->insertGetId(['name' => '默认等级', 'status' => 1]);
+        $call = function (string $method, string $path, array $data, callable $action): array {
+            $body = json_encode($data, JSON_THROW_ON_ERROR);
+            $request = new \support\Request("$method $path HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
+            $request->context['admin'] = ['id' => 1];
+            \support\Context::set(\Webman\Http\Request::class, $request);
+            $payload = json_decode($action(new \app\admin\system\controller\SystemMember())->rawBody(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame(200, $payload['code'], (string) ($payload['msg'] ?? ''));
+            return $payload;
+        };
+        $input = ['username' => 'sdrelation', 'mobile' => '13800007777', 'email' => 'sdrelation@example.com', 'sex' => '1', 'levelId' => $levelId, 'status' => 1];
+        $call('POST', '/admin/system/member', $input + ['groupIds' => [77, 78]], static fn ($controller) => $controller->create());
+        $memberId = (int) Db::table('member')->where('username', 'sdrelation')->value('id');
+        $kept = (int) Db::table('member_group_relation')->where('member_id', $memberId)->where('group_id', 78)->value('id');
+
+        $update = static fn ($controller) => $controller->update($memberId);
+        $call('PUT', '/admin/system/member/' . $memberId, $input + ['groupIds' => [78, 79]], $update);
+        $call('PUT', '/admin/system/member/' . $memberId, $input + ['groupIds' => [78, 79]], $update);
+
+        self::assertSame([78, 79], \app\admin\system\model\Member::groupIdsFor($memberId));
+        self::assertSame($kept, (int) Db::table('member_group_relation')->where('member_id', $memberId)->where('group_id', 78)->whereNull('deleted_at')->value('id'));
+        self::assertSame(3, Db::table('member_group_relation')->where('member_id', $memberId)->count());
+        $removed = Db::table('member_group_relation')->where('member_id', $memberId)->where('group_id', 77)->first();
+        self::assertNotNull($removed->deleted_at);
+        self::assertSame((int) $removed->id, (int) $removed->deleted_token);
+        self::assertSame([], \app\admin\system\model\Member::filteredQuery(false, '', null, 77)->pluck('id')->all());
+        self::assertSame([$memberId], array_map('intval', \app\admin\system\model\Member::filteredQuery(false, '', null, 79)->pluck('id')->all()));
+
+        // 再次加回已移除的分组：新增一条有效关联，已删除的那条保持原样。
+        $call('PUT', '/admin/system/member/' . $memberId, $input + ['groupIds' => [77, 78, 79]], $update);
+        self::assertSame([77, 78, 79], \app\admin\system\model\Member::groupIdsFor($memberId));
+        self::assertSame(2, Db::table('member_group_relation')->where('member_id', $memberId)->where('group_id', 77)->count());
+    }
+
     /** @return array<string, array{id: int, resource_type: string}> */
     private function liveTargets(): array
     {
