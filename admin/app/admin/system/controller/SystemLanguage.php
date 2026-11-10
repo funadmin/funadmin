@@ -184,7 +184,8 @@ class SystemLanguage extends AdminController
 
         Db::transaction(static function () use ($language, $name): void {
             $previous = (string) $language->getAttribute('name');
-            LanguageLine::withTrashed()->where('locale', $previous)->update(['locale' => $name]);
+            // 只迁移当前语言的有效译文；同名旧语言的墓碑永久保留在原 locale，不能被新语言复活。
+            LanguageLine::where('locale', $previous)->update(['locale' => $name]);
             $language->forceFill(['name' => $name])->save();
         });
         return $this->ok('保存成功', $language->toApiData());

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { runBackendTests } from './backend-runtime';
 
 const readProjectFile = (relativePath: string) => readFileSync(
   resolve(process.cwd(), relativePath),
@@ -15,13 +16,14 @@ const filteredQuery = systemMember.match(
 )?.[0] ?? '';
 
 describe('006_schema_integrity migration 源码契约', () => {
-  it('pivot 关联写入统一使用 created_at，不再写 legacy create_time', () => {
-    const syncCalls = systemMember.match(/groups\(\)->sync(?:WithPivotValues)?\([\s\S]{0,240}?\);/g) ?? [];
-    expect(syncCalls.length).toBeGreaterThan(0);
-    for (const syncCall of syncCalls) {
-      expect(syncCall).toMatch(/['"]created_at['"]\s*=>\s*date\(['"]Y-m-d H:i:s['"]\)/);
-      expect(syncCall).not.toMatch(/['"]create_time['"]\s*=>/);
+  it('差异同步只给新增关系写 created_at，保留不变行与已删历史', () => {
+    expect(systemMember).toContain('RelationRowSync::sync(MemberGroupRelation::class');
+    expect(systemMember).toContain('RelationRowSync::sync(MemberTagRelation::class');
+    for (const kind of ['group', 'tag']) {
+      expect(runBackendTests('RemainingSoftDeleteGapTest.php',
+        `test_member_${kind}_relation_sync_preserves_ids_timestamps_and_deleted_history`)).toContain('OK (1 test');
     }
+    expect(systemMember).not.toMatch(/['"]create_time['"]\s*=>/);
   });
 
   it('所有 migration 表前缀均可由 MigrationService 统一替换', () => {

@@ -19,6 +19,7 @@ final class RemainingSoftDeleteGapTest extends TestCase
     {
         $request = new Request("POST /admin/system/test HTTP/1.1\r\n\r\n");
         $request->setPost($post);
+        $request->context['admin'] = ['id' => 1];
         Context::set(\Webman\Http\Request::class, $request);
         return json_decode((new $class())->$method(...$args)->rawBody(), true);
     }
@@ -55,6 +56,157 @@ final class RemainingSoftDeleteGapTest extends TestCase
         $saved = $this->call(SystemLanguage::class, 'saveLine', ['locale'=>'fr-fr','key'=>'round9.test','value'=>'updated']);
         self::assertSame(200, $saved['code']); self::assertSame($new->id, $saved['data']['id']);
     }
+    public function test_language_rename_does_not_move_or_revive_deleted_translation_history(): void
+    {
+        $old = $this->call(SystemLanguage::class, 'create', ['name'=>'fr-fr'])['data'];
+        $line = LanguageLine::forceCreate(['locale'=>'fr-fr', 'key'=>'round9.history', 'value'=>'historical']);
+        self::assertSame(200, $this->call(SystemLanguage::class, 'delete', args: [$old['id']])['code']);
+        $before = (array) Db::table('language_line')->where('id', $line->id)->first();
+        $replacement = $this->call(SystemLanguage::class, 'create', ['name'=>'fr-fr'])['data'];
+        $live = LanguageLine::forceCreate(['locale'=>'fr-fr', 'key'=>'round9.live', 'value'=>'current']);
+        self::assertSame(200, $this->call(SystemLanguage::class, 'update', ['name'=>'de-de'], [$replacement['id']])['code']);
+        self::assertSame('de-de', $live->fresh()->locale);
+        self::assertSame($before, (array) Db::table('language_line')->where('id', $line->id)->first());
+        $saved = $this->call(SystemLanguage::class, 'saveLine', ['locale'=>'de-de', 'key'=>'round9.history', 'value'=>'new']);
+        self::assertSame(200, $saved['code']);
+        self::assertNotSame($line->id, $saved['data']['id']);
+        self::assertSame($before, (array) Db::table('language_line')->where('id', $line->id)->first());
+    }
+
+    private function fixtureMember(string $username, ?string $email = null): \app\admin\system\model\Member
+    {
+        return \app\admin\system\model\Member::forceCreate([
+            'username'=>$username, 'email'=>$email, 'mobile'=>null, 'password'=>'fixture-only',
+            'level_id'=>Db::table('member_level')->where('status', 1)->value('id'), 'status'=>1,
+        ]);
+    }
+
+    private function assertMemberRelationDiff(string $kind): void
+    {
+        $model = $kind === 'group' ? \app\common\model\MemberGroupRelation::class : \app\common\model\MemberTagRelation::class;
+        $table = 'member_'.$kind.'_relation';
+        $key = $kind.'_id';
+        $member = $this->fixtureMember('relationfixture');
+        $targets = [];
+        foreach (['kept', 'removed', 'added'] as $name) {
+            $targets[] = Db::table('member_'.$kind)->insertGetId(['name'=>'round9-'.$name, 'status'=>1]);
+        }
+        $attributes = ['member_id'=>$member->id, 'created_at'=>'2020-01-01 01:02:03'];
+        $kept = $model::forceCreate($attributes + [$key=>$targets[0]]);
+        $removed = $model::forceCreate($attributes + [$key=>$targets[1]]);
+        $history = $model::forceCreate($attributes + [$key=>$targets[2]]);
+        $history->delete();
+        $keptBefore = (array) Db::table($table)->where('id', $kept->id)->first();
+        $historyBefore = (array) Db::table($table)->where('id', $history->id)->first();
+        $selected = [$targets[0], $targets[2]];
+        // Exercise the controller's real integration with RelationRowSync, not a parallel implementation.
+        Context::set(\Webman\Http\Request::class, new Request("POST /admin/system/member HTTP/1.1\r\n\r\n"));
+        $method = new \ReflectionMethod(\app\admin\system\controller\SystemMember::class, 'syncRelations');
+        $controller = new \app\admin\system\controller\SystemMember();
+        $started = date('Y-m-d H:i:s');
+        $sync = static fn () => $method->invoke($controller, $member, $kind === 'group' ? $selected : [], $kind === 'tag' ? $selected : []);
+        $sync();
+        self::assertSame($keptBefore, (array) Db::table($table)->where('id', $kept->id)->first());
+        $this->trashed($table, $removed->id);
+        self::assertSame('2020-01-01 01:02:03', Db::table($table)->where('id', $removed->id)->value('created_at'));
+        self::assertSame($historyBefore, (array) Db::table($table)->where('id', $history->id)->first());
+        $added = $model::where('member_id', $member->id)->where($key, $targets[2])->firstOrFail();
+        self::assertNotSame($history->id, $added->id);
+        self::assertNotNull($added->created_at);
+        self::assertGreaterThanOrEqual($started, $added->getRawOriginal('created_at'));
+        self::assertLessThanOrEqual(date('Y-m-d H:i:s'), $added->getRawOriginal('created_at'));
+        self::assertSame(0, (int) $added->deleted_token);
+        self::assertSame(4, Db::table($table)->where('member_id', $member->id)->count());
+        self::assertSame(2, $model::where('member_id', $member->id)->count());
+        $liveIds = $model::where('member_id', $member->id)->orderBy('id')->pluck('id')->all();
+        $sync();
+        self::assertSame($liveIds, $model::where('member_id', $member->id)->orderBy('id')->pluck('id')->all());
+        self::assertSame(4, Db::table($table)->where('member_id', $member->id)->count());
+        self::assertSame($historyBefore, (array) Db::table($table)->where('id', $history->id)->first());
+    }
+
+    public function test_member_group_relation_sync_preserves_ids_timestamps_and_deleted_history(): void
+    {
+        $this->assertMemberRelationDiff('group');
+    }
+
+    public function test_member_tag_relation_sync_preserves_ids_timestamps_and_deleted_history(): void
+    {
+        $this->assertMemberRelationDiff('tag');
+    }
+
+    public function test_member_group_reference_guard_protects_live_members_only(): void
+    {
+        $group = \app\admin\system\model\MemberGroup::forceCreate(['name'=>'round9-guard', 'status'=>1]);
+        $member = $this->fixtureMember('guardfixture');
+        \app\common\model\MemberGroupRelation::forceCreate(['member_id'=>$member->id, 'group_id'=>$group->id, 'created_at'=>date('Y-m-d H:i:s')]);
+        $guard = \app\common\service\member\MemberReferenceGuard::class;
+        self::assertSame('会员组仍被会员使用，不能删除', $guard::blockingMessage($guard::GROUP, [$group->id], false));
+        $blocked = $this->call(\app\admin\system\controller\SystemMemberGroup::class, 'recycle', ['ids'=>[$group->id]]);
+        self::assertSame(422, $blocked['code']);
+        self::assertSame('会员组仍被会员使用，不能删除', $blocked['msg']);
+        self::assertNotNull($group->fresh());
+        try {
+            $group->delete();
+            self::fail('Model deletion must also enforce MemberReferenceGuard');
+        } catch (\DomainException $error) {
+            self::assertSame(422, $error->getCode());
+        }
+        $member->delete();
+        self::assertNull($guard::blockingMessage($guard::GROUP, [$group->id], false));
+        self::assertSame(200, $this->call(\app\admin\system\controller\SystemMemberGroup::class, 'recycle', ['ids'=>[$group->id]])['code']);
+        $this->trashed('member_group', $group->id);
+        $this->trashed('member', $member->id);
+    }
+
+    public function test_registration_email_active_cooling_and_expired_uniqueness(): void
+    {
+        $service = new \app\common\service\member\MemberAccountService();
+        $holder = $this->fixtureMember('emailholder', 'used@example.com');
+        $register = static fn (string $username, string $email) => $service->register([
+            'username'=>$username, 'email'=>$email, 'password'=>'safe-password-91', 'password_confirm'=>'safe-password-91',
+        ], '127.0.0.91');
+        try { $register('activeemail', 'used@example.com'); self::fail('Active email duplicate allowed'); }
+        catch (\RuntimeException $error) { self::assertSame('邮箱已被注册', $error->getMessage()); }
+        try { $register('longemail', str_repeat('a', 50).'@example.com'); self::fail('Overlong email allowed'); }
+        catch (\RuntimeException $error) { self::assertSame('请输入有效的邮箱（不超过 60 个字符）', $error->getMessage()); }
+        $holder->delete();
+        try { $register('coolingemail', 'used@example.com'); self::fail('Cooling email duplicate allowed'); }
+        catch (\RuntimeException $error) { self::assertStringContainsString('冷静期', $error->getMessage()); self::assertStringContainsString('已注销', $error->getMessage()); }
+        $expired = date('Y-m-d H:i:s', time() - ((int) config('soft_delete.member_cooling_days', 30) + 1) * 86400);
+        Db::table('member')->where('id', $holder->id)->update(['deleted_at'=>$expired]);
+        $newId = $register('expiredemail', 'used@example.com');
+        self::assertNotSame($holder->id, $newId);
+        self::assertSame('used@example.com', \app\common\model\Member::findOrFail($newId)->email);
+        $this->trashed('member', $holder->id);
+        self::assertSame($expired, Db::table('member')->where('id', $holder->id)->value('deleted_at'));
+        self::assertNull(\app\common\service\member\MemberInput::normalizeEmail('  '));
+        self::assertSame('user@example.com', \app\common\service\member\MemberInput::normalizeEmail(' User@Example.com '));
+    }
+
+    public function test_role_active_name_and_code_duplicates_rejected_and_deleted_values_reusable(): void
+    {
+        $class = \app\admin\authorization\controller\SystemRole::class;
+        $payload = ['name'=>'Round nine role', 'code'=>'round_nine_role', 'level'=>100];
+        $created = $this->call($class, 'create', $payload);
+        self::assertSame(200, $created['code'], $created['msg']);
+        self::assertSame(422, $this->call($class, 'create', array_replace($payload, ['code'=>'other_code']))['code']);
+        self::assertSame(422, $this->call($class, 'create', array_replace($payload, ['name'=>'Other name']))['code']);
+        $role = \app\admin\authorization\model\AuthGroup::findOrFail($created['data']['id']);
+        $role->delete();
+        $this->trashed('auth_group', $role->id);
+        $replacement = $this->call($class, 'create', $payload);
+        self::assertSame(200, $replacement['code'], $replacement['msg']);
+        self::assertNotSame($role->id, $replacement['data']['id']);
+        // The migrated database still rejects duplicates independently of the controller's precheck.
+        try {
+            \app\admin\authorization\model\AuthGroup::forceCreate(['name'=>$payload['name'], 'code'=>'different_again']);
+            self::fail('Database name uniqueness no longer enforced');
+        } catch (\Illuminate\Database\QueryException $error) {
+            self::assertTrue(\app\common\model\concern\RestoreConflictException::isUniqueViolation($error));
+        }
+    }
+
     public function test_attachment_delete_preserves_file_and_metadata_even_without_driver(): void
     {
         $path = public_path() . '/storage/round9-' . uniqid() . '.txt';

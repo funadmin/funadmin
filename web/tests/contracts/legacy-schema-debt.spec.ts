@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { runBackendTests } from './backend-runtime';
 
 const root = resolve(process.cwd(), '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
@@ -32,7 +33,8 @@ describe('017 历史命名与会员标签治理', () => {
     const api = read('web/src/admin/api/system/member.ts');
     const form = read('web/src/admin/views/system/member/components/MemberFormDialog.vue');
     expect(controller).toContain('tagIds');
-    expect(controller).toContain('syncWithPivotValues($tagIds');
+    expect(controller).toContain('RelationRowSync::sync(MemberTagRelation::class');
+    expect(runBackendTests('RemainingSoftDeleteGapTest.php', 'test_member_tag_relation_sync_preserves_ids_timestamps_and_deleted_history')).toContain('OK (1 test');
     expect(controller).toContain("'tagNames'");
     expect(api).toContain('tagIds: number[]');
     expect(api).toContain('tagNames: string[]');

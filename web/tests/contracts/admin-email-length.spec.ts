@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { runBackendTests } from './backend-runtime';
 
 const readProjectFile = (relativePath: string) => readFileSync(
   resolve(process.cwd(), relativePath),
@@ -14,7 +15,8 @@ describe('会员分组关联后端契约', () => {
     expect(source).not.toContain('FIND_IN_SET');
     expect(source).not.toMatch(/'group_id'\s*=>\s*implode\(',',\s*\$groupIds\)/);
     expect(source).toContain('(new MemberGroupRelation())->getTable()');
-    expect(source).toContain('groups()->syncWithPivotValues($groupIds');
+    expect(source).toContain('RelationRowSync::sync(MemberGroupRelation::class');
+    expect(runBackendTests('RemainingSoftDeleteGapTest.php', 'test_member_group_relation_sync_preserves_ids_timestamps_and_deleted_history')).toContain('OK (1 test');
     expect(source).toContain('groupIds');
   });
 
@@ -28,7 +30,8 @@ describe('会员分组关联后端契约', () => {
     const source = readProjectFile('../admin/app/admin/system/controller/SystemMemberGroup.php');
 
     expect(source).not.toContain('FIND_IN_SET');
-    expect(source).toContain('MemberGroupRelation');
+    expect(source).toContain('MemberReferenceGuard::blockingMessage(MemberReferenceGuard::GROUP');
+    expect(runBackendTests('RemainingSoftDeleteGapTest.php', 'test_member_group_reference_guard_protects_live_members_only')).toContain('OK (1 test');
     expect(source).not.toContain("Db::name('member_group_relation')");
   });
 });
