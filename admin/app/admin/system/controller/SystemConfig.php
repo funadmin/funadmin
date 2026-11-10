@@ -17,7 +17,6 @@ use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
-use support\Cache;
 use support\Response;
 
 /**
@@ -208,7 +207,6 @@ class SystemConfig extends AdminController
             return $this->fail(msg: '配置编码已存在', code: 422);
         }
         $config = Config::forceCreate($data + ['is_system' => 0]);
-        $this->clearConfigCache();
         return $this->ok('创建成功', $this->configData($config));
     }
 
@@ -261,7 +259,6 @@ class SystemConfig extends AdminController
             return $this->fail(msg: '配置编码已存在', code: 422);
         }
         $config->forceFill($data)->save();
-        $this->clearConfigCache();
         return $this->ok('保存成功', $this->configData($config));
     }
 
@@ -311,7 +308,6 @@ class SystemConfig extends AdminController
             try { $value = AdminLoginPath::normalize($value); } catch (\InvalidArgumentException $error) { return $this->fail(msg: $error->getMessage(), code: 422); }
         }
         $config->forceFill(['value' => $value])->save();
-        $this->clearConfigCache();
         return $this->ok('配置值已更新', $this->configData($config));
     }
 
@@ -363,7 +359,6 @@ class SystemConfig extends AdminController
             return $this->fail(msg: '后台登录入口不能停用', code: 422);
         }
         $config->forceFill(['status' => (int) $status])->save();
-        $this->clearConfigCache();
         return $this->ok('状态更新成功', $this->configData($config));
     }
 
@@ -414,7 +409,6 @@ class SystemConfig extends AdminController
         foreach ($configs as $config) {
             $config->forceDelete();
         }
-        $this->clearConfigCache();
         return $this->ok('删除成功', ['removed' => count($configs)]);
     }
 
@@ -474,7 +468,6 @@ class SystemConfig extends AdminController
         }
         try {
             $group = ConfigGroup::forceCreate($data);
-            $this->clearConfigCache();
             return $this->ok('创建成功', $this->groupData($group));
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
@@ -526,7 +519,6 @@ class SystemConfig extends AdminController
         }
         try {
             $group->forceFill($data)->save();
-            $this->clearConfigCache();
             return $this->ok('保存成功', $this->groupData($group));
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
@@ -569,7 +561,6 @@ class SystemConfig extends AdminController
             return $this->fail(msg: '配置分组仍被配置项引用，不能删除', code: 422);
         }
         $group->forceDelete();
-        $this->clearConfigCache();
         return $this->ok('删除成功');
     }
 
@@ -757,11 +748,6 @@ class SystemConfig extends AdminController
             'createdAt' => $this->formatTime($group->created_at),
             'updatedAt' => $this->formatTime($group->updated_at),
         ];
-    }
-
-    private function clearConfigCache(): void
-    {
-        Cache::clear();
     }
 
     private function isSuperAdmin(): bool

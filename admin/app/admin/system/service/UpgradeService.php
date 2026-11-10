@@ -27,7 +27,8 @@ final class UpgradeService extends AbstractService
         private readonly mixed $dnsResolver = null,
         private readonly ?array $hostAllowlist = null,
         private readonly ?UpgradeManifestVerifier $manifestVerifier = null,
-        private readonly ?UpgradeDatabaseBackup $databaseBackup = null
+        private readonly ?UpgradeDatabaseBackup $databaseBackup = null,
+        private readonly ?\Closure $clock = null
     ) {
         parent::__construct();
     }
@@ -52,7 +53,7 @@ final class UpgradeService extends AbstractService
         }
         $verified = $this->validateRemoteManifest($this->verifier()->verify($manifest));
         $manifestId = bin2hex(random_bytes(24));
-        $expiresAt = date('Y-m-d H:i:s', time() + $this->manifestTtl());
+        $expiresAt = date('Y-m-d H:i:s', $this->now() + $this->manifestTtl());
         UpgradeManifest::create([
             'manifest_id' => $manifestId,
             'payload' => $verified,
@@ -153,7 +154,7 @@ final class UpgradeService extends AbstractService
     private function applyClaimed(UpgradeTask $task, string $archive, string $checksum, string $version, ?array $verified = null): array
     {
         $stage = $this->runtime() . '/stage/' . $task->idempotency_token;
-        $backup = $this->runtime() . '/backup/' . $task->id . '-' . date('YmdHis');
+        $backup = $this->runtime() . '/backup/' . $task->id . '-' . date('YmdHis', $this->now());
         $dbBackup = $backup . '/database.snapshot';
         try {
             $verified ??= (new UpgradePackageVerifier(self::maxBytes, $this->verifier()))->verify($archive, $checksum, $version);
@@ -192,7 +193,7 @@ final class UpgradeService extends AbstractService
                     $message = $exception->getMessage() . '；自动恢复失败：' . $restoreException->getMessage();
                     $task->fill([
                         'status' => 'requires_manual_recovery', 'stage' => 'restore_failed',
-                        'error_message' => $message, 'active_slot' => 1, 'lease_expires_at' => date('Y-m-d H:i:s'),
+                        'error_message' => $message, 'active_slot' => 1, 'lease_expires_at' => date('Y-m-d H:i:s', $this->now()),
                     ])->save();
                     throw new RuntimeException('系统升级失败且必须人工恢复：' . $message, 0, $exception);
                 }
@@ -213,9 +214,9 @@ final class UpgradeService extends AbstractService
     {
         try {
             return Db::transaction(function () use ($manifestId, $operationToken): array {
-                $now = date('Y-m-d H:i:s');
+                $now = date('Y-m-d H:i:s', $this->now());
                 $record = UpgradeManifest::query()->where('manifest_id', $manifestId)->lockForUpdate()->first();
-                if (!$record || $record->consumed_at !== null || strtotime((string) $record->expires_at) <= time()
+                if (!$record || $record->consumed_at !== null || strtotime((string) $record->expires_at) <= $this->now()
                     || !is_array($record->payload)) {
                     throw new RuntimeException('升级 manifest 不存在、已过期或已使用', 409);
                 }
@@ -272,7 +273,7 @@ final class UpgradeService extends AbstractService
                 throw new RuntimeException('升级恢复备份不存在');
             }
             $lease = (string) ($task->lease_expires_at ?? '');
-            if ((int) ($task->active_slot ?? 0) === 1 && $lease !== '' && strtotime($lease) > time()) {
+            if ((int) ($task->active_slot ?? 0) === 1 && $lease !== '' && strtotime($lease) > $this->now()) {
                 throw new RuntimeException('该任务仍在执行，禁止并发恢复', 409);
             }
             $metadata = (array) ($task->metadata ?? []);
@@ -291,21 +292,24 @@ final class UpgradeService extends AbstractService
     private function claimStaleTask(): ?UpgradeTask
     {
         return Db::transaction(function (): ?UpgradeTask {
-            $now = date('Y-m-d H:i:s');
+            $now = date('Y-m-d H:i:s', $this->now());
             $task = UpgradeTask::query()->where('active_slot', 1)
                 ->where('lease_expires_at', '<=', $now)->lockForUpdate()->first();
             if (!$task) {
                 return null;
             }
+            // Compute once: the DB row and the in-memory model must carry the identical lease,
+            // otherwise persistTaskState() reports a lost lease when a second boundary falls in between.
+            $expiry = $this->leaseExpiry();
             $updated = UpgradeTask::query()->where('id', $task->id)->where('active_slot', 1)
                 ->where('lease_expires_at', '<=', $now)->update([
-                    'status' => 'recovering', 'lease_expires_at' => $this->leaseExpiry(),
+                    'status' => 'recovering', 'lease_expires_at' => $expiry,
                 ]);
             if ($updated !== 1) {
                 throw new RuntimeException('陈旧升级任务已被其他恢复进程接管', 409);
             }
             $task->status = 'recovering';
-            $task->lease_expires_at = $this->leaseExpiry();
+            $task->lease_expires_at = $expiry;
             $task->syncOriginal();
             return $task;
         });
@@ -316,7 +320,7 @@ final class UpgradeService extends AbstractService
         $active = UpgradeTask::query()->where('active_slot', 1)->first();
         if ($active) {
             $lease = (string) ($active->lease_expires_at ?? '');
-            $message = $lease !== '' && strtotime($lease) <= time()
+            $message = $lease !== '' && strtotime($lease) <= $this->now()
                 ? '检测到租约已过期的升级任务，必须人工确认并恢复，禁止静默并发'
                 : '已有系统升级或恢复任务正在执行';
             throw new RuntimeException($message, 409, $previous);
@@ -338,7 +342,7 @@ final class UpgradeService extends AbstractService
             $this->persistTaskState($task, [
                 'status' => 'requires_manual_recovery', 'stage' => 'restore_failed',
                 'error_message' => $exception->getMessage(), 'active_slot' => 1,
-                'lease_expires_at' => date('Y-m-d H:i:s'),
+                'lease_expires_at' => date('Y-m-d H:i:s', $this->now()),
             ]);
             throw $exception;
         }
@@ -755,10 +759,15 @@ final class UpgradeService extends AbstractService
         return max(60, min(900, (int) config('funadmin.upgrade_manifest_ttl', 300)));
     }
 
+    private function now(): int
+    {
+        return $this->clock === null ? time() : (int) ($this->clock)();
+    }
+
     private function leaseExpiry(): string
     {
         $seconds = max(300, min(7200, (int) config('funadmin.upgrade_lease_seconds', 1800)));
-        return date('Y-m-d H:i:s', time() + $seconds);
+        return date('Y-m-d H:i:s', $this->now() + $seconds);
     }
 
     private function project(): string

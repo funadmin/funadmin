@@ -864,25 +864,15 @@ final class Ai extends AdminController
         return $this->run(function (): array {
             $adminId = $this->adminId();
             $cutoff = date('Y-m-d H:i:s', time() - (int) config('ai.sandbox.retention_seconds', 86400));
-            $tasks = AiTask::hasWhere('conversation', static fn ($query) => $query->where('admin_id', $adminId))
-                ->whereIn('status', ['failed', 'cancelled', 'succeeded'])
-                ->whereIn('sandbox_status', ['created', 'running', 'exported', 'failed', 'cleaning'])
-                ->where('completed_at', '<=', $cutoff)
-                ->select()->toArray();
+            $tasks = AiTask::sandboxCleanupCandidates($cutoff, $adminId);
             $cleaned = $this->sandbox->cleanupOrphans(
                 $tasks,
                 (int) config('ai.sandbox.retention_seconds', 86400),
                 (int) config('ai.sandbox.heartbeat_timeout_seconds', 300),
-                static fn (int $taskId, array $data, string $owner) => AiTask::where('id', $taskId)
-                    ->where('sandbox_status', 'cleaning')
-                    ->where('cleanup_lease_owner', $owner)
-                    ->update(array_merge($data, ['cleanup_lease_owner'=>null,'cleanup_lease_expires_at'=>null])) === 1,
+                AiTask::finishSandboxCleanup(...),
                 fn (string $event, array $data) => $this->securityAudit($event, array_merge($data, ['admin_id' => $adminId])),
                 null,
-                static fn (array $task, string $owner, int $expiresAt): bool => AiTask::where('id', (int)$task['id'])
-                    ->whereIn('sandbox_status', ['created','running','exported','failed','cleaning'])
-                    ->where(static fn ($query) => $query->whereNull('cleanup_lease_expires_at')->whereOr('cleanup_lease_expires_at', '<=', date('Y-m-d H:i:s')))
-                    ->update(['sandbox_status'=>'cleaning','cleanup_lease_owner'=>$owner,'cleanup_lease_expires_at'=>date('Y-m-d H:i:s', $expiresAt)]) === 1
+                static fn (array $task, string $owner, int $expiresAt): bool => AiTask::claimSandboxCleanup((int) $task['id'], $owner, $expiresAt)
             );
             return ['cleaned' => $cleaned];
         });

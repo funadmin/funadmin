@@ -34,10 +34,7 @@ final class AiSandboxCleanup extends Command
         try {
             $retention = (int) config('ai.sandbox.retention_seconds', 86400);
             $cutoff = date('Y-m-d H:i:s', time() - $retention);
-            $tasks = AiTask::whereIn('status', ['failed', 'cancelled', 'succeeded'])
-                ->whereIn('sandbox_status', ['created', 'running', 'exported', 'failed', 'cleaning'])
-                ->where('completed_at', '<=', $cutoff)
-                ->get()->toArray();
+            $tasks = AiTask::sandboxCleanupCandidates($cutoff);
             $store = new DatabaseAiConversationStore();
             $manager = $this->sandbox ?? new AgentSandboxManager(new NativeDockerProcessRunner(), base_path() . DIRECTORY_SEPARATOR, (string) config('ai.storage.private_path'), (array) config('ai.sandbox', []));
             $failed = 0;
@@ -45,19 +42,13 @@ final class AiSandboxCleanup extends Command
                 $tasks,
                 $retention,
                 (int) config('ai.sandbox.heartbeat_timeout_seconds', 300),
-                static fn (int $taskId, array $data, string $owner) => AiTask::where('id', $taskId)
-                    ->where('sandbox_status', 'cleaning')
-                    ->where('cleanup_lease_owner', $owner)
-                    ->update(array_merge($data, ['cleanup_lease_owner'=>null,'cleanup_lease_expires_at'=>null])) === 1,
+                AiTask::finishSandboxCleanup(...),
                 static function (string $event, array $data) use ($store, &$failed): void {
                     if ($event === 'ai.sandbox.cleanup_failed') $failed++;
                     $store->appendEvent((int) $data['task_id'], $event, array_merge($data, ['actor' => 'cli']));
                 },
                 null,
-                static fn (array $task, string $owner, int $expiresAt): bool => AiTask::where('id', (int)$task['id'])
-                    ->whereIn('sandbox_status', ['created','running','exported','failed','cleaning'])
-                    ->where(static fn ($query) => $query->whereNull('cleanup_lease_expires_at')->orWhere('cleanup_lease_expires_at', '<=', date('Y-m-d H:i:s')))
-                    ->update(['sandbox_status'=>'cleaning','cleanup_lease_owner'=>$owner,'cleanup_lease_expires_at'=>date('Y-m-d H:i:s', $expiresAt)]) === 1
+                static fn (array $task, string $owner, int $expiresAt): bool => AiTask::claimSandboxCleanup((int) $task['id'], $owner, $expiresAt)
             );
             $result = ['cleaned' => $cleaned, 'candidates' => count($tasks)];
             if ($failed > 0) $result['failed'] = $failed;

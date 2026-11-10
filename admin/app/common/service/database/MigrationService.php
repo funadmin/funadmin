@@ -282,15 +282,41 @@ class MigrationService extends AbstractService
     }
 
     /**
-     * 是否含 DDL：语句以 CREATE/ALTER/DROP/TRUNCATE/RENAME 开头，或以 PREPARE/EXECUTE 执行动态 SQL
-     * （按 information_schema 守卫的动态 DDL）。DDL 会隐式提交，这类文件不能包在事务里，也禁止在外层事务中执行。
+     * 是否含 DDL：语句（跳过开头的空白与注释，MySQL 可执行注释（以 /*! 开头）的内容按 SQL 看待）以
+     * CREATE/ALTER/DROP/TRUNCATE/RENAME 开头，或以 PREPARE/EXECUTE 执行动态 SQL（按 information_schema 守卫的动态 DDL）。
+     * DDL 会隐式提交，这类文件不能包在事务里，也禁止在外层事务中执行。
      */
     private function hasDdl(array $statements): bool
     {
         foreach ($statements as $statement) {
-            if (preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|PREPARE|EXECUTE)\b/i', $statement) === 1) return true;
+            [$code] = self::lexSql($statement);
+            if (preg_match('/^\s*(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|PREPARE|EXECUTE)\b/i', $code) === 1) return true;
         }
         return false;
+    }
+
+    /**
+     * 自左向右一次扫描 SQL：字符串常量（'…'、"…"，支持反斜杠转义与重复引号）、反引号标识符、注释（块注释、--、#）。
+     * 注释替换为空格（MySQL 视注释为空白）；MySQL 可执行注释（以 /*!NNNNN 开头）先去掉标记、内容按 SQL 处理；
+     * 字符串常量在代码中替换为 ''，其内容（注释同样替换为空格）单独返回。注释标记出现在字符串里不会打乱引号匹配。
+     * @return array{0: string, 1: list<string>} [去掉注释与字符串内容后的代码, 各字符串常量的内容]
+     */
+    private static function lexSql(string $sql): array
+    {
+        // MySQL 的 -- 注释要求其后是空白或结尾（"1--1" 是算术），否则会把后面的真实语句当注释漏检。
+        $comment = '\/\*.*?\*\/|--(?!\S)[^\r\n]*|#[^\r\n]*';
+        $token = '/\'(?:[^\'\\\\]|\\\\.|\'\')*\'|"(?:[^"\\\\]|\\\\.|"")*"|`[^`]*`|' . $comment . '/s';
+        $literals = [];
+        $code = (string) preg_replace_callback($token, static function (array $match) use (&$literals, $comment): string {
+            $value = $match[0];
+            if ($value[0] === "'" || $value[0] === '"') {
+                $literals[] = (string) preg_replace('/' . $comment . '/s', ' ', substr($value, 1, -1));
+                return "''";
+            }
+            if ($value[0] === '`') return $value;
+            return ' ';
+        }, (string) preg_replace('/\/\*!\d*((?:(?!\*\/).)*)\*\//s', ' $1 ', $sql));
+        return [$code, $literals];
     }
 
     /**
@@ -298,22 +324,19 @@ class MigrationService extends AbstractService
      * 文件含 PREPARE / EXECUTE 时字符串会被当作 SQL 执行，因此字符串常量也要检查：其中只允许
      * `DROP INDEX <索引名>` 与 `DROP PRIMARY KEY`（重建索引、换主键，不丢数据），其余 DROP（COLUMN、TABLE、
      * FOREIGN KEY 等）、TRUNCATE、RENAME 无论在字符串内外都拒绝。逐个字符串检查，也检查全部字符串拼接后的内容，
-     * 防止把关键字拆到相邻字符串里。这是词法安全网，不是 SQL 沙箱。
+     * 防止把关键字拆到相邻字符串里；注释在代码与字符串内容中都按空格处理（MySQL 视注释为空白），可执行注释（以 /*! 开头）
+     * 的内容按代码检查。这是词法安全网，不是 SQL 沙箱。
      */
     private function assertForwardOnly(string $sql, string $file): void
     {
         $destructive = '/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i';
-        $literal = "/'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"/s";
-        $withoutComments = (string) preg_replace('#/\*.*?\*/|--[^\r\n]*#s', '', $sql);
-        // 剔除字符串常量，避免 INSERT 数据中的 rename/drop 等词被误判为 DDL。
-        $withoutStrings = (string) preg_replace($literal, "''", $withoutComments);
-        if (preg_match($destructive, $withoutStrings)) {
+        [$code, $literals] = self::lexSql($sql);
+        if (preg_match($destructive, $code)) {
             throw new RuntimeException('Migration 包含破坏性语句：' . $file);
         }
-        if (preg_match('/\b(?:PREPARE|EXECUTE)\b/i', $withoutStrings) !== 1) return;
-        preg_match_all($literal, $withoutComments, $matches);
+        if (preg_match('/\b(?:PREPARE|EXECUTE)\b/i', $code) !== 1) return;
         $allowed = '/\bDR' . 'OP\s+(?:INDEX\s+(?:`[A-Za-z0-9_]+`|[A-Za-z0-9_]+)|PRIMARY\s+KEY)/i';
-        foreach ([...$matches[0], implode('', array_map(static fn (string $value): string => substr($value, 1, -1), $matches[0]))] as $value) {
+        foreach ([...$literals, implode('', $literals)] as $value) {
             if (preg_match($destructive, (string) preg_replace($allowed, '', $value))) {
                 throw new RuntimeException('Migration 包含破坏性语句：' . $file);
             }

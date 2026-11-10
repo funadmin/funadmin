@@ -10,3 +10,5 @@ putenv('DB_CONNECTION=' . (getenv('TEST_MYSQL') === '1' ? 'mysql' : 'sqlite'));
 putenv('DB_DATABASE=' . (getenv('TEST_MYSQL') === '1' ? 'webman_admin_test' : ':memory:'));
 Webman\Config::load(dirname(__DIR__) . '/config', ['route']);
 class_exists(support\Db::class);
+// 与 worker 启动（app\AppService）一致：授权表写入换新授权版本。
+app\admin\authorization\service\AuthzCache::listen();

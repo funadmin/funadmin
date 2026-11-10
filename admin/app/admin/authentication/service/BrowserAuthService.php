@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\admin\authentication\service;
 
+use app\admin\authorization\service\AuthzCache;
+use app\common\http\RequestMemo;
 use DomainException;
 use support\Db;
 use app\admin\authentication\model\BrowserSession;
@@ -64,13 +66,15 @@ final class BrowserAuthService
         BrowserSession::query()->where('session_hash', hash('sha256', $cookie))->delete();
     }
 
+    /** 同一请求内只查询一次（用户解析、CSRF 引导与校验共用）；会话表写入后失效。 */
     private function session(string $cookie): ?object
     {
         if (!preg_match('/\A[a-f0-9]{64}\z/', $cookie)) {
             return null;
         }
-        return BrowserSession::query()->where('session_hash', hash('sha256', $cookie))
-            ->where('expires_at', '>', date('Y-m-d H:i:s'))->first();
+        $hash = hash('sha256', $cookie);
+        return RequestMemo::remember(AuthzCache::AUTHN_SCOPE, 'session:' . $hash, static fn (): ?object => BrowserSession::query()
+            ->where('session_hash', $hash)->where('expires_at', '>', date('Y-m-d H:i:s'))->first());
     }
 
     private function createSession(string $cookie, int $ttl): array

@@ -216,12 +216,6 @@ trait PluginServiceSupport
         );
     }
 
-    private function refreshLifecycleCaches(): void
-    {
-        $this->rebuildActivationCache();
-        $this->clearApplicationCache();
-    }
-
     private function registerMenu(string $code): void
     {
         $manifestData = $this->validatedManifest($code)->toArray();

@@ -55,6 +55,22 @@ final class UpgradeRecoveryExecutionTest extends TestCase
         self::assertFalse(json_decode($command->getDisplay(), true)['recovered']);
     }
 
+    public function test_stale_claim_survives_second_boundary_between_lease_computations(): void
+    {
+        $id = UpgradeRecoveryFixture::seed();
+        $tick = time();
+        // Every clock read crosses a one-second boundary, so any second leaseExpiry() call would diverge.
+        $clock = static function () use (&$tick): int { return $tick++; };
+        $service = new UpgradeService($this->root, $this->root . '/runtime/upgrade', clock: $clock);
+        $command = new CommandTester(new UpgradeRecover($service));
+        self::assertSame(0, $command->execute([]), $command->getDisplay());
+        self::assertTrue(json_decode($command->getDisplay(), true, 512, JSON_THROW_ON_ERROR)['recovered']);
+        $record = Db::table('upgrade_task')->where('id', $id)->first();
+        self::assertSame('failed', $record->status);
+        self::assertSame('stale_pre_deploy', $record->stage);
+        self::assertNull($record->active_slot);
+    }
+
     public function test_live_lease_and_system_lock_cannot_be_taken_over(): void
     {
         $id = UpgradeRecoveryFixture::seed(expired: false);

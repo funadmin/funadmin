@@ -24,7 +24,6 @@ class ResourceRegistryService extends AbstractService
         Db::transaction(function () use ($items, $parentPermissionId, $parentMenuId, $appName, $sourceType, $sourceName) {
             $this->registerItems($items, $parentPermissionId, $parentMenuId, $appName, $sourceType, $sourceName);
         });
-        $this->clearApplicationCache();
     }
 
     public function removeSource(string $sourceType, string $sourceName): void
@@ -47,8 +46,6 @@ class ResourceRegistryService extends AbstractService
             }
             Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->delete();
         });
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
     }
 
     /** 同步生成目录，只撤销已移除的资源；保留未变权限的 ID、角色及字段授权。 */
@@ -81,8 +78,6 @@ class ResourceRegistryService extends AbstractService
                 Permission::whereIn('id', $ids)->delete();
             }
         });
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
     }
 
     public function removeApplication(string $appName): void
@@ -100,8 +95,6 @@ class ResourceRegistryService extends AbstractService
             $this->removePermissionFields($permissionIds);
             Permission::where('app_name', $appName)->delete();
         });
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
     }
 
     public function registerPermissions(array $permissions, string $sourceType, string $sourceName): void
@@ -153,8 +146,6 @@ class ResourceRegistryService extends AbstractService
                 ])->save();
             }
         });
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
     }
 
     public function registerLanguageLines(array $items, string $sourceType = 'system', string $sourceName = ''): array
@@ -203,8 +194,6 @@ class ResourceRegistryService extends AbstractService
     public function disablePermissions(string $sourceType, string $sourceName): void
     {
         Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->update(['status' => 0]);
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
     }
 
     public function removePermissions(string $sourceType, string $sourceName): void
@@ -220,8 +209,6 @@ class ResourceRegistryService extends AbstractService
             $this->removePermissionFields($permissionIds);
             Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->delete();
         });
-        CasbinService::instance()->reload();
-        $this->clearApplicationCache();
     }
 
     private function removePermissionFields(array $permissionIds): void

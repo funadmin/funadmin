@@ -76,7 +76,7 @@ final class PluginCenterService extends AbstractService
             || dirname($realDirectory) !== $realParent || $realDirectory !== $realParent . DIRECTORY_SEPARATOR . $code) {
             throw new RuntimeException('本地插件包真实路径越界');
         }
-        if (Plugin::where('code', $code)->find()) {
+        if (Plugin::where('code', $code)->exists()) {
             throw new RuntimeException('请先卸载插件再删除本地包');
         }
         $directory = $realDirectory;

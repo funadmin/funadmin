@@ -345,7 +345,6 @@ final class PluginInfrastructureService
                 AdminMenu::forceCreate($row);
             }
         });
-        \app\admin\authorization\service\CasbinService::instance()->reload();
     }
 
     public function assertPurgeAllowed(Manifest $manifest): void

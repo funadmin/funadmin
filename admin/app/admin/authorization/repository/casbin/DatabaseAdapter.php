@@ -10,7 +10,6 @@ use Casbin\Persist\Adapter;
 use Casbin\Persist\AdapterHelper;
 use InvalidArgumentException;
 use LogicException;
-use support\Db;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\CasbinRule;
@@ -20,8 +19,16 @@ final class DatabaseAdapter implements Adapter
 {
     use AdapterHelper;
 
+    private int $activeRoleCount = 0;
+
     public function __construct(private readonly string $domain)
     {
+    }
+
+    /** 最近一次 loadPolicy 读到的有效角色数（用于设定角色继承深度）。 */
+    public function activeRoleCount(): int
+    {
+        return $this->activeRoleCount;
     }
 
     public function loadPolicy(Model $model): void
@@ -31,6 +38,7 @@ final class DatabaseAdapter implements Adapter
         foreach ($roles as $role) {
             $active[PermissionResource::role((int) $role->id)] = true;
         }
+        $this->activeRoleCount = count($active);
         $rules = CasbinRule::query()->where(function ($query): void {
             $query->where('ptype', 'p')->where('v1', $this->domain);
         })->orWhere(function ($query): void {
@@ -53,12 +61,11 @@ final class DatabaseAdapter implements Adapter
                 $parent = PermissionResource::role((int) $role->pid);
                 if (isset($active[$parent])) $links[$child . "\0" . $parent] = [$child, $parent];
             }
-            if (Db::schema()->hasTable('auth_group_inherit')) {
-                foreach (AuthGroupInherit::query()->get(['role_id', 'parent_role_id']) as $relation) {
-                    $child = PermissionResource::role((int) $relation->role_id);
-                    $parent = PermissionResource::role((int) $relation->parent_role_id);
-                    if (isset($active[$child], $active[$parent])) $links[$child . "\0" . $parent] = [$child, $parent];
-                }
+            // auth_group_inherit 属于基线表，不在热路径探测表结构。
+            foreach (AuthGroupInherit::query()->get(['role_id', 'parent_role_id']) as $relation) {
+                $child = PermissionResource::role((int) $relation->role_id);
+                $parent = PermissionResource::role((int) $relation->parent_role_id);
+                if (isset($active[$child], $active[$parent])) $links[$child . "\0" . $parent] = [$child, $parent];
             }
         }
         foreach ($links as [$child, $parent]) {

@@ -62,4 +62,34 @@ final class PluginCenterIntegrationTest extends TestCase
             if ($createdParent) @rmdir($parent);
         }
     }
+
+    public function test_delete_package_refuses_installed_plugin_and_removes_uninstalled_package(): void
+    {
+        $parent = base_path('plugins');
+        $installed = 'delinst' . bin2hex(random_bytes(4));
+        $local = 'dellocal' . bin2hex(random_bytes(4));
+        foreach ([$installed, $local] as $code) {
+            mkdir($parent . '/' . $code . '/app', 0777, true);
+            file_put_contents($parent . '/' . $code . '/app/marker.txt', 'x');
+        }
+        Db::table('plugin')->insert(['code' => $installed, 'version' => '1.0.0', 'status' => 0, 'lifecycle_state' => 'disabled']);
+        try {
+            $service = new PluginCenterService();
+            $error = null;
+            try { $service->deletePackage($installed); }
+            catch (\Throwable $exception) { $error = $exception; }
+            self::assertInstanceOf(\RuntimeException::class, $error, 'installed plugin lookup must use Eloquent, not a ThinkPHP find()');
+            self::assertSame('请先卸载插件再删除本地包', $error->getMessage());
+            self::assertFileExists($parent . '/' . $installed . '/app/marker.txt');
+            $service->deletePackage($local);
+            self::assertDirectoryDoesNotExist($parent . '/' . $local);
+        } finally {
+            foreach ([$installed, $local] as $code) {
+                if (!is_dir($parent . '/' . $code)) continue;
+                $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($parent . '/' . $code, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+                foreach ($iterator as $file) $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+                rmdir($parent . '/' . $code);
+            }
+        }
+    }
 }

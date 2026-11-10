@@ -21,6 +21,17 @@ class Config extends BaseModel
         parent::__construct($data);
     }
 
+    /** 任何经模型的写入（含改组、改码、停用、删除）都只失效受影响的 syscfg 键，旧分组与新分组都要失效。 */
+    protected static function booted(): void
+    {
+        $forget = static function (self $config): void {
+            syscfg_forget((string) $config->getOriginal('group'), (string) $config->getOriginal('code'));
+            syscfg_forget((string) $config->getAttribute('group'), (string) $config->getAttribute('code'));
+        };
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
     /**
      * 配置写入校验：编码/分组/类型/规则/选项边界，并规范化配置值。
      */

@@ -33,7 +33,7 @@ if (!function_exists('syscfg')) {
             }
         }
 
-        $cacheKey = 'syscfg_' . hash('sha256', $group . "\0" . ($code ?? ''));
+        $cacheKey = syscfg_cache_key($group, $code);
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && ($cached['cached'] ?? false) === true && array_key_exists('value', $cached)) {
             return $cached['value'];
@@ -45,6 +45,28 @@ if (!function_exists('syscfg')) {
             : $query->where('code', $code)->value('value');
         Cache::set($cacheKey, ['cached' => true, 'value' => $value], 3600);
         return $value;
+    }
+}
+
+if (!function_exists('syscfg_cache_key')) {
+    /** syscfg() 的缓存键：整组读取与单项读取各占一个键。 */
+    function syscfg_cache_key(string $group, ?string $code = null): string
+    {
+        return 'syscfg_' . hash('sha256', trim($group) . "\0" . trim((string) $code));
+    }
+}
+
+if (!function_exists('syscfg_forget')) {
+    /** 失效一个配置分组的整组缓存，以及（若给出）该分组下单个配置项的缓存；不触碰其他缓存键。 */
+    function syscfg_forget(string $group, ?string $code = null): void
+    {
+        if (trim($group) === '') {
+            return;
+        }
+        Cache::delete(syscfg_cache_key($group));
+        if ($code !== null && trim($code) !== '') {
+            Cache::delete(syscfg_cache_key($group, $code));
+        }
     }
 }
 

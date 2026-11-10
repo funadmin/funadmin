@@ -10,5 +10,8 @@ use app\common\model\BaseModel;
 final class AiStreamNonce extends BaseModel
 {
     protected $name = 'ai_stream_nonce';
-    protected $updateTime = false;
+    /** 表中只有 created_at（见基线），不能让 Eloquent 写 updated_at。 */
+    public const UPDATED_AT = null;
+
+    protected $fillable = ['nonce_hash', 'expires_at', 'consumed_at'];
 }

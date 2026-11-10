@@ -12,7 +12,6 @@ use app\common\storage\StorageDriverRegistry;
 use support\annotation\route\Get;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
-use support\Cache;
 use support\Container;
 use support\Response;
 
@@ -95,12 +94,11 @@ final class SystemStorage extends AdminController
         if (!$this->drivers->has($driver)) {
             return $this->fail(msg: '存储驱动不存在或当前不可用', code: 422);
         }
-        $config = Config::where('group', 'upload')->where('code', 'upload_driver')->find();
+        $config = Config::where('group', 'upload')->where('code', 'upload_driver')->first();
         if (!$config) {
             return $this->fail(msg: '上传驱动配置项不存在', code: 500);
         }
         $config->forceFill(['value' => $driver, 'extra' => $this->driverOptions()])->save();
-        Cache::clear();
         return $this->ok('存储驱动已更新', ['driver' => $driver]);
     }
 

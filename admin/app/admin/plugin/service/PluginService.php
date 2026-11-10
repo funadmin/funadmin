@@ -100,7 +100,7 @@ class PluginService extends AbstractService
             $this->assertNoStalePublication($code);
             $this->captureResourceState($code);
             $result = $operation($token);
-            $this->refreshLifecycleCaches();
+            $this->rebuildActivationCache();
             $this->completeAppPublication($code);
             $this->persistComposerAcknowledgement($code, $token);
             $success = true;
@@ -154,9 +154,6 @@ class PluginService extends AbstractService
             if ($lock) {
                 try {
                     $this->rebuildActivationCache();
-                    if (!$success) {
-                        $this->clearApplicationCache();
-                    }
                 } catch (\Throwable $cacheException) {
                     error_log(($success ? '插件最终' : '插件失败态') . '缓存重建失败：' . $cacheException->getMessage());
                 }

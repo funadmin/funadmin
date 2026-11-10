@@ -21,7 +21,6 @@ use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
-use support\Cache;
 use support\Db;
 use support\Response;
 
@@ -395,7 +394,6 @@ class SystemRole extends AdminController
                 AuthGroup::syncRelations((int) $role->id, $data);
                 return $role;
             });
-            Cache::clear();
             return $this->ok('创建成功', $role->toRoleData());
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
@@ -463,7 +461,6 @@ class SystemRole extends AdminController
                 ])->save();
                 AuthGroup::syncRelations((int) $role->id, $data);
             });
-            Cache::clear();
             return $this->ok('保存成功', $role->toRoleData());
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
@@ -568,7 +565,6 @@ class SystemRole extends AdminController
                     $role->delete();
                 }
             });
-            Cache::clear();
             return $this->ok('删除成功', ['removed' => count($roles)]);
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 422);
@@ -617,7 +613,6 @@ class SystemRole extends AdminController
                 throw new InvalidArgumentException('不能分配超出当前账号拥有范围的权限');
             }
             CasbinService::instance()->syncRolePermissions($id, $permissionIds);
-            Cache::clear();
             return $this->ok('权限已保存');
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);

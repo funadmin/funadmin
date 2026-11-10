@@ -10,5 +10,4 @@ class AuthGroupDepartment extends BaseModel
 {
     protected $name = 'auth_group_department';
 
-    protected $autoWriteTimestamp = false;
 }

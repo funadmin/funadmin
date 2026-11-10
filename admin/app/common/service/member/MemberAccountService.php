@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace app\common\service\member;
 
+use app\admin\authentication\model\LoginAttempt;
 use app\common\model\Member;
 use RuntimeException;
-use support\Cache;
 use support\Db;
 use app\admin\system\model\MemberLevel;
 use app\admin\system\model\MemberGroup;
@@ -131,14 +131,30 @@ final class MemberAccountService
         }
     }
 
-    /** 固定窗口计数。 */
+    /**
+     * 固定窗口计数，存于 login_attempts 表（与后台登录失败计数同一原子模式）：
+     * 跨 worker 共享、行锁内判定加计数，且不会被任何缓存清理重置。
+     */
     private function throttle(string $key, int $limit, int $window, string $message): void
     {
-        $cacheKey = 'member_throttle_' . hash('sha256', $key);
-        $hits = (int) Cache::get($cacheKey, 0);
-        if ($hits >= $limit) {
+        $id = hash('sha256', 'member_throttle:' . $key);
+        $now = time();
+        LoginAttempt::query()->insertOrIgnore(['key' => $id, 'attempts' => 0, 'window_start' => $now]);
+        $allowed = Db::transaction(static function () use ($id, $now, $limit, $window): bool {
+            $row = LoginAttempt::query()->where('key', $id)->lockForUpdate()->firstOrFail();
+            $expired = (int) $row->window_start <= $now - $window;
+            $attempts = $expired ? 0 : (int) $row->attempts;
+            if ($attempts >= $limit) {
+                return false;
+            }
+            LoginAttempt::query()->where('key', $id)->update([
+                'attempts' => $attempts + 1,
+                'window_start' => $expired ? $now : (int) $row->window_start,
+            ]);
+            return true;
+        });
+        if (!$allowed) {
             throw new RuntimeException($message);
         }
-        Cache::set($cacheKey, $hits + 1, $window);
     }
 }

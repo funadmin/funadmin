@@ -25,7 +25,6 @@ use support\annotation\route\RouteGroup;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\Response;
-use support\Cache;
 use support\Db;
 use app\admin\authentication\service\AdminSessionService;
 
@@ -86,7 +85,7 @@ class SystemAdmin extends AdminController
         }
         $result = $query->orderBy('id', 'asc')->paginate($pageSize, ['*'], 'page', $page);
         return $this->ok(data: $this->paginationData(
-            array_map(fn (Admin $admin): array => $this->adminData($admin), $result->items()),
+            $this->adminRows($result->items()),
             $result->total(),
             $page,
             $pageSize
@@ -179,7 +178,6 @@ class SystemAdmin extends AdminController
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
                 return $admin;
             });
-            Cache::clear();
             return $this->ok('创建成功', $this->adminData($admin));
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);
@@ -241,7 +239,6 @@ class SystemAdmin extends AdminController
                 $this->syncDepartments((int) $admin->id, $departmentIds);
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
             });
-            Cache::clear();
             return $this->ok('保存成功', $this->adminData($admin));
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);
@@ -334,7 +331,6 @@ class SystemAdmin extends AdminController
                     $admin->delete();
                 }
             });
-            Cache::clear();
             return $this->ok('删除成功', ['removed' => count($admins)]);
         } catch (InvalidArgumentException $e) {
             return $this->fail(msg: $e->getMessage(), code: 403);
@@ -505,7 +501,6 @@ class SystemAdmin extends AdminController
         Db::transaction(function () use ($admin, $data): void {
             $admin->update(['real_name' => $data['nickname'], 'email' => $data['email'], 'mobile' => $data['mobile']]);
         });
-        Cache::clear();
         return $this->ok('保存成功', $this->adminData($admin));
     }
 
@@ -582,32 +577,67 @@ class SystemAdmin extends AdminController
 
     private function adminDepartmentIds(int $adminId, int $primaryDepartmentId): array
     {
-        return array_values(array_unique(array_filter(array_merge(
-            [$primaryDepartmentId],
-            array_map('intval', AdminDepartment::where('admin_id', $adminId)->pluck('dept_id')->all())
-        ))));
+        return $this->mergeDepartmentIds($primaryDepartmentId, $this->assignedDepartmentIds([$adminId])[$adminId] ?? []);
+    }
+
+    /**
+     * 一次读取多名管理员的任职部门关系。
+     *
+     * @return array<int, list<int>> 以管理员 ID 为键
+     */
+    private function assignedDepartmentIds(array $adminIds): array
+    {
+        $result = [];
+        if ($adminIds === []) {
+            return $result;
+        }
+        foreach (AdminDepartment::whereIn('admin_id', $adminIds)->orderBy('admin_id')->orderBy('dept_id')->get(['admin_id', 'dept_id']) as $row) {
+            $result[(int) $row->admin_id][] = (int) $row->dept_id;
+        }
+        return $result;
+    }
+
+    private function mergeDepartmentIds(int $primaryDepartmentId, array $assignedDepartmentIds): array
+    {
+        return array_values(array_unique(array_filter(array_merge([$primaryDepartmentId], $assignedDepartmentIds))));
     }
 
     private function adminData(Admin $admin): array
     {
-        $roleScope = new RoleScopeService();
-        return [
-            'id' => (int) $admin->id,
-            'isSuper' => $this->isSuperAdminTarget($admin),
-            'username' => (string) $admin->username,
-            'nickname' => (string) $admin->real_name,
-            'email' => (string) $admin->email,
-            'mobile' => (string) $admin->mobile,
-            'status' => (int) $admin->status,
-            'deptId' => (int) $admin->dept_id,
-            'departmentIds' => array_values(array_filter(
-                $this->adminDepartmentIds((int) $admin->id, (int) $admin->dept_id),
-                static fn (int $departmentId): bool => $departmentId !== (int) $admin->dept_id
-            )),
-            'roleIds' => $roleScope->adminRoleIds((int) $admin->id),
-            'createdAt' => $this->formatTime($admin->created_at),
-            'updatedAt' => $this->formatTime($admin->updated_at),
-        ];
+        return $this->adminRows([$admin])[0];
+    }
+
+    /**
+     * 批量输出管理员：角色与任职部门各一次批量查询，查询次数不随行数增长。
+     *
+     * @param list<Admin> $admins
+     */
+    private function adminRows(array $admins): array
+    {
+        $adminIds = array_map(static fn (Admin $admin): int => (int) $admin->id, $admins);
+        $roleIds = CasbinService::instance()->roleIdsByAdmins($adminIds);
+        $departmentIds = $this->assignedDepartmentIds($adminIds);
+        return array_map(function (Admin $admin) use ($roleIds, $departmentIds): array {
+            $id = (int) $admin->id;
+            $primaryDepartmentId = (int) $admin->dept_id;
+            return [
+                'id' => $id,
+                'isSuper' => $this->isSuperAdminTarget($admin),
+                'username' => (string) $admin->username,
+                'nickname' => (string) $admin->real_name,
+                'email' => (string) $admin->email,
+                'mobile' => (string) $admin->mobile,
+                'status' => (int) $admin->status,
+                'deptId' => $primaryDepartmentId,
+                'departmentIds' => array_values(array_filter(
+                    $this->mergeDepartmentIds($primaryDepartmentId, $departmentIds[$id] ?? []),
+                    static fn (int $departmentId): bool => $departmentId !== $primaryDepartmentId
+                )),
+                'roleIds' => $roleIds[$id] ?? [],
+                'createdAt' => $this->formatTime($admin->created_at),
+                'updatedAt' => $this->formatTime($admin->updated_at),
+            ];
+        }, $admins);
     }
 
 }

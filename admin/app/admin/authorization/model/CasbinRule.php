@@ -8,5 +8,6 @@ class CasbinRule extends BaseModel
 {
     protected $table = 'casbin_rule';
 
-    protected $autoWriteTimestamp = false;
+    /** casbin_rule 没有时间戳列。 */
+    public $timestamps = false;
 }

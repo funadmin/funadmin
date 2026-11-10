@@ -31,6 +31,13 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         yield 'drop column' => ['ALTER TABLE `fun_admin` DROP COLUMN `email`;'];
         yield 'truncate' => ['TRUNCATE TABLE `fun_admin`;'];
         yield 'rename' => ['RENAME TABLE `fun_admin` TO `fun_x`;'];
+        yield 'line comment marker inside string' => ["INSERT INTO `fun_probe` VALUES ('--');\nDROP TABLE x;\nINSERT INTO `fun_probe` VALUES ('a');"];
+        yield 'block comment markers inside strings' => ["SELECT '/*';\nDROP TABLE t;\nSELECT '*/';"];
+        yield 'comment opener in string before plain drop' => ["SET @z='/*';\nDROP TABLE fun_admin;\nSET @y='*/';"];
+        yield 'block comment between keywords' => ['ALTER TABLE `fun_admin` DROP/**/COLUMN `email`;'];
+        yield 'executable comment' => ['/*!50001 DROP TABLE `fun_admin` */;'];
+        yield 'double dash without space is not a comment' => ['SELECT 1 --1; DROP TABLE `fun_admin`;'];
+        yield 'doubled quote inside string' => ["INSERT INTO `fun_probe` VALUES ('it''s -- ok');\nDROP TABLE x;"];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('forbidden')]
@@ -52,6 +59,8 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         yield 'drop column after allowed drop index' => ["SET @s='ALTER TABLE fun_admin DROP INDEX `username`, DROP COLUMN `email`';\n" . $run];
         yield 'keyword split across literals' => ["SET @s=CONCAT('ALTER TABLE fun_admin DR', 'OP COLUMN email');\n" . $run];
         yield 'double quoted string' => ["SET @s=\"DROP TABLE fun_admin\";\n" . $run];
+        yield 'block comment inside dynamic string' => ["SET @s='ALTER TABLE t DROP/**/COLUMN c';\n" . $run];
+        yield 'comment opener in string hides dynamic drop' => ["SET @z='/*';\nSET @s='DROP TABLE fun_admin';\nSET @y='*/';\n" . $run];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('forbiddenDynamic')]
@@ -86,5 +95,23 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         self::assertFalse($hasDdl("INSERT INTO `fun_x` VALUES ('alter table drop');\n-- CREATE TABLE in comment\nUPDATE `fun_x` SET `a`=1;"));
         $source = (string) file_get_contents(base_path() . '/app/common/service/database/MigrationService.php');
         self::assertSame(2, substr_count($source, '$this->hasDdl('), '外层事务检查与事务包装共用同一判定');
+    }
+
+    public function test_ddl_detection_skips_leading_comments_and_reads_executable_comments(): void
+    {
+        $service = new MigrationService();
+        $hasDdl = static fn (string $sql): bool => (new \ReflectionMethod(MigrationService::class, 'hasDdl'))->invoke($service, (new \ReflectionMethod(MigrationService::class, 'statements'))->invoke($service, $sql));
+        self::assertTrue($hasDdl("/* header */ CREATE TABLE `fun_x` (`id` INT);"));
+        self::assertTrue($hasDdl("/* a */\n/* b */ ALTER TABLE `fun_x` ADD COLUMN `y` INT;"));
+        self::assertTrue($hasDdl("/*!50001 CREATE VIEW `fun_v` AS SELECT 1 */;"));
+        self::assertTrue($hasDdl("# note\nCREATE TABLE `fun_x` (`id` INT);"));
+        self::assertFalse($hasDdl("/* CREATE TABLE in comment */ UPDATE `fun_x` SET `a`=1;"));
+        self::assertFalse($hasDdl("SELECT '/*'; UPDATE `fun_x` SET `a`='*/';"));
+    }
+
+    public function test_comment_like_text_in_strings_without_dynamic_sql_stays_allowed(): void
+    {
+        $this->guard("INSERT INTO `fun_probe` VALUES ('-- drop /* rename */ # truncate', 'it''s');\nUPDATE `fun_probe` SET `a`=1--1;");
+        $this->addToAssertionCount(1);
     }
 }

@@ -12,7 +12,6 @@ use app\admin\authorization\model\Permission;
 use app\admin\authorization\model\PermissionField;
 use app\admin\authorization\model\Department;
 use InvalidArgumentException;
-use support\Cache;
 use support\Db;
 
 /**
@@ -61,7 +60,6 @@ final class RoleAuthorizationService
             $this->syncFields((int) $role->id, $fieldGrants);
             $this->syncDataScope($role, $dataScope, $departmentIds);
         });
-        Cache::clear();
     }
 
     public function readableFieldsForRoles(array $roleIds, string $resource): array

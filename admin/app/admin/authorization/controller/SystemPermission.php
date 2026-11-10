@@ -10,14 +10,12 @@ use app\common\controller\AdminController;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\CasbinRule;
 use app\admin\authorization\model\Permission;
-use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\RoleScopeService;
 use support\annotation\route\Delete;
 use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
-use support\Cache;
 use support\Db;
 use support\Response;
 use InvalidArgumentException;
@@ -154,7 +152,6 @@ class SystemPermission extends AdminController
         }
 
         $permission = Permission::forceCreate($data);
-        Cache::clear();
         return $this->ok('创建成功', $permission->toApiData());
     }
 
@@ -231,10 +228,6 @@ class SystemPermission extends AdminController
                 CasbinRule::where('ptype', 'p')->where('v2', $oldObj)->where('v3', $oldAct)->delete();
             }
         });
-        if ($resourceChanged) {
-            CasbinService::instance()->reload();
-        }
-        Cache::clear();
         return $this->ok('保存成功', $permission->toApiData());
     }
 
@@ -337,8 +330,6 @@ class SystemPermission extends AdminController
             }
             Permission::whereIn('id', $ids)->delete();
         });
-        CasbinService::instance()->reload();
-        Cache::clear();
         return $this->ok('删除成功', ['removed' => count($ids)]);
     }
 

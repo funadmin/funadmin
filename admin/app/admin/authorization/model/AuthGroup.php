@@ -40,19 +40,6 @@ class AuthGroup extends BaseModel
     {
         parent::__construct($data);
     }
-    public function getAllIdsBypid($pid)
-    {
-        $res = self::where('pid','in', $pid)->where('status', 1)->select();
-        $str = '';
-        if (!empty($res)) {
-            foreach ($res as $k => $v) {
-                $str .= "," . $v['id'];
-                $str .= $this->getAllIdsBypid($v['id']);
-            }
-        }
-        return $str;
-    }
-
     /**
      * 角色管理查询边界：非超级管理员只能看到自身分支内的下级角色。
      */

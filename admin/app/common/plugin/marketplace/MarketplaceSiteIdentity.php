@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace app\common\plugin\marketplace;
 
 use Ramsey\Uuid\Uuid;
-use support\Cache;
 use app\common\model\Config;
 
 /** 站点匿名标识：用于插件市场按站点去重统计安装量，不包含域名或任何业务数据。 */
@@ -36,7 +35,7 @@ final class MarketplaceSiteIdentity
         } catch (\Throwable) {
             // 并发生成时唯一键冲突，以已写入的值为准。
         }
-        Cache::delete('syscfg_' . hash('sha256', self::GROUP . "\0" . self::CODE));
+        syscfg_forget(self::GROUP, self::CODE);
         $stored = (string) (Config::withTrashed()->where('code', self::CODE)->value('value') ?? '');
         return self::valid($stored) ? $stored : $id;
     }

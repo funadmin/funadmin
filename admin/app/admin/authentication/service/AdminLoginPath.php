@@ -5,7 +5,6 @@ namespace app\admin\authentication\service;
 
 use app\common\model\Config;
 use InvalidArgumentException;
-use support\Cache;
 use support\Db;
 use app\common\model\ConfigGroup;
 
@@ -44,7 +43,6 @@ final class AdminLoginPath
         self::ensure();
         $config = Config::where('code', self::CODE)->first();
         $config->forceFill(['value' => $entry, 'status' => 1, 'updated_at' => date('Y-m-d H:i:s')])->save();
-        Cache::clear();
         return $entry;
     }
 

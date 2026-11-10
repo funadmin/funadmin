@@ -34,8 +34,9 @@ final class LoadLangPackContractTest extends TestCase
         $adminMiddleware = file_get_contents(dirname(__DIR__) . '/app/admin/middleware.php');
         self::assertIsString($adminMiddleware);
         self::assertStringNotContainsString('\\think\\middleware\\SessionInit', $adminMiddleware);
-        $corsMiddleware = require dirname(__DIR__) . '/config/plugin/webman/cors/middleware.php';
-        self::assertContains(\Webman\Cors\CORS::class, $corsMiddleware['']);
+        // 全局 webman/cors 会回显任意 Origin 并允许凭据，已禁用；CORS 由 ApiCorsMiddleware 只对 /api/* 白名单生效。
+        self::assertFalse((require dirname(__DIR__) . '/config/plugin/webman/cors/app.php')['enable']);
+        self::assertContains(\app\common\middleware\ApiCorsMiddleware::class, $middleware);
     }
 
 

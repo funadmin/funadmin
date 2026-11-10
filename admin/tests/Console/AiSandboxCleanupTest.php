@@ -40,7 +40,7 @@ final class AiSandboxCleanupTest extends TestCase
 
     protected function tearDown(): void
     {
-        if ($this->ready) foreach (['ai_task', 'ai_task_event'] as $name) Db::schema()->dropIfExists($name);
+        if ($this->ready) foreach (['ai_task', 'ai_task_event', 'ai_conversation'] as $name) Db::schema()->dropIfExists($name);
     }
 
     public function test_cleanup_failure_returns_nonzero_and_preserves_foreign_container(): void
@@ -92,5 +92,42 @@ final class AiSandboxCleanupTest extends TestCase
         self::assertSame('ai.sandbox.cleanup', Db::table('ai_task_event')->value('type'));
         self::assertSame(0, $tester->execute([]));
         self::assertCount(1, $runner->calls);
+    }
+
+    public function test_cleanup_claim_reclaims_expired_lease_but_not_live_lease(): void
+    {
+        $base = ['container_task_id' => str_repeat('c', 64), 'workspace_path' => '/tmp/none', 'completed_at' => '2000-01-01'];
+        foreach ([
+            ['id' => 1] + $base,
+            ['id' => 2, 'sandbox_status' => 'cleaning', 'cleanup_lease_owner' => 'crashed-worker', 'cleanup_lease_expires_at' => date('Y-m-d H:i:s', time() - 60)] + $base,
+            ['id' => 3, 'sandbox_status' => 'cleaning', 'cleanup_lease_owner' => 'live-worker', 'cleanup_lease_expires_at' => date('Y-m-d H:i:s', time() + 600)] + $base,
+        ] as $row) Db::table('ai_task')->insert($row);
+        $expiresAt = time() + 300;
+        self::assertTrue(AiTask::claimSandboxCleanup(1, 'me', $expiresAt), 'unleased sandbox must be claimable');
+        self::assertTrue(AiTask::claimSandboxCleanup(2, 'me', $expiresAt), 'expired cleanup lease must be reclaimed');
+        self::assertFalse(AiTask::claimSandboxCleanup(3, 'me', $expiresAt), 'live cleanup lease must not be stolen');
+        self::assertSame('me', AiTask::findOrFail(2)->cleanup_lease_owner);
+        self::assertSame('live-worker', AiTask::findOrFail(3)->cleanup_lease_owner);
+        self::assertTrue(AiTask::finishSandboxCleanup(2, ['sandbox_status' => 'cleaned'], 'me'));
+        self::assertFalse(AiTask::finishSandboxCleanup(3, ['sandbox_status' => 'cleaned'], 'me'));
+        self::assertNull(AiTask::findOrFail(2)->cleanup_lease_owner);
+    }
+
+    public function test_admin_scoped_cleanup_candidates_only_include_own_expired_terminal_tasks(): void
+    {
+        Db::schema()->create('ai_conversation', static function (Blueprint $table): void {
+            $table->id(); $table->integer('admin_id'); $table->string('uuid')->nullable(); $table->timestamps(); $table->softDeletes();
+        });
+        Db::table('ai_conversation')->insert([['id' => 1, 'admin_id' => 7], ['id' => 2, 'admin_id' => 8]]);
+        $base = ['container_task_id' => str_repeat('d', 64), 'workspace_path' => '/tmp/none', 'completed_at' => '2000-01-01'];
+        foreach ([
+            ['id' => 1, 'conversation_id' => 1] + $base,
+            ['id' => 2, 'conversation_id' => 2] + $base,
+            ['id' => 3, 'conversation_id' => 1, 'status' => 'running'] + $base,
+            ['id' => 4, 'conversation_id' => 1, 'completed_at' => '2099-01-01'] + $base,
+        ] as $row) Db::table('ai_task')->insert($row);
+        $cutoff = date('Y-m-d H:i:s');
+        self::assertSame([1], array_column(AiTask::sandboxCleanupCandidates($cutoff, 7), 'id'));
+        self::assertSame([1, 2], array_column(AiTask::sandboxCleanupCandidates($cutoff), 'id'));
     }
 }

@@ -20,7 +20,7 @@ CMS 导航管理配置的是网站前台菜单。可以添加外部链接指向�
 4. 为审核员分配宿主能力及对应站点角色的 `cms:submission:list`、`cms:submission:review`；发布文章还需 `cms:content:create` 与 `cms:content:publish`。问答审核额外需要宿主的 `qa:moderation:list`、`qa:moderation:review`。现有角色不会自动获得新增权限。
 5. 在目标站点的“会员互动”标签页启用功能，选择允许投稿的模型。停用写入不影响公开读取已经审核发布的问答。
 
-独立前端域名部署可运行 `npm run build:standalone`，并将 `VITE_APP_BASE_API` 设为后端完整管理接口前缀（例如 `https://backend.example.test/admin`）；会员与问答 API 使用同一后端 origin。后端按现有 CORS 配置允许该前端来源。同域部署使用默认 `/admin`。问答仍通过 CMS 获取站点、会员身份和本人记录，因此开发服务继续代理 `/cms/member` 和 `/qa/api` 到 `VITE_APP_PROXY_TARGET`。
+独立前端域名部署可运行 `npm run build:standalone`。后台 `/admin` 接口依赖登录 Cookie，**永不返回 CORS 头**，因此独立前端必须用反向代理把 `/admin`、`/api`、`/cms/member`、`/qa/api` 转发到后端，使浏览器看到同一 origin，`VITE_APP_BASE_API` 保持 `/admin`。只有会员/开放 API（`/api/*`，Bearer 令牌）支持跨域：在 `admin/.env` 的 `CORS_ALLOWED_ORIGINS` 中列出允许的精确 origin（逗号分隔；留空即不允许跨域；不支持通配符；不发送 `Access-Control-Allow-Credentials`）。问答与 CMS 会员接口如也需要跨域，在 `admin/config/cors.php` 的 `paths` 中加入 `/qa/api/`、`/cms/member/` 前缀（`/admin` 前缀始终被拒绝）。同域部署使用默认 `/admin`。问答仍通过 CMS 获取站点、会员身份和本人记录，因此开发服务继续代理 `/cms/member` 和 `/qa/api` 到 `VITE_APP_PROXY_TARGET`。
 
 ## 数据与状态
 

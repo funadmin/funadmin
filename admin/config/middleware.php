@@ -13,5 +13,5 @@
  */
 
 return [
-    '' => [app\common\middleware\PluginApplicationGuardMiddleware::class, app\common\middleware\InstallMiddleware::class, app\middleware\LoadLangPackMiddleware::class],
+    '' => [app\common\middleware\ApiCorsMiddleware::class, app\common\middleware\PluginApplicationGuardMiddleware::class, app\common\middleware\InstallMiddleware::class, app\middleware\LoadLangPackMiddleware::class],
 ];

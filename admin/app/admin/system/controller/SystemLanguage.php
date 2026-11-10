@@ -14,7 +14,6 @@ use support\annotation\route\Get;
 use support\annotation\route\Post;
 use support\annotation\route\Put;
 use support\annotation\route\RouteGroup;
-use support\Cache;
 use support\Db;
 use support\Response;
 
@@ -139,7 +138,6 @@ class SystemLanguage extends AdminController
             'is_default' => 0,
             'status' => 1,
         ]);
-        Cache::clear();
         return $this->ok('创建成功', $language->toApiData());
     }
 
@@ -189,7 +187,6 @@ class SystemLanguage extends AdminController
             LanguageLine::withTrashed()->where('locale', $previous)->update(['locale' => $name]);
             $language->forceFill(['name' => $name])->save();
         });
-        Cache::clear();
         return $this->ok('保存成功', $language->toApiData());
     }
 
@@ -275,7 +272,6 @@ class SystemLanguage extends AdminController
                 $language->forceDelete();
             }
         });
-        Cache::clear();
         return $this->ok('删除成功', ['removed' => count($languages)]);
     }
 

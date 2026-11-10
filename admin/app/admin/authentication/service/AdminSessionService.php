@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace app\admin\authentication\service;
 
 use app\admin\authentication\model\Admin;
+use app\admin\authorization\service\AuthzCache;
+use app\common\http\RequestMemo;
 use app\common\model\Blacklist;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -76,13 +78,20 @@ final class AdminSessionService
     public function authenticate(string $token, string $purpose = 'api'): array
     {
         if (!preg_match('/\A[a-f0-9]{64}\z/', $token)) throw new DomainException('登录已失效', 401);
-        $record = AdminAuthToken::query()->where('token_hash', hash('sha256', $token))
-            ->where('purpose', $purpose)->where('expires_at', '>', date('Y-m-d H:i:s'))->first();
-        $admin = $record ? Admin::whereNull('deleted_at')->where('id', $record->admin_id)->where('status', 1)->first() : null;
+        $record = RequestMemo::remember(AuthzCache::AUTHN_SCOPE, 'token:' . $purpose . ':' . hash('sha256', $token), static fn () => AdminAuthToken::query()
+            ->where('token_hash', hash('sha256', $token))->where('purpose', $purpose)->where('expires_at', '>', date('Y-m-d H:i:s'))->first());
+        $admin = $record ? self::activeAdmin((int) $record->admin_id) : null;
         if (!$admin || !hash_equals($record->credential_version, self::credentialVersion($admin))) {
             throw new DomainException('登录已失效', 401);
         }
         return $admin->toArray();
+    }
+
+    /** 启用且未删除的管理员；同一请求内只读一次（认证表写入后失效）。 */
+    public static function activeAdmin(int $adminId): ?Admin
+    {
+        return RequestMemo::remember(AuthzCache::AUTHN_SCOPE, 'admin:' . $adminId,
+            static fn (): ?Admin => Admin::whereNull('deleted_at')->where('id', $adminId)->where('status', 1)->first());
     }
 
     public function logout(string $token, string $purpose = 'api'): void

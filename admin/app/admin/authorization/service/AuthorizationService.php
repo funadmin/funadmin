@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\authorization\service;
 
-use app\admin\authentication\model\Admin;
+use app\admin\authentication\service\AdminSessionService;
 use app\admin\authorization\model\AdminMenu;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\Permission;
@@ -12,9 +12,16 @@ use DomainException;
 
 final class AuthorizationService
 {
+    /** 当前管理员信息与权限；同一请求内只计算一次（授权或认证表写入后失效）。 */
     public function userInfo(array $admin): array
     {
-        $current = Admin::whereNull('deleted_at')->where('id', (int) $admin['id'])->where('status', 1)->first();
+        $adminId = (int) $admin['id'];
+        return AuthzCache::perRequest('userInfo:' . $adminId, fn (): array => $this->buildUserInfo($adminId));
+    }
+
+    private function buildUserInfo(int $adminId): array
+    {
+        $current = AdminSessionService::activeAdmin($adminId);
         if (!$current) {
             throw new DomainException('登录已失效', 401);
         }
@@ -67,12 +74,22 @@ final class AuthorizationService
 
     public function menus(array $admin): array
     {
-        $info = $this->userInfo($admin);
+        $permissions = $this->userInfo($admin)['permissions'];
+        // 菜单树只取决于权限集合与菜单/权限数据：按授权版本在 worker 内缓存，权限相同的管理员共用。
+        return AuthzCache::remember('menus:' . hash('sha256', implode("\n", $permissions)), fn (): array => $this->menuTree($permissions));
+    }
+
+    /** @param list<string> $permissions */
+    private function menuTree(array $permissions): array
+    {
+        $info = ['permissions' => $permissions];
         $rows = AdminMenu::where('app_name', 'admin')->where('status', 1)
             ->whereNull('deleted_at')->orderBy('sort_order')->orderBy('id')->get();
-        $allowed = $rows->filter(function ($menu) use ($info): bool {
-            return in_array('*', $info['permissions'], true) || (int) $menu->permission_id === 0 || in_array($this->permissionCode((int) $menu->permission_id), $info['permissions'], true);
-        })->map(fn ($menu): array => $this->menuData($menu))->keyBy('id')->all();
+        $codes = $this->menuPermissionCodes($rows->all());
+        $code = static fn (object $menu): string => (string) ($codes[(int) $menu->permission_id] ?? '');
+        $allowed = $rows->filter(function ($menu) use ($info, $code): bool {
+            return in_array('*', $info['permissions'], true) || (int) $menu->permission_id === 0 || in_array($code($menu), $info['permissions'], true);
+        })->map(fn ($menu): array => $this->menuData($menu, $code($menu)))->keyBy('id')->all();
         foreach ($allowed as $menu) {
             $parentId = $menu['parentId'];
             $visited = [];
@@ -81,7 +98,7 @@ final class AuthorizationService
                 $parent = $rows->firstWhere('id', $parentId);
                 if (!$parent) break;
                 if (!isset($allowed[$parentId])) {
-                    $allowed[$parentId] = $this->menuData($parent);
+                    $allowed[$parentId] = $this->menuData($parent, '');
                     $allowed[$parentId]['component'] = 'Layout';
                     $allowed[$parentId]['type'] = 'M';
                     $allowed[$parentId]['permission'] = '';
@@ -120,16 +137,24 @@ final class AuthorizationService
 
     private function roleRows(int $adminId): array
     {
-        $ids = $this->roleIds($adminId);
-        return $ids === [] ? [] : AuthGroup::whereIn('id', $ids)->where('status', 1)->whereNull('deleted_at')->get()->map(static fn (AuthGroup $row): array => $row->toArray())->all();
+        return AuthzCache::remember('roleRows:' . $adminId, function () use ($adminId): array {
+            $ids = $this->roleIds($adminId);
+            return $ids === [] ? [] : AuthGroup::whereIn('id', $ids)->where('status', 1)->whereNull('deleted_at')->get()->map(static fn (AuthGroup $row): array => $row->toArray())->all();
+        });
     }
 
-    private function permissionCode(int $permissionId): string
+    /**
+     * 一次读取菜单引用的权限码，避免逐菜单查询。
+     *
+     * @return array<int, string|null> 以权限 ID 为键；缺失的权限不在结果中
+     */
+    private function menuPermissionCodes(array $menus): array
     {
-        return (string) (Permission::where('id', $permissionId)->value('code') ?? '');
+        $ids = array_values(array_unique(array_filter(array_map(static fn (object $menu): int => (int) $menu->permission_id, $menus))));
+        return $ids === [] ? [] : Permission::whereIn('id', $ids)->pluck('code', 'id')->all();
     }
 
-    private function menuData(object $menu): array
+    private function menuData(object $menu, string $permission): array
     {
         parse_str((string) $menu->query, $meta);
         return [
@@ -147,7 +172,7 @@ final class AuthorizationService
             'keepAlive' => isset($meta['keepAlive']) && (string) $meta['keepAlive'] === '1',
             'affix' => filter_var($meta['affix'] ?? false, FILTER_VALIDATE_BOOL),
             'formKey' => (string) ($meta['formKey'] ?? ''),
-            'permission' => $this->permissionCode((int) $menu->permission_id),
+            'permission' => $permission,
         ];
     }
 }

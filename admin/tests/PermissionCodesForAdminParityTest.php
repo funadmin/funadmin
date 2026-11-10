@@ -112,8 +112,10 @@ final class PermissionCodesForAdminParityTest extends TestCase
             $queries++;
         });
         $service->permissionCodesForAdmin(2);
-        // enforcer 构建（AuthGroup::count、角色、casbin_rule、继承表）+ 1 次读取有效权限；不随权限条数增长。
-        self::assertSame(6, $queries);
+        // 夹具在未提交事务内写入授权表，AuthzCache 绕过 worker 缓存，这里量的是冷构建：
+        // enforcer 构建（角色、casbin_rule、继承表）+ 1 次读取有效权限；不随权限条数增长。
+        // 原为 6：Task 6 去掉了 AuthGroup::count()（深度改用已加载的有效角色数）与运行时 hasTable 探测。
+        self::assertSame(4, $queries);
     }
 
     /** 旧实现：对每条有效 route/capability 权限调用一次 enforce()。 */
@@ -226,12 +228,13 @@ final class CountingEnforcer extends Enforcer
 
 final class CountingCasbinService extends CasbinService
 {
-    public function enforcer(?string $domain = null): Enforcer
+    protected function buildEnforcer(string $domain): Enforcer
     {
         CountingEnforcer::$builds++;
-        $enforcer = new CountingEnforcer(config_path() . '/casbin/rbac_model.conf', new DatabaseAdapter(PermissionResource::domain($domain)), enableLog: false);
+        $adapter = new DatabaseAdapter($domain);
+        $enforcer = new CountingEnforcer(config_path() . '/casbin/rbac_model.conf', $adapter, enableLog: false);
         $enforcer->enableAutoSave(false);
-        $enforcer->setRoleManager(new DomainManager(max(10, AuthGroup::count() + 1)));
+        $enforcer->setRoleManager(new DomainManager(max(10, $adapter->activeRoleCount() + 1)));
         $enforcer->buildRoleLinks();
         return $enforcer;
     }

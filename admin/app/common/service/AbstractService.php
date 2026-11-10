@@ -14,7 +14,6 @@
 namespace app\common\service;
 
 use support\Container;
-use support\Cache;
 
 /**
  * 自定义服务基类
@@ -54,13 +53,5 @@ abstract class AbstractService
     public static function instance(...$args)
     {
         return $args === [] ? Container::get(static::class) : Container::make(static::class, $args);
-    }
-
-    /**
-     * 清理应用级全局缓存，供确有全局失效需求的服务复用。
-     */
-    protected function clearApplicationCache(): void
-    {
-        Cache::clear();
     }
 }

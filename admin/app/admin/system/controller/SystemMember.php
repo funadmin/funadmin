@@ -193,7 +193,7 @@ class SystemMember extends AdminController
         $data['password'] = '';
         try {
             $member = Db::transaction(function () use ($data, $groupIds, $tagIds): Member {
-                $member = Member::create($data);
+                $member = Member::forceCreate($data);
                 $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
                 return $member;
@@ -477,7 +477,7 @@ class SystemMember extends AdminController
                 unset($data['groupIds'], $data['tagIds']);
                 $data['password'] = '';
                 Db::transaction(function () use ($data, $groupIds, $tagIds): void {
-                    $member = Member::create($data);
+                    $member = Member::forceCreate($data);
                     $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                     $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
                 });

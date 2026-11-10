@@ -8,6 +8,7 @@ namespace app\common\model;
 final class UpgradeManifest extends BaseModel
 {
     protected $table = 'upgrade_manifest';
+    protected $guarded = [];
 
     protected $casts = ['payload' => 'array'];
 }

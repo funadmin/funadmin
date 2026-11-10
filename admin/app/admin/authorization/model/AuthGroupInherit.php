@@ -10,5 +10,4 @@ class AuthGroupInherit extends BaseModel
 {
     protected $name = 'auth_group_inherit';
 
-    protected $autoWriteTimestamp = false;
 }

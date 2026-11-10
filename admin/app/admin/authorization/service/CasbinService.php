@@ -14,53 +14,133 @@ use support\Db;
 
 /**
  * Casbin 授权统一入口；fun_casbin_rule 是唯一授权关系数据源。
+ * 读取结果按授权版本缓存（见 AuthzCache）；所有写入经查询事件自动换新版本，无需手动失效。
  */
 class CasbinService extends AbstractService
 {
-    /** 每次返回独立快照，避免常驻 worker 缓存旧策略或事务回滚后的临时授权。 */
+    /**
+     * 当前授权版本下该域的 enforcer 快照（worker 缓存，版本变化即重建）。只读：调用方不得增删策略。
+     * 有未提交的授权写入时绕过缓存，按当前连接的事务视图重建，避免缓存回滚后的临时授权。
+     */
     public function enforcer(?string $domain = null): Enforcer
     {
-        $adapter = new DatabaseAdapter(PermissionResource::domain($domain));
+        $domain = PermissionResource::domain($domain);
+        return AuthzCache::remember('enforcer:' . $domain, fn (): Enforcer => $this->buildEnforcer($domain));
+    }
+
+    protected function buildEnforcer(string $domain): Enforcer
+    {
+        $adapter = new DatabaseAdapter($domain);
         $enforcer = new Enforcer(config_path() . '/casbin/rbac_model.conf', $adapter, enableLog: false);
         $enforcer->enableAutoSave(false);
-        $enforcer->setRoleManager(new DomainManager(max(10, AuthGroup::count() + 1)));
+        // 继承链长度不超过有效角色数；管理员到角色再多一层。
+        $enforcer->setRoleManager(new DomainManager(max(10, $adapter->activeRoleCount() + 1)));
         $enforcer->buildRoleLinks();
         return $enforcer;
     }
 
     public function enforceAdmin(int $adminId, string $obj, string $act, ?string $domain = null): bool
     {
-        $permission = Permission::where('obj', strtolower($obj))->where('act', strtolower($act))->where('status', 1)->whereNull('deleted_at')->first();
-        if ($adminId <= 0 || !$permission || !in_array($permission->resource_type, [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) return false;
-        if ($permission->is_public) return true;
-        return $this->enforcer($domain)->enforce(PermissionResource::subject($adminId), PermissionResource::domain($domain), (string) $permission->obj, (string) $permission->act);
+        $obj = strtolower($obj);
+        $act = strtolower($act);
+        $permission = null;
+        foreach ($this->enabledPermissions() as $row) {
+            if ((string) $row['obj'] === $obj && (string) $row['act'] === $act) {
+                $permission = $row;
+                break;
+            }
+        }
+        if ($adminId <= 0 || !$permission || !in_array($permission['resource_type'], [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) return false;
+        if ($permission['is_public']) return true;
+        return $this->enforcer($domain)->enforce(PermissionResource::subject($adminId), PermissionResource::domain($domain), (string) $permission['obj'], (string) $permission['act']);
+    }
+
+    /**
+     * 启用且未删除的权限行（全部资源类型，按 id 排序；worker 缓存）。
+     *
+     * @return list<array{id: int, code: ?string, obj: ?string, act: ?string, resource_type: string, is_public: mixed, source_type: ?string, source_name: ?string}>
+     */
+    public function enabledPermissions(): array
+    {
+        return AuthzCache::remember('permissions', static fn (): array => Permission::where('status', 1)->whereNull('deleted_at')->orderBy('id')
+            ->get(['id', 'code', 'obj', 'act', 'resource_type', 'is_public', 'source_type', 'source_name'])->toArray());
+    }
+
+    /**
+     * 按权限码查找启用且未删除的权限行（权限码在未删除行中唯一）。
+     * 与 MySQL 列排序规则（utf8mb4_unicode_ci）下 `code = ?` 的匹配一致：不区分大小写。
+     */
+    public function enabledPermissionByCode(string $code): ?array
+    {
+        $map = AuthzCache::remember('permissions.byCode', function (): array {
+            $map = [];
+            foreach ($this->enabledPermissions() as $row) {
+                $key = strtolower((string) $row['code']);
+                if ($row['code'] !== null && !isset($map[$key])) $map[$key] = $row;
+            }
+            return $map;
+        });
+        return $map[strtolower($code)] ?? null;
     }
 
     public function adminRoleIds(int $adminId, ?string $domain = null): array
     {
-        if ($adminId <= 0) {
-            return [];
-        }
-        $roles = $this->enforcer($domain)->getRolesForUserInDomain(PermissionResource::subject($adminId), PermissionResource::domain($domain)) ?? [];
-        return $this->idsFromNames($roles, 'role:');
+        $domain = PermissionResource::domain($domain);
+        return AuthzCache::remember('roles:' . $domain . ':' . $adminId, fn (): array => $this->roleIdsByAdmins([$adminId], $domain)[$adminId] ?? []);
     }
 
+    /**
+     * 批量读取管理员在该域的直接有效角色：一次 casbin_rule + 一次角色状态查询。
+     * 与 enforcer 快照的 getRolesForUserInDomain 等价：仅保留启用且未软删的角色，顺序为策略写入顺序。
+     *
+     * @return array<int, list<int>> 以管理员 ID 为键（按输入顺序，非法 ID 被忽略）
+     */
     public function roleIdsByAdmins(array $adminIds, ?string $domain = null): array
     {
+        $adminIds = $this->normalizeIds($adminIds);
+        if (!$adminIds) {
+            return [];
+        }
+        $rules = CasbinRule::where('ptype', 'g')->where('v2', PermissionResource::domain($domain))
+            ->whereIn('v0', array_map(PermissionResource::subject(...), $adminIds))
+            ->orderBy('id')->get(['v0', 'v1']);
+        $roleIds = $this->idsFromNames($rules->pluck('v1')->all(), 'role:');
+        $active = [];
+        if ($roleIds) {
+            foreach (AuthGroup::whereIn('id', $roleIds)->where('status', 1)->pluck('id') as $roleId) {
+                $active[PermissionResource::role((int) $roleId)] = true;
+            }
+        }
+        $names = [];
+        foreach ($rules as $rule) {
+            if (isset($active[$rule->v1])) {
+                $names[$rule->v0][] = $rule->v1;
+            }
+        }
         $result = [];
-        foreach ($this->normalizeIds($adminIds) as $adminId) {
-            $result[$adminId] = $this->adminRoleIds($adminId, $domain);
+        foreach ($adminIds as $adminId) {
+            $result[$adminId] = $this->idsFromNames($names[PermissionResource::subject($adminId)] ?? [], 'role:');
         }
         return $result;
     }
 
     public function adminIdsByRoles($roleIds, ?string $domain = null): array
     {
-        $subjects = [];
-        foreach ($this->normalizeIds($roleIds) as $roleId) {
-            $subjects = array_merge($subjects, CasbinRule::where('ptype', 'g')->where('v1', PermissionResource::role($roleId))->where('v2', PermissionResource::domain($domain))->pluck('v0')->all());
+        $roleIds = $this->normalizeIds($roleIds);
+        if (!$roleIds) {
+            return [];
         }
-        return $this->idsFromNames($subjects, 'admin:');
+        $subjects = [];
+        foreach (CasbinRule::where('ptype', 'g')->where('v2', PermissionResource::domain($domain))
+            ->whereIn('v1', array_map(PermissionResource::role(...), $roleIds))
+            ->orderBy('id')->get(['v0', 'v1']) as $rule) {
+            $subjects[$rule->v1][] = $rule->v0;
+        }
+        // 保持旧实现的顺序：按输入角色顺序拼接。
+        return $this->idsFromNames(array_merge(...array_map(
+            static fn (int $roleId): array => $subjects[PermissionResource::role($roleId)] ?? [],
+            $roleIds
+        )), 'admin:');
     }
 
     public function rolePermissionIds(int $roleId, ?string $domain = null): array
@@ -98,17 +178,19 @@ class CasbinService extends AbstractService
     public function permissionCodesForAdmin(int $adminId, ?string $domain = null): array
     {
         if ($adminId <= 0) return [];
-        // 一次求出主体（含全部隐式角色）在该域的策略，再与有效权限行求交；等价于逐条 enforce()。
-        $pairs = $this->policyPairs($this->enforcer($domain)->getImplicitPermissionsForUser(PermissionResource::subject($adminId), PermissionResource::domain($domain)));
-        $permissions = Permission::where('status', 1)->whereNull('deleted_at')
-            ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->get();
-        $codes = [];
-        foreach ($permissions as $permission) {
-            if ($permission->is_public || isset($pairs[(string) $permission->obj . "\0" . (string) $permission->act])) {
-                if ($permission->code !== null && $permission->code !== '') $codes[] = (string) $permission->code;
+        $domain = PermissionResource::domain($domain);
+        return AuthzCache::remember('codes:' . $domain . ':' . $adminId, function () use ($adminId, $domain): array {
+            // 一次求出主体（含全部隐式角色）在该域的策略，再与有效权限行求交；等价于逐条 enforce()。
+            $pairs = $this->policyPairs($this->enforcer($domain)->getImplicitPermissionsForUser(PermissionResource::subject($adminId), $domain));
+            $codes = [];
+            foreach ($this->enabledPermissions() as $permission) {
+                if (!in_array($permission['resource_type'], [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)) continue;
+                if ($permission['is_public'] || isset($pairs[(string) $permission['obj'] . "\0" . (string) $permission['act']])) {
+                    if ($permission['code'] !== null && $permission['code'] !== '') $codes[] = (string) $permission['code'];
+                }
             }
-        }
-        return array_values(array_unique($codes));
+            return array_values(array_unique($codes));
+        });
     }
 
     public function activeRoleIds($roleIds): array
@@ -181,7 +263,6 @@ class CasbinService extends AbstractService
     public function deleteAdmin(int $adminId): void
     {
         CasbinRule::where('ptype', 'g')->where('v0', PermissionResource::subject($adminId))->delete();
-        $this->reload();
     }
 
     public function deleteRole(int $roleId): void
@@ -192,12 +273,15 @@ class CasbinService extends AbstractService
         })->delete();
         CasbinRule::where('ptype', 'p')->where('v0', $role)->delete();
         AuthGroupInherit::where('role_id', $roleId)->orWhere('parent_role_id', $roleId)->delete();
-        $this->reload();
     }
 
+    /**
+     * 立即换新授权版本。经连接执行的授权表写入已由 AuthzCache 的查询事件自动换版本，无需调用；
+     * 仅供绕过查询事件的写入（如直接使用 PDO）显式失效。已执行的迁移 002 仍调用它，迁移文件按校验和不可修改。
+     */
     public function reload(): void
     {
-        // 不保留跨调用快照；策略变更在下一次授权操作中从当前数据库连接重新加载。
+        AuthzCache::bump();
     }
 
     /** @return array<string, true> 以 "obj\0act" 为键的策略集合。 */
@@ -219,8 +303,9 @@ class CasbinService extends AbstractService
             return [];
         }
         $ids = [];
-        foreach (Permission::where('status', 1)->whereNull('deleted_at')->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->select(['id', 'obj', 'act'])->get()->toArray() as $permission) {
-            if (isset($pairs[$permission['obj'] . "\0" . $permission['act']])) {
+        foreach ($this->enabledPermissions() as $permission) {
+            if (in_array($permission['resource_type'], [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY], true)
+                && isset($pairs[$permission['obj'] . "\0" . $permission['act']])) {
                 $ids[] = (int) $permission['id'];
             }
         }
@@ -238,7 +323,6 @@ class CasbinService extends AbstractService
                 $adapter->addPolicy($ptype, $ptype, $rule);
             }
         });
-        $this->reload();
     }
 
     /** 构造与 syncRolePermissions 一致的策略行（含去重用的 rule_hash），供授权迁移复用。 */

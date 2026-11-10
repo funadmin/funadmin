@@ -43,4 +43,4 @@ Route::fallback(static function (\support\Request $request) {
         return json(['code' => 405, 'message' => '请求方法不允许', 'data' => null])->withStatus(405)->withHeader('Allow', implode(', ', $matched[1]));
     }
     return json(['code' => 404, 'message' => '接口不存在', 'data' => null])->withStatus(404);
-});
+})->middleware([\app\common\middleware\ApiCorsMiddleware::class]); // 回退路由不跑全局中间件：/api/* 的 CORS 预检（OPTIONS 无对应路由）在这里应答。

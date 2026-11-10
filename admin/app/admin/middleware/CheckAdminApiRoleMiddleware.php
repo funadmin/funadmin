@@ -5,7 +5,7 @@ namespace app\admin\middleware;
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authorization\service\PermissionCode;
-use app\admin\authorization\model\Permission;
+use app\admin\authorization\service\CasbinService;
 use app\admin\common\http\AdminResponse;
 use app\common\auth\AuthRequirementResolver;
 use DomainException;
@@ -62,16 +62,18 @@ class CheckAdminApiRoleMiddleware implements MiddlewareInterface
     {
         // 代码即权限：宿主与插件同一推导规则；宿主方法若以注解声明了权限码则以注解为准（任一满足）。
         $codes = $plugin === null && $code !== null ? (array) $code : array_filter([PermissionCode::derive($controller, $action)]);
+        $casbin = CasbinService::instance();
         foreach ($codes as $candidate) {
-            $query = Permission::where('code', (string) $candidate)->where('status', 1)->whereNull('deleted_at');
-            if ($plugin !== null) {
-                $query->where('source_type', 'plugin')->where('source_name', $plugin);
-            } else {
-                // 宿主方法（含注解声明的码）只能使用宿主自己的权限，不能借用插件的权限码。
-                $query->where('source_type', '<>', 'plugin');
+            // 启用且未删除的权限按授权版本缓存在 worker 内，不再逐请求查询。
+            $permission = $casbin->enabledPermissionByCode((string) $candidate);
+            if ($permission === null) {
+                continue;
             }
-            $permission = $query->first();
-            if ($permission !== null && ((bool) $permission->is_public || in_array((string) $permission->code, $granted, true))) {
+            // 插件方法只能使用本插件的权限；宿主方法（含注解声明的码）不能借用插件的权限码。
+            $owned = $plugin !== null
+                ? $permission['source_type'] === 'plugin' && $permission['source_name'] === $plugin
+                : $permission['source_type'] !== 'plugin';
+            if ($owned && ((bool) $permission['is_public'] || in_array((string) $permission['code'], $granted, true))) {
                 return true;
             }
         }

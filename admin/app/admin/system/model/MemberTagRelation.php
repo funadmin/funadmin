@@ -10,7 +10,7 @@ class MemberTagRelation extends BaseModel
 {
     protected $table = 'member_tag_relation';
 
-    protected $pk = ['member_id', 'tag_id'];
+    /** 复合主键 (member_id, tag_id)：Eloquent 不支持复合主键，只经查询构造器读写。 */
+    public $incrementing = false;
 
-    protected $autoWriteTimestamp = false;
 }

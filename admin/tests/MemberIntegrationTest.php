@@ -340,7 +340,6 @@ final class MemberIntegrationTest extends TestCase
     {
         $this->createMemberAccountFixture();
         $this->addRegistrationColumns();
-        \support\Cache::delete('member_throttle_' . hash('sha256', 'register:127.0.0.5'));
         $service = new \app\common\service\member\MemberAccountService();
         $id = $service->register(['username' => 'newbuyer', 'email' => 'newbuyer@example.com', 'password' => 'new-password-91', 'password_confirm' => 'new-password-91'], '127.0.0.5');
         self::assertFalse(Db::schema()->hasTable('identity_member_link'), '身份中心已移除，注册不再写身份副本');
@@ -358,7 +357,6 @@ final class MemberIntegrationTest extends TestCase
     {
         $call = $this->v2Client();
         $this->addRegistrationColumns();
-        \support\Cache::delete('member_throttle_' . hash('sha256', 'register:0.0.0.0'));
         self::assertSame(422, $call('POST', '/api/v2/member', ['username' => 'v2buyer'])->getStatusCode(), '缺字段');
         $weak = $call('POST', '/api/v2/member', ['username' => 'v2buyer', 'email' => 'v2buyer@example.com', 'password' => 'short', 'password_confirm' => 'short']);
         self::assertSame(422, $weak->getStatusCode(), $weak->rawBody());
