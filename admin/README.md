@@ -113,11 +113,38 @@ The webman is open-sourced software licensed under the MIT.
 - 插件迁移：CMS 合并为单个 `plugins/cms/database/migrations/001_cms.sql`，内容依次由 `Schema`、`SiteRoleSchema`、`ContributionSchema` 导出。
 - 权限按方法细分的升级工具（`PermissionGrantMigration`、`HostPermissionMigration`、`PermissionMigrationPlan`、`tools/permission-migrations/`）已随基线合并移除；旧资源路径到新权限码的换算表也已删除，运行时只按权限码判断。
 - 权限资源树由权限码推导：模块分组 → 资源分组 → 接口/能力权限，由 `PermissionTreeService` 在同步权限和插件登记资源后自动整理。管理员手工创建的权限保持原位，被菜单引用的分组不删除。两份基线都已按这个结构整理，并删除了没有对应后台方法的旧格式权限码。
-- 只向前守卫没有白名单：迁移 SQL 中任何 `DROP` / `TRUNCATE` / `RENAME` 都会被拒绝。
+- 只向前守卫（`MigrationService` + 共用词法器 `SqlLexer`，守卫检查的语句与实际执行的语句一致，词法出错即拒绝）：
+  - 迁移 SQL 中的 `DROP` / `TRUNCATE` / `RENAME` 一律拒绝。唯一例外是 `PREPARE` 字符串内的 `DROP INDEX <名>` 与 `DROP PRIMARY KEY`，用于按 information_schema 重建索引、换主键。
+  - 以任何形式引用 `sql_mode` 或修改客户端字符集（`SET NAMES`、`character_set_*`、`@@…` 等）都会被拒绝。代码中（字符串之外）含非 ASCII 字符的词或标识符也会被拒绝，因为 MySQL 会把 `ſql_mode` 一类写法折叠成系统变量名。
+  - 用到 `PREPARE` / `EXECUTE` 的文件里，**每个**字符串常量都会当作 SQL 重新分词检查，包括 `COMMENT '…'` 和 INSERT 的数据值。其中含非 ASCII 文字（如中文注释）、`$`、落单的撇号或 DROP / RENAME 字样时，整个文件都会被拒绝。这类注释和数据应放在不含 `PREPARE` 的单独文件里。
+  - 守卫只是防误操作的安全网，看不到 `CHAR()`、十六进制等拼出的动态 SQL。
 - `CORE_DATABASE_PATH` 可覆盖核心 SQL 的父目录（其下必须有 `migrations/001_baseline.sql`）；未设置时默认 `admin/database/core/`。
 - 在 `admin/` 中执行 `php bin/console.php migrate`。MySQL 使用核心 SQL，其他受支持驱动沿用 PHP 迁移。
 - 系统升级包以 `admin/` 为应用根，核心 SQL 文件键改为 `database/core/migrations/<文件名>.sql`，并纳入 `coreMigrations` 校验。升级前需部署匹配的核心 SQL 源；Docker 使用 `./database/core:/core-database:ro` 挂载该目录。
 - 仓库根目录不再保留 `database/`，旧部署若设置了 `CORE_DATABASE_PATH` 或自定义挂载，应同步调整位置。
+
+## 软删除
+
+后台核心数据全部软删除（核心迁移 `005_soft_delete`）。
+
+**新增核心表必须遵守**
+
+- 主键为 `id`；带 `deleted_at DATETIME NULL` 及其索引，以及 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（0 表示未删除，软删除时写入该行 `id`）。
+- 唯一索引以 `deleted_token` 结尾，例如 `UNIQUE KEY username (username, deleted_token)`，这样删除后可以用相同的值重建。
+- 模型使用 `app\common\model\concern\LaravelSoftDelete`（内含 `TokenSoftDeletingScope`，删除时写 `deleted_token`，恢复时清零）。
+- 绕过模型的读取（`Db::table`、join、原生 SQL）必须自行加 `deleted_at IS NULL`。
+- 关联表保存按差异处理（参考 `RelationRowSync`）：只软删除被移除的行，只插入缺少的行，不要先全删再全插。
+- 系统不会自动删除数据，没有定时清理。软删除行一直保留，只有管理员在回收站明确操作时才执行 `forceDelete`（操作日志的“彻底删除 / 清空回收站”只作用于已删除记录，会员回收站的“彻底删除”同理）。
+
+**恢复冲突**：恢复时如果相同唯一值已被现有记录占用，抛出 `RestoreConflictException`，接口返回 409“已存在相同的记录，无法恢复，请先修改或删除现有记录”。
+
+**会员注销冷静期**：天数由 `config/soft_delete.php` 的 `member_cooling_days` 设置（默认 30）。冷静期内，被删会员的用户名、手机号、邮箱仍然占用，只有管理员能在回收站恢复。期满后这些值放开，旧账号仍保留为软删除。删除会员会连带软删除其接口会话与分组、标签关联（已登录设备立即失效）；恢复时关联一起恢复，会话不恢复。会员等级、分组、标签仍被未删除会员使用时不能删除。会员等级已删除时拒绝恢复；已删除的分组、标签在恢复时跳过。
+
+**升级说明**
+
+- 005 给 12 张主键不是 `id` 的表（令牌、会话、登录尝试、关联表、系统密钥等）以 `AUTO_INCREMENT … FIRST` 新增 `id` 主键，原主键改为唯一索引 `uk_<表>_pk`。这会复制整张表，执行期间登录、会话、令牌表会短暂阻塞写入，大表应在低峰期升级。
+- 存量行的 `id` 编号在基于语句的 binlog（SBR）下不确定，主从可能不一致，建议使用 ROW 格式。
+- 005/006 尚未在 MySQL 8.0 上实测，发布前须在 `admin/` 执行 `php tests/Console/run-core-mysql.php`（需要 docker）。
 
 
 ## 对接线上插件市场
