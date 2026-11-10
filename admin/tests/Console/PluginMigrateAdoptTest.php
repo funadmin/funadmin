@@ -35,7 +35,7 @@ final class PluginMigrateAdoptTest extends TestCase
         $this->root = sys_get_temp_dir() . '/funadmin-adopt-' . bin2hex(random_bytes(8));
         mkdir($this->root, 0700, true);
         $this->ready = true;
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['plugin_operation', 'plugin', 'system_migration'] as $table) Db::schema()->dropIfExists($table);
         Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); $table->softDeletes(); });
         Db::schema()->create('plugin', static function (Blueprint $table): void {

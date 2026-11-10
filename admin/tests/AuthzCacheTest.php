@@ -18,7 +18,6 @@ use app\admin\authorization\service\PermissionCode;
 use app\admin\middleware\CheckAdminApiCsrfMiddleware;
 use app\admin\middleware\CheckAdminApiRoleMiddleware;
 use app\admin\middleware\SystemLogMiddleware;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -46,7 +45,7 @@ final class AuthzCacheTest extends TestCase
     protected function setUp(): void
     {
         Context::destroy();
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $now = date('Y-m-d H:i:s');
         Db::table('admin')->insert(['id' => 2, 'username' => 'op', 'password' => password_hash('x', PASSWORD_DEFAULT), 'status' => 1, 'dept_id' => 0, 'created_at' => $now]);
         Db::table('auth_group')->insertOrIgnore(['id' => 1, 'pid' => 0, 'name' => '超级管理员', 'code' => 'super_admin', 'level' => 1, 'data_scope' => 'all', 'status' => 1]);

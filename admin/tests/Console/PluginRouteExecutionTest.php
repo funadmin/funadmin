@@ -6,7 +6,6 @@ namespace Tests\Console;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
@@ -23,7 +22,7 @@ final class PluginRouteExecutionTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $this->root = sys_get_temp_dir() . '/funadmin-plugin-route-' . bin2hex(random_bytes(8));
         mkdir($this->root, 0700, true);
         (new PluginScaffolder($this->root . '/plugins'))->scaffold('routefixture');

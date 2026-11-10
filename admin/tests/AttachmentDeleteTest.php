@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\system\controller\SystemAttachment;
 use app\common\model\Attach;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +19,7 @@ final class AttachmentDeleteTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         Context::destroy();
     }

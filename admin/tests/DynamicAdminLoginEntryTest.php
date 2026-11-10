@@ -2,7 +2,6 @@
 declare(strict_types=1);
 namespace Tests;
 use app\admin\authentication\service\AdminLoginPath;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +12,7 @@ use Webman\Route;
 #[PreserveGlobalState(false)]
 final class DynamicAdminLoginEntryTest extends TestCase
 {
-    protected function setUp():void{parent::setUp();(new MigrationService())->run();Db::table('config')->where('code',AdminLoginPath::CODE)->delete();}
+    protected function setUp():void{parent::setUp();\Tests\Support\TestDatabase::migrate();Db::table('config')->where('code',AdminLoginPath::CODE)->delete();}
     #[RunInSeparateProcess]
     public function test_login_entry_validates_reserved_and_safe_values():void{
         self::assertSame('admin',AdminLoginPath::normalize('admin'));self::assertSame('secure-login',AdminLoginPath::normalize('secure-login'));$this->expectException(\InvalidArgumentException::class);AdminLoginPath::normalize('auth');

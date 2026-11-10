@@ -7,7 +7,6 @@ namespace Tests;
 use app\admin\authentication\controller\AdminAuth;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authentication\service\BrowserAuthService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 use support\Request;
@@ -16,7 +15,7 @@ final class BrowserHttpTest extends TestCase
 {
     public function test_csrf_bootstrap_sets_a_browser_session_cookie_without_immediate_expiry(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $response = (new AdminAuth())->csrf(new Request("GET /admin/auth/csrf HTTP/1.1\r\nHost: localhost\r\n\r\n"));
         self::assertSame(200, $response->getStatusCode());
         self::assertStringNotContainsString('Max-Age=0', (string) $response);
@@ -26,7 +25,7 @@ final class BrowserHttpTest extends TestCase
     public function test_frontend_login_contract_uses_http_only_cookie_and_code_200(): void
     {
         self::assertTrue(class_exists(AdminAuth::class), '前端登录控制器尚未实现');
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::table('login_attempts')->delete();
         Db::table('admin')->delete();
         (new AdminSessionService())->createAdmin('web_admin', 'a-long-test-password');

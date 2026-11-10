@@ -10,7 +10,6 @@ use app\admin\system\controller\SystemMemberLevel;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberTag;
 use app\common\model\concern\RestoreConflictException;
-use app\common\service\database\MigrationService;
 use app\common\service\member\MemberAccountService;
 use app\common\service\member\MemberApiSessionService;
 use app\common\service\member\MemberIdentityGuard;
@@ -34,16 +33,12 @@ final class MemberCoolingPeriodTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         Context::destroy();
         putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
         putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
         \Webman\Config::load(config_path(), ['route']);
-        Db::schema()->table('member', static function (Blueprint $table): void {
-            $table->string('nickname')->default(''); $table->string('motto')->default(''); $table->string('real_name')->default('');
-            $table->integer('birthday')->default(0); $table->integer('scores')->default(0);
-        });
         $this->levelId = (int) Db::table('member_level')->where('status', 1)->orderBy('id')->value('id');
         foreach ([71, 72, 73] as $id) Db::table('member_group')->insert(['id' => $id, 'name' => '冷静期组' . $id, 'status' => 1]);
         foreach ([81, 82] as $id) Db::table('member_tag')->insert(['id' => $id, 'name' => '冷静期标签' . $id, 'status' => 1]);

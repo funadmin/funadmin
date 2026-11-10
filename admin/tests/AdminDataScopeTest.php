@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authorization\service\DataScopeService;
 use app\admin\authorization\service\RoleScopeService;
-use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -21,7 +20,7 @@ final class AdminDataScopeTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['fun_scope_records', 'fun_auth_group_department', 'fun_auth_group_inherit', 'fun_department'] as $table) {
             Db::connection()->getPdo()->exec('DROP TABLE IF EXISTS "' . $table . '"');
         }

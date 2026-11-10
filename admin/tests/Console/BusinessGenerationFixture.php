@@ -11,11 +11,13 @@ final class BusinessGenerationFixture
 {
     public static function create(): void
     {
+        Db::schema()->dropIfExists('form');
         Db::schema()->create('form', static function (Blueprint $table): void {
             $table->id(); $table->timestamps(); $table->softDeletes();
             foreach (['publish_mode', 'publish_status', 'published_definition_hash', 'published_schema_hash'] as $name) $table->string($name)->nullable();
             $table->unsignedBigInteger('crud_generation_id')->nullable(); $table->dateTime('published_at')->nullable();
         });
+        Db::schema()->dropIfExists('business_module');
         Db::schema()->create('business_module', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('form_id')->default(0); $table->string('code');
             $table->string('table_name')->default(''); $table->string('connection_name')->default('sqlite');
@@ -25,6 +27,7 @@ final class BusinessGenerationFixture
             $table->unsignedBigInteger('last_success_generation_id')->nullable(); $table->string('generation_status')->nullable();
             $table->timestamps(); $table->softDeletes();
         });
+        Db::schema()->dropIfExists('crud_generation');
         Db::schema()->create('crud_generation', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('business_module_id'); $table->unsignedBigInteger('form_id')->default(0);
             $table->string('operation_key')->unique(); $table->string('status'); $table->string('recovery_status')->default('none');
@@ -35,6 +38,7 @@ final class BusinessGenerationFixture
             foreach (['started_at', 'failed_at', 'completed_at', 'recovered_at'] as $name) $table->dateTime($name)->nullable();
             $table->timestamps(); $table->softDeletes();
         });
+        Db::schema()->dropIfExists('generated_file_baseline');
         Db::schema()->create('generated_file_baseline', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('business_module_id'); $table->unsignedBigInteger('generation_id');
             foreach (['relative_path', 'artifact_type', 'base_hash', 'base_storage_path', 'target_hash', 'template_version', 'definition_hash', 'content_kind', 'status'] as $name) $table->string($name)->nullable();

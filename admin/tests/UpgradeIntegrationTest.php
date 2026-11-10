@@ -7,7 +7,6 @@ namespace Tests;
 use app\admin\system\service\UpgradeService;
 use app\common\model\UpgradeManifest;
 use app\common\model\UpgradeTask;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +19,7 @@ final class UpgradeIntegrationTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         Context::destroy();
     }

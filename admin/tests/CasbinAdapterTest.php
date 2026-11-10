@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authorization\repository\casbin\DatabaseAdapter;
 use app\admin\authorization\service\CasbinService;
-use app\common\service\database\MigrationService;
 use Casbin\Model\Model;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -20,7 +19,7 @@ final class CasbinAdapterTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['permission', 'casbin_rule', 'auth_group'] as $table) Db::table($table)->delete();
         Db::table('auth_group')->insert(['id' => 2, 'name' => '查看者', 'code' => 'reader', 'status' => 1]);
         Db::table('permission')->insert(['id' => 10, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
@@ -91,7 +90,7 @@ final class CasbinAdapterTest extends TestCase
         $process = null;
         $pipes = [];
         try {
-            (new MigrationService())->run();
+            \Tests\Support\TestDatabase::migrate();
             Db::table('auth_group')->insert(['id' => 2, 'name' => '查看者', 'code' => 'reader', 'status' => 1]);
             Db::table('permission')->insert(['id' => 90001, 'name' => '能力', 'code' => 'demo:read', 'obj' => 'demo/page', 'act' => 'read', 'resource_type' => 'capability']);
             $writer = new CasbinService();

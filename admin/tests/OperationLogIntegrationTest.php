@@ -25,7 +25,7 @@ final class OperationLogIntegrationTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         $this->asActor(1);
     }

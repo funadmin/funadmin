@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authentication\service\AdminSessionService;
-use app\common\service\database\MigrationService;
 use DomainException;
 use PHPUnit\Framework\TestCase;
 use support\Db;
@@ -16,7 +15,7 @@ final class BrowserAuthTest extends TestCase
     protected function setUp(): void
     {
         self::assertTrue(class_exists(BrowserAuthService::class), '浏览器会话认证尚未实现');
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::table('login_attempts')->delete();
         Db::table('admin')->delete();
     }

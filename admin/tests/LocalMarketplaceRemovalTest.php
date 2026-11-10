@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use Webman\Route;
 use support\Db;
-use app\common\service\database\MigrationService;
 
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState(false)]
@@ -52,7 +51,7 @@ final class LocalMarketplaceRemovalTest extends TestCase
 
     public function test_baseline_carries_no_local_market_permissions_and_keeps_client_resources(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         self::assertFalse(Db::table('permission')->where(static function ($query): void {
             $query->where(static fn ($source) => $source->where('source_type', 'plugin')->where('source_name', 'market'))->orWhere('code', 'like', 'market:%');
         })->exists());

@@ -32,6 +32,7 @@ class AiSandboxConsumerExecutionTest extends AiConsumerExecutionTest
             foreach (['container_task_id', 'sandbox_volume', 'workspace_path', 'sandbox_status'] as $name) $table->string($name)->nullable();
             $table->boolean('sandbox_retained')->default(false); $table->unsignedBigInteger('change_set_id')->nullable(); $table->dateTime('cleanup_at')->nullable();
         });
+        Db::schema()->dropIfExists('ai_change_set');
         Db::schema()->create('ai_change_set', static function (Blueprint $table): void {
             $table->id();
             foreach (['conversation_id', 'task_id', 'created_by'] as $name) $table->unsignedBigInteger($name);
@@ -39,6 +40,7 @@ class AiSandboxConsumerExecutionTest extends AiConsumerExecutionTest
             foreach (['base_file_hashes', 'manifest', 'summary'] as $name) $table->json($name);
             $table->timestamps(); $table->softDeletes();
         });
+        Db::schema()->dropIfExists('ai_approval');
         Db::schema()->create('ai_approval', static function (Blueprint $table): void {
             $table->id();
             foreach (['conversation_id', 'task_id', 'tool_call_id', 'requested_by'] as $name) $table->unsignedBigInteger($name);
@@ -47,6 +49,7 @@ class AiSandboxConsumerExecutionTest extends AiConsumerExecutionTest
             foreach (['impact', 'request', 'decision'] as $name) $table->json($name)->nullable();
             $table->integer('cas_version')->default(0); $table->dateTime('expires_at'); $table->dateTime('decided_at')->nullable(); $table->timestamps(); $table->softDeletes();
         });
+        Db::schema()->dropIfExists('ai_tool_call');
         Db::schema()->create('ai_tool_call', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('conversation_id'); $table->unsignedBigInteger('task_id'); $table->unsignedBigInteger('message_id')->nullable(); $table->unsignedBigInteger('approval_id')->nullable();
             foreach (['idempotency_key', 'tool_name', 'operation', 'risk_level', 'status', 'approval_decision'] as $name) $table->string($name);

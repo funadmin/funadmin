@@ -51,7 +51,7 @@ try {
     }
     $status = executeConsoleTestProcess([
         'docker', 'run', '--rm', '--network', 'funwebman-test',
-        '-v', $root . ':/app', '-w', '/app',
+        '-v', $root . ':/app', '-v', dirname($root) . '/docs/examples:/docs/examples:ro', '-w', '/app',
         '-e', 'CONSOLE_TEST_MYSQL=1', '-e', 'DB_HOST=' . $container,
         '-e', 'DB_DATABASE=' . $database, '-e', 'DB_USERNAME=' . $user, '-e', 'DB_PASSWORD=' . $password,
         '-e', 'AI_QUEUE_REDIS_URL=redis://' . $redisContainer . ':6379',

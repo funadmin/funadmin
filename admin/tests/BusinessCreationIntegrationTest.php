@@ -8,7 +8,6 @@ use app\admin\development\service\BusinessDevelopmentService;
 use app\admin\development\service\BusinessTargetService;
 use app\admin\form\model\Form;
 use app\admin\form\service\FormDesignerService;
-use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -21,7 +20,7 @@ final class BusinessCreationIntegrationTest extends TestCase
 {
     public function test_target_candidates_read_persisted_plugin_lifecycle_and_operation_lock(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::table('plugin')->insert([
             'code' => 'createfixture', 'name' => '创建测试插件', 'version' => '1.0.0',
             'lifecycle_state' => 'enabled', 'status' => 1, 'operation_token' => 'in-progress',

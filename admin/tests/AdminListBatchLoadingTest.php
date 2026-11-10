@@ -8,9 +8,6 @@ use app\admin\authorization\controller\SystemAdmin;
 use app\admin\authorization\model\AdminDepartment;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\PermissionResource;
-use app\common\service\database\MigrationService;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
@@ -20,13 +17,13 @@ use support\Request;
  * 管理员列表批量加载角色与任职部门：输出须与逐行查询的旧实现完全一致，
  * 且查询次数为常量，不随行数增长。
  */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class AdminListBatchLoadingTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['casbin_rule', 'auth_group_inherit', 'auth_group_department', 'admin_department', 'admin_auth_tokens', 'browser_sessions', 'department', 'auth_group', 'admin'] as $table) {
             Db::table($table)->delete();

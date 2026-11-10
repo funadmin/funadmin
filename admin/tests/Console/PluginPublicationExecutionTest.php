@@ -21,7 +21,7 @@ class PluginPublicationExecutionTest extends TestCase
 {
     public function test_canonical_durable_backups_remain_recoverable(): void
     {
-        (new \app\common\service\database\MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $root = sys_get_temp_dir() . '/funadmin-durable-' . bin2hex(random_bytes(8));
         (new PluginScaffolder($root . '/plugins'))->scaffold('manualfixture');
         $publisher = new PluginAppPublicationService($root . '/app', $root . '/runtime/plugins', new DatabasePluginAppPublicationRepository());
@@ -55,7 +55,7 @@ class PluginPublicationExecutionTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('oldRecoveryMaterials')]
     public function test_old_recovery_materials_are_rejected_before_any_mutation(string $kind): void
     {
-        (new \app\common\service\database\MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $root = sys_get_temp_dir() . '/funadmin-old-recovery-' . bin2hex(random_bytes(8));
         (new PluginScaffolder($root . '/plugins'))->scaffold('recoverfixture');
         $publisher = new PluginAppPublicationService($root . '/app', $root . '/runtime/plugins', new DatabasePluginAppPublicationRepository());
@@ -103,7 +103,7 @@ class PluginPublicationExecutionTest extends TestCase
 
     public function test_old_frontend_registry_is_rejected_without_changing_files(): void
     {
-        (new \app\common\service\database\MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $root = sys_get_temp_dir() . '/funadmin-frontend-layout-' . bin2hex(random_bytes(8));
         (new PluginScaffolder($root . '/plugins'))->scaffold('frontfixture');
         try {
@@ -135,7 +135,7 @@ class PluginPublicationExecutionTest extends TestCase
 
     public function test_old_native_registry_is_rejected_without_changing_files_or_ownership(): void
     {
-        (new \app\common\service\database\MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $root = sys_get_temp_dir() . '/funadmin-plugin-move-' . bin2hex(random_bytes(8));
         (new PluginScaffolder($root . '/plugins'))->scaffold('movefixture');
         $publisher = new PluginAppPublicationService($root . '/app', $root . '/runtime/plugins', new DatabasePluginAppPublicationRepository());

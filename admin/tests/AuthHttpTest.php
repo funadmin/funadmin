@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authentication\controller\ApiAuth;
 use app\admin\authentication\service\AdminSessionService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 use support\Request;
@@ -16,7 +15,7 @@ final class AuthHttpTest extends TestCase
     protected function setUp(): void
     {
         self::assertTrue(class_exists(ApiAuth::class), '认证 HTTP 接口尚未实现');
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::table('login_attempts')->delete();
         Db::table('admin')->delete();
     }

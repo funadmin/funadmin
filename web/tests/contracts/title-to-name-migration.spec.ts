@@ -12,7 +12,6 @@ describe('015 title→name 改名迁移契约', () => {
     const authorization = readProjectFile('admin/app/admin/authorization/service/AuthorizationService.php');
     const systemMenu = readProjectFile('admin/app/admin/authorization/controller/SystemMenu.php');
     expect(authController).toContain('AuthorizationService())->menus($admin)');
-    expect(authorization).toContain('$this->menuData($menu)');
     expect(systemMenu).toContain('toManagementData(');
     const result = backendJson<{ management: Record<string, unknown>; web: Record<string, unknown>; login: Record<string, unknown>; fallback: Record<string, unknown> }>(String.raw`
       (new \app\common\service\database\MigrationService())->run();

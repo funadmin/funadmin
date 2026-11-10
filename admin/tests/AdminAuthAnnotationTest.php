@@ -13,7 +13,6 @@ use app\common\annotation\NoNeedLogin;
 use app\common\annotation\NoNeedPermission;
 use app\common\annotation\Permission;
 use app\common\controller\AdminController;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -46,7 +45,7 @@ final class AdminAuthAnnotationTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['admin_auth_tokens', 'browser_sessions', 'login_attempts', 'casbin_rule', 'auth_group', 'admin'] as $table) {
             Db::table($table)->delete();

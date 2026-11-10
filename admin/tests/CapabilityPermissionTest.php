@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authorization\service\AdminAuthorizationService;
 use app\admin\authorization\service\CasbinService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +25,7 @@ final class CapabilityPermissionTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['casbin_rule', 'auth_group'] as $table) Db::table($table)->delete();
         foreach (self::CAPABILITIES as $code) {

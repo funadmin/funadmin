@@ -9,5 +9,11 @@ final class MySqlPluginPublicationTest extends PluginPublicationExecutionTest
     protected function setUp(): void
     {
         if (getenv('CONSOLE_TEST_MYSQL') !== '1') self::markTestSkipped('需要隔离 MySQL 启动器');
+        \Tests\Support\MySqlTestDatabase::clear();
+    }
+
+    protected function tearDown(): void
+    {
+        if (getenv('CONSOLE_TEST_MYSQL') === '1') \Tests\Support\MySqlTestDatabase::clear();
     }
 }

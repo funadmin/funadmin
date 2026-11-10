@@ -71,7 +71,7 @@ final class FormListConfirmationSecretTest extends TestCase
 
     public function test_migrations_create_the_secret_table_and_core_sql_is_forward_only(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         self::assertTrue(Db::schema()->hasTable('system_secret'));
         self::assertTrue(Db::table('migrations')->where('name', '003_system_secret.php')->exists());
         $file = base_path() . '/database/core/migrations/003_system_secret.sql';
@@ -83,7 +83,7 @@ final class FormListConfirmationSecretTest extends TestCase
 
     public function test_secret_is_never_exposed_by_system_config_endpoints(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         try {
             $table = Db::connection()->getTablePrefix() . 'system_secret';

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\authentication\service\BrowserAuthService;
-use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -26,7 +25,7 @@ final class DepartmentHttpTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['fun_department', 'fun_auth_group_department', 'fun_auth_group_inherit'] as $table) {
             Db::connection()->getPdo()->exec('DROP TABLE IF EXISTS "' . $table . '"');
         }

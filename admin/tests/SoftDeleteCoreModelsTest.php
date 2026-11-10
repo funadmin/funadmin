@@ -14,7 +14,6 @@ use app\common\model\PhpMigration;
 use app\common\plugin\model\PluginResource;
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\common\service\database\MigrationService;
 use app\common\service\member\MemberApiSessionService;
 use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -82,7 +81,7 @@ final class SoftDeleteCoreModelsTest extends TestCase
 
     public function test_plugin_resource_reregistered_after_uninstall_reinstall(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $root = sys_get_temp_dir() . '/funadmin-sdres-' . bin2hex(random_bytes(6));
         (new PluginScaffolder($root . '/plugins'))->scaffold('sdres');
         $infrastructure = new PluginInfrastructureService(projectRoot: $root);
@@ -129,9 +128,9 @@ final class SoftDeleteCoreModelsTest extends TestCase
         putenv('MEMBER_JWT_SECRET=' . bin2hex(random_bytes(32)));
         putenv('MEMBER_REFRESH_JWT_SECRET=' . bin2hex(random_bytes(32)));
         \Webman\Config::load(config_path(), ['route']);
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $member = (int) Db::table('member')->insertGetId([
-            'username' => 'sdsession', 'password' => '', 'status' => 1,
+            'username' => 'sdsession', 'level_id' => 1, 'password' => '', 'status' => 1,
             'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
         $service = new MemberApiSessionService();
@@ -184,7 +183,7 @@ final class SoftDeleteCoreModelsTest extends TestCase
 
     public function test_member_relations_sync_by_difference_and_soft_delete_removed_rows(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach ([77, 78, 79] as $id) Db::table('member_group')->insert(['id' => $id, 'name' => 'sd组' . $id, 'status' => 1]);
         $levelId = (int) Db::table('member_level')->where('status', 1)->value('id')
             ?: (int) Db::table('member_level')->insertGetId(['name' => '默认等级', 'status' => 1]);

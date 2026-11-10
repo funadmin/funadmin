@@ -6,20 +6,17 @@ namespace Tests;
 
 use app\admin\authorization\model\Permission;
 use app\admin\authorization\service\PermissionTreeService;
-use app\common\service\database\MigrationService;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
 /** 权限资源树由权限码推导：模块分组 → 资源分组 → 接口/能力权限。 */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class PermissionTreeServiceTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
     }
 

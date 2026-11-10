@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\system\controller\SystemStorage;
-use app\common\service\database\MigrationService;
 use app\common\storage\StorageDriverInterface;
 use app\common\storage\StorageDriverRegistry;
 use app\common\storage\StoredFile;
@@ -24,7 +23,7 @@ final class StorageDriverUpdateTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         Db::table('config')->insert(['code' => 'upload_driver', 'group' => 'upload', 'value' => 'local', 'status' => 1, 'type' => 'select']);
         syscfg_forget('upload', 'upload_driver');

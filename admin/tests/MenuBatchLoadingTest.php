@@ -6,9 +6,6 @@ namespace Tests;
 
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authorization\service\CasbinService;
-use app\common\service\database\MigrationService;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
@@ -16,13 +13,13 @@ use support\Db;
  * 菜单一次性加载权限码：菜单树须与逐条查询权限码的旧实现完全一致（fixtures 为旧实现输出），
  * 且查询次数为常量，不随菜单条数增长。
  */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class MenuBatchLoadingTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         $this->seedFixtures();
     }

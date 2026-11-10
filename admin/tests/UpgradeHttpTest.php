@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\CasbinService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +24,7 @@ final class UpgradeHttpTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['admin_auth_tokens', 'browser_sessions', 'login_attempts', 'casbin_rule', 'auth_group', 'admin'] as $table) Db::table($table)->delete();
         Db::table('admin')->insert(['id' => 1, 'username' => 'upgrade_root', 'password' => password_hash('upgrade-root-password', PASSWORD_DEFAULT), 'status' => 1]);

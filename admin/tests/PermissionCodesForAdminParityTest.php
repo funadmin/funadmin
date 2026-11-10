@@ -8,11 +8,8 @@ use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\repository\casbin\DatabaseAdapter;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\PermissionResource;
-use app\common\service\database\MigrationService;
 use Casbin\Enforcer;
 use Casbin\Rbac\DefaultRoleManager\DomainManager;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
@@ -20,16 +17,16 @@ use support\Db;
  * permissionCodesForAdmin 必须与逐条 enforce() 的旧实现给出完全相同的权限码（含顺序），
  * 且一次调用只评估一次隐式权限，不再对每条权限调用 enforce()。
  */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class PermissionCodesForAdminParityTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     /** @var array<string, list<string>> 每组权限的权限码 */
     private array $chunks = [];
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['casbin_rule', 'auth_group_inherit', 'auth_group_department', 'admin_department', 'department', 'auth_group', 'admin'] as $table) {
             Db::table($table)->delete();

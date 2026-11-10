@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
@@ -33,7 +32,7 @@ final class IdentityRemovalTest extends TestCase
 
     public function test_removal_migration_drops_identity_tables_and_retires_menus_and_permissions(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (self::IDENTITY_TABLES as $table) self::assertFalse(Db::schema()->hasTable($table), $table);
         self::assertSame(0, Db::table('admin_menu')->whereNull('deleted_at')->where('status', 1)->where(static function ($query): void {
             $query->where('href', '/applications')->orWhere('href', 'like', '/applications/%');
@@ -43,7 +42,7 @@ final class IdentityRemovalTest extends TestCase
         })->count());
         // 重复执行迁移必须幂等，且不会误删身份表以外的任何表。
         $tablesBefore = $this->tableNames();
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         self::assertSame($tablesBefore, $this->tableNames());
     }
 

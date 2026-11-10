@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\system\controller\SystemConfig;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
 use support\Request;
 
-#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
-#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class ConfigIntegrationTest extends TestCase
 {
-    protected function setUp(): void { (new MigrationService())->run(); Db::beginTransaction(); }
+    use \Tests\Support\RefreshCoreDatabase;
+
+    protected function setUp(): void { \Tests\Support\TestDatabase::migrate(); Db::beginTransaction(); }
     protected function tearDown(): void { Db::rollBack(); Context::destroy(); }
     private function controller(array $payload = [], string $query = ''): SystemConfig
     {

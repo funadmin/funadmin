@@ -4,36 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
-use Illuminate\Database\Schema\Blueprint;
-use support\Db;
-
-/** 表单/业务模块元数据表的最小 sqlite 结构，供需要真实 Eloquent 落库的测试复用。 */
+/** 表单/业务模块测试使用与正式安装同源的完整核心结构，不再手写三张最小元数据表。 */
 trait FormMetadataTables
 {
     private function createMetadataTables(): void
     {
-        Db::schema()->create('form', static function (Blueprint $table): void {
-            $table->id(); $table->string('form_key')->unique(); $table->string('name');
-            $table->string('table_name'); $table->string('connection'); $table->string('source_type');
-            $table->integer('status')->default(1); $table->integer('schema_version')->default(2);
-            foreach (['schema_document', 'publish_config'] as $field) $table->json($field)->nullable();
-            foreach (['schema_hash', 'published_schema_hash', 'schema_origin', 'publish_status', 'remark', 'publish_mode', 'published_definition_hash'] as $field) $table->string($field)->nullable();
-            $table->integer('sort_order')->default(0); $table->unsignedBigInteger('business_module_id')->nullable();
-            $table->dateTime('published_at')->nullable(); $table->unsignedBigInteger('crud_generation_id')->nullable();
-            $table->timestamps(); $table->softDeletes();
-        });
-        Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->integer('schema_version');
-            $table->string('schema_hash'); $table->json('schema_document');
-            $table->string('origin'); $table->unsignedBigInteger('parent_version_id')->nullable();
-            $table->string('change_summary'); $table->string('created_by'); $table->timestamps(); $table->softDeletes();
-        });
-        Db::schema()->create('business_module', static function (Blueprint $table): void {
-            $table->id(); $table->string('code')->unique(); $table->string('name'); $table->unsignedBigInteger('form_id');
-            foreach (['origin', 'connection_name', 'table_name', 'runtime_route', 'module_route', 'lifecycle_status', 'generation_status'] as $field) $table->string($field);
-            $table->json('metadata'); $table->timestamps(); $table->softDeletes();
-            $table->string('published_schema_hash')->nullable(); $table->integer('published_schema_version')->nullable();
-            $table->unsignedBigInteger('current_generation_id')->nullable(); $table->unsignedBigInteger('last_success_generation_id')->nullable();
-        });
+        TestDatabase::migrate();
     }
 }

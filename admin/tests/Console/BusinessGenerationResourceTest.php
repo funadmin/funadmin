@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Console;
 
 use app\admin\development\service\GenerationResourceTransaction;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
@@ -16,7 +15,7 @@ final class BusinessGenerationResourceTest extends TestCase
     public function test_real_permissions_menus_and_language_lines_share_commit_and_rollback(): void
     {
         self::assertSame(':memory:', Db::connection()->getDatabaseName());
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         if (!Db::schema()->hasTable('language_line')) {
             Db::schema()->create('language_line', static function (\Illuminate\Database\Schema\Blueprint $table): void {
                 $table->id(); $table->string('locale'); $table->string('key'); $table->text('value'); $table->timestamps(); $table->unique(['locale', 'key']);

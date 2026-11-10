@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authorization\controller\SystemPermission;
 use app\common\model\Config;
-use app\common\service\database\MigrationService;
 use app\common\service\member\MemberAccountService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -26,7 +25,7 @@ final class CacheInvalidationScopeTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
     }
 

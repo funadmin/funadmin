@@ -1,43 +1,19 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { backendJson } from './backend-runtime';
+import { runBackendTests } from './backend-runtime';
 
-const readProject = (path: string) => readFileSync(resolve(process.cwd(), '..', path), 'utf8');
-
-describe('Service 公共缓存失效能力', () => {
-  it('AbstractService 提供受保护的全局缓存清理方法', () => {
-    const source = readProject('admin/app/common/service/AbstractService.php');
-    expect(source).toContain('use support\\Cache;');
-    expect(source).toMatch(/protected function clearApplicationCache\(\): void[\s\S]*Cache::clear\(\);/);
-    const result = backendJson(String.raw`
-      // Replace only this subprocess's default store; never clear the developer's file cache.
-      \support\Cache::$instances[config('cache.default')] = new \Symfony\Component\Cache\Psr16Cache(new \Symfony\Component\Cache\Adapter\ArrayAdapter());
-      $service = new class extends \app\common\service\AbstractService {
-          public function invalidate(): void { $this->clearApplicationCache(); }
-      };
-      \support\Cache::set('contract-first', 1);
-      \support\Cache::set('contract-second', 2);
-      $before = [\support\Cache::get('contract-first'), \support\Cache::get('contract-second')];
-      $service->invalidate();
-      echo json_encode(['before' => $before, 'after' => [\support\Cache::has('contract-first'), \support\Cache::has('contract-second')]]);
-    `);
-    expect(result).toEqual({ before: [1, 2], after: [false, false] });
+describe('Service 定向缓存失效', () => {
+  it('后台权限写入保留会员注册限流与无关缓存', () => {
+    const output = runBackendTests('CacheInvalidationScopeTest.php', 'test_admin_permission_write_does_not_reset_member_registration_throttle');
+    expect(output).toContain('OK (1 test');
   });
 
-  it('ResourceRegistryService 不再定义私有 clearCache', () => {
-    const source = readProject('admin/app/admin/authorization/service/ResourceRegistryService.php');
-    expect(source).not.toContain('private function clearCache');
-    expect(source).not.toContain('use think\\facade\\Cache;');
-    expect(source).not.toContain('ClearsApplicationCache');
-    expect(source).toContain('$this->clearApplicationCache();');
+  it('配置变更只失效受影响的 syscfg 键', () => {
+    const output = runBackendTests('CacheInvalidationScopeTest.php', 'test_config_write_invalidates_only_its_own_syscfg_entries');
+    expect(output).toContain('OK (1 test');
   });
 
-  it('PluginService 复用公共缓存清理能力', () => {
-    const source = readProject('admin/app/admin/plugin/service/PluginService.php');
-    expect(source).not.toContain('Cache::clear();');
-    expect(source).not.toContain('use think\\facade\\Cache;');
-    expect(source).not.toContain('ClearsApplicationCache');
-    expect(source).toContain('$this->clearApplicationCache();');
+  it('核心代码不能整体清空缓存', () => {
+    const output = runBackendTests('CacheInvalidationScopeTest.php', 'test_core_code_never_flushes_the_whole_cache_store');
+    expect(output).toContain('OK (1 test');
   });
 });

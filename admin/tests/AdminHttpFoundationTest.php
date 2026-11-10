@@ -12,7 +12,6 @@ use app\admin\middleware\CheckAdminApiCsrfMiddleware;
 use app\admin\middleware\CheckAdminApiRoleMiddleware;
 use app\admin\middleware\SystemLogMiddleware;
 use app\common\http\JsonEnvelope;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -150,7 +149,7 @@ final class AdminHttpFoundationTest extends TestCase
 
     public function test_csrf_rejects_missing_and_wrong_tokens_and_accepts_session_token(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $auth = new BrowserAuthService();
         $session = $auth->bootstrap('');
         $middleware = new CheckAdminApiCsrfMiddleware();
@@ -167,7 +166,7 @@ final class AdminHttpFoundationTest extends TestCase
 
     public function test_denied_user_can_only_enter_after_a_live_permission_grant(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $password = 'foundation-test-password';
         Db::table('admin')->insert(['id' => 2, 'username' => 'reader', 'password' => password_hash($password, PASSWORD_DEFAULT), 'status' => 1]);
         $auth = new BrowserAuthService();
@@ -196,7 +195,7 @@ final class AdminHttpFoundationTest extends TestCase
 
     public function test_audit_records_request_identity_and_redacts_nested_secrets(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::table('admin_log')->delete();
         $body = json_encode(['password' => 'hidden-password', 'nested' => ['client_secret' => 'hidden-client', 'name' => 'visible']], JSON_THROW_ON_ERROR);
         $request = new Request("POST /admin/system/role HTTP/1.1\r\nCookie: secret-cookie\r\nAuthorization: secret-header\r\nX-CSRF-TOKEN: secret-csrf\r\nContent-Type: application/json\r\nContent-Length: " . strlen($body) . "\r\n\r\n" . $body);
@@ -244,7 +243,7 @@ final class AdminHttpFoundationTest extends TestCase
 
     public function test_authorized_request_does_not_authorize_a_later_anonymous_request(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         $password = 'foundation-test-password';
         Db::table('admin')->insert(['id' => 1, 'username' => 'root', 'password' => password_hash($password, PASSWORD_DEFAULT), 'status' => 1]);
         $auth = new BrowserAuthService();

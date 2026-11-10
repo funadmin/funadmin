@@ -19,7 +19,6 @@ use app\admin\authorization\model\Permission;
 use app\admin\authorization\repository\casbin\DatabaseAdapter;
 use app\admin\authorization\service\CasbinService;
 use app\admin\plugin\service\PluginInfrastructureService;
-use app\common\service\database\MigrationService;
 use Casbin\Model\Model as CasbinModel;
 use DomainException;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -37,7 +36,7 @@ final class SoftDeleteAuthorizationRegressionTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
     }
 
     public function test_deleted_admin_cannot_log_in_and_username_can_be_reused(): void

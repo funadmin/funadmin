@@ -9,19 +9,18 @@ use app\admin\authorization\service\RoleAuthorizationService;
 use app\admin\authorization\service\CasbinService;
 use app\admin\authorization\service\AuthorizationService;
 use app\admin\authorization\model\AuthGroup;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
 use support\Request;
 
-#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
-#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class AuthorizationIntegrationTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['admin_menu', 'permission', 'permission_field', 'auth_group_field_permission', 'auth_group_inherit', 'auth_group_department', 'department', 'casbin_rule', 'admin_auth_tokens', 'browser_sessions', 'auth_group', 'admin'] as $table) {
             Db::table($table)->delete();
@@ -43,6 +42,9 @@ final class AuthorizationIntegrationTest extends TestCase
         Context::destroy();
     }
 
+    // Route::load 写入 Webman 全局路由注册表；只有此用例需要进程隔离。
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function test_native_authorization_routes_match_the_frontend_protocol(): void
     {
         \Webman\Route::load([config_path()]);

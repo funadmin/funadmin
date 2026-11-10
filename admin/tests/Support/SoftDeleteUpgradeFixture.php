@@ -106,6 +106,7 @@ final class SoftDeleteUpgradeFixture
 
     private static function value(string $table, array $column, int $i, string $now): string|int
     {
+        if ($table === 'member' && $column['name'] === 'sex') return (string) $i; // SQLite 将 enum 翻译成 varchar + CHECK
         $type = strtolower((string) $column['type']);
         $typeName = strtolower((string) $column['type_name']);
         if (str_starts_with($type, 'enum(')) {

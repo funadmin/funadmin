@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\CasbinService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +24,7 @@ final class PluginCenterHttpTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['admin_auth_tokens', 'browser_sessions', 'login_attempts', 'casbin_rule', 'auth_group', 'admin'] as $table) Db::table($table)->delete();
         Db::table('admin')->insert(['id' => 1, 'username' => 'plugin_root', 'password' => password_hash('plugin-root-password', PASSWORD_DEFAULT), 'status' => 1]);
@@ -151,7 +150,6 @@ final class PluginCenterHttpTest extends TestCase
             ['id'=>'admin','point'=>'demo.run','type'=>'action','file'=>'hooks.ts','export'=>'run'],
         ]]);
         \support\Container::instance()->addDefinitions([\app\common\plugin\service\FrontendHookService::class=>static fn()=>new \app\common\plugin\service\FrontendHookService($reader,static fn()=>['hookdemo'=>$make('hookdemo'),'blocked'=>$make('blocked')])]);
-        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('nickname')->default(''); });
         Db::table('member')->insert(['id'=>991,'username'=>'hook_member','nickname'=>'Hooks','sex'=>'0','level_id'=>1,'status'=>1]);
         $token=(new \app\common\service\authentication\TokenService())->build(['id'=>991]);
         $call=function(string $audience,bool $cookie=false,?string $bearer=null) {

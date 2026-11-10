@@ -80,7 +80,7 @@ final class MySqlSoftDeleteUpgradeTest extends TestCase
         }
     }
 
-    /** PHP 迁移链路跑在 MySQL 上（PHP 基线只含部分核心表）：已有的表补齐软删除结构，不存在的表跳过，重跑无变化。 */
+    /** PHP 迁移链路跑在 MySQL 上：完整核心结构同源，已有的表补齐软删除结构，不存在的表跳过，重跑无变化。 */
     public function test_php_chain_on_mysql_soft_deletes_existing_tables_and_skips_missing(): void
     {
         if (getenv('CONSOLE_TEST_MYSQL') !== '1') $this->markTestSkipped('需要一次性核心 MySQL 测试库');
@@ -105,8 +105,8 @@ final class MySqlSoftDeleteUpgradeTest extends TestCase
                 }
             }
             self::assertGreaterThan(20, $covered);
-            self::assertGreaterThan(0, $missing, 'PHP 基线只含部分核心表，缺的表须跳过');
-            self::assertFalse(Db::schema()->hasTable('ai_approval'));
+            self::assertSame(0, $missing, 'SQL 同源 PHP 基线必须覆盖全部核心表');
+            self::assertTrue(Db::schema()->hasTable('ai_approval'));
             self::assertSame(0, (int) Db::table('member')->whereNotNull('deleted_at')->where('deleted_token', 0)->count());
 
             $schema = $this->fullSchema();
@@ -115,6 +115,11 @@ final class MySqlSoftDeleteUpgradeTest extends TestCase
             }), '重跑 PHP 版 005 不发 ALTER');
             self::assertSame($schema, $this->fullSchema());
             self::assertSame([], (new MigrationService())->run(), 'PHP 链路已登记 005，不再执行');
+            Db::schema()->drop('ai_approval');
+            self::assertSame([], $this->alterStatementsDuring(static function (): void {
+                (require base_path() . '/database/migrations/005_soft_delete.php')();
+            }), '缺失表仍须跳过，不得发 ALTER');
+            self::assertFalse(Db::schema()->hasTable('ai_approval')); 
         } finally {
             $this->resetDatabase();
         }

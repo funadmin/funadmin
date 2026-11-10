@@ -8,7 +8,6 @@ use app\admin\system\controller\SystemMember;
 use app\admin\system\model\Member;
 use app\admin\system\model\MemberGroup;
 use app\admin\system\model\MemberLevel;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -22,7 +21,7 @@ final class MemberIntegrationTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         Context::destroy();
     }
@@ -35,7 +34,6 @@ final class MemberIntegrationTest extends TestCase
 
     private function createMemberAccountFixture(): void
     {
-        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('nickname')->default(''); });
         Db::table('member')->insert(['id' => 91, 'username' => 'market_member', 'nickname' => '市场会员', 'password' => password_hash('market-password-91', PASSWORD_DEFAULT), 'sex' => '0', 'level_id' => 1, 'status' => 1]);
         $request = new Request("POST /api/v2/token HTTP/1.1\r\n\r\n");
         Context::set(\Webman\Http\Request::class, $request);
@@ -329,17 +327,10 @@ final class MemberIntegrationTest extends TestCase
         }
     }
 
-    private function addRegistrationColumns(): void
-    {
-        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void {
-            $table->string('motto')->default(''); $table->string('real_name')->default(''); $table->integer('birthday')->default(0); $table->integer('scores')->default(0);
-        });
-    }
 
     public function test_public_member_registration_is_stateless_and_writes_no_identity_copies(): void
     {
         $this->createMemberAccountFixture();
-        $this->addRegistrationColumns();
         $service = new \app\common\service\member\MemberAccountService();
         $id = $service->register(['username' => 'newbuyer', 'email' => 'newbuyer@example.com', 'password' => 'new-password-91', 'password_confirm' => 'new-password-91'], '127.0.0.5');
         self::assertFalse(Db::schema()->hasTable('identity_member_link'), '身份中心已移除，注册不再写身份副本');
@@ -356,7 +347,6 @@ final class MemberIntegrationTest extends TestCase
     public function test_v2_register_opens_a_session_and_returns_the_account(): void
     {
         $call = $this->v2Client();
-        $this->addRegistrationColumns();
         self::assertSame(422, $call('POST', '/api/v2/member', ['username' => 'v2buyer'])->getStatusCode(), '缺字段');
         $weak = $call('POST', '/api/v2/member', ['username' => 'v2buyer', 'email' => 'v2buyer@example.com', 'password' => 'short', 'password_confirm' => 'short']);
         self::assertSame(422, $weak->getStatusCode(), $weak->rawBody());
@@ -374,7 +364,6 @@ final class MemberIntegrationTest extends TestCase
     public function test_v2_member_profile_and_password_endpoints_require_the_member_bearer(): void
     {
         $call = $this->v2Client();
-        Db::schema()->table('member', static function (\Illuminate\Database\Schema\Blueprint $table): void { $table->string('motto')->default(''); });
         foreach ([['GET', '/api/v2/member/profile'], ['PUT', '/api/v2/member/profile'], ['PUT', '/api/v2/member/password']] as [$method, $path]) {
             self::assertSame(401, $call($method, $path)->getStatusCode(), $path . ' 未登录拒绝');
             self::assertSame(401, $call($method, $path, token: 'forged')->getStatusCode(), $path . ' 伪造令牌拒绝');

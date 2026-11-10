@@ -6,7 +6,6 @@ namespace Tests;
 
 use app\admin\authorization\service\PermissionSyncService;
 use app\admin\plugin\service\PluginInfrastructureService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -33,7 +32,7 @@ final class PluginDerivedPermissionTest extends TestCase
 
     public function test_enabling_a_plugin_registers_its_derived_codes_and_retires_undeclared_ones(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         try {
             $derived = (new PermissionSyncService())->pluginCodes('qa');
@@ -58,7 +57,7 @@ final class PluginDerivedPermissionTest extends TestCase
 
     public function test_unnamed_derived_codes_default_to_the_openapi_summary_and_type_route(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         try {
             Db::table('permission')->where('code', 'example:test:index')->delete();
@@ -74,7 +73,7 @@ final class PluginDerivedPermissionTest extends TestCase
 
     public function test_manifest_code_without_a_controller_method_is_a_capability_permission(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         try {
             (new PluginInfrastructureService())->registerResources([['code' => 'qa:moderation:export-all', 'name' => '导出全部'], ['code' => 'qa:moderation:index', 'name' => '查看问答投稿']], [], 'qa');
@@ -88,7 +87,7 @@ final class PluginDerivedPermissionTest extends TestCase
 
     public function test_plugin_permission_cannot_point_at_another_resource(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         try {
             $this->expectExceptionMessage('插件权限不能指定其它资源');
@@ -100,7 +99,7 @@ final class PluginDerivedPermissionTest extends TestCase
 
     public function test_host_sync_refuses_to_turn_a_capability_into_a_route(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         try {
             $code = 'authorization:role:index';

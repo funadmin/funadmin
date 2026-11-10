@@ -22,7 +22,7 @@ final class MySqlSqlMigrationExecutionTest extends TestCase
         mkdir($this->root, 0700, true);
         $this->ready = true;
         Db::schema()->create('system_migration', static function (Blueprint $table): void {
-            $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum', 64); $table->unsignedBigInteger('executed_at'); $table->unique(['scope', 'version']);
+            $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum', 64); $table->unsignedBigInteger('executed_at'); $table->softDeletes(); $table->unsignedBigInteger('deleted_token')->default(0); $table->unique(['scope', 'version', 'deleted_token']);
         });
     }
 

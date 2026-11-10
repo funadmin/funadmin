@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\authentication\service\AdminSessionService as AuthService;
-use app\common\service\database\MigrationService;
 use DomainException;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
-#[\PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses]
-#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class AuthTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
         self::assertTrue(class_exists(AuthService::class), '认证服务尚未实现');
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::table('admin_auth_tokens')->delete();
         Db::table('login_attempts')->delete();
         Db::table('admin')->delete();

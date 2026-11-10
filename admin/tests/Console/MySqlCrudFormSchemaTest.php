@@ -9,6 +9,13 @@ final class MySqlCrudFormSchemaTest extends CrudFormSchemaExecutionTest
     protected function setUp(): void
     {
         if (getenv('CONSOLE_TEST_MYSQL') !== '1') self::markTestSkipped('需要隔离 MySQL 启动器');
+        \Tests\Support\MySqlTestDatabase::clear();
         parent::setUp();
+    }
+    protected function tearDown(): void
+    {
+        if (getenv('CONSOLE_TEST_MYSQL') !== '1') return;
+        try { parent::tearDown(); }
+        finally { \Tests\Support\MySqlTestDatabase::clear(); }
     }
 }

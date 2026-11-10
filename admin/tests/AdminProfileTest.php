@@ -7,7 +7,6 @@ namespace Tests;
 use app\admin\authentication\controller\AdminProfile;
 use app\admin\authentication\service\AdminSessionService;
 use app\admin\authentication\service\BrowserAuthService;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 use support\Request;
@@ -21,7 +20,7 @@ final class AdminProfileTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['admin_auth_tokens', 'browser_sessions', 'login_attempts', 'admin'] as $table) Db::table($table)->delete();
         $admin = (new AdminSessionService())->createAdmin('profile_admin', 'profile-safe-password');
         $this->adminId = $admin['id'];

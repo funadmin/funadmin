@@ -7,7 +7,6 @@ namespace Tests;
 use app\admin\system\controller\SystemMember;
 use app\common\model\UpgradeManifest;
 use app\common\plugin\model\PluginVersionHistory;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +24,7 @@ final class EloquentMassAssignmentRegressionTest extends TestCase
 {
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
     }
 
@@ -59,7 +58,7 @@ final class EloquentMassAssignmentRegressionTest extends TestCase
     public function test_plugin_version_history_can_be_recorded(): void
     {
         // PluginPackageService::record() 在成功操作后调用 PluginVersionHistory::create()。
-        PluginVersionHistory::create(['plugin_code' => 'massdemo', 'version' => '1.2.3', 'package_hash' => str_repeat('a', 64)]);
+        PluginVersionHistory::create(['plugin_code' => 'massdemo', 'source' => 'local', 'version' => '1.2.3', 'package_hash' => str_repeat('a', 64)]);
         self::assertSame('1.2.3', Db::table('plugin_version_history')->where('plugin_code', 'massdemo')->value('version'));
     }
 

@@ -6,21 +6,18 @@ namespace Tests;
 
 use app\admin\authentication\service\AdminSessionService;
 use app\common\model\Blacklist;
-use app\common\service\database\MigrationService;
 use DomainException;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
 
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class BlacklistIntegrationTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         foreach (['login_attempts', 'admin_auth_tokens', 'browser_sessions', 'admin'] as $table) {
             Db::table($table)->delete();

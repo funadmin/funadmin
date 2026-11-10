@@ -52,7 +52,7 @@ final class FormDataRuntimeFieldViewTest extends TestCase
         ]);
         Db::table('form_schema_version')->insert([
             'form_id' => $formId, 'version' => 1, 'schema_version' => 2, 'schema_hash' => $this->hash,
-            'schema_document' => $schema->canonicalJson(), 'origin' => 'designer', 'change_summary' => '', 'created_by' => 'test',
+            'schema_document' => $schema->canonicalJson(), 'origin' => 'designer', 'change_summary' => '', 'created_by' => 'test', 'created_at' => date('Y-m-d H:i:s'),
         ]);
         Db::table('business_module')->insert([
             'code' => 'runtime_view', 'name' => '运行态', 'form_id' => $formId, 'origin' => 'visual', 'connection_name' => $connection,

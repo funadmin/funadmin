@@ -6,20 +6,17 @@ namespace Tests;
 
 use app\admin\system\model\AttachGroup;
 use app\common\model\Attach;
-use app\common\service\database\MigrationService;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
 
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class AttachmentIntegrationTest extends TestCase
 {
+    use \Tests\Support\RefreshCoreDatabase;
+
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         Context::destroy();
     }

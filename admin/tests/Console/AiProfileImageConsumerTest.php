@@ -34,10 +34,12 @@ class AiProfileImageConsumerTest extends AiSandboxConsumerExecutionTest
         mkdir($this->privateRoot . '/project', 0700, true);
         file_put_contents($this->privateRoot . '/project/example.txt', 'snapshot');
         Db::schema()->table('ai_task', static function (Blueprint $table): void { $table->string('model')->nullable(); $table->string('provider')->nullable(); });
+        Db::schema()->dropIfExists('ai_configuration_profile');
         Db::schema()->create('ai_configuration_profile', static function (Blueprint $table): void {
             $table->id(); $table->integer('admin_id'); $table->string('name'); $table->json('configuration');
             $table->text('secret_ciphertext')->nullable(); $table->boolean('is_default')->default(false); $table->timestamps(); $table->softDeletes();
         });
+        Db::schema()->dropIfExists('ai_attachment');
         Db::schema()->create('ai_attachment', static function (Blueprint $table): void {
             $table->id(); $table->integer('admin_id'); $table->integer('conversation_id'); $table->integer('message_id')->nullable();
             foreach (['kind', 'name', 'mime', 'sha256', 'storage_path'] as $name) $table->string($name);

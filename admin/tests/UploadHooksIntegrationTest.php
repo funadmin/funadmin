@@ -9,7 +9,6 @@ use app\common\model\Attach;
 use app\common\plugin\hook\HookRuntime;
 use app\common\plugin\sdk\PluginActivationCompiler;
 use app\common\plugin\sdk\PluginActivationReader;
-use app\common\service\database\MigrationService;
 use app\common\service\storage\UploadService;
 use app\common\storage\LocalStorageDriver;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -33,7 +32,7 @@ final class UploadHooksIntegrationTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         Db::beginTransaction();
         $this->root = sys_get_temp_dir() . '/upload-hooks-' . bin2hex(random_bytes(8));
         mkdir($this->root . '/plugins/uploadhooks/hooks', 0700, true);

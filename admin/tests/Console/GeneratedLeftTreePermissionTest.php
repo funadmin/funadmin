@@ -9,7 +9,6 @@ use app\admin\authorization\service\CasbinService;
 use app\admin\form\service\FormDataService;
 use app\common\form\action\FormActionRegistry;
 use app\common\form\builder\Form;
-use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Context;
@@ -32,7 +31,7 @@ final class GeneratedLeftTreePermissionTest extends TestCase
 
     protected function setUp(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['casbin_rule', 'auth_group'] as $table) Db::table($table)->delete();
         foreach (['form_schema_version', 'generated_file_baseline', 'crud_generation', 'business_module', 'form'] as $table) Db::schema()->dropIfExists($table);
         BusinessGenerationFixture::create();

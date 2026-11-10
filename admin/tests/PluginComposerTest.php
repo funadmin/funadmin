@@ -66,7 +66,7 @@ final class PluginComposerTest extends TestCase
     }
 
     public function testWarningAuditSupportsCoreMigratedSchemaWithoutLosingConflicts(): void {
-        (new \app\common\service\database\MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         \support\Db::beginTransaction();
         try {
             (new \app\admin\plugin\service\PluginOperationAuditService())->composerWarning('alpha', 'operation-token', [['package'=>'test/lib']], '42');
@@ -95,7 +95,7 @@ final class PluginComposerTest extends TestCase
         $this->expectException(RuntimeException::class); Manifest::fromDirectory($directory);
     }
     public function testValidateCommandFailsHostRequirementsButOnlyWarnsForBundledConflict(): void {
-        (new \app\common\service\database\MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         (new \app\common\plugin\sdk\PluginScaffolder($this->dir . '/plugins'))->scaffold('commandfixture');
         $directory = $this->dir . '/plugins/commandfixture'; $file = $directory . '/plugin.json';
         $data = json_decode(file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);

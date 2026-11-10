@@ -11,7 +11,6 @@ use app\admin\plugin\service\PluginResourcePublisher;
 use app\admin\plugin\service\PluginService;
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;
@@ -32,7 +31,7 @@ class PluginRebaselineExecutionTest extends TestCase
         $this->root = sys_get_temp_dir() . '/funadmin-rebaseline-' . bin2hex(random_bytes(8));
         mkdir($this->root, 0700, true);
         $this->ready = true;
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
         foreach (['plugin_resource', 'plugin_operation', 'plugin'] as $table) Db::schema()->dropIfExists($table);
         Db::schema()->create('plugin', static function (Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name')->default(''); $table->string('version')->default('');

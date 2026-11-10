@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 
@@ -14,7 +13,7 @@ final class MenuHierarchyIntegrationTest extends TestCase
 {
     public function test_function_modules_expose_second_level_menus_without_changing_page_urls(): void
     {
-        (new MigrationService())->run();
+        \Tests\Support\TestDatabase::migrate();
 
         $roots = Db::table('admin_menu')->where('app_name', 'admin')->where('pid', 0)->where('status', 1)->get();
         $rootNames = $roots->pluck('name')->all();

@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Tests;
 
 use app\admin\system\controller\SystemLanguage;
-use app\common\service\database\MigrationService;
 use PHPUnit\Framework\TestCase;
 use support\Context;
 use support\Db;
@@ -14,7 +13,7 @@ use support\Request;
 #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
 final class LanguageIntegrationTest extends TestCase
 {
-    protected function setUp(): void { (new MigrationService())->run(); Db::beginTransaction(); }
+    protected function setUp(): void { \Tests\Support\TestDatabase::migrate(); Db::beginTransaction(); }
     protected function tearDown(): void { Db::rollBack(); Context::destroy(); }
     private function controller(array $payload = [], string $query = ''): SystemLanguage
     {

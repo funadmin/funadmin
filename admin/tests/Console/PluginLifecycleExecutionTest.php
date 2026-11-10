@@ -6,7 +6,6 @@ namespace Tests\Console;
 
 use app\admin\plugin\service\PluginService;
 use app\common\plugin\sdk\PluginScaffolder;
-use app\common\service\database\MigrationService;
 use Illuminate\Database\Schema\Blueprint;
 use PHPUnit\Framework\TestCase;
 use support\Db;
@@ -25,38 +24,14 @@ class PluginLifecycleExecutionTest extends TestCase
         $this->root = sys_get_temp_dir() . '/funadmin-plugin-lifecycle-' . bin2hex(random_bytes(8));
         mkdir($this->root, 0700, true);
         $this->ready = true;
-        (new MigrationService())->run();
-        if ($database === ':memory:') {
-            foreach (['plugin_resource', 'plugin_operation', 'plugin'] as $table) Db::schema()->dropIfExists($table);
-        } else {
-            self::assertFalse(Db::schema()->hasTable('system_migration'), '生命周期夹具必须使用独立空库');
-            foreach (['plugin_resource', 'plugin_operation', 'plugin'] as $table) {
-                if (!Db::schema()->hasTable($table)) continue;
-                self::assertSame(0, Db::table($table)->count());
-                Db::schema()->drop($table);
-            }
-        }
-        Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); $table->softDeletes(); });
-        Db::schema()->create('plugin', static function (Blueprint $table): void {
-            $table->id(); $table->string('code')->unique(); $table->string('name')->default(''); $table->string('version')->default('');
-            foreach (['config', 'manifest', 'last_error', 'recovery_path'] as $name) $table->text($name)->nullable();
-            foreach (['db_version', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'requires'] as $name) $table->string($name)->nullable();
-            $table->string('composer_conflict_ack', 64)->default(''); $table->string('lifecycle_state')->default('discovered'); $table->boolean('status')->default(false);
-            $table->boolean('migration_pending')->default(false);
-            $table->unsignedBigInteger('state_changed_at')->nullable(); $table->unsignedBigInteger('installed_at')->nullable();
-            $table->timestamps(); $table->softDeletes();
-        });
-        Db::schema()->create('plugin_operation', static function (Blueprint $table): void {
-            $table->id(); foreach (['plugin_code', 'operation', 'operation_token', 'stage', 'from_version', 'to_version', 'source', 'package_hash', 'result'] as $name) $table->string($name);
-            $table->integer('progress'); $table->integer('status')->default(1); $table->text('error_message')->nullable(); $table->text('recovery_path')->nullable(); $table->timestamps(); $table->softDeletes();
-        });
-        Db::schema()->create('plugin_resource', static function (Blueprint $table): void {
-            $table->id(); foreach (['plugin_code', 'version', 'resource_type', 'operation_token', 'source_path', 'target_path', 'sha256'] as $name) $table->string($name);
-            $table->string('publication_unit')->nullable(); $table->string('tree_hash')->nullable(); $table->timestamps(); $table->softDeletes();
-        });
-        Db::schema()->create('form', static function (Blueprint $table): void { $table->id(); $table->string('form_key'); $table->json('schema_document')->nullable(); $table->softDeletes(); });
-        Db::schema()->create('form_schema_version', static function (Blueprint $table): void { $table->id(); $table->integer('form_id'); $table->integer('version'); $table->json('schema_document'); $table->softDeletes(); });
+        \Tests\Support\TestDatabase::migrate();
+        // 核心模板已包含完整的插件/表单结构；此处不再重建最小夹具表。
         (new PluginScaffolder($this->root . '/plugins'))->scaffold('lifecyclefixture');
+        mkdir($this->root . '/plugins/lifecyclefixture/storage', 0755, true);
+        $file = $this->root . '/plugins/lifecyclefixture/plugin.json';
+        $manifest = json_decode(file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+        $manifest['storage'] = ['path' => 'storage'];
+        file_put_contents($file, json_encode($manifest, JSON_THROW_ON_ERROR));
     }
 
     protected function tearDown(): void
@@ -334,7 +309,7 @@ class PluginLifecycleExecutionTest extends TestCase
         if (getenv('CONSOLE_TEST_MYSQL') !== '1') self::markTestSkipped('引用保护需要隔离 MySQL');
         $service = new PluginService($this->root);
         $service->installPlugin('lifecyclefixture');
-        Db::table('form_schema_version')->insert(['form_id' => 9, 'version' => 1, 'schema_document' => json_encode(['nodes' => [['type' => 'lifecyclefixture:custom']]], JSON_THROW_ON_ERROR)]);
+        Db::table('form_schema_version')->insert(['form_id' => 9, 'version' => 1, 'schema_hash' => str_repeat('a', 64), 'created_at' => date('Y-m-d H:i:s'), 'schema_document' => json_encode(['nodes' => [['type' => 'lifecyclefixture:custom']]], JSON_THROW_ON_ERROR)]);
         $before = Db::table('plugin_resource')->count();
         $error = null;
         try { $service->uninstallPlugin('lifecyclefixture'); } catch (\RuntimeException $exception) { $error = $exception; }
