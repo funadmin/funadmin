@@ -28,7 +28,7 @@ class CrudFormSchemaExecutionTest extends TestCase
             $table->string('table_name')->default(''); $table->string('connection')->default(''); $table->string('source_type')->default('');
         });
         Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document');
+            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document'); $table->softDeletes();
         });
         Db::schema()->create('console_form_tree', static function (Blueprint $table): void {
             $table->id(); $table->string('title'); $table->integer('parent_id')->nullable(); $table->json('metadata')->nullable(); $table->timestamps(); $table->softDeletes();

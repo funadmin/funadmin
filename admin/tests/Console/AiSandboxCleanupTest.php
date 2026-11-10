@@ -34,7 +34,7 @@ final class AiSandboxCleanupTest extends TestCase
             $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('ai_task_event', static function (Blueprint $table): void {
-            $table->id(); $table->integer('task_id'); $table->integer('sequence'); $table->string('type'); $table->json('payload'); $table->timestamp('created_at')->nullable();
+            $table->id(); $table->integer('task_id'); $table->integer('sequence'); $table->string('type'); $table->json('payload'); $table->timestamp('created_at')->nullable(); $table->softDeletes();
         });
     }
 

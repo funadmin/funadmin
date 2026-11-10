@@ -11,8 +11,11 @@ final class PluginResource extends BaseModel
 {
     use LaravelSoftDelete;
 
-    /** 登记行的标识与时间列，不参与“登记内容是否变化”的比较。 */
-    private const BOOKKEEPING = ['id', 'created_at', 'updated_at', 'deleted_at', 'deleted_token'];
+    /** 登记内容列及其缺省值：$records 缺少的列按缺省值比较，与整行重建的结果一致。 */
+    private const CONTENT = [
+        'plugin_code' => null, 'version' => null, 'resource_type' => 'file', 'publication_unit' => null,
+        'operation_token' => null, 'source_path' => null, 'target_path' => null, 'sha256' => null, 'tree_hash' => null,
+    ];
 
     protected $hidden = ['deleted_token'];
 
@@ -43,7 +46,7 @@ final class PluginResource extends BaseModel
             }
             $kept[$target] = true;
             $changes = [];
-            foreach (array_diff_key($desired[$target], array_flip(self::BOOKKEEPING)) as $column => $value) {
+            foreach (array_intersect_key($desired[$target] + self::CONTENT, self::CONTENT) as $column => $value) {
                 $current = $row->getAttribute($column);
                 if (($current === null) !== ($value === null) || (string) $current !== (string) $value) $changes[$column] = $value;
             }

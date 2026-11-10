@@ -175,7 +175,7 @@ class PluginPublicationExecutionTest extends TestCase
         Db::schema()->create('plugin_resource', static function (Blueprint $table): void {
             $table->id(); $table->string('plugin_code'); $table->string('version'); $table->string('resource_type');
             $table->string('publication_unit')->nullable(); $table->string('operation_token');
-            $table->string('source_path'); $table->string('target_path'); $table->string('sha256', 64); $table->string('tree_hash', 64)->nullable(); $table->timestamps();
+            $table->string('source_path'); $table->string('target_path'); $table->string('sha256', 64); $table->string('tree_hash', 64)->nullable(); $table->timestamps(); $table->softDeletes();
         });
         try {
             (new PluginScaffolder($root . '/plugins'))->scaffold('publishfixture');

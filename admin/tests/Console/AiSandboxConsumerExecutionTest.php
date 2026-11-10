@@ -53,7 +53,7 @@ class AiSandboxConsumerExecutionTest extends AiConsumerExecutionTest
             foreach (['redacted_arguments', 'side_effects', 'error'] as $name) $table->json($name)->nullable();
             foreach (['stdout_summary', 'stdout_hash', 'stdout_path', 'stderr_summary', 'stderr_hash', 'stderr_path'] as $name) $table->text($name)->nullable();
             $table->integer('exit_code')->nullable(); $table->integer('duration_ms')->nullable(); $table->dateTime('started_at')->nullable(); $table->dateTime('completed_at')->nullable();
-            $table->unique(['conversation_id', 'idempotency_key']); $table->timestamps();
+            $table->unique(['conversation_id', 'idempotency_key']); $table->timestamps(); $table->softDeletes();
         });
     }
 

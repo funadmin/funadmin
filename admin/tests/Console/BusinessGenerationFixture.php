@@ -33,7 +33,7 @@ final class BusinessGenerationFixture
             $table->string('transaction_id', 32)->nullable(); $table->string('plan_digest', 64)->nullable();
             $table->string('failure_code')->nullable(); $table->unsignedBigInteger('superseded_by_id')->nullable();
             foreach (['started_at', 'failed_at', 'completed_at', 'recovered_at'] as $name) $table->dateTime($name)->nullable();
-            $table->timestamps();
+            $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('generated_file_baseline', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('business_module_id'); $table->unsignedBigInteger('generation_id');

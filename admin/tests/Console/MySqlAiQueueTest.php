@@ -29,7 +29,7 @@ final class MySqlAiQueueTest extends AiConsumerExecutionTest
             $table->id(); $table->json('payload'); $table->string('status')->default('pending'); $table->integer('attempts')->default(0);
             $table->string('lease_owner')->nullable(); $table->text('last_error')->nullable();
             foreach (['available_at', 'lease_expires_at', 'dispatched_at'] as $field) $table->dateTime($field)->nullable();
-            $table->timestamps();
+            $table->timestamps(); $table->softDeletes();
         });
         $provider = new class {
             public int $calls = 0;

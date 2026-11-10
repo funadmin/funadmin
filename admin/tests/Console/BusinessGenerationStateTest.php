@@ -95,7 +95,7 @@ final class BusinessGenerationStateTest extends TestCase
         Db::table('business_module')->where('id', $module)->update(['form_id' => $form]);
         Db::table('crud_generation')->where('id', $generation)->update(['form_id' => $form]);
         Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document');
+            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document'); $table->softDeletes();
         });
         try {
             Db::table('form_schema_version')->insert(['form_id' => $form, 'version' => 4, 'schema_hash' => str_repeat('b', 64), 'schema_document' => '{}']);

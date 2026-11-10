@@ -28,7 +28,7 @@ final class AiOutboxExecutionTest extends TestCase
             $table->string('lease_owner')->nullable();
             foreach (['available_at', 'lease_expires_at', 'dispatched_at'] as $field) $table->dateTime($field)->nullable();
             $table->text('last_error')->nullable();
-            $table->timestamps();
+            $table->timestamps(); $table->softDeletes();
         });
     }
 

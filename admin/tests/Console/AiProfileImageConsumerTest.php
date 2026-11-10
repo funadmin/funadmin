@@ -36,7 +36,7 @@ class AiProfileImageConsumerTest extends AiSandboxConsumerExecutionTest
         Db::schema()->table('ai_task', static function (Blueprint $table): void { $table->string('model')->nullable(); $table->string('provider')->nullable(); });
         Db::schema()->create('ai_configuration_profile', static function (Blueprint $table): void {
             $table->id(); $table->integer('admin_id'); $table->string('name'); $table->json('configuration');
-            $table->text('secret_ciphertext')->nullable(); $table->boolean('is_default')->default(false); $table->timestamps();
+            $table->text('secret_ciphertext')->nullable(); $table->boolean('is_default')->default(false); $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('ai_attachment', static function (Blueprint $table): void {
             $table->id(); $table->integer('admin_id'); $table->integer('conversation_id'); $table->integer('message_id')->nullable();

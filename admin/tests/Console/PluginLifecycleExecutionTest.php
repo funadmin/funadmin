@@ -36,7 +36,7 @@ class PluginLifecycleExecutionTest extends TestCase
                 Db::schema()->drop($table);
             }
         }
-        Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); });
+        Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); $table->softDeletes(); });
         Db::schema()->create('plugin', static function (Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name')->default(''); $table->string('version')->default('');
             foreach (['config', 'manifest', 'last_error', 'recovery_path'] as $name) $table->text($name)->nullable();
@@ -48,14 +48,14 @@ class PluginLifecycleExecutionTest extends TestCase
         });
         Db::schema()->create('plugin_operation', static function (Blueprint $table): void {
             $table->id(); foreach (['plugin_code', 'operation', 'operation_token', 'stage', 'from_version', 'to_version', 'source', 'package_hash', 'result'] as $name) $table->string($name);
-            $table->integer('progress'); $table->integer('status')->default(1); $table->text('error_message')->nullable(); $table->text('recovery_path')->nullable(); $table->timestamps();
+            $table->integer('progress'); $table->integer('status')->default(1); $table->text('error_message')->nullable(); $table->text('recovery_path')->nullable(); $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('plugin_resource', static function (Blueprint $table): void {
             $table->id(); foreach (['plugin_code', 'version', 'resource_type', 'operation_token', 'source_path', 'target_path', 'sha256'] as $name) $table->string($name);
-            $table->string('publication_unit')->nullable(); $table->string('tree_hash')->nullable(); $table->timestamps();
+            $table->string('publication_unit')->nullable(); $table->string('tree_hash')->nullable(); $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('form', static function (Blueprint $table): void { $table->id(); $table->string('form_key'); $table->json('schema_document')->nullable(); $table->softDeletes(); });
-        Db::schema()->create('form_schema_version', static function (Blueprint $table): void { $table->id(); $table->integer('form_id'); $table->integer('version'); $table->json('schema_document'); });
+        Db::schema()->create('form_schema_version', static function (Blueprint $table): void { $table->id(); $table->integer('form_id'); $table->integer('version'); $table->json('schema_document'); $table->softDeletes(); });
         (new PluginScaffolder($this->root . '/plugins'))->scaffold('lifecyclefixture');
     }
 

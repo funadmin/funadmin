@@ -198,7 +198,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $table->string('table_name')->default(''); $table->string('connection')->default(''); $table->string('source_type')->default('');
         });
         Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document');
+            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document'); $table->softDeletes();
         });
         Db::schema()->create('console_order', static function (Blueprint $table): void {
             $table->id(); $table->string('title'); $table->timestamps(); $table->softDeletes();
@@ -502,7 +502,7 @@ final class CodeGeneratorCustomActionsTest extends TestCase
             $table->string('table_name')->default(''); $table->string('connection')->default(''); $table->string('source_type')->default('');
         });
         Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document');
+            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document'); $table->softDeletes();
         });
         Db::schema()->create('console_order', static function (Blueprint $table): void {
             $table->id(); $table->string('title'); $table->timestamps(); $table->softDeletes();

@@ -37,7 +37,7 @@ final class PluginMigrateAdoptTest extends TestCase
         $this->ready = true;
         (new MigrationService())->run();
         foreach (['plugin_operation', 'plugin', 'system_migration'] as $table) Db::schema()->dropIfExists($table);
-        Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); });
+        Db::schema()->create('system_migration', static function (Blueprint $table): void { $table->id(); $table->string('scope'); $table->string('version'); $table->string('checksum'); $table->unsignedBigInteger('executed_at'); $table->softDeletes(); });
         Db::schema()->create('plugin', static function (Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name')->default(''); $table->string('version')->default('');
             $table->string('lifecycle_state')->default('discovered'); $table->boolean('status')->default(false);
@@ -47,7 +47,7 @@ final class PluginMigrateAdoptTest extends TestCase
         Db::schema()->create('plugin_operation', static function (Blueprint $table): void {
             $table->id(); foreach (['plugin_code', 'operation', 'operation_token', 'stage', 'from_version', 'to_version', 'source', 'package_hash', 'result'] as $name) $table->string($name);
             $table->integer('progress'); $table->integer('status')->default(1); $table->text('error_message')->nullable(); $table->text('recovery_path')->nullable();
-            $table->json('metadata')->nullable(); $table->timestamps();
+            $table->json('metadata')->nullable(); $table->timestamps(); $table->softDeletes();
         });
         (new PluginScaffolder($this->root . '/plugins'))->scaffold(self::CODE);
         $this->migration('001_base', self::BASE);

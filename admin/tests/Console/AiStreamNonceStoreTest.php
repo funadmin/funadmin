@@ -18,7 +18,7 @@ final class AiStreamNonceStoreTest extends TestCase
         Db::schema()->dropIfExists('ai_stream_nonce');
         Db::schema()->create('ai_stream_nonce', static function (Blueprint $table): void {
             $table->id(); $table->char('nonce_hash', 64)->unique(); $table->dateTime('expires_at');
-            $table->dateTime('consumed_at'); $table->dateTime('created_at');
+            $table->dateTime('consumed_at'); $table->dateTime('created_at'); $table->softDeletes();
         });
     }
 

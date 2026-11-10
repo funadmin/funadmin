@@ -336,7 +336,7 @@ final class BusinessGenerationArchiveTest extends TestCase
             $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->integer('schema_version');
             $table->string('schema_hash'); $table->json('schema_document');
             $table->string('origin'); $table->unsignedBigInteger('parent_version_id')->nullable();
-            $table->string('change_summary'); $table->string('created_by'); $table->timestamps();
+            $table->string('change_summary'); $table->string('created_by'); $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('business_module', static function (Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name'); $table->unsignedBigInteger('form_id');
@@ -355,7 +355,7 @@ final class BusinessGenerationArchiveTest extends TestCase
             $table->string('transaction_id', 32)->nullable(); $table->string('plan_digest', 64)->nullable();
             $table->string('failure_code')->nullable(); $table->unsignedBigInteger('superseded_by_id')->nullable();
             foreach (['started_at', 'failed_at', 'completed_at', 'recovered_at'] as $field) $table->dateTime($field)->nullable();
-            $table->timestamps();
+            $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('generated_file_baseline', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('business_module_id'); $table->unsignedBigInteger('generation_id');

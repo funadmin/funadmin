@@ -107,7 +107,7 @@ final class BusinessModuleListingTest extends TestCase
         });
         Db::schema()->create('crud_generation', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('business_module_id'); $table->string('status');
-            $table->string('recovery_status')->default('none'); $table->timestamps();
+            $table->string('recovery_status')->default('none'); $table->timestamps(); $table->softDeletes();
         });
     }
 }

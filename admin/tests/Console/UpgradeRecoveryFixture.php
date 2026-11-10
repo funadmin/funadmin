@@ -18,7 +18,7 @@ final class UpgradeRecoveryFixture
             $table->string('package_hash', 64)->nullable(); $table->integer('active_slot')->nullable()->unique();
             $table->dateTime('lease_expires_at')->nullable(); $table->json('metadata')->nullable(); $table->text('error_message')->nullable();
             foreach (['backup_path', 'backup_hash', 'db_backup_path', 'db_backup_hash', 'db_backup_schema'] as $name) $table->string($name)->nullable();
-            $table->timestamps();
+            $table->timestamps(); $table->softDeletes();
         });
     }
 

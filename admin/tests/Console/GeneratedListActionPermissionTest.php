@@ -49,7 +49,7 @@ final class GeneratedListActionPermissionTest extends TestCase
             $table->string('table_name')->default(''); $table->string('connection')->default(''); $table->string('source_type')->default('');
         });
         Db::schema()->create('form_schema_version', static function (Blueprint $table): void {
-            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document'); $table->dateTime('created_at')->nullable();
+            $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->string('schema_hash'); $table->json('schema_document'); $table->dateTime('created_at')->nullable(); $table->softDeletes();
         });
         $prefix = Db::connection()->getTablePrefix();
         $connection = (string) config('database.default');

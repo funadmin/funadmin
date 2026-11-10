@@ -35,10 +35,10 @@ final class CrudMemberExecutionTest extends TestCase
         Db::schema()->create('member_api_session', static function (Blueprint $table): void {
             $table->id(); $table->char('session_id', 32)->unique(); $table->unsignedBigInteger('member_id'); $table->char('refresh_hash', 64)->unique();
             $table->bigInteger('refresh_expires_at'); $table->string('ip', 45)->default(''); $table->dateTime('created_at');
-            $table->dateTime('rotated_at')->nullable(); $table->dateTime('revoked_at')->nullable(); $table->index(['member_id', 'revoked_at']);
+            $table->dateTime('rotated_at')->nullable(); $table->dateTime('revoked_at')->nullable(); $table->index(['member_id', 'revoked_at']); $table->softDeletes();
         });
         Db::schema()->create('member_api_session_used', static function (Blueprint $table): void {
-            $table->char('refresh_hash', 64)->primary(); $table->char('session_id', 32)->index(); $table->dateTime('used_at');
+            $table->id(); $table->char('refresh_hash', 64)->unique(); $table->char('session_id', 32)->index(); $table->dateTime('used_at'); $table->softDeletes();
         });
         Db::table('member')->insert([
             ['id' => 1, 'username' => 'one', 'nickname' => '会员一', 'status' => 1],

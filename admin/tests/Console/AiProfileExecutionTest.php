@@ -24,7 +24,7 @@ final class AiProfileExecutionTest extends TestCase
         Db::schema()->create('ai_configuration_profile', static function (Blueprint $table): void {
             $table->id(); $table->unsignedBigInteger('admin_id'); $table->string('name');
             $table->json('configuration'); $table->text('secret_ciphertext')->nullable();
-            $table->boolean('is_default')->default(false); $table->timestamps();
+            $table->boolean('is_default')->default(false); $table->timestamps(); $table->softDeletes();
         });
     }
 
