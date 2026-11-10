@@ -99,13 +99,13 @@ final class AuthzCacheTest extends TestCase
         self::assertSame(1, $this->queriesMatching('/from "fun_casbin_rule" where \("ptype"/'), 'enforcer 在一个请求内只构建一次');
         self::assertSame(1, $this->queriesMatching('/from "fun_admin" where/'), '管理员行只读一次');
         self::assertSame(1, $this->queriesMatching('/from "fun_browser_sessions"/'), '会话只解析一次（含 CSRF 引导与校验）');
-        self::assertSame(1, $this->queriesMatching('/from "fun_system_secret" where "name" = \? and "deleted_at" is null/'), '授权版本每个请求只读一次');
+        self::assertSame(1, $this->queriesMatching('/from "fun_system_secret" where "name" = \? limit 1/'), '授权版本每个请求只读一次');
         self::assertSame(0, $this->queriesMatching('/sqlite_master|information_schema/'), '热路径不做表结构探测');
 
         // 下一个请求：版本重新读取一次，enforcer 与权限码来自 worker 缓存。
         $this->queries = [];
         self::assertSame(200, $this->decide(SystemAdmin::class, 'index'));
-        self::assertSame(1, $this->queriesMatching('/from "fun_system_secret" where "name" = \? and "deleted_at" is null/'));
+        self::assertSame(1, $this->queriesMatching('/from "fun_system_secret" where "name" = \? limit 1/'));
         self::assertSame(0, $this->queriesMatching('/from "fun_casbin_rule"/'));
         self::assertSame(0, $this->queriesMatching('/from "fun_permission"/'));
     }
@@ -133,7 +133,7 @@ final class AuthzCacheTest extends TestCase
         $this->queries = [];
         CasbinService::instance()->permissionCodesForAdmin(2);
         CasbinService::instance()->permissionCodesForAdmin(2);
-        self::assertSame(2, $this->queriesMatching('/from "fun_system_secret" where "name" = \? and "deleted_at" is null/'));
+        self::assertSame(2, $this->queriesMatching('/from "fun_system_secret" where "name" = \? limit 1/'));
     }
 
     public function test_warm_non_super_request_query_counts_are_pinned(): void
@@ -279,7 +279,7 @@ final class AuthzCacheTest extends TestCase
         $pdo = Db::connection()->getPdo();
         $pdo->exec("UPDATE fun_auth_group SET pid = 6 WHERE id = 5");
         self::assertSame(403, $this->decide(SystemRole::class, 'index'), '版本未变时使用 worker 缓存');
-        $pdo->exec("UPDATE fun_system_secret SET value = 'other-worker-" . bin2hex(random_bytes(4)) . "' WHERE name = 'authz_version'");
+        $pdo->exec("UPDATE fun_system_secret SET value = '" . bin2hex(random_bytes(16)) . "' WHERE name = 'authz_version'");
         self::assertSame(200, $this->decide(SystemRole::class, 'index'), '版本变化后下一请求重建');
     }
 
@@ -351,6 +351,102 @@ final class AuthzCacheTest extends TestCase
         self::assertTrue($authn('delete from "fun_browser_sessions" where "session_hash" = ?'));
         self::assertFalse($authn('insert into "fun_admin_log" ("admin_id") values (?)'));
         self::assertFalse($authn('insert into "fun_admin_department" ("admin_id") values (?)'));
+    }
+
+    public function test_write_classification_is_conservative_for_every_statement_shape(): void
+    {
+        $authz = static fn (string $sql): bool => AuthzCache::classify($sql, 'fun_')['authz'];
+        $shapes = [
+            'join update (Laravel join()->update())' => 'update `fun_admin` as `a` inner join `fun_auth_group` as `g` on `g`.`id` = `a`.`dept_id` set `g`.`status` = ?',
+            'comma multi-table update' => 'UPDATE fun_admin a, fun_auth_group g SET g.status = 0 WHERE g.id = a.id',
+            'update low_priority' => 'UPDATE LOW_PRIORITY `fun_permission` SET `status` = 0',
+            'insert delayed' => 'INSERT DELAYED INTO `fun_casbin_rule` (`ptype`) VALUES (?)',
+            'insert low_priority' => 'INSERT LOW_PRIORITY INTO fun_admin_menu (name) VALUES (?)',
+            'delete low_priority quick' => 'DELETE LOW_PRIORITY QUICK FROM `fun_auth_group_inherit` WHERE 1',
+            'multi-table delete' => 'DELETE r FROM fun_casbin_rule r JOIN fun_admin a ON a.id = 1',
+            'drop table list' => 'DROP TABLE IF EXISTS `fun_tmp`, `fun_permission`',
+            'rename table' => 'RENAME TABLE `fun_tmp` TO `fun_permission`',
+            'create table' => 'CREATE TABLE "fun_department" ("id" integer primary key)',
+            'create table like' => 'CREATE TABLE `fun_tmp` LIKE `fun_auth_group`',
+            'truncate' => 'TRUNCATE `fun_casbin_rule`',
+            'multi-statement starting with select' => "SELECT 1; UPDATE fun_permission SET status = 0",
+            'dynamic SQL string' => "SET @ddl = CONCAT('ALTER TABLE `fun_admin_department` ', 'ADD INDEX x (y)')",
+            'replace' => 'REPLACE INTO [fun_permission] (id) VALUES (1)',
+            'with ... update' => 'WITH x AS (SELECT 1) UPDATE fun_auth_group SET status = 1',
+            'upper-case identifier' => 'UPDATE FUN_PERMISSION SET STATUS = 0',
+        ];
+        foreach ($shapes as $label => $sql) {
+            self::assertTrue($authz($sql), $label);
+        }
+        foreach ([
+            'single select' => 'select * from "fun_permission" where "code" = ?',
+            'select for update' => 'select * from `fun_casbin_rule` where `id` = ? for update',
+            'trailing semicolon' => 'SELECT * FROM fun_admin_menu;',
+            'pragma' => 'PRAGMA table_info("fun_permission")',
+            'show create' => 'SHOW CREATE TABLE `fun_permission`',
+            'other table' => 'update "fun_permission_extra" set "x" = 1',
+            'prefix-less mention' => 'update "fun_member" set "permission" = 1',
+        ] as $label => $sql) {
+            self::assertFalse($authz($sql), $label);
+        }
+    }
+
+    public function test_execute_and_call_always_bump_because_they_name_no_table(): void
+    {
+        $authz = static fn (string $sql): bool => AuthzCache::classify($sql, 'fun_')['authz'];
+        foreach ([
+            'EXECUTE stmt',
+            'execute soft_delete_stmt USING @a',
+            '  CALL refresh_permissions()',
+            "SET @x = 1; EXECUTE stmt",
+            "PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s",
+        ] as $sql) {
+            self::assertTrue($authz($sql), $sql);
+        }
+        self::assertFalse($authz("select * from fun_member where note = 'call me'"));
+        self::assertFalse($authz('update "fun_member" set "executed_at" = ?'));
+
+        // 经连接执行时换版本，下一请求重建。
+        $before = AuthzCache::version();
+        $this->newRequest();
+        Db::connection()->getEventDispatcher()->dispatch(new \Illuminate\Database\Events\QueryExecuted('EXECUTE stmt', [], 0.0, Db::connection()));
+        self::assertNotSame($before, AuthzCache::version());
+    }
+
+    public function test_ttl_backstop_expires_the_worker_cache_even_without_a_version_change(): void
+    {
+        putenv('AUTH_AUTHZ_CACHE_TTL=0.3');
+        \Webman\Config::load(config_path(), ['route']);
+        self::assertSame(403, $this->decide(SystemRole::class, 'index'));
+        // 本进程监听不到的写入（另一个数据库客户端），且没有换版本。
+        Db::connection()->getPdo()->exec('UPDATE fun_auth_group SET pid = 6 WHERE id = 5');
+        self::assertSame(403, $this->decide(SystemRole::class, 'index'), 'TTL 内仍用缓存');
+        usleep(400_000);
+        self::assertSame(200, $this->decide(SystemRole::class, 'index'), 'TTL 过期后整代丢弃并重建');
+
+        // TTL <= 0：关闭 worker 缓存，每次都读取当前数据。
+        putenv('AUTH_AUTHZ_CACHE_TTL=0');
+        \Webman\Config::load(config_path(), ['route']);
+        Db::connection()->getPdo()->exec('UPDATE fun_auth_group SET pid = 0 WHERE id = 5');
+        self::assertSame(403, $this->decide(SystemRole::class, 'index'));
+        self::assertSame(0, AuthzCache::size());
+        putenv('AUTH_AUTHZ_CACHE_TTL');
+    }
+
+    public function test_blank_or_malformed_version_is_never_used_as_a_cache_key(): void
+    {
+        $pdo = Db::connection()->getPdo();
+        foreach (['', '   ', 'value', 'not-a-token'] as $bad) {
+            $statement = $pdo->prepare("UPDATE fun_system_secret SET value = ? WHERE name = 'authz_version'");
+            $statement->execute([$bad]);
+            $this->newRequest();
+            self::assertNull(AuthzCache::version(), var_export($bad, true));
+        }
+        // 版本不可用时：worker 缓存关闭，PDO 直写（无换版本）立即可见。
+        self::assertSame(403, $this->decide(SystemRole::class, 'index'));
+        $pdo->exec('UPDATE fun_auth_group SET pid = 6 WHERE id = 5');
+        self::assertSame(200, $this->decide(SystemRole::class, 'index'));
+        self::assertSame(0, AuthzCache::size());
     }
 
     private function permissionId(string $controller, string $action): int

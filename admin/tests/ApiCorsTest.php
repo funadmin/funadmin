@@ -55,6 +55,20 @@ final class ApiCorsTest extends TestCase
         self::assertSame([], (require dirname(__DIR__) . '/config/cors.php')['allowed_origins'], 'no allow-list means no cross-origin access');
     }
 
+    public function test_paths_are_parsed_from_environment_and_never_include_admin(): void
+    {
+        $previous = getenv('CORS_PATHS');
+        putenv('CORS_PATHS=/api/, /qa/api ,/admin/x/,/admin/,bad path,/cms/member/');
+        try {
+            $config = require dirname(__DIR__) . '/config/cors.php';
+            self::assertSame(['/api/', '/qa/api/', '/cms/member/'], $config['paths']);
+        } finally {
+            putenv($previous === false ? 'CORS_PATHS' : 'CORS_PATHS=' . $previous);
+        }
+        putenv('CORS_PATHS');
+        self::assertSame(['/api/'], (require dirname(__DIR__) . '/config/cors.php')['paths'], 'default is /api/ only');
+    }
+
     public function test_configured_origin_on_api_route_gets_cors_headers_without_credentials(): void
     {
         $response = $this->middleware()->process($this->request('GET', '/api/v2/member', self::ALLOWED), static fn (): Response => new Response(200, [], 'ok'));
