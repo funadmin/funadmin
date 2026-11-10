@@ -84,7 +84,7 @@ final class AuthorizationService
     {
         $info = ['permissions' => $permissions];
         $rows = AdminMenu::where('app_name', 'admin')->where('status', 1)
-            ->whereNull('deleted_at')->orderBy('sort_order')->orderBy('id')->get();
+            ->orderBy('sort_order')->orderBy('id')->get();
         $codes = $this->menuPermissionCodes($rows->all());
         $code = static fn (object $menu): string => (string) ($codes[(int) $menu->permission_id] ?? '');
         $allowed = $rows->filter(function ($menu) use ($info, $code): bool {
@@ -139,7 +139,7 @@ final class AuthorizationService
     {
         return AuthzCache::remember('roleRows:' . $adminId, function () use ($adminId): array {
             $ids = $this->roleIds($adminId);
-            return $ids === [] ? [] : AuthGroup::whereIn('id', $ids)->where('status', 1)->whereNull('deleted_at')->get()->map(static fn (AuthGroup $row): array => $row->toArray())->all();
+            return $ids === [] ? [] : AuthGroup::whereIn('id', $ids)->where('status', 1)->get()->map(static fn (AuthGroup $row): array => $row->toArray())->all();
         });
     }
 

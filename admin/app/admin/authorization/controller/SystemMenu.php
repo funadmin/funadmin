@@ -88,7 +88,6 @@ class SystemMenu extends AdminController
     public function permissionOptions(): Response
     {
         $permissions = Permission::where('app_name', 'admin')
-            ->whereNull('deleted_at')
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
             ->where('status', 1)
             ->where('code', '<>', '')

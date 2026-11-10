@@ -41,7 +41,7 @@ final class DepartmentHttpTest extends TestCase
             foreach (['leader', 'phone', 'email'] as $field) $table->string($field)->default('');
             $table->integer('sort_order')->default(0); $table->boolean('status')->default(true); $table->timestamps(); $table->softDeletes();
         });
-        foreach (['auth_group_department' => ['role_id', 'dept_id'], 'auth_group_inherit' => ['role_id', 'parent_role_id']] as $name => $fields) Db::schema()->create($name, static function (Blueprint $table) use ($fields): void { $table->id(); foreach ($fields as $field) $table->integer($field); });
+        foreach (['auth_group_department' => ['role_id', 'dept_id'], 'auth_group_inherit' => ['role_id', 'parent_role_id']] as $name => $fields) Db::schema()->create($name, static function (Blueprint $table) use ($fields): void { $table->id(); foreach ($fields as $field) $table->integer($field); $table->softDeletes(); });
         foreach ([1, 2] as $id) Db::table('admin')->insert(['id' => $id, 'username' => 'admin' . $id, 'password' => password_hash('department-test-password', PASSWORD_DEFAULT), 'status' => 1]);
         $auth = new BrowserAuthService();
         $anonymous = $auth->bootstrap('');

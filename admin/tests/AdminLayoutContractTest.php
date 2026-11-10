@@ -29,10 +29,12 @@ final class AdminLayoutContractTest extends TestCase
         });
         Db::schema()->dropIfExists('admin_department');
         Db::schema()->create('admin_department', static function (Blueprint $table): void {
+            $table->id();
             $table->unsignedBigInteger('admin_id');
             $table->unsignedBigInteger('dept_id');
             $table->timestamps();
-            $table->primary(['admin_id', 'dept_id']);
+            $table->softDeletes();
+            $table->unique(['admin_id', 'dept_id']);
         });
     }
 

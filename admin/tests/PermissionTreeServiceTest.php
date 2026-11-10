@@ -94,7 +94,7 @@ final class PermissionTreeServiceTest extends TestCase
         self::assertSame((int) Db::table('permission')->where('code', 'system:member:index')->value('pid'), (int) Db::table('permission')->where('id', $stray)->value('pid'));
         self::assertSame(0, (int) Db::table('permission')->where('id', $manual)->value('pid'), '手工权限保持管理员设定的位置');
         self::assertTrue(Db::table('permission')->where('id', $menuGroup)->exists(), '菜单引用的分组不得删除');
-        self::assertFalse(Db::table('permission')->where('id', $empty)->exists(), '空分组应删除');
+        self::assertFalse(Db::table('permission')->where('id', $empty)->whereNull('deleted_at')->exists(), '空分组应删除');
         self::assertSame(['created' => 0, 'moved' => 0, 'removed' => 0], $service->organize());
     }
 

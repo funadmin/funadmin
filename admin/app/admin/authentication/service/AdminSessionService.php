@@ -60,7 +60,7 @@ final class AdminSessionService
             throw new DomainException('账号或密码错误', 401);
         }
         return Db::transaction(function () use ($username, $password, $ip, $purpose): array {
-            $admin = Admin::whereNull('deleted_at')->where('username', $username)->lockForUpdate()->first();
+            $admin = Admin::where('username', $username)->lockForUpdate()->first();
             $valid = password_verify($password, $admin?->password ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
             if (!$valid || !$admin || !$admin->status) throw new DomainException('账号或密码错误', 401);
             $token = bin2hex(random_bytes(32));
@@ -91,7 +91,7 @@ final class AdminSessionService
     public static function activeAdmin(int $adminId): ?Admin
     {
         return RequestMemo::remember(AuthzCache::AUTHN_SCOPE, 'admin:' . $adminId,
-            static fn (): ?Admin => Admin::whereNull('deleted_at')->where('id', $adminId)->where('status', 1)->first());
+            static fn (): ?Admin => Admin::where('id', $adminId)->where('status', 1)->first());
     }
 
     public function logout(string $token, string $purpose = 'api'): void

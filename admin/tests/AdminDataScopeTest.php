@@ -35,7 +35,7 @@ final class AdminDataScopeTest extends TestCase
             $table->boolean('status')->default(true); $table->timestamps(); $table->softDeletes();
         });
         foreach (['auth_group_inherit' => ['role_id', 'parent_role_id'], 'auth_group_department' => ['role_id', 'dept_id']] as $name => $fields) {
-            Db::schema()->create($name, static function (Blueprint $table) use ($fields): void { $table->id(); foreach ($fields as $field) $table->integer($field); });
+            Db::schema()->create($name, static function (Blueprint $table) use ($fields): void { $table->id(); foreach ($fields as $field) $table->integer($field); $table->softDeletes(); });
         }
         foreach ([[1, 0], [2, 1], [3, 0]] as [$id, $pid]) Db::table('department')->insert(['id' => $id, 'pid' => $pid, 'name' => '部门' . $id]);
         foreach ([[1, 0], [2, 1], [3, 2], [4, 3]] as [$id, $dept]) Db::table('admin')->insert(['id' => $id, 'username' => 'admin' . $id, 'password' => 'unused', 'dept_id' => $dept, 'status' => 1]);

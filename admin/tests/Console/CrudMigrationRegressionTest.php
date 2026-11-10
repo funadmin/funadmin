@@ -105,8 +105,8 @@ final class CrudMigrationRegressionTest extends TestCase
         $replacement['code'] = 'business:review:export';
         $replacement['act'] = 'export';
         $transaction->begin(); $transaction->apply([$replacement]); $transaction->commit();
-        self::assertSame(0, Db::table('casbin_rule')->where('v0', 'role:2')->count());
-        self::assertSame(0, Db::table('auth_group_field_permission')->where('field_id', $fieldId)->count());
+        self::assertSame(0, Db::table('casbin_rule')->where('v0', 'role:2')->whereNull('deleted_at')->count());
+        self::assertSame(0, Db::table('auth_group_field_permission')->where('field_id', $fieldId)->whereNull('deleted_at')->count());
         self::assertSame(0, Db::table('admin_menu')->where('id', $menuId)->whereNull('deleted_at')->count());
         self::assertSame(1, Db::table('permission')->where('code', 'business:review:export')->whereNull('deleted_at')->count());
     }

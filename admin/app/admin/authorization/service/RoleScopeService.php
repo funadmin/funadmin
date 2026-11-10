@@ -13,7 +13,7 @@ final class RoleScopeService
     public function permissionIdsForRoles(mixed $roles): array
     {
         $permissionIds = CasbinService::instance()->permissionIdsForRoles($roles);
-        $publicPermissionIds = Permission::where('status', 1)->whereNull('deleted_at')->where('is_public', 1)
+        $publicPermissionIds = Permission::where('status', 1)->where('is_public', 1)
             ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])->pluck('id')->map('intval')->all();
         return $this->permissionIdsWithAncestors(array_merge($permissionIds, $publicPermissionIds));
     }
@@ -138,7 +138,7 @@ final class RoleScopeService
     private function permissionIdsWithAncestors(array $permissionIds): array
     {
         $ids = $this->normalizeIds($permissionIds);
-        $parents = Permission::where('status', 1)->whereNull('deleted_at')->pluck('pid', 'id')->all();
+        $parents = Permission::where('status', 1)->pluck('pid', 'id')->all();
         foreach ($ids as $id) {
             $parentId = (int) ($parents[$id] ?? 0);
             while ($parentId > 0 && !in_array($parentId, $ids, true)) {

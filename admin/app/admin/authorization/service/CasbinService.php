@@ -62,7 +62,7 @@ class CasbinService extends AbstractService
      */
     public function enabledPermissions(): array
     {
-        return AuthzCache::remember('permissions', static fn (): array => Permission::where('status', 1)->whereNull('deleted_at')->orderBy('id')
+        return AuthzCache::remember('permissions', static fn (): array => Permission::where('status', 1)->orderBy('id')
             ->get(['id', 'code', 'obj', 'act', 'resource_type', 'is_public', 'source_type', 'source_name'])->toArray());
     }
 
@@ -196,7 +196,7 @@ class CasbinService extends AbstractService
     public function activeRoleIds($roleIds): array
     {
         $roleIds = $this->normalizeIds($roleIds);
-        return $roleIds ? $this->normalizeIds(AuthGroup::whereIn('id', $roleIds)->where('status', 1)->whereNull('deleted_at')->pluck('id')->all()) : [];
+        return $roleIds ? $this->normalizeIds(AuthGroup::whereIn('id', $roleIds)->where('status', 1)->pluck('id')->all()) : [];
     }
 
     public function roleHasAdmins(int $roleId, ?string $domain = null): bool

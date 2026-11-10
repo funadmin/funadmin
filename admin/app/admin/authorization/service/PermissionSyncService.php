@@ -237,7 +237,7 @@ final class PermissionSyncService
     /** @param array<string, mixed> $derived */
     private function staleCodes(?string $plugin, array $derived): array
     {
-        $query = Permission::where('resource_type', Permission::TYPE_ROUTE)->where('status', 1)->whereNull('deleted_at')
+        $query = Permission::where('resource_type', Permission::TYPE_ROUTE)->where('status', 1)
             ->where('code', 'like', '%:%:%');
         $plugin === null ? $query->whereIn('source_type', ['system', 'plugin']) : $query->where('source_type', 'plugin')->where('source_name', $plugin);
         $stale = array_values(array_filter(

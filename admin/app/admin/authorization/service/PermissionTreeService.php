@@ -76,7 +76,7 @@ final class PermissionTreeService
     {
         return Db::transaction(function (): array {
             $result = ['created' => 0, 'moved' => 0, 'removed' => 0];
-            $rows = Permission::query()->whereNull('deleted_at')->whereNotNull('code')
+            $rows = Permission::query()->whereNotNull('code')
                 ->whereIn('resource_type', [Permission::TYPE_ROUTE, Permission::TYPE_CAPABILITY])
                 ->whereIn('source_type', self::ORGANIZED_SOURCES)
                 ->orderBy('id')->get(['id', 'pid', 'code', 'source_type', 'source_name']);
@@ -105,7 +105,7 @@ final class PermissionTreeService
     private function group(int $pid, array $owner, string $name, int $sort, array &$result): int
     {
         [$sourceType, $sourceName] = $owner;
-        $existing = Permission::query()->whereNull('deleted_at')->where('resource_type', Permission::TYPE_GROUP)
+        $existing = Permission::query()->where('resource_type', Permission::TYPE_GROUP)
             ->where('pid', $pid)->where('source_type', $sourceType)->where('source_name', $sourceName)->where('name', $name)
             ->orderBy('id')->value('id');
         if ($existing !== null) return (int) $existing;
@@ -125,9 +125,9 @@ final class PermissionTreeService
         $removed = 0;
         do {
             $referenced = AdminMenu::query()->where('permission_id', '>', 0)->pluck('permission_id')->all();
-            $empty = Permission::query()->whereNull('deleted_at')->where('resource_type', Permission::TYPE_GROUP)
+            $empty = Permission::query()->where('resource_type', Permission::TYPE_GROUP)
                 ->whereIn('source_type', self::ORGANIZED_SOURCES)
-                ->whereNotIn('id', Permission::query()->select('pid')->whereNull('deleted_at'))
+                ->whereNotIn('id', Permission::query()->select('pid'))
                 ->when($referenced !== [], static fn ($query) => $query->whereNotIn('id', $referenced))
                 ->pluck('id')->all();
             if ($empty !== []) $removed += Permission::whereIn('id', $empty)->delete();
@@ -152,7 +152,7 @@ final class PermissionTreeService
         } elseif (isset(self::RESOURCES[$module . ':' . $resource])) {
             return self::RESOURCES[$module . ':' . $resource];
         }
-        $menu = AdminMenu::query()->from('admin_menu as m')->join('permission as p', 'p.id', '=', 'm.permission_id')
+        $menu = Db::table('admin_menu as m')->join('permission as p', 'p.id', '=', 'm.permission_id')
             ->whereNull('m.deleted_at')->whereNull('p.deleted_at')->where('p.code', 'like', $module . ':' . $resource . ':%')
             ->orderBy('m.id')->value('m.name');
         return is_string($menu) && $menu !== '' ? $menu : $resource;

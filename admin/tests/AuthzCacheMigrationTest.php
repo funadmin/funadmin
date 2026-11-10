@@ -69,6 +69,8 @@ final class AuthzCacheMigrationTest extends TestCase
 
     public function test_bump_schema_failure_never_breaks_the_write_and_disables_the_worker_cache(): void
     {
+        // 授权模型使用软删除，查询授权需要 005 的 deleted_at 列。
+        copy(base_path() . '/database/migrations/005_soft_delete.php', $this->directory . '/005_soft_delete.php');
         (new MigrationService())->run($this->directory);
         // 版本表结构异常（缺 value 列）：读取为 null，换版本失败被吞下。
         Db::schema()->drop('system_secret');

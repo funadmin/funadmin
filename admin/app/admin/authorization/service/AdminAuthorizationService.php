@@ -72,7 +72,7 @@ class AdminAuthorizationService
 
     private function allowed(int $adminId, string $code): bool
     {
-        $permission = \app\admin\authorization\model\Permission::where('code', $code)->where('status', 1)->whereNull('deleted_at')->first(['obj', 'act']);
+        $permission = \app\admin\authorization\model\Permission::where('code', $code)->where('status', 1)->first(['obj', 'act']);
         return $permission !== null && CasbinService::instance()->enforceAdmin($adminId, (string) $permission->obj, (string) $permission->act);
     }
 }

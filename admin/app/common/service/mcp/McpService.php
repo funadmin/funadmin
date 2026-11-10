@@ -240,7 +240,7 @@ class McpService extends AbstractService
         try {
             switch ($action) {
                 case 'list':
-                    $users = Admin::query()->whereNull('deleted_at')
+                    $users = Admin::query()
                         ->select(['id', 'username', 'email', 'mobile', 'created_at', 'status'])
                         ->limit(max(1, min(100, $limit)))
                         ->get();
@@ -255,7 +255,7 @@ class McpService extends AbstractService
                         throw new RuntimeException('用户ID不能为空');
                     }
 
-                    $user = Admin::query()->whereNull('deleted_at')
+                    $user = Admin::query()
                         ->select(['id', 'username', 'real_name', 'email', 'mobile', 'created_at', 'status'])
                         ->where('id', $userId)
                         ->first();
@@ -267,8 +267,8 @@ class McpService extends AbstractService
                     return $user->getAttributes();
 
                 case 'count':
-                    $total = Admin::query()->whereNull('deleted_at')->count();
-                    $active = Admin::query()->whereNull('deleted_at')->where('status', 1)->count();
+                    $total = Admin::query()->count();
+                    $active = Admin::query()->where('status', 1)->count();
                     
                     return [
                         'total' => $total,

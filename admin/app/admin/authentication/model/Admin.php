@@ -14,10 +14,13 @@
 namespace app\admin\authentication\model;
 
 use app\admin\authorization\model\AdminDepartment;
+use app\common\model\concern\LaravelSoftDelete;
 use support\Model;
 
 class Admin extends Model
 {
+    use LaravelSoftDelete;
+
     protected $table = 'admin';
     protected $hidden = ['password'];
     protected $guarded = ['id'];

@@ -6,6 +6,7 @@ use app\admin\development\model\BusinessModule;
 use app\admin\development\model\CrudGeneration;
 use app\admin\form\model\FormSchemaVersion;
 use app\common\model\BaseModel;
+use app\common\model\concern\LaravelSoftDelete;
 use app\common\traits\DataFormat;
 
 /**
@@ -13,6 +14,7 @@ use app\common\traits\DataFormat;
  */
 class AdminMenu extends BaseModel
 {
+    use LaravelSoftDelete;
     use DataFormat;
 
     protected $table = 'admin_menu';

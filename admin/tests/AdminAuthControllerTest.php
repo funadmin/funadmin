@@ -36,22 +36,30 @@ final class AdminAuthControllerTest extends TestCase
             $table->softDeletes();
         });
         $schema->create('login_attempts', static function (Blueprint $table): void {
-            $table->string('key', 64)->primary();
+            $table->id();
+            $table->string('key', 64);
             $table->unsignedInteger('attempts')->default(0);
             $table->unsignedBigInteger('window_start');
+            $table->softDeletes();
+            $table->unsignedBigInteger('deleted_token')->default(0);
+            $table->unique(['key', 'deleted_token']);
         });
         $schema->create('browser_sessions', static function (Blueprint $table): void {
-            $table->string('session_hash', 64)->primary();
+            $table->id();
+            $table->string('session_hash', 64)->unique();
             $table->string('csrf_token', 64);
             $table->dateTime('expires_at');
+            $table->softDeletes();
         });
         if (!Db::schema()->hasTable('admin_auth_tokens')) Db::schema()->create('admin_auth_tokens', static function (Blueprint $table): void {
-            $table->string('token_hash', 64)->primary();
+            $table->id();
+            $table->string('token_hash', 64)->unique();
             $table->unsignedBigInteger('admin_id')->index();
             $table->string('purpose', 16);
             $table->string('credential_version', 64);
             $table->dateTime('expires_at')->index();
             $table->dateTime('created_at');
+            $table->softDeletes();
         });
     }
 

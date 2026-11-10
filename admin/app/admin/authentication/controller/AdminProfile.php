@@ -167,7 +167,7 @@ final class AdminProfile
             $cookie = (string) $request->cookie(BrowserAuthService::COOKIE, '');
             $identity = $auth->user($cookie);
             if ($request->method() !== 'GET') $auth->assertCsrf($cookie, (string) $request->header('x-csrf-token', ''));
-            $admin = Admin::whereNull('deleted_at')->where('id', $identity['id'])->where('status', 1)->first();
+            $admin = Admin::where('id', $identity['id'])->where('status', 1)->first();
             if (!$admin) throw new DomainException('登录已失效', 401);
             return $this->result($callback($admin), $msg);
         } catch (DomainException $error) {

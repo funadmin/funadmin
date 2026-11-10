@@ -3,10 +3,12 @@
 namespace app\admin\authorization\model;
 
 use app\common\model\BaseModel;
+use app\common\model\concern\LaravelSoftDelete;
 use app\common\traits\DataFormat;
 
 class Permission extends BaseModel
 {
+    use LaravelSoftDelete;
     use DataFormat;
 
     protected $table = 'permission';

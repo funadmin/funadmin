@@ -35,17 +35,23 @@ final class AdminSessionTokenTest extends TestCase
             $table->softDeletes();
         });
         $schema->create('login_attempts', static function (Blueprint $table): void {
-            $table->string('key', 64)->primary();
+            $table->id();
+            $table->string('key', 64);
             $table->unsignedInteger('attempts')->default(0);
             $table->unsignedBigInteger('window_start');
+            $table->softDeletes();
+            $table->unsignedBigInteger('deleted_token')->default(0);
+            $table->unique(['key', 'deleted_token']);
         });
         $schema->create('admin_auth_tokens', static function (Blueprint $table): void {
-            $table->string('token_hash', 64)->primary();
+            $table->id();
+            $table->string('token_hash', 64)->unique();
             $table->unsignedBigInteger('admin_id')->index();
             $table->string('purpose', 16);
             $table->string('credential_version', 64);
             $table->dateTime('expires_at')->index();
             $table->dateTime('created_at');
+            $table->softDeletes();
         });
     }
 

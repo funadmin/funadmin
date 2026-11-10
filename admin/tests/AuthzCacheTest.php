@@ -96,7 +96,7 @@ final class AuthzCacheTest extends TestCase
             return json(['code' => 200]);
         });
         self::assertSame(200, $this->code($response));
-        self::assertSame(1, $this->queriesMatching('/from "fun_casbin_rule" where \("ptype"/'), 'enforcer 在一个请求内只构建一次');
+        self::assertSame(1, $this->queriesMatching('/from "fun_casbin_rule" where \(+"ptype"/'), 'enforcer 在一个请求内只构建一次');
         self::assertSame(1, $this->queriesMatching('/from "fun_admin" where/'), '管理员行只读一次');
         self::assertSame(1, $this->queriesMatching('/from "fun_browser_sessions"/'), '会话只解析一次（含 CSRF 引导与校验）');
         self::assertSame(1, $this->queriesMatching('/from "fun_system_secret" where "name" = \? limit 1/'), '授权版本每个请求只读一次');

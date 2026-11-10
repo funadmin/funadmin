@@ -432,7 +432,7 @@ final class AuthorizationIntegrationTest extends TestCase
         $this->asActor(1, 'POST', ['password' => 'replacement-safe-password']);
         $response = (new \app\admin\authorization\controller\SystemAdmin())->resetPassword(2);
         self::assertSame(200, json_decode($response->rawBody(), true)['code']);
-        self::assertSame(0, Db::table('admin_auth_tokens')->where('admin_id', 2)->count());
+        self::assertSame(0, Db::table('admin_auth_tokens')->where('admin_id', 2)->whereNull('deleted_at')->count());
         $this->expectException(\DomainException::class);
         $auth->authenticate($token);
     }

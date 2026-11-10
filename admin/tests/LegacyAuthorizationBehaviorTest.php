@@ -14,7 +14,7 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
     protected function setUp(): void
     {
         $schema = Db::schema();
-        foreach (['casbin_rule', 'admin_menu', 'permission', 'auth_group', 'admin'] as $table) {
+        foreach (['casbin_rule', 'auth_group_inherit', 'admin_menu', 'permission', 'auth_group', 'admin'] as $table) {
             $schema->dropIfExists($table);
         }
         $schema->create('admin', static function (Blueprint $table): void {
@@ -75,6 +75,14 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
             $table->string('v4', 190)->default('');
             $table->string('v5', 190)->default('');
             $table->string('rule_hash', 64)->unique();
+            $table->softDeletes();
+        });
+        $schema->create('auth_group_inherit', static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('role_id');
+            $table->unsignedBigInteger('parent_role_id');
+            $table->timestamps();
+            $table->softDeletes();
         });
         Db::table('admin')->insert([
             ['id' => 1, 'username' => 'root', 'password' => 'x', 'status' => 1],
@@ -97,7 +105,7 @@ final class LegacyAuthorizationBehaviorTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (['casbin_rule', 'admin_menu', 'permission', 'auth_group', 'admin'] as $table) {
+        foreach (['casbin_rule', 'auth_group_inherit', 'admin_menu', 'permission', 'auth_group', 'admin'] as $table) {
             Db::schema()->dropIfExists($table);
         }
     }

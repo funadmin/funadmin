@@ -37,9 +37,9 @@ final class CasbinAdapterTest extends TestCase
         }
         self::assertSame(2, Db::table('casbin_rule')->count());
         $adapter->removeFilteredPolicy('p', 'p', 0, 'role:2');
-        self::assertSame(['other'], Db::table('casbin_rule')->pluck('v1')->all());
+        self::assertSame(['other'], Db::table('casbin_rule')->whereNull('deleted_at')->pluck('v1')->all());
         $other->removePolicy('p', 'p', ['role:2', 'other', 'demo/page', 'read']);
-        self::assertSame(0, Db::table('casbin_rule')->count());
+        self::assertSame(0, Db::table('casbin_rule')->whereNull('deleted_at')->count());
     }
 
     public function test_adapter_cannot_write_another_domain(): void

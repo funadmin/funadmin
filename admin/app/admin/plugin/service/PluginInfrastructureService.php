@@ -339,12 +339,26 @@ final class PluginInfrastructureService
             AdminMenu::where('source_type', 'plugin')->where('source_name', $code)->delete();
             \app\admin\authorization\model\Permission::where('source_type', 'plugin')->where('source_name', $code)->delete();
             foreach ((array) ($snapshot['permissions'] ?? []) as $row) {
-                \app\admin\authorization\model\Permission::forceCreate($row);
+                self::reviveSnapshotRow(\app\admin\authorization\model\Permission::class, $row);
             }
             foreach ((array) ($snapshot['menus'] ?? []) as $row) {
-                AdminMenu::forceCreate($row);
+                self::reviveSnapshotRow(AdminMenu::class, $row);
             }
         });
+    }
+
+    /** 快照行在上面已被软删除（主键仍在）：按主键恢复为快照内容，不存在时才新建。 */
+    private static function reviveSnapshotRow(string $class, array $row): void
+    {
+        $model = isset($row['id']) ? $class::withTrashed()->find($row['id']) : null;
+        if (!$model) {
+            $class::forceCreate($row);
+            return;
+        }
+        $model->forceFill($row);
+        $model->{$model->getDeletedAtColumn()} = null;
+        if ($model->hasDeletedToken()) $model->{$model->getDeletedTokenColumn()} = 0;
+        $model->save();
     }
 
     public function assertPurgeAllowed(Manifest $manifest): void
