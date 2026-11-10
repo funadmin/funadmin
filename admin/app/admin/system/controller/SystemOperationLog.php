@@ -235,9 +235,9 @@ class SystemOperationLog extends AdminController
     }
 
     /**
-     * 彻底删除指定操作日志（未删除与回收站中的均可），不可恢复。
+     * 彻底删除回收站中指定的操作日志，不可恢复；未删除的日志须先删除（进入回收站）。
      *
-     * 请求字段：ids（正整数，不可重复）。含无法解析、为 0 或重复的 ID 时返回 422；任一 ID 不存在或不在当前数据范围内时返回 403；
+     * 请求字段：ids（正整数，不可重复）。含无法解析、为 0 或重复的 ID 时返回 422；任一 ID 未删除（不在回收站）、不存在或不在当前数据范围内时返回 403；
      * 两种情况都不删除任何记录。范围校验与删除在同一事务中完成。
      *
      * @return Response JSON 格式的接口响应。
@@ -246,7 +246,7 @@ class SystemOperationLog extends AdminController
      *     path="/admin/system/log/operation/force",
      *     operationId="admin_system_controller_SystemOperationLog_forceDelete_delete",
      *     tags={"操作日志"},
-     *     summary="彻底删除指定操作日志（未删除与回收站中的均可），不可恢复。",
+     *     summary="彻底删除回收站中指定的操作日志，不可恢复；未删除的日志须先删除（进入回收站）。",
      *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
      *     @OA\RequestBody(
@@ -272,14 +272,14 @@ class SystemOperationLog extends AdminController
             return $this->fail(msg: '请选择要彻底删除的日志', code: 422);
         }
         $removed = Db::transaction(static function () use ($ids): ?int {
-            $query = AdminLog::scopedQuery()->withTrashed()->whereIn('id', $ids);
+            $query = AdminLog::scopedQuery()->onlyTrashed()->whereIn('id', $ids);
             if ((clone $query)->lockForUpdate()->count() !== count($ids)) {
                 return null;
             }
             return (int) $query->forceDelete();
         });
         if ($removed === null) {
-            return $this->fail(msg: '包含不存在或无权删除的日志', code: 403);
+            return $this->fail(msg: '只能彻底删除回收站中的日志（包含未删除、不存在或无权删除的日志）', code: 403);
         }
         return $this->ok('彻底删除成功', ['removed' => $removed]);
     }

@@ -156,27 +156,34 @@ final class OperationLogIntegrationTest extends TestCase
         self::assertSame('', (string) $live['list'][0]['deletedAt']);
     }
 
-    public function test_force_delete_removes_live_and_trashed_logs(): void
+    public function test_force_delete_removes_only_trashed_logs(): void
     {
         Db::table('admin')->insert(['id' => 22, 'username' => 'auditor', 'password' => 'hidden', 'status' => 1]);
+        $now = date('Y-m-d H:i:s');
         $live = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '未删除']);
-        $trashed = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '已删除', 'deleted_at' => date('Y-m-d H:i:s')]);
-        $kept = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '保留']);
-        $other = Db::table('admin_log')->insertGetId(['admin_id' => 33, 'name' => '其他', 'deleted_at' => date('Y-m-d H:i:s')]);
+        $trashed = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '已删除', 'deleted_at' => $now]);
+        $trashedToo = Db::table('admin_log')->insertGetId(['admin_id' => 22, 'name' => '也已删除', 'deleted_at' => $now]);
+        $other = Db::table('admin_log')->insertGetId(['admin_id' => 33, 'name' => '其他', 'deleted_at' => $now]);
+        $all = [$live, $trashed, $trashedToo, $other];
 
         $this->asActor(22);
         self::assertSame(422, $this->json((new SystemOperationLog())->forceDelete())['code']);
 
-        $this->asActor(22, '?ids[]=' . $live . '&ids[]=' . $other);
-        self::assertSame(403, $this->json((new SystemOperationLog())->forceDelete())['code']);
-        self::assertSame(4, Db::table('admin_log')->whereIn('id', [$live, $trashed, $kept, $other])->count(), '包含越权记录时一条都不删');
+        foreach (['未删除的日志' => [$live], '未删除与回收站混合' => [$live, $trashed], '越权' => [$trashed, $other], '不存在' => [$trashed, 999999]] as $case => $ids) {
+            $this->asActor(22, '?' . http_build_query(['ids' => $ids]));
+            $result = $this->json((new SystemOperationLog())->forceDelete());
+            self::assertSame(403, $result['code'], $case);
+            self::assertStringContainsString('只能彻底删除回收站中的日志', $result['msg'], $case);
+            self::assertSame(4, Db::table('admin_log')->whereIn('id', $all)->count(), $case . '：一条都不删');
+        }
+        self::assertNull(Db::table('admin_log')->where('id', $live)->value('deleted_at'), '未删除的日志保持未删除');
 
-        $this->asActor(22, '?ids[]=' . $live . '&ids[]=' . $trashed);
+        $this->asActor(22, '?' . http_build_query(['ids' => [$trashed, $trashedToo]]));
         $result = $this->json((new SystemOperationLog())->forceDelete());
         self::assertSame(200, $result['code']);
         self::assertSame(['removed' => 2], $result['data']);
-        self::assertFalse(Db::table('admin_log')->whereIn('id', [$live, $trashed])->exists(), '未删除和回收站中的日志都被真实删除');
-        self::assertSame(2, Db::table('admin_log')->whereIn('id', [$kept, $other])->count());
+        self::assertFalse(Db::table('admin_log')->whereIn('id', [$trashed, $trashedToo])->exists(), '回收站中的日志被真实删除');
+        self::assertSame([$live, $other], Db::table('admin_log')->whereIn('id', $all)->orderBy('id')->pluck('id')->map('intval')->all());
     }
 
     public function test_clear_force_empties_only_the_recycle_bin_in_scope(): void
