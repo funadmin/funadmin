@@ -111,7 +111,7 @@
 | `cd web && npx vue-tsc --noEmit` | 退出 0，无类型错误 |
 | 本轮 9 个生产 PHP 文件 `php -l` / `git diff --check` | 全部通过 |
 
-前端剩余失败均在本轮工作以外，记录为其他会话 / 历史契约未同步，不修改其业务代码：
+**归属更正（补漏复核）**：此前把以下全部前端失败归为其他会话范围不准确。`admin-email-length`、`field-hygiene-migration`、`legacy-schema-debt`、`schema-integrity-migration` 四个文件中共 7 项失败，实际由本次软删除改造后契约与夹具未同步导致，由本任务负责，已在第 6 节修复；不是其他会话的问题。以下保留的是当时失败清单，最新结果见第 6 节：
 
 - `web/tests/contracts/admin-email-length.spec.ts`：2 个源码契约（会员关联保存 / 分组引用保护）。
 - `web/tests/contracts/field-hygiene-migration.spec.ts`：3 个源码契约（FieldVerify 主键、会员邮箱查重、角色 name/code 查重）。
@@ -123,7 +123,7 @@
 
 首次全前端运行是 226 文件 / 1943 测试通过、8 文件 / 13 测试失败，其中 CRUD 测试数硬编码由本轮新增测试触发，已修正并完整重跑，上表是最终结果，不将该项归于其他会话。
 
-### 后端全量失败归属
+### 前一轮后端全量失败归属（历史结果，最新复测见第 6 节）
 
 全量运行不是绿色，不能套用初轮 1770 OK 的结论：
 
@@ -139,3 +139,55 @@
 修改宿主插件包装器和附件失败响应后，又跑了上述 49 项定向测试，全部通过；全量可能在开始收集之后才看到部分修改，最终行为以定向复测和已提交代码为准。
 
 测试输出保留在本机 `/tmp/task9-backend-full.log`、`/tmp/task9-cms.log`、`/tmp/task9-frontend-final.log`、`/tmp/task9-typecheck.log`（临时文件，不入库）。共享工作树内其他会话的改动完整保留，本轮代码提交不包含它们；未执行开发库迁移、未推送。
+
+
+## 6. 补漏复核：语言历史隔离与前端行为契约
+
+### 修复与归属更正
+
+- 语言重命名之前使用 `LanguageLine::withTrashed()` 批量改 locale，会搬走同名旧语言的已删译文，使新语言 `saveLine` 复活旧行。改为仅更新未删除译文，墓碑完全不动。回归按“建 fr-fr + 译文 → 删语言 → 重建 fr-fr → 改名 de-de → 保存同 key”重现，修复前明确失败于旧 locale 被改；修复后验证旧行完整属性（含 locale / deleted_at / deleted_token）不变、有效译文被正确移动、新保存不复活旧 id。
+- 四个前端旧契约由本次软删除改造导致失配，之前归入其他会话不准确，现予纠正；不回退生产软删除逻辑，也不只是删除旧断言。
+- `admin-email-length.spec.ts` 改成验证 `SystemMember` 委托 `RelationRowSync` 后真实执行的差异同步行为：未变化行 id / created_at 不变、移除行写两列软删除、新增行插入、已有墓碑保留、再次保存幂等。分组引用保护检查委托 `MemberReferenceGuard`，运行控制器 / 模型实际拒绝有效引用、删除会员后允许删除分组的测试。管理员邮箱长度与会员登录字段断言全部保留。
+- `schema-integrity-migration.spec.ts` 对分组、标签均运行上述真实控制器关系同步测试，核验新增 created_at、旧 created_at 与墓碑不变、没有 create_time 写入；保留迁移前缀 / 查询下推断言。
+- `legacy-schema-debt.spec.ts` 标签同步改验证同样的运行时差异行为；其余 API / UI 断言全部保留。
+- `field-hygiene-migration.spec.ts` 用实例 `FieldVerify::getKeyName()` 验证 id；注册测试复用真实迁移夹具（含 login_attempts），覆盖有效会员重复邮箱拒绝、冷静期内拒绝、期满后同邮箱可注册且旧行保留、60 字符限制及空值规范化；角色测试覆盖未删除 name / code 重复拒绝、软删除后相同值可重用，并保留数据库唯一冲突异常处理源码断言及实际数据库唯一约束验证。
+- 运行时行为测试统一位于 `admin/tests/RemainingSoftDeleteGapTest.php`，四个前端文件调用其对应定向 PHPUnit 测试，避免复制不完整的手建表夹具。
+- CMS / OSS 的 gitignored 测试由其他会话先行修复；本任务只读复核并运行两文件，5 测试、46 断言通过，没有覆盖其修改。其他会话修正的五类夹具也以当前工作树为准，不纳入本任务提交。
+
+### 定向验证
+
+| 命令 | 结果 |
+| --- | --- |
+| `cd admin && vendor/bin/phpunit tests/RemainingSoftDeleteGapTest.php --filter test_language_rename`（先红后绿） | 修复前 1 测试失败（旧译文 locale 被移动）；修复后 1 测试、7 断言通过 |
+| `cd admin && vendor/bin/phpunit tests/RemainingSoftDeleteGapTest.php` | 11 测试、128 断言全部通过 |
+| `cd web && npx vitest run tests/contracts/admin-email-length.spec.ts tests/contracts/schema-integrity-migration.spec.ts tests/contracts/legacy-schema-debt.spec.ts tests/contracts/field-hygiene-migration.spec.ts` | 4 文件、17 测试全部通过 |
+
+完整前后端复测仍包含其他会话的未提交迁移 / 测试 / 模板工具改动；本任务只提交语言重命名修复、RemainingSoftDeleteGapTest、四个前端契约及本验证文档，未提交共享修改，未推送。
+
+
+### 全前端复测与剩余分类（当前工作树）
+
+- `cd web && npx vitest run`：234 文件中 **231 通过、3 失败**；1956 测试中 **1951 通过、5 失败**，耗时 63.29 秒。上述四个文件的 17 个测试在全量中也通过。
+- `cd web && npx vue-tsc --noEmit`：退出 0，无类型错误。外层串行脚本的最终退出码是类型检查的 0，**不代表 Vitest 全量通过**；以 Vitest 的上述统计为准。
+- 后端扩展定向复测：`vendor/bin/phpunit tests/LanguageIntegrationTest.php tests/MemberCoolingPeriodTest.php tests/Console/CrudTraitExecutionTest.php tests/RemainingSoftDeleteGapTest.php`，38 测试、332 断言通过。
+
+剩余 5 个前端失败逐项分类（没有简单归咎于其他会话，也没有证明它们是生产错误）：
+
+1. `member-registration-admin-scope.spec.ts` 的默认分组注册测试：**迁移后夹具失配**。完整迁移已有 nickname，测试仍无条件 `schema()->table('member')` 添加 nickname / motto / real_name 等列，先于注册断言即报 duplicate column name: nickname。该文件与本轮指定的四个契约不同，未修改；和本轮已修的邮箱夹具属于类似的过时夹具债务，不能靠该失败推断注册行为错误。
+2. `service-cache-invalidation.spec.ts` 的 AbstractService 测试：**旧缓存架构源码契约**，要求 `use support\Cache` 和 `clearApplicationCache()` 全局清理接口；当前实现没有该接口，断言在运行时验证前失败。未触及该服务。
+3. 同文件 ResourceRegistryService 测试：**旧缓存架构源码契约**，要求调用 `$this->clearApplicationCache()`，与现有定向鉴权缓存失效实现不符。未修改该实现。
+4. 同文件 PluginService 测试：**旧缓存架构源码契约**，同样硬编码公共全局缓存清理调用。此前只修改其宿主控制器的恢复冲突 catch，未修改服务缓存逻辑。
+5. `title-to-name-migration.spec.ts` 的菜单 API 测试：**源码签名契约过时**，硬编码 `$this->menuData($menu)`，当前实际为 `$this->menuData($menu, $code($menu))`，新增明确权限参数；在 JSON 行为断言前失败。未修改菜单服务。其后迁移夹具也需按当前已播种管理员调整，不能仅放宽一处字符串就宣称通过。
+
+这些余项保持为明确未通过项，未在本任务中扩展修改范围；建议后续分别改为与当前结构和缓存语义一致的行为测试。
+
+
+### 全后端复测与提交
+
+- `cd admin && vendor/bin/phpunit`：**退出 0；1787 测试、25224 断言、110 skipped，0 errors / 0 failures**，耗时 3 分 35.495 秒。运行包含其他会话尚未提交的核心迁移 / 测试夹具改动；此前 CMS、OSS 和五类夹具错误在当前共享工作树中已消失，不再列为当前遗留。
+- 补充 `vendor/bin/phpunit tests/SoftDeleteTraitTest.php tests/ExceptionTest.php`：17 测试、84 断言通过。
+- 本轮生产 PHP / 测试 PHP 语法检查及**本任务路径**的 `git diff --check` 均通过；整个共享工作树曾在其他会话的 `MySqlSoftDeleteUpgradeTest.php:122` 发现尾空格，未越界修改，也不据此宣称全仓库 diff 无警告。
+- 代码 / 测试提交：`9efcba603`（`fix: 语言重命名保留译文墓碑，更新软删除行为契约`）。文档随后单独提交；没有推送，没有对开发库执行迁移。
+- 当前重要遗留为上文 **3 个前端文件中的 5 项失败**，不是全后端失败。本任务指定的 4 个前端契约均已通过；未以回退软删除逻辑或放宽状态码的方式让测试变绿。
+
+本轮完整日志：`/tmp/task9-followup-backend-full.log`、`/tmp/task9-followup-frontend-full.log`、`/tmp/task9-followup-typecheck.log`（临时文件，不入库）。
