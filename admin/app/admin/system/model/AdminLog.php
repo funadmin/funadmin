@@ -66,6 +66,7 @@ class AdminLog extends BaseModel
             'durationMs' => (int) $this->duration_ms,
             'requestId' => (string) $this->request_id,
             'createdAt' => $this->formatTime($this->created_at),
+            'deletedAt' => $this->formatTime($this->deleted_at),
         ];
         if ($detail) {
             $data['getData'] = (string) $this->get_data;

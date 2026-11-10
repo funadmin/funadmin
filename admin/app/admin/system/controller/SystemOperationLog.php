@@ -23,7 +23,8 @@ class SystemOperationLog extends AdminController
     /**
      * 在当前数据范围内按操作人、来源和时间分页查询操作日志。
      *
-     * 查询参数：username、appName、sourceType、sourceName、status、startTime、endTime、page、pageSize。
+     * 查询参数：trashed、username、appName、sourceType、sourceName、status、startTime、endTime、page、pageSize。
+     * trashed=1 时只列出回收站（已软删除）中的日志，行结构相同，deletedAt 为删除时间；否则只列出未删除的日志（deletedAt 为空）。
      *
      * @return Response JSON 格式的接口响应。
      *
@@ -34,6 +35,7 @@ class SystemOperationLog extends AdminController
      *     summary="在当前数据范围内按操作人、来源和时间分页查询操作日志。",
      *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
      *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="trashed", in="query", required=false, description="1 表示只列出回收站中已软删除的日志。", @OA\Schema(type="integer", enum={0, 1}, default=0)),
      *     @OA\Parameter(name="username", in="query", required=false, description="username 参数。", @OA\Schema(type="string")),
      *     @OA\Parameter(name="appName", in="query", required=false, description="appName 参数。", @OA\Schema(type="string")),
      *     @OA\Parameter(name="sourceType", in="query", required=false, description="sourceType 参数。", @OA\Schema(type="string")),
@@ -61,6 +63,9 @@ class SystemOperationLog extends AdminController
         $page = $this->page();
         $pageSize = $this->pageSize();
         $query = AdminLog::scopedQuery();
+        if ((int) $this->request->get('trashed', 0) === 1) {
+            $query->onlyTrashed();
+        }
         $username = trim((string) $this->request->get('username', ''));
         $appName = trim((string) $this->request->get('appName', ''));
         $sourceType = trim((string) $this->request->get('sourceType', ''));
@@ -226,6 +231,70 @@ class SystemOperationLog extends AdminController
             $log->delete();
         }
         return $this->ok('删除成功', ['removed' => count($logs)]);
+    }
+
+    /**
+     * 彻底删除指定操作日志（未删除与回收站中的均可），不可恢复。
+     *
+     * 请求字段：ids。任一 ID 不存在或不在当前数据范围内时整体拒绝，不删除任何记录。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/log/operation/force",
+     *     operationId="admin_system_controller_SystemOperationLog_forceDelete_delete",
+     *     tags={"操作日志"},
+     *     summary="彻底删除指定操作日志（未删除与回收站中的均可），不可恢复。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(type="object", required={"ids"}, @OA\Property(property="ids", type="array", description="目标记录 ID 集合。", @OA\Items(type="integer")))
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
+    #[Delete('/force')]
+    public function forceDelete(): Response
+    {
+        $ids = $this->ids();
+        if (!$ids) {
+            return $this->fail(msg: '请选择要彻底删除的日志', code: 422);
+        }
+        $query = AdminLog::scopedQuery()->withTrashed()->whereIn('id', $ids);
+        if ((clone $query)->count() !== count($ids)) {
+            return $this->fail(msg: '包含不存在或无权删除的日志', code: 403);
+        }
+        $removed = $query->forceDelete();
+        return $this->ok('彻底删除成功', ['removed' => (int) $removed]);
+    }
+
+    /**
+     * 彻底清空当前管理员数据范围内的全部操作日志（含回收站），不可恢复。
+     *
+     * @return Response JSON 格式的接口响应。
+     *
+     * @OA\Delete(
+     *     path="/admin/system/log/operation/clear-force",
+     *     operationId="admin_system_controller_SystemOperationLog_clearForce_delete",
+     *     tags={"操作日志"},
+     *     summary="彻底清空当前管理员数据范围内的全部操作日志（含回收站），不可恢复。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
+    #[Delete('/clear-force')]
+    public function clearForce(): Response
+    {
+        $removed = AdminLog::scopedQuery()->withTrashed()->forceDelete();
+        return $this->ok('彻底清空成功', ['removed' => (int) $removed]);
     }
 
 }

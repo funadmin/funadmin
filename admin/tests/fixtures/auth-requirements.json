@@ -139,6 +139,16 @@
         "login": true,
         "permission": "system:operation-log:clear"
     },
+    "DELETE /admin/system/log/operation/clear-force => app\\admin\\system\\controller\\SystemOperationLog::clearForce": {
+        "guard": "admin",
+        "login": true,
+        "permission": "system:operation-log:clear-force"
+    },
+    "DELETE /admin/system/log/operation/force => app\\admin\\system\\controller\\SystemOperationLog::forceDelete": {
+        "guard": "admin",
+        "login": true,
+        "permission": "system:operation-log:force-delete"
+    },
     "DELETE /admin/system/log/operation/{id:\\d+} => app\\admin\\system\\controller\\SystemOperationLog::deleteById": {
         "guard": "admin",
         "login": true,
