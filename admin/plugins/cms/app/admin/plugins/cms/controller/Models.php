@@ -11,7 +11,7 @@ final class Models extends Base
     #[Get('')]
     public function index(): Response { return $this->action(function(): array {$this->site('cms:model:list');return (new ModelService())->listing();}); }
     #[Get('/bindings')]
-    public function bindings(): Response { return $this->action(fn()=>\app\cms\service\Input::rows(\support\Db::table('cms_site_model')->where('site_id',$this->site('cms:model:list'))->get())); }
+    public function bindings(): Response { return $this->action(fn()=>\app\cms\service\Input::rows(\app\cms\model\SiteModel::query()->where('site_id',$this->site('cms:model:list'))->get())); }
     #[Post('/save')]
     public function save(): Response { return $this->action(function(): array {(new SiteAccess())->super($this->actor());return (new ModelService())->save($this->input());}); }
 }

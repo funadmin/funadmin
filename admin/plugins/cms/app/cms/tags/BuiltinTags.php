@@ -10,7 +10,7 @@ use app\cms\service\MenuService;
 use app\cms\service\SiteService;
 use app\cms\service\RouteService;
 use app\cms\service\Input;
-use support\Db;
+use app\cms\model\{CategoryLocale,ContentLocale};
 final class BuiltinTags
 {
     private ?array $pagination=null;
@@ -70,8 +70,8 @@ final class BuiltinTags
         $registry->register('languages',new CallbackTag([],static function($p,RenderContext $c): array {
             $items=[];foreach((new SiteService())->locales($c->siteId,true) as $language){
                 $type=$c->page['target_type']??'home';$target=null;
-                if($type==='content'&&!empty($c->page['content_id']))$target=Db::table('cms_content_locale')->where('site_id',$c->siteId)->where('content_id',$c->page['content_id'])->where('locale',$language['locale'])->where('status','published')->whereNull('deleted_at')->value('id');
-                elseif($type==='category'&&!empty($c->page['category_id']))$target=Db::table('cms_category_locale')->where('site_id',$c->siteId)->where('category_id',$c->page['category_id'])->where('locale',$language['locale'])->where('status',1)->value('id');
+                if($type==='content'&&!empty($c->page['content_id']))$target=ContentLocale::query()->where('site_id',$c->siteId)->where('content_id',$c->page['content_id'])->where('locale',$language['locale'])->where('status','published')->value('id');
+                elseif($type==='category'&&!empty($c->page['category_id']))$target=CategoryLocale::query()->where('site_id',$c->siteId)->where('category_id',$c->page['category_id'])->where('locale',$language['locale'])->where('status',1)->value('id');
                 elseif($type==='home'||$type==='search')$target=$language['id'];
                 if(!$target)continue;if($type==='content'){$detail=(new ContentService())->publicDetail($c->siteId,(string)$target);if(!$detail||str_contains($detail['robots'],'noindex'))continue;}
                 if($type==='category'&&!(new CategoryService())->detail($c->siteId,(string)$target))continue;
@@ -80,7 +80,7 @@ final class BuiltinTags
         },false));
         $registry->register('breadcrumb',new CallbackTag([],static function($p,RenderContext $c): array {
             $items=[];$id=$c->page['category_id']??null;$seen=[];
-            while($id!==null&&!in_array($id,$seen,true)&&count($seen)<32){$seen[]=$id;$translation=Db::table('cms_category_locale')->where('site_id',$c->siteId)->where('category_id',$id)->where('locale',$c->locale)->where('status',1)->first();if(!$translation)break;$row=(new CategoryService())->detail($c->siteId,(string)$translation->id);if(!$row)break;array_unshift($items,$row);$id=$row['parent_id'];}return $items;
+            while($id!==null&&!in_array($id,$seen,true)&&count($seen)<32){$seen[]=$id;$translation=CategoryLocale::query()->where('site_id',$c->siteId)->where('category_id',$id)->where('locale',$c->locale)->where('status',1)->first();if(!$translation)break;$row=(new CategoryService())->detail($c->siteId,(string)$translation->id);if(!$row)break;array_unshift($items,$row);$id=$row['parent_id'];}return $items;
         },false));
         $registry->register('pagination',new CallbackTag([],function($p,RenderContext $c): TrustedHtml {
             if(!$this->pagination)return new TrustedHtml('');$data=$this->pagination;$pages=(int)ceil($data['total']/$data['limit']);if($pages<=1)return new TrustedHtml('');$html='<nav aria-label="分页" class="pagination">';$basePath=$c->page['base_path']??$c->page['path']??'/';$base=rtrim($basePath,'/');

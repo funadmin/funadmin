@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\common\model\Attach;
 use support\Db;
 
 /** Safe view data for the built-in corporate/editorial theme; contains no persistence. */
@@ -54,7 +55,7 @@ final class ThemePresentation
     {
         if(!$id||!Db::schema()->hasTable('attach'))return '';
         try{$id=Input::id($id);}catch(\InvalidArgumentException){return '';}
-        $file=Db::table('attach')->where('id',$id)->where('status',1)->whereNull('deleted_at')->first();
+        $file=Attach::query()->withoutGlobalScopes()->where('id',$id)->where('status',1)->whereNull('deleted_at')->first();
         if(!$file||!in_array(strtolower((string)$file->ext),['jpg','jpeg','png','gif','webp','avif'],true))return '';
         $url=(string)($file->url?:$file->path);return $url!==''&&HtmlSanitizer::safeUrl($url)?$url:'';
     }

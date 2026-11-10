@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace app\cms\service;
 use app\cms\template\TrustedHtml;
+use app\common\model\Attach;
 use support\Db;
 final class Seo
 {
@@ -58,7 +59,7 @@ final class Seo
     {
         if(!$id||!Db::schema()->hasTable('attach'))return null;
         try{$id=Input::id($id);}catch(\InvalidArgumentException){return null;}
-        $file=Db::table('attach')->where('id',$id)->where('status',1)->whereNull('deleted_at')->first();
+        $file=Attach::query()->withoutGlobalScopes()->where('id',$id)->where('status',1)->whereNull('deleted_at')->first();
         if(!$file||!in_array(strtolower((string)$file->ext),['jpg','jpeg','png','gif','webp','avif'],true))return null;
         $url=self::absolute((string)($file->url?:$file->path),$origin);
         return $url===''?null:['url'=>$url,'width'=>(int)($file->width??0),'height'=>(int)($file->height??0)];

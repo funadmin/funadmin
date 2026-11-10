@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace app\cms\service;
+use app\admin\authorization\model\Permission;
 
 /** Site operations map to existing host capabilities, preserving the system ceiling on upgrade. */
 final class PermissionCatalog
@@ -125,7 +126,7 @@ final class PermissionCatalog
     public static function registered(): array
     {
         if(!\support\Db::schema()->hasTable('permission'))return [];
-        return \support\Db::table('permission')->where('source_type','plugin')->where('source_name','cms')->where('status',1)->whereNull('deleted_at')->whereIn('resource_type',['route','capability'])->whereIn('code',self::hostCodes())->pluck('code')->all();
+        return Permission::query()->where('source_type','plugin')->where('source_name','cms')->where('status',1)->whereNull('deleted_at')->whereIn('resource_type',['route','capability'])->whereIn('code',self::hostCodes())->pluck('code')->all();
     }
     public static function presets(): array
     {

@@ -11,6 +11,9 @@ use app\cms\service\SiteService;
 use app\cms\service\SiteAccess;
 use app\cms\service\SiteAuthorization;
 use app\cms\service\PermissionCatalog;
+use app\cms\model\ContentModel;
+use app\cms\model\SiteLocale;
+use app\cms\model\SiteModel;
 #[RouteGroup('/admin/plugins/cms')]
 final class Sites extends Base
 {
@@ -25,7 +28,7 @@ final class Sites extends Base
         $menu=(string)($this->input()['menu']??'');if($menu!==''&&!in_array($menu,PermissionCatalog::menus(),true))throw new \InvalidArgumentException('未知菜单',422);
         $auth=new SiteAuthorization();$items=[];
         foreach((new SiteService())->listing($this->actor()) as $site){$effective=$auth->effective($site['id'],$this->actor());if(!$effective||$menu!==''&&!in_array($menu,$effective,true))continue;
-            $locales=Input::rows(Db::table('cms_site_locale')->where('site_id',$site['id'])->where('status',1)->select(['id','site_id','locale','name','url_prefix','status'])->orderBy('id')->get());
+            $locales=Input::rows(SiteLocale::query()->where('site_id',$site['id'])->where('status',1)->select(['id','site_id','locale','name','url_prefix','status'])->orderBy('id')->get());
             $items[]=['id'=>$site['id'],'name'=>$site['name'],'default_locale'=>$site['default_locale'],'locales'=>$locales,'permissions'=>$effective];
         }
         return ['items'=>$items,'is_super'=>(new SiteAccess())->isSuper($this->actor())];
@@ -39,7 +42,7 @@ final class Sites extends Base
         return ['themes'=>(new \app\cms\service\TemplateCatalog())->themes()];
     }); }
     #[Get('/settings')]
-    public function settings(): Response { return $this->action(function():array {$id=$this->site('cms:site:detail');$s=new SiteService();return ['site'=>$s->get($id),'locales'=>$s->locales($id),'domains'=>$s->domains($id),'models'=>Input::rows(Db::table('cms_site_model')->where('site_id',$id)->get())];}); }
+    public function settings(): Response { return $this->action(function():array {$id=$this->site('cms:site:detail');$s=new SiteService();return ['site'=>$s->get($id),'locales'=>$s->locales($id),'domains'=>$s->domains($id),'models'=>Input::rows(SiteModel::query()->where('site_id',$id)->get())];}); }
     #[Get('/configuration')]
     public function configuration(): Response { return $this->action(fn()=>(new \app\cms\service\SiteConfiguration())->read($this->site('cms:site:detail'),empty($this->input()['locale'])?'':Input::locale($this->input()['locale']))); }
     #[Post('/configuration/save')]
@@ -59,11 +62,11 @@ final class Sites extends Base
     #[Post('/site-models/save')]
     public function modelSave(): Response { return $this->action(fn()=>Db::transaction(function():bool {
         $site=Input::id($this->input()['site_id']??'');(new SiteService())->lock($site);$this->siteAny(['cms:model:status','cms:model:template']);$input=$this->input();$id=Input::id($input['model_id']??'');
-        if(!Db::table('cms_content_model')->where('id',$id)->exists())throw new \InvalidArgumentException('模型不存在',404);
-        $old=Db::table('cms_site_model')->where('site_id',$site)->where('model_id',$id)->first();$auth=new SiteAuthorization();
+        if(!ContentModel::query()->where('id',$id)->exists())throw new \InvalidArgumentException('模型不存在',404);
+        $old=SiteModel::query()->where('site_id',$site)->where('model_id',$id)->first();$auth=new SiteAuthorization();
         $status=(int)($input['status']??$old->status??0);$template=Input::template($input['default_template']??$old->default_template??'detail');
         if($status!==(int)($old->status??0))$auth->assert($site,$this->actor(),'cms:model:status');
         if($template!==($old->default_template??'detail'))$auth->assert($site,$this->actor(),'cms:model:template');
-        Db::table('cms_site_model')->updateOrInsert(['site_id'=>$site,'model_id'=>$id],['status'=>$status,'default_template'=>$template]);return true;
+        SiteModel::query()->updateOrInsert(['site_id'=>$site,'model_id'=>$id],['status'=>$status,'default_template'=>$template]);return true;
     })); }
 }
