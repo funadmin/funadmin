@@ -307,8 +307,10 @@ class MigrationService extends AbstractService
      * - 文件在代码中使用 PREPARE / EXECUTE 时字符串会被当作 SQL 执行：每个字符串常量按 MySQL 规则反转义后用同一词法器
      *   重新分词，其中只允许 `DROP INDEX <索引名>` 与 `DROP PRIMARY KEY`（重建索引、换主键，不丢数据），其余 DROP、
      *   TRUNCATE、RENAME 拒绝；其中的字符串常量递归同样处理；全部字符串按顺序拼接后再查一次，防止关键字被拆到相邻字符串。
-     *   因此用到 PREPARE / EXECUTE 的文件里**每个**字符串常量都必须能单独按 SQL 分词：含 $、落单的撇号或引号片段、
-     *   DROP / TRUNCATE / RENAME 字样的数据值都会被拒绝——迁移作者应把数据写入放在不含 PREPARE 的文件里。
+     *   因此用到 PREPARE / EXECUTE 的文件里**每个**字符串常量（包括 COMMENT '…' 与 INSERT 的数据值）都按 SQL 分词与检查：
+     *   含 $、落单的撇号或引号片段、DROP / TRUNCATE / RENAME 字样，以及任何非 ASCII 文字（如中文 COMMENT '用户名'、
+     *   VALUES ('中文')，按非 ASCII 词拒绝，见 rejectSessionLexingChanges()）都会使整个文件被拒绝——
+     *   迁移作者应把这类注释、数据写入放在不含 PREPARE 的单独文件里；不含 PREPARE 的文件中字符串内容不受这些限制。
      * - 会话词法状态：引用 sql_mode（ANSI_QUOTES / NO_BACKSLASH_ESCAPES 改变引号与转义）或改客户端字符集
      *   （SET NAMES、SET CHARACTER SET / CHARSET、character_set_*；GBK 等字符集的尾字节可以是 0x5C）都会让 MySQL
      *   看到与词法器不同的字符串边界，静态代码与各层动态字符串一律拒绝，见 rejectSessionLexingChanges()。
@@ -371,7 +373,9 @@ class MigrationService extends AbstractService
     /**
      * 原样转发词法项，遇到会改变 MySQL 会话词法状态的引用即抛出 SqlLexerException（静态代码与每层动态 SQL 共用）：
      * - 代码中（字符串常量之外）任何含非 ASCII 字节的词或反引号标识符：MySQL 按 utf8mb3_general_ci 折叠系统变量名，
-     *   ſql_mode、sql_mòde、charactér_set_client 等与 sql_mode / character_set_client 等价，只做 ASCII 比较会被绕过；
+     *   ſql_mode、sql_mòde、charactér_set_client 等与 sql_mode / character_set_client 等价，只做 ASCII 比较会被绕过。
+     *   注意：用到 PREPARE / EXECUTE 的文件里每个字符串常量都会作为动态 SQL 再经过本函数，其中的非 ASCII 文字
+     *   （中文 COMMENT、中文数据值）就成了非 ASCII 词而被拒绝；这类内容须放在不含 PREPARE 的文件里；
      * - 任何位置引用 sql_mode 或 character_set_*：裸词、反引号标识符、@@x / @@SESSION.x / @@GLOBAL.x 都拆成这些词法项；
      * - 任何位置的 NAMES（SET NAMES，包括 SET @a=1, NAMES gbk 这种列表续项）；
      * - CHARSET / CHARACTER SET，除非所在语句是 CREATE [TEMPORARY] TABLE 或 ALTER TABLE（列/表的字符集选项，

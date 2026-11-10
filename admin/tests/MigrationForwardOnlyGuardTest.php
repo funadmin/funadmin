@@ -21,6 +21,21 @@ final class MigrationForwardOnlyGuardTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    /** 用到 PREPARE / EXECUTE 的文件里字符串常量按 SQL 再分词：非 ASCII 文字（中文 COMMENT）成了非 ASCII 词，整个文件拒绝。 */
+    public function test_non_ascii_comment_in_file_with_prepare_is_rejected(): void
+    {
+        $this->expectExceptionMessage('不允许非 ASCII 的词或标识符：用户名');
+        $this->guard("ALTER TABLE `fun_probe` ADD COLUMN `username` varchar(20) NULL COMMENT '用户名';\nSET @s='DO 0';\nPREPARE s FROM @s;\nEXECUTE s;");
+    }
+
+    /** 不含 PREPARE 的文件：字符串内容不再按 SQL 检查，中文 COMMENT 与中文数据值放行。 */
+    public function test_non_ascii_comment_and_data_without_prepare_stay_allowed(): void
+    {
+        $this->guard("ALTER TABLE `fun_probe` ADD COLUMN `username` varchar(20) NULL COMMENT '用户名';");
+        $this->guard("INSERT INTO `fun_probe` (`name`) VALUES ('中文');");
+        $this->addToAssertionCount(2);
+    }
+
     /** @return iterable<string, array{string}> */
     public static function forbidden(): iterable
     {
