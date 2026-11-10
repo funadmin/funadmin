@@ -33,8 +33,10 @@ class Member extends BaseModel {
     /**
      * @var bool
      */
-    use LaravelSoftDelete;
-    use CascadesMemberDeletion;
+    use LaravelSoftDelete, CascadesMemberDeletion {
+        CascadesMemberDeletion::restore insteadof LaravelSoftDelete;
+        LaravelSoftDelete::restore as restoreSoftDeleted;
+    }
     use DataFormat;
 
 

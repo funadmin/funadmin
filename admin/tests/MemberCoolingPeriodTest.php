@@ -306,6 +306,80 @@ final class MemberCoolingPeriodTest extends TestCase
         self::assertSame(0, Db::table('member_tag_relation')->where('member_id', $gone)->count());
     }
 
+    public function test_restore_refuses_when_member_level_was_deleted(): void
+    {
+        $first = $this->createMember(['username' => 'lvlgone1', 'levelId' => 61, 'groupIds' => [71]]);
+        $second = $this->createMember(['username' => 'lvlgone2']);
+        $this->member('DELETE', '/admin/system/member', ['ids' => [$first, $second]], static fn ($c) => $c->recycle());
+        self::assertSame(200, $this->crud(SystemMemberLevel::class, 'DELETE', '/admin/system/member-level', ['ids' => [61]], static fn ($c) => $c->recycle())['code']);
+
+        $payload = $this->member('POST', '/admin/system/member/restore', ['ids' => [$second, $first]], static fn ($c) => $c->restore());
+        self::assertSame(422, $payload['code']);
+        self::assertStringContainsString('会员等级已删除', $payload['msg']);
+        // 整批不恢复：先处理的会员也回滚，关联保持删除。
+        self::assertSame(2, Db::table('member')->whereIn('id', [$first, $second])->whereNotNull('deleted_at')->count());
+        self::assertSame(0, Db::table('member_group_relation')->whereIn('member_id', [$first, $second])->whereNull('deleted_at')->count());
+
+        Db::table('member_level')->where('id', 61)->update(['deleted_at' => null, 'deleted_token' => 0]);
+        self::assertSame(200, $this->member('POST', '/admin/system/member/restore', ['ids' => [$first, $second]], static fn ($c) => $c->restore())['code']);
+    }
+
+    public function test_restore_skips_relations_whose_group_or_tag_was_deleted(): void
+    {
+        $id = $this->createMember(['username' => 'grpgone', 'groupIds' => [71, 72], 'tagIds' => [81, 82]]);
+        $this->member('DELETE', '/admin/system/member', ['ids' => [$id]], static fn ($c) => $c->recycle());
+        self::assertSame(200, $this->crud(SystemMemberGroup::class, 'DELETE', '/admin/system/member-group', ['ids' => [72]], static fn ($c) => $c->recycle())['code']);
+        MemberTag::query()->findOrFail(82)->delete();
+
+        $payload = $this->member('POST', '/admin/system/member/restore', ['ids' => [$id]], static fn ($c) => $c->restore());
+        self::assertSame(200, $payload['code'], $payload['msg']);
+        self::assertSame(2, $payload['data']['skippedRelations']);
+        self::assertStringContainsString('2', $payload['msg']);
+        self::assertSame([71], Member::groupIdsFor($id));
+        self::assertSame([81], Member::tagIdsFor($id));
+        self::assertNotNull(Db::table('member_group_relation')->where('member_id', $id)->where('group_id', 72)->value('deleted_at'));
+        self::assertNotNull(Db::table('member_tag_relation')->where('member_id', $id)->where('tag_id', 82)->value('deleted_at'));
+    }
+
+    public function test_destroying_member_purges_its_sessions_and_used_refresh_tokens(): void
+    {
+        $id = $this->createMember(['username' => 'sessgone']);
+        $other = $this->createMember(['username' => 'sesskeep']);
+        $sessions = new MemberApiSessionService();
+        $tokens = $sessions->open($id, '127.0.0.1');
+        self::assertNotNull($sessions->rotate($tokens['refresh_token']));
+        $kept = $sessions->open($other, '127.0.0.1');
+        self::assertNotNull($sessions->rotate($kept['refresh_token']));
+        $sessionIds = Db::table('member_api_session')->where('member_id', $id)->pluck('session_id')->all();
+        self::assertGreaterThan(0, Db::table('member_api_session_used')->whereIn('session_id', $sessionIds)->count());
+
+        $this->member('DELETE', '/admin/system/member', ['ids' => [$id]], static fn ($c) => $c->recycle());
+        $payload = $this->member('DELETE', '/admin/system/member/destroy', ['ids' => [$id]], static fn ($c) => $c->destroy());
+        self::assertSame(200, $payload['code'], $payload['msg']);
+        self::assertSame(0, Db::table('member_api_session')->where('member_id', $id)->count());
+        self::assertSame(0, Db::table('member_api_session_used')->whereIn('session_id', $sessionIds)->count());
+        self::assertSame(1, Db::table('member_api_session')->where('member_id', $other)->count());
+        self::assertGreaterThan(0, Db::table('member_api_session_used')->count());
+    }
+
+    public function test_model_restore_is_atomic_with_relation_restore(): void
+    {
+        $id = $this->createMember(['username' => 'atomic', 'groupIds' => [71]]);
+        $this->member('DELETE', '/admin/system/member', ['ids' => [$id]], static fn ($c) => $c->recycle());
+        \app\common\model\MemberGroupRelation::restoring(static function (): void {
+            throw new \RuntimeException('relation restore failed');
+        });
+        try {
+            Member::onlyTrashed()->findOrFail($id)->restore();
+            self::fail('关联恢复失败应抛出');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('relation restore failed', $exception->getMessage());
+        }
+        self::assertNotNull(Db::table('member')->where('id', $id)->value('deleted_at'), '会员恢复随关联失败一起回滚');
+        self::assertSame($id, (int) Db::table('member')->where('id', $id)->value('deleted_token'));
+        self::assertSame(0, Db::table('member_group_relation')->where('member_id', $id)->whereNull('deleted_at')->count());
+    }
+
     public function test_member_belongs_to_many_reads_only_live_pivot_rows(): void
     {
         $id = $this->createMember(['username' => 'pivotlive', 'groupIds' => [71, 72], 'tagIds' => [81, 82]]);

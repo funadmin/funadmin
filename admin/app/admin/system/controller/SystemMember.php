@@ -17,6 +17,7 @@ use app\admin\authorization\service\RelationRowSync;
 use app\admin\system\service\MemberFormDefinition;
 use app\common\model\concern\RestoreConflictException;
 use app\common\service\member\MemberIdentityGuard;
+use app\common\service\member\MemberRestoreBlockedException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use support\annotation\route\Delete;
@@ -379,17 +380,24 @@ class SystemMember extends AdminController
         if (count($members) !== count($ids)) {
             return $this->fail(msg: '部分会员不存在或不在回收站', code: 404);
         }
-        // 恢复带回这次删除的分组标签关联（会话不恢复）；任一会员的用户名 / 手机号 / 邮箱已被新账号占用时整批不恢复。
+        // 恢复带回这次删除的分组标签关联（会话不恢复，分组 / 标签已删除的关联跳过）；
+        // 任一会员的用户名 / 手机号 / 邮箱已被新账号占用，或会员等级已删除时，整批不恢复。
         try {
-            Db::transaction(static function () use ($members): void {
+            $skipped = Db::transaction(static function () use ($members): int {
+                $skipped = 0;
                 foreach ($members as $member) {
                     $member->restore();
+                    $skipped += $member->cascadeSkippedRelations;
                 }
+                return $skipped;
             });
         } catch (RestoreConflictException $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 409);
+        } catch (MemberRestoreBlockedException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 422);
         }
-        return $this->ok('恢复成功', ['restored' => count($members)]);
+        $message = $skipped > 0 ? sprintf('恢复成功，%d 条分组或标签关联因分组 / 标签已删除未恢复', $skipped) : '恢复成功';
+        return $this->ok($message, ['restored' => count($members), 'skippedRelations' => $skipped]);
     }
 
     /**
