@@ -66,8 +66,9 @@ final class BusinessModuleLayoutTest extends TestCase
             'ai:change-set-recover', 'ai:outbox-dispatch', 'ai:sandbox-cleanup',
             'business:generation-recover', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
             'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
-            'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:package',
+            'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:migrate', 'plugin:package',
             'plugin:publication-recover', 'plugin:rebaseline', 'plugin:sync', 'plugin:validate', 'upgrade:recover-stale',
+            'soft-delete:purge',
         ] as $name) {
             self::assertArrayHasKey($name, $commands, '业务命令未接入 webman/console：' . $name);
             self::assertNotSame('', $commands[$name]['description']);
@@ -210,13 +211,14 @@ final class BusinessModuleLayoutTest extends TestCase
                 'PluginCrudPreview' => 'plugin:crud-preview',
                 'PluginMake' => 'plugin:make',
                 'PluginMakeCrud' => 'plugin:make-crud',
+                'PluginMigrate' => 'plugin:migrate',
                 'PluginPackage' => 'plugin:package',
                 'PluginPublicationRecover' => 'plugin:publication-recover',
                 'PluginRebaseline' => 'plugin:rebaseline',
                 'PluginSync' => 'plugin:sync',
                 'PluginValidate' => 'plugin:validate',
             ],
-            'system' => ['UpgradeRecover' => 'upgrade:recover-stale'],
+            'system' => ['UpgradeRecover' => 'upgrade:recover-stale', 'SoftDeletePurge' => 'soft-delete:purge'],
             'common' => ['McpServer' => 'mcp'],
         ] as $module => $commands) {
             foreach ($commands as $class => $command) {

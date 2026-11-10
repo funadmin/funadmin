@@ -2,13 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Every core back-office table soft-deletes. A `deleted_token` column keeps unique keys usable after deletion. A scheduled job purges old soft-deleted rows from high-churn tables. The operation log page gains real deletion and a recycle bin.
+**Goal:** Every core back-office table soft-deletes. A `deleted_token` column keeps unique keys usable after deletion. The operation log page gains real deletion and a recycle bin.
 
 **Architecture:**
 - Core migration 005 adds `deleted_at` and `deleted_token` to every core table and rebuilds each unique key as "original columns + `deleted_token`".
 - The shared trait `app\common\model\concern\LaravelSoftDelete` writes both columns on delete (single and batch) and clears both on restore.
 - Every core model adopts the trait. Query-builder, join and raw-SQL paths get explicit filters.
-- A purge service runs from a crontab process and a CLI command.
 - The operation log controller and page gain force-delete and recycle-bin views.
 
 **Tech Stack:** PHP 8.5, webman, illuminate/database 13 (Eloquent SoftDeletes), workerman/crontab, SQLite (tests) / MySQL, Vue 3 + Element Plus, vitest.
@@ -29,13 +28,8 @@
   - Core tables in `admin/database/core/migrations/*.sql`.
   - Models under `admin/app/admin`, `admin/app/common` and `admin/app/api`.
   - Excluded: plugin tables and code (`admin/plugins/*`, `admin/app/{cms,document,qa}`, `admin/app/admin/plugins/*`) and generated business modules (`admin/app/admin/business/*`). CMS is being refactored by another session; do not touch it.
-- `forceDelete()` is the only way to delete physically, plus the purge job.
-- Purge:
-  - It removes only rows whose `deleted_at` is non-null and older than the retention period. It never touches live rows.
-  - Default `retention_days = 30`.
-  - It runs in batches of 500 by primary key.
-  - The crontab runs daily at `03:30`.
-  - CLI: `php webman soft-delete:purge [--dry-run]`.
+- `forceDelete()` is the only way to delete physically, and only from an admin's recycle-bin action.
+- No automatic or scheduled deletion of soft-deleted rows. Real deletion is only `forceDelete()` triggered by an admin from a recycle bin.
 - Operation log routes, under `#[RouteGroup('/admin/system/log/operation')]`:
   - `GET ''` accepts `trashed=1`.
   - `DELETE /force` takes `ids`.
@@ -54,7 +48,7 @@
 1. **Recreate after delete.** Deleting then recreating the same natural key must succeed: an admin username, a menu `(app_name, href, query)` across plugin disable→enable, a permission code, a Casbin `rule_hash`, a plugin code and its `plugin_resource.target_path`. Two live duplicates must still be rejected.
 2. **Batch delete.** `Model::where(...)->delete()` must soft-delete and set `deleted_token = id` per row. It must not hard-delete, and must not set the same token on every row.
 3. **Paths outside the model.** Joins, `Db::table`, `Db::select` and raw SQL do not get the global scope. Any such read of a core table that is now soft-deleted must filter `deleted_at IS NULL`.
-4. **Purge safety.** The purge must never remove a live row, must respect per-table retention, and must work in bounded batches.
+4. **No automatic deletion.** Nothing deletes soft-deleted rows automatically; real deletion happens only from an admin's explicit recycle-bin action.
 5. **Tables without `deleted_token`.** The trait must keep working on these (plugin tables, simplified test tables) by writing only `deleted_at`.
 
 ---
@@ -158,26 +152,9 @@
 - [ ] **Step 4: Run** the new test, then the plugin lifecycle tests (`PluginCenterIntegrationTest`, `PluginHttpActivationTest`, `PluginComposerPipelineTest`), the AI and form tests, then the full suite. Compare with the baseline.
 - [ ] **Step 5: Commit** with `feat: 其余核心模型统一软删除`.
 
-### Task 5: Scheduled purge of old soft-deleted rows
+### Task 5: (removed)
 
-**Files:**
-- Create: `admin/config/soft_delete.php`, containing `retention_days` (30), `batch_size` (500), `schedule` (`'30 3 * * *'`), and `tables` (table => optional retention days). Default tables are the high-churn ones: `admin_auth_tokens`, `browser_sessions`, `login_attempts`, `member_api_session`, `member_api_session_used`, `ai_stream_nonce`, `ai_outbox`, `ai_task_event`, `ai_tool_call`, `admin_log`, `form_list_action_execution`, `form_publish_attempt`, and `failed_jobs` if it is soft-deleted.
-- Create: `admin/app/common/service/database/SoftDeletePurgeService.php`, with `purge(bool $dryRun = false, ?\DateTimeImmutable $now = null): array<string,int>` returning table → removed count.
-- Create: `admin/app/command/SoftDeletePurge.php`, or the location the existing commands use (check how `crud:*` commands are registered), providing `soft-delete:purge [--dry-run]`.
-- Create: `admin/app/process/SoftDeletePurgeSchedule.php`, using `Workerman\Crontab\Crontab` with the configured schedule. Register it in `admin/config/process.php`.
-- Test: `admin/tests/SoftDeletePurgeTest.php`
-
-- [ ] **Step 1: Write failing tests.**
-  - `test_purges_only_soft_deleted_rows_older_than_retention`: live rows, recently deleted rows and old deleted rows; only the last are removed.
-  - `test_per_table_retention_overrides_global`
-  - `test_dry_run_counts_without_deleting`
-  - `test_purges_in_batches`: batch_size 2 with 5 rows still removes all 5.
-  - `test_unknown_or_missing_table_is_skipped`
-  - `test_command_prints_per_table_counts`
-- [ ] **Step 2: Run.** Expect FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** the new test and the full suite. Confirm `php webman soft-delete:purge --dry-run` runs against the dev database without deleting anything, and record its output.
-- [ ] **Step 5: Commit** with `feat: 定期真实清理超过保留期的软删除记录`.
+The user decided that soft-deleted records are always kept, with no automatic deletion and no scheduled purge. Real deletion happens only when an admin deletes manually from a recycle bin (Tasks 6–7 for operation logs; the existing member recycle bin, see Task 8).
 
 ### Task 6: Operation log backend: recycle bin and real deletion
 
@@ -222,7 +199,7 @@
 ### Task 8: Member deletion cooling period
 
 **Files:**
-- Modify: `admin/config/soft_delete.php`. Add `member_cooling_days` (default 30).
+- Create: `admin/config/soft_delete.php` with `member_cooling_days` (default 30).
 - Modify the member write paths:
   - `admin/app/admin/system/controller/SystemMember.php` (create, update, destroy, recycle, restore)
   - the member service/model under `admin/app/admin/system/` and `admin/app/common/model/Member.php`
@@ -255,10 +232,10 @@
 - Modify: the project docs that describe models and deletion. Find them with `grep -rl "软删除\|deleted_at" docs`. Document:
   - the `deleted_token` rule
   - that new tables must include both columns and that unique keys must end with `deleted_token`
-  - the purge config and command
+  - that soft-deleted rows are kept; real deletion only from recycle bins
 - Create: `docs/superpowers/plans/2026-11-10-backend-soft-delete-verification.md`
 
-- [ ] **Step 1: Run** the full `cd admin && vendor/bin/phpunit`, `cd web && npx vitest run && npx vue-tsc --noEmit`, and `php webman soft-delete:purge --dry-run`. Compare against the baseline.
+- [ ] **Step 1: Run** the full `cd admin && vendor/bin/phpunit`, `cd web && npx vitest run && npx vue-tsc --noEmit`. Compare against the baseline.
 - [ ] **Step 2: On the dev database,** run the core migration through the project's normal upgrade or migrate path (no plugin lifecycle operations). Confirm 005 applied and that the admin login and menus still work, using HTTP checks against `127.0.0.1:8787`.
 - [ ] **Step 3: Write the verification record.**
-- [ ] **Step 4: Commit** with `docs: 软删除规则、清理配置与验证记录`.
+- [ ] **Step 4: Commit** with `docs: 软删除规则与验证记录`.

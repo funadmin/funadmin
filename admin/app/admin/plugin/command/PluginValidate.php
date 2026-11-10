@@ -6,6 +6,7 @@ namespace app\admin\plugin\command;
 
 use app\common\plugin\model\Plugin;
 use app\common\plugin\sdk\DependencyValidator;
+use app\common\plugin\sdk\LifecycleHookDdlDetector;
 use app\common\plugin\sdk\Manifest;
 use app\common\plugin\sdk\PluginScaffolder;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -37,6 +38,10 @@ final class PluginValidate extends Command
             $name = (string) $input->getArgument('name');
             PluginScaffolder::assertValidName($name);
             $manifest = Manifest::fromDirectory(($this->projectRoot ?? base_path()) . '/plugins/' . $name);
+            $ddl = (new LifecycleHookDdlDetector())->violations($manifest->directory(), (string) ($manifest->toArray()['entry']['file'] ?? 'Plugin.php'));
+            if ($ddl !== []) {
+                throw new \RuntimeException("生命周期钩子不得修改数据库结构，结构变更必须写入插件 migration：\n" . implode("\n", $ddl));
+            }
             $records = [];
             foreach (Plugin::whereNull('deleted_at')->get() as $record) {
                 $records[(string) $record->code] = [

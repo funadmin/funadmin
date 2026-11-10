@@ -157,6 +157,33 @@ php webman plugin:sync cms
 
 把插件源完整同步到所有安装位置（原生 App 单元、公开资源和前端源码），然后按插件源重建登记。安装位置上的手工改动和多余文件会被插件源覆盖或删除。复制经由 publication journal 执行，失败时自动回滚。只有 `APP_DEBUG=true` 或 `APP_ENV` 为 `dev`、`development`、`local` 时可用，否则直接拒绝。同步后会重建激活快照；新增路由或 PHP 类仍需 `php start.php reload`，迁移、权限和菜单仍需更新或重新部署。
 
+### 生命周期钩子不得修改数据库结构
+
+`install()`、`enabled()`、`beforeUpdate()`、`afterUpdate()` 里不能建表、加列、加索引或执行其他 DDL。结构变更只写在 `database/migrations/` 里。钩子先建了列，之后执行同一迁移就会报 `Duplicate column` 而失败。钩子里可以只读地探测结构（`hasTable`、`hasColumn`），也可以写种子数据或补齐权限。
+
+- `plugin:validate` 会做静态检查。它从这四个钩子出发，沿 `self::`、`static::`、`$this->`、`类名::` 和 `(new 类)->` 调用进入插件自带的类，查找以下写法：Schema Builder 的 `create`、`table`、`drop*`、`rename`，Schema 门面，`Blueprint`，以及 `statement()`、`unprepared()` 执行的 DDL。`statement()` 和 `unprepared()` 的 SQL 不是字面量时，无法证明它不是 DDL，因此同样拒绝。
+- 运行时也有兜底。执行这四个钩子期间，默认连接上的 DDL 会在执行前被拒绝，生命周期操作随之失败。
+
+### `plugin:migrate --adopt`（接管已生效的迁移）
+
+迁移的效果有时已经存在，例如旧版钩子在运行时建好了列，迁移因此失败。这时可以核对当前结构，然后只登记、不执行：
+
+```sh
+cd admin
+php webman plugin:migrate cms --adopt=005_form_fingerprint --dry-run   # 逐项列出效果及其状态，不写库
+php webman plugin:migrate cms --adopt=005_form_fingerprint
+```
+
+- 每条语句都必须是能从结构证明已生效的新增，并逐项核对：
+  - `CREATE TABLE`：表存在，表内的列、主键、索引也都存在；
+  - `ADD [COLUMN]`：列存在，类型兼容，并且声明了可空性时可空性一致；
+  - `ADD INDEX` / `ADD UNIQUE` / `CREATE INDEX`：存在列顺序完全相同、唯一性也相同的索引。
+- 其他语句一律拒绝，包括数据变更、`MODIFY` / `CHANGE`、外键、生成列和动态 SQL。只要有一项效果缺失或不一致，就拒绝整个文件，什么也不写。`--dry-run` 中 `adoptable: false` 表示正式执行会被拒绝。
+- 类型比较方式取决于驱动：MySQL 比较完整的列类型，忽略整数显示宽度；其他驱动按类型族比较。
+- 文件的编码检查、只向前守卫和 checksum 与正常执行时相同，登记的 checksum 就是正常执行会写入的值。版本已登记且 checksum 相同时，命令什么也不做；checksum 不同则拒绝。
+- 插件必须已安装。写入在生命周期锁和迁移锁内完成，并在 `plugin_operation` 记录一条 `migration_adopt` 审计。
+- 命令只登记 `system_migration`，不改插件状态。之后照常更新或迁移，已登记的版本会被跳过。
+
 ## 后端钩子、前端钩子与跨插件调用
 
 插件可仅提供钩子，不必包含 `app/`、控制器、菜单或路由。安装和启用仍通过原有插件生命周期；停用插件、依赖失效或激活快照损坏时，不会加载该插件的处理器。

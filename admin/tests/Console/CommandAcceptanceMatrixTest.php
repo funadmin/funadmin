@@ -23,6 +23,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'plugin:crud-preview' => ['plugin', 'PluginCrudPreview', PluginCrudExecutionTest::class, 'test_preview_generate_cli_enforces_token_permissions_and_replay', 'test_preview_generate_cli_enforces_token_permissions_and_replay'],
             'plugin:make' => ['plugin', 'PluginMake', PluginScaffoldExecutionTest::class, 'test_make_preview_is_read_only_and_command_writes_only_to_explicit_project', 'test_make_preview_is_read_only_and_command_writes_only_to_explicit_project'],
             'plugin:make-crud' => ['plugin', 'PluginMakeCrud', MySqlPluginCommandTest::class, 'test_make_crud_infers_real_schema_in_temporary_plugin_without_mutating_table', 'test_make_crud_infers_real_schema_in_temporary_plugin_without_mutating_table'],
+            'plugin:migrate' => ['plugin', 'PluginMigrate', PluginMigrateAdoptTest::class, 'test_adopt_records_runner_checksum_only_when_every_effect_exists', 'test_adopt_refuses_and_records_nothing_when_any_effect_is_missing'],
             'plugin:package' => ['plugin', 'PluginPackage', PluginPackageExecutionTest::class, 'test_package_cli_round_trips_stage_and_is_reproducible', 'test_signed_archive_verifies_and_tampering_is_rejected_before_extraction'],
             'plugin:publication-recover' => ['plugin', 'PluginPublicationRecover', PluginPublicationExecutionTest::class, 'test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently', 'test_cli_inspects_and_recovers_real_file_publication_and_registry_idempotently'],
             'plugin:rebaseline' => ['plugin', 'PluginRebaseline', PluginRebaselineExecutionTest::class, 'test_rebaseline_repairs_stale_registry_after_hand_sync_and_unblocks_update', 'test_rebaseline_refuses_when_installed_differs_from_source_unless_forced'],
@@ -33,6 +34,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'ai:sandbox-cleanup' => ['ai', 'AiSandboxCleanup', AiSandboxCleanupTest::class, 'test_cleanup_command_only_claims_expired_terminal_sandboxes', 'test_cleanup_failure_returns_nonzero_and_preserves_foreign_container'],
             'mcp' => ['common', 'McpServer', McpStdioProtocolTest::class, 'test_stdio_handshake_tools_resources_calls_and_eof_are_clean', 'test_command_rejects_unknown_action_with_nonzero_exit'],
             'upgrade:recover-stale' => ['system', 'UpgradeRecover', UpgradeRecoveryExecutionTest::class, 'test_pre_deploy_stale_task_releases_slot_and_repeat_is_noop', 'test_missing_post_deploy_backup_requires_manual_recovery_without_releasing_slot'],
+            'soft-delete:purge' => ['system', 'SoftDeletePurge', \Tests\SoftDeletePurgeTest::class, 'test_command_prints_per_table_counts', 'test_command_returns_nonzero_when_storage_is_unavailable'],
         ];
     }
 
@@ -47,7 +49,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
                 'external' => ['mysql'],
             ],
             'plugin' => [
-                'services' => ['app/admin/plugin/service/PluginService.php', 'app/admin/plugin/service/PluginInfrastructureService.php', 'app/admin/plugin/service/PluginAppPublicationService.php', 'app/admin/plugin/service/PluginPackageService.php', 'app/common/plugin/sdk/PluginEntryFactory.php', 'app/common/plugin/sdk/PluginActivationCompiler.php', 'app/common/plugin/sdk/PluginScaffolder.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php'],
+                'services' => ['app/admin/plugin/service/PluginService.php', 'app/admin/plugin/service/PluginInfrastructureService.php', 'app/admin/plugin/service/PluginAppPublicationService.php', 'app/admin/plugin/service/PluginPackageService.php', 'app/admin/plugin/service/PluginMigrationAdoptionService.php', 'app/common/service/database/MigrationEffectVerifier.php', 'app/common/plugin/sdk/PluginEntryFactory.php', 'app/common/plugin/sdk/PluginActivationCompiler.php', 'app/common/plugin/sdk/PluginScaffolder.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php'],
                 'configuration' => ['plugins.marketplace.public_key', 'funadmin.version', 'crud.connections', 'database.connections', 'config/bootstrap.php', 'config/autoload.php'],
                 'storage' => ['plugin', 'plugin_resource', 'system_migration', 'permission', 'admin_menu'],
                 'paths' => ['plugins', 'runtime/plugins', 'public/plugin-assets', 'app/admin/controller/plugin'],
@@ -66,16 +68,16 @@ final class CommandAcceptanceMatrixTest extends TestCase
                 'storage' => ['admin'], 'paths' => ['public/uploads'], 'external' => ['mcp/sdk STDIO'],
             ],
             'system' => [
-                'services' => ['app/admin/system/service/UpgradeService.php', 'app/admin/system/service/UpgradeDatabaseBackup.php', 'app/common/service/database/MigrationService.php'],
-                'configuration' => ['database.default', 'database.connections'],
-                'storage' => ['upgrade_task', 'system_migration'], 'paths' => ['runtime/upgrade'], 'external' => ['mysql', 'PDO'],
+                'services' => ['app/admin/system/service/UpgradeService.php', 'app/admin/system/service/UpgradeDatabaseBackup.php', 'app/common/service/database/MigrationService.php', 'app/common/service/database/SoftDeletePurgeService.php'],
+                'configuration' => ['database.default', 'database.connections', 'soft_delete.retention_days', 'soft_delete.batch_size', 'soft_delete.tables'],
+                'storage' => ['upgrade_task', 'system_migration', 'soft_delete.tables'], 'paths' => ['runtime/upgrade'], 'external' => ['mysql', 'PDO'],
             ],
         ];
     }
 
     public function test_all_live_commands_have_traceable_normal_and_failure_execution_evidence(): void
     {
-        self::assertCount(20, self::matrix());
+        self::assertCount(22, self::matrix());
         $discovered = [];
         foreach (glob(app_path('admin/*/command/*.php')) as $file) {
             $class = 'app\\admin\\' . basename(dirname($file, 2)) . '\\command\\' . basename($file, '.php');

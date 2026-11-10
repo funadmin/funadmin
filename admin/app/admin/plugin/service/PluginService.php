@@ -9,6 +9,7 @@ use app\common\service\AbstractService;
 use app\admin\plugin\PluginPreconditionException;
 use app\admin\plugin\service\concern\PluginServiceSupport;
 use app\common\plugin\sdk\DatabaseCapabilityGuard;
+use app\common\plugin\sdk\LifecycleDdlGuard;
 use app\common\plugin\sdk\LifecycleLock;
 use app\common\plugin\sdk\LifecycleState;
 use app\common\plugin\sdk\PluginPurgeCoordinator;
@@ -299,7 +300,7 @@ class PluginService extends AbstractService
             }
             $plugin = $this->plugin($code);
             $this->recordStage($code, 'install', 'hooks');
-            if ($plugin->install() === false) {
+            if (LifecycleDdlGuard::run($code, 'install', static fn () => $plugin->install()) === false) {
                 throw new RuntimeException('install_hook: 插件安装失败');
             }
             $this->recordStage($code, 'install', 'migration');
@@ -355,7 +356,7 @@ class PluginService extends AbstractService
             }
             $operation = $allowCodeDowngrade ? 'redeploy' : 'update';
             $this->recordStage($code, $operation, 'hooks');
-            if ($plugin->beforeUpdate($fromVersion, $toVersion, $migrate) === false) {
+            if (LifecycleDdlGuard::run($code, 'beforeUpdate', static fn () => $plugin->beforeUpdate($fromVersion, $toVersion, $migrate)) === false) {
                 throw new RuntimeException('update_hook: 插件更新前置钩子执行失败');
             }
             $migrationVersion = (string) ($record->db_version ?? '');
@@ -364,7 +365,7 @@ class PluginService extends AbstractService
                 $this->deploymentRollbackAllowed = false;
                 $migrationVersion = $this->migrate($code)['version'];
             }
-            if ($plugin->afterUpdate($fromVersion, $toVersion, $migrate) === false) {
+            if (LifecycleDdlGuard::run($code, 'afterUpdate', static fn () => $plugin->afterUpdate($fromVersion, $toVersion, $migrate)) === false) {
                 throw new RuntimeException('update_hook: 插件更新后置钩子执行失败');
             }
             $this->recordStage($code, $operation, 'resources');
@@ -542,7 +543,7 @@ class PluginService extends AbstractService
             $this->recordStage($code, $operation, 'hooks');
             if ($enabled) {
                 $this->publishPluginResources($manifest, $token);
-                if ($plugin->enabled() === false) {
+                if (LifecycleDdlGuard::run($code, 'enabled', static fn () => $plugin->enabled()) === false) {
                     throw new RuntimeException('插件启用钩子执行失败');
                 }
                 $this->registerMenu($code);

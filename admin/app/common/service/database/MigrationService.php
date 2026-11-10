@@ -111,6 +111,12 @@ class MigrationService extends AbstractService
      */
     public function runVersion(string $directory, string $version, string $scope = 'core'): array
     {
+        return $this->runFiles([$this->versionFile($directory, $version)], $scope);
+    }
+
+    /** 目录内完整版本名对应的普通文件；拒绝路径片段及符号链接。 */
+    private function versionFile(string $directory, string $version): string
+    {
         if (preg_match('/\A[0-9]+_[A-Za-z0-9_]+\z/', $version) !== 1) {
             throw new RuntimeException('Migration 版本不合法：' . $version);
         }
@@ -126,7 +132,7 @@ class MigrationService extends AbstractService
             || dirname((string) realpath($file)) !== $resolvedDirectory) {
             throw new RuntimeException('Migration 必须是目录内的普通文件：' . $version);
         }
-        return $this->runFiles([$file], $scope);
+        return $file;
     }
 
     /** 历史安装 SQL 使用模板前缀；新生成制品已绑定物理表，禁止二次改写。 */
@@ -140,17 +146,75 @@ class MigrationService extends AbstractService
     /** 两种入口共用 checksum、预检、SQL 解析、事务和登记逻辑。 */
     private function runFiles(array $files, string $scope, bool $completeDirectory = false): array
     {
+        if (Db::connection()->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL');
+        return $this->withMigrationLock(fn (): array => $this->runLockedFiles($files, $scope, $completeDirectory));
+    }
+
+    /** 与执行路径互斥的库级迁移锁（MySQL GET_LOCK）；其他驱动没有并发执行路径，直接运行。 */
+    private function withMigrationLock(callable $callback): mixed
+    {
         $connection = Db::connection();
-        if ($connection->getDriverName() !== 'mysql') throw new RuntimeException('SQL migration 仅支持 MySQL');
+        if ($connection->getDriverName() !== 'mysql') return $callback();
         $lock = 'migration:' . substr(hash('sha256', $connection->getDatabaseName()), 0, 40);
         if ((int) $connection->selectOne('SELECT GET_LOCK(?, 0) acquired', [$lock])->acquired !== 1) {
             throw new RuntimeException('数据库迁移正在执行');
         }
         try {
-            return $this->runLockedFiles($files, $scope, $completeDirectory);
+            return $callback();
         } finally {
             $connection->selectOne('SELECT RELEASE_LOCK(?) released', [$lock]);
         }
+    }
+
+    /**
+     * 接管（adopt）：迁移的效果已经由其他途径（例如旧版生命周期钩子里的运行时 DDL）落到库里时，只登记、不执行。
+     * 文件解析、编码检查、只向前守卫、前缀改写与语句切分都和执行路径相同，登记的 checksum 与 runFiles 登记的完全一致
+     * （文件原文的 sha256）。每条语句必须是能从当前结构证明已生效的结构新增（CREATE TABLE、ADD COLUMN、
+     * ADD INDEX / UNIQUE、CREATE INDEX），由 MigrationEffectVerifier 逐项核对；任一语句不受支持或效果缺失即拒绝，
+     * 不写任何记录。已登记且 checksum 相同时为无操作；checksum 不同则拒绝。
+     * $onRecorded 与登记写入在同一事务内执行（用于审计记录）。
+     * @return array{scope: string, version: string, checksum: string, effects: list<array>, adoptable: bool, alreadyRecorded: bool, recorded: bool, dryRun: bool}
+     */
+    public function adoptVersion(string $directory, string $version, string $scope, bool $dryRun = false, ?callable $onRecorded = null): array
+    {
+        $file = $this->versionFile($directory, $version);
+        if (!$this->repositoryExists()) throw new RuntimeException('接管 migration 前必须先完成核心 migration');
+        $adopt = function () use ($file, $version, $scope, $dryRun, $onRecorded): array {
+            $sql = file_get_contents($file);
+            if (!is_string($sql) || trim($sql) === '') throw new RuntimeException('无法读取 migration：' . $file);
+            DdlEncodingGuard::assertUtf8($sql);
+            $this->assertForwardOnly($sql, $file);
+            $checksum = hash('sha256', $sql);
+            $report = ['scope' => $scope, 'version' => $version, 'checksum' => $checksum, 'effects' => [], 'adoptable' => false,
+                'alreadyRecorded' => false, 'recorded' => false, 'dryRun' => $dryRun];
+            $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
+            if ($record !== null) {
+                if (!hash_equals((string) $record->checksum, $checksum)) {
+                    throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
+                }
+                return ['alreadyRecorded' => true] + $report;
+            }
+            $statements = $this->statements(self::rewritePrefix($sql, config('funadmin.mysqlPrefix', 'fun_'), Db::connection()->getTablePrefix()));
+            if (!$statements) throw new RuntimeException('Migration 没有可执行 SQL：' . $file);
+            $report['effects'] = (new MigrationEffectVerifier(Db::connection()))->verify($statements);
+            $report['adoptable'] = !in_array(false, array_map(static fn (array $effect): bool => $effect['status'] === 'present', $report['effects']), true);
+            if ($dryRun) return $report;
+            if (!$report['adoptable']) {
+                $problems = array_map(
+                    static fn (array $effect): string => $effect['status'] . ' ' . $effect['target'] . '（' . $effect['detail'] . '）',
+                    array_values(array_filter($report['effects'], static fn (array $effect): bool => $effect['status'] !== 'present'))
+                );
+                throw new RuntimeException("拒绝接管 {$scope}/{$version}：当前库结构不能证明迁移已生效：" . implode('；', $problems));
+            }
+            if (!hash_equals($checksum, (string) hash_file('sha256', $file))) throw new RuntimeException('Migration 文件在预检后发生变化：' . $file);
+            Db::transaction(function () use ($scope, $version, $checksum, $onRecorded, &$report): void {
+                (new SystemMigration())->fill(['scope' => $scope, 'version' => $version, 'checksum' => $checksum, 'executed_at' => time()])->save();
+                $report['recorded'] = true;
+                if ($onRecorded !== null) $onRecorded($report);
+            });
+            return $report;
+        };
+        return $dryRun ? $adopt() : $this->withMigrationLock($adopt);
     }
 
     private function runLockedFiles(array $files, string $scope, bool $completeDirectory): array
@@ -292,11 +356,17 @@ class MigrationService extends AbstractService
     private function hasDdl(array $statements): bool
     {
         foreach ($statements as $statement) {
-            foreach (SqlLexer::items(SqlLexer::scan($statement)) as [$kind, $text]) {
-                if ($kind !== SqlLexer::WORD) continue;
-                if (in_array(strtoupper($text), ['CREATE', 'ALTER', 'DR' . 'OP', 'TR' . 'UNCATE', 'RE' . 'NAME', 'PREPARE', 'EXECUTE'], true)) return true;
-                break;
-            }
+            if (self::isDdlStatement($statement)) return true;
+        }
+        return false;
+    }
+
+    /** 单条语句按 hasDdl() 的规则判定（插件生命周期钩子的 DDL 守卫与静态检查共用）；词法错误时抛出 SqlLexerException。 */
+    public static function isDdlStatement(string $statement): bool
+    {
+        foreach (SqlLexer::items(SqlLexer::scan($statement)) as [$kind, $text]) {
+            if ($kind !== SqlLexer::WORD) continue;
+            return in_array(strtoupper($text), ['CREATE', 'ALTER', 'DR' . 'OP', 'TR' . 'UNCATE', 'RE' . 'NAME', 'PREPARE', 'EXECUTE'], true);
         }
         return false;
     }
