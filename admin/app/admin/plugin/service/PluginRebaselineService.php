@@ -179,7 +179,7 @@ final class PluginRebaselineService
     private function installedRecord(string $code): Plugin
     {
         PluginScaffolder::assertValidName($code);
-        $record = Plugin::where('code', $code)->whereNull('deleted_at')->first();
+        $record = Plugin::where('code', $code)->first();
         if (!$record) {
             throw new RuntimeException('插件尚未安装：' . $code);
         }

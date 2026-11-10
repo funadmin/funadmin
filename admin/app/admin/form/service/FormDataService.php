@@ -1534,7 +1534,13 @@ final class FormDataService
             $this->assertIdentifier($value, '关联值字段');
             $alias = 'rel_' . $aliasIndex;
             $aliasIndex++;
-            $query->leftJoin($this->logicalTable($connection, $relationTable) . ' as ' . $alias, $alias . '.' . $value, '=', $table . '.' . $name);
+            $relationLogical = $this->logicalTable($connection, $relationTable);
+            // 关联表（可能是核心表）有 deleted_at 时只关联未删除的行；join 不经过模型作用域，需要显式加条件。
+            $softDeleted = $connection->getSchemaBuilder()->hasColumn($relationLogical, 'deleted_at');
+            $query->leftJoin($relationLogical . ' as ' . $alias, static function ($join) use ($alias, $value, $table, $name, $softDeleted): void {
+                $join->on($alias . '.' . $value, '=', $table . '.' . $name);
+                if ($softDeleted) $join->whereNull($alias . '.deleted_at');
+            });
             $query->addSelect($alias . '.' . $label . ' as __label_' . $name);
         }
         return $query;

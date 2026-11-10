@@ -216,7 +216,7 @@ class CrudFormSchemaExecutionTest extends TestCase
             },
         ]]);
         $pdo = new \PDO('sqlite::memory:');
-        $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
+        $pdo->exec('CREATE TABLE list_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, scope VARCHAR(64) NOT NULL, digest VARCHAR(64), state VARCHAR(20), result TEXT, deleted_at DATETIME NULL, deleted_token INTEGER NOT NULL DEFAULT 0, UNIQUE (scope, deleted_token))');
         $executor = new \app\common\form\action\ListButtonExecutor($actions, bin2hex(random_bytes(32)), new \app\common\form\action\ListActionStore($pdo, 'list_actions'));
         $payload = ['buttonId' => 'mark-node', 'location' => 'row', 'schemaHash' => $this->hash, 'ids' => [$root->id], 'idempotencyKey' => 'once'];
         $confirmation = $service->executeListButton('console_form_tree', $payload, $executor);

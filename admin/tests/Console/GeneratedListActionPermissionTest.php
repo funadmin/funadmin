@@ -250,7 +250,7 @@ final class GeneratedListActionPermissionTest extends TestCase
         static $pdo = null;
         if ($pdo === null) {
             $pdo = new \PDO('sqlite::memory:');
-            $pdo->exec('CREATE TABLE list_actions (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64), state VARCHAR(20), result TEXT)');
+            $pdo->exec('CREATE TABLE list_actions (id INTEGER PRIMARY KEY AUTOINCREMENT, scope VARCHAR(64) NOT NULL, digest VARCHAR(64), state VARCHAR(20), result TEXT, deleted_at DATETIME NULL, deleted_token INTEGER NOT NULL DEFAULT 0, UNIQUE (scope, deleted_token))');
         }
         return new ListButtonExecutor($this->registry(), str_repeat('s', 64), new ListActionStore($pdo, 'list_actions'),
             new \app\common\form\action\ListResourceRegistry([]));

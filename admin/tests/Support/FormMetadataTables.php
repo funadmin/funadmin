@@ -26,7 +26,7 @@ trait FormMetadataTables
             $table->id(); $table->unsignedBigInteger('form_id'); $table->integer('version'); $table->integer('schema_version');
             $table->string('schema_hash'); $table->json('schema_document');
             $table->string('origin'); $table->unsignedBigInteger('parent_version_id')->nullable();
-            $table->string('change_summary'); $table->string('created_by'); $table->timestamps();
+            $table->string('change_summary'); $table->string('created_by'); $table->timestamps(); $table->softDeletes();
         });
         Db::schema()->create('business_module', static function (Blueprint $table): void {
             $table->id(); $table->string('code')->unique(); $table->string('name'); $table->unsignedBigInteger('form_id');

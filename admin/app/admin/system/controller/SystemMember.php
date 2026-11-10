@@ -13,6 +13,7 @@ use app\admin\system\model\MemberGroupRelation;
 use app\admin\system\model\MemberLevel;
 use app\admin\system\model\MemberTag;
 use app\admin\system\model\MemberTagRelation;
+use app\admin\authorization\service\RelationRowSync;
 use app\admin\system\service\MemberFormDefinition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -194,8 +195,7 @@ class SystemMember extends AdminController
         try {
             $member = Db::transaction(function () use ($data, $groupIds, $tagIds): Member {
                 $member = Member::forceCreate($data);
-                $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
-                $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
+                $this->syncRelations($member, $groupIds, $tagIds);
                 return $member;
             });
         } catch (\Throwable $exception) {
@@ -251,8 +251,7 @@ class SystemMember extends AdminController
         try {
             Db::transaction(function () use ($member, $data, $groupIds, $tagIds): void {
                 $member->forceFill($data)->save();
-                $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
-                $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
+                $this->syncRelations($member, $groupIds, $tagIds);
             });
         } catch (\Throwable $exception) {
             if ($message = $this->duplicateError($exception)) {
@@ -478,8 +477,7 @@ class SystemMember extends AdminController
                 $data['password'] = '';
                 Db::transaction(function () use ($data, $groupIds, $tagIds): void {
                     $member = Member::forceCreate($data);
-                    $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
-                    $member->tags()->syncWithPivotValues($tagIds, ['created_at' => date('Y-m-d H:i:s')]);
+                    $this->syncRelations($member, $groupIds, $tagIds);
                 });
                 $created++;
             } catch (\Throwable $exception) {
@@ -552,13 +550,24 @@ class SystemMember extends AdminController
         if ($groupId > 0) {
             $query->whereIn('id', function ($relationQuery) use ($groupId): void {
                 $relationQuery->from((new MemberGroupRelation())->getTable())
-                    ->select('member_id')->where('group_id', $groupId);
+                    ->select('member_id')->where('group_id', $groupId)->whereNull('deleted_at');
             });
         }
         if ($levelId > 0) {
             $query->where('level_id', $levelId);
         }
         return $query;
+    }
+
+    /**
+     * 按差异同步会员的分组与标签：只软删除移除的关联、只插入缺少的关联，未变化的不动。
+     * belongsToMany 的 sync 会物理删除中间表行，关联表启用软删除后不能再用。
+     */
+    private function syncRelations(Member $member, array $groupIds, array $tagIds): void
+    {
+        $now = ['created_at' => date('Y-m-d H:i:s')];
+        RelationRowSync::sync(MemberGroupRelation::class, ['member_id' => (int) $member->id], 'group_id', RelationRowSync::keys($groupIds), $now);
+        RelationRowSync::sync(MemberTagRelation::class, ['member_id' => (int) $member->id], 'tag_id', RelationRowSync::keys($tagIds), $now);
     }
 
     private function membersForAction(bool $onlyTrashed): array|Response

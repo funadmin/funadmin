@@ -50,6 +50,7 @@ final class DatabaseAiAttachmentRepository
     /** 软删除立即撤销读取权限；物理文件由后续清理任务回收。 */
     public function deleteDraft(int $id): bool
     {
-        return AiAttachment::where('id', $id)->whereNull('message_id')->update(['deleted_at'=>date('Y-m-d H:i:s')]) === 1;
+        // 经模型作用域软删除：同时写 deleted_at 与 deleted_token，释放 storage_path 唯一值。
+        return AiAttachment::where('id', $id)->whereNull('message_id')->delete() === 1;
     }
 }

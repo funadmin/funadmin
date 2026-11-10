@@ -89,7 +89,7 @@ class MigrationService extends AbstractService
             }
             // 空骨架合法，但必须在执行任何 SQL 前确认已登记文件没有丢失。
             $versions = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
-            $missing = array_diff(SystemMigration::where('scope', $scope)->pluck('version')->all(), $versions);
+            $missing = array_diff(SystemMigration::ledger()->where('scope', $scope)->pluck('version')->all(), $versions);
             if ($missing !== []) {
                 throw new RuntimeException('已登记的 migration 文件缺失：' . $scope . '/' . implode('、', $missing));
             }
@@ -188,7 +188,7 @@ class MigrationService extends AbstractService
             $checksum = hash('sha256', $sql);
             $report = ['scope' => $scope, 'version' => $version, 'checksum' => $checksum, 'effects' => [], 'pendingEarlier' => [],
                 'adoptable' => false, 'alreadyRecorded' => false, 'recorded' => false, 'dryRun' => $dryRun];
-            $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
+            $record = SystemMigration::ledger()->where('scope', $scope)->where('version', $version)->first();
             if ($record !== null) {
                 if (!hash_equals((string) $record->checksum, $checksum)) {
                     throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
@@ -199,7 +199,7 @@ class MigrationService extends AbstractService
             if (!$statements) throw new RuntimeException('Migration 没有可执行 SQL：' . $file);
             $report['effects'] = (new MigrationEffectVerifier(Db::connection()))->verify($statements);
             // 只能按顺序接管：更早的版本须先执行或接管，否则 latestAppliedVersion 会越过未执行的迁移。
-            $recorded = SystemMigration::query()->where('scope', $scope)->pluck('version')->all();
+            $recorded = SystemMigration::ledger()->where('scope', $scope)->pluck('version')->all();
             foreach (glob(dirname($file) . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $candidate) {
                 $name = pathinfo($candidate, PATHINFO_FILENAME);
                 if (strcmp($this->migrationSortKey($candidate), $this->migrationSortKey($file)) < 0 && !in_array($name, $recorded, true)) {
@@ -235,7 +235,7 @@ class MigrationService extends AbstractService
         $repositoryReady = $this->repositoryExists();
         if ($completeDirectory && $repositoryReady) {
             $versions = array_map(static fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
-            $missing = array_diff(SystemMigration::where('scope', $scope)->pluck('version')->all(), $versions);
+            $missing = array_diff(SystemMigration::ledger()->where('scope', $scope)->pluck('version')->all(), $versions);
             if ($missing !== []) throw new RuntimeException('已登记的 migration 文件缺失：' . $scope . '/' . implode('、', $missing));
         }
         foreach ($files as $file) {
@@ -247,7 +247,7 @@ class MigrationService extends AbstractService
             $checksum = hash('sha256', $sql);
             $version = pathinfo($file, PATHINFO_FILENAME);
             if ($repositoryReady) {
-                $record = SystemMigration::query()->where('scope', $scope)->where('version', $version)->first();
+                $record = SystemMigration::ledger()->where('scope', $scope)->where('version', $version)->first();
                 if ($record !== null && !hash_equals((string) $record->checksum, $checksum)) {
                     throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
                 }
@@ -263,7 +263,7 @@ class MigrationService extends AbstractService
             $checksum = $validatedFiles[$file]['checksum'];
             $repositoryReady = $this->repositoryExists();
             if ($repositoryReady) {
-                $record = SystemMigration::where('scope', $scope)->where('version', $version)->first();
+                $record = SystemMigration::ledger()->where('scope', $scope)->where('version', $version)->first();
                 if ($record) {
                     if (!hash_equals((string) $record->checksum, $checksum)) {
                         throw new RuntimeException("已执行的 migration 内容发生变化：{$scope}/{$version}");
@@ -344,7 +344,7 @@ class MigrationService extends AbstractService
         if (!$this->repositoryExists()) {
             return '';
         }
-        $versions = SystemMigration::where('scope', $scope)->pluck('version')->all();
+        $versions = SystemMigration::ledger()->where('scope', $scope)->pluck('version')->all();
         if (!$versions) {
             return '';
         }

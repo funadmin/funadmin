@@ -7,7 +7,11 @@ use InvalidArgumentException;
 use PDO;
 use PDOException;
 
-/** 独立自动提交连接上的唯一键占位；禁止与业务事务一起回滚。 */
+/**
+ * 独立自动提交连接上的唯一键占位；禁止与业务事务一起回滚。
+ * 表为核心表 form_list_action_execution：占位释放只做软删除（deleted_at + deleted_token = id），
+ * 唯一索引 (scope, deleted_token) 只约束未删除的占位，同一请求释放后可以重新占位。
+ */
 final class ListActionStore
 {
     public function __construct(private readonly PDO $connection, private readonly string $table)
@@ -27,7 +31,7 @@ final class ListActionStore
             // 仅唯一约束冲突允许读取已有结果，连接或表结构故障必须失败关闭。
             if ((string) $exception->getCode() !== '23000') throw $exception;
         }
-        $statement = $this->connection->prepare("SELECT digest, state, result FROM {$this->table} WHERE scope = ?");
+        $statement = $this->connection->prepare("SELECT digest, state, result FROM {$this->table} WHERE scope = ? AND deleted_at IS NULL");
         $statement->execute([$scope]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
         $statement->closeCursor();
@@ -39,17 +43,17 @@ final class ListActionStore
     public function finish(string $scope, string $digest, string $state, mixed $result): void
     {
         if ($this->connection->inTransaction() || !in_array($state, ['success', 'failed', 'unknown'], true)) throw new InvalidArgumentException('FORM_LIST_STORE_INVALID');
-        $statement = $this->connection->prepare("UPDATE {$this->table} SET state = ?, result = ? WHERE scope = ? AND digest = ? AND state = 'processing'");
+        $statement = $this->connection->prepare("UPDATE {$this->table} SET state = ?, result = ? WHERE scope = ? AND digest = ? AND state = 'processing' AND deleted_at IS NULL");
         $statement->execute([$state, json_encode($result, JSON_THROW_ON_ERROR), $scope, $digest]);
         if ($statement->rowCount() !== 1) throw new InvalidArgumentException('FORM_LIST_STORE_STATE_CONFLICT');
     }
 
-    /** 处理器明确声明未成功（未做任何更改）时删除本次占位，同一请求可原样重试；仅释放仍处于 processing 的本人占位。 */
+    /** 处理器明确声明未成功（未做任何更改）时软删除本次占位，同一请求可原样重试；仅释放仍处于 processing 的本人占位。 */
     public function release(string $scope, string $digest): void
     {
         if ($this->connection->inTransaction()) throw new InvalidArgumentException('FORM_LIST_STORE_INVALID');
-        $statement = $this->connection->prepare("DELETE FROM {$this->table} WHERE scope = ? AND digest = ? AND state = 'processing'");
-        $statement->execute([$scope, $digest]);
+        $statement = $this->connection->prepare("UPDATE {$this->table} SET deleted_at = ?, deleted_token = id WHERE scope = ? AND digest = ? AND state = 'processing' AND deleted_at IS NULL");
+        $statement->execute([date('Y-m-d H:i:s'), $scope, $digest]);
         if ($statement->rowCount() !== 1) throw new InvalidArgumentException('FORM_LIST_STORE_STATE_CONFLICT');
     }
 }

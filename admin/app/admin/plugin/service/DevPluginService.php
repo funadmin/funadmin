@@ -56,7 +56,7 @@ final class DevPluginService
         });
         $this->installedRecords = Closure::fromCallable($installedRecords ?? static function (): array {
             $records = [];
-            foreach (Plugin::whereNull('deleted_at')->get() as $record) {
+            foreach (Plugin::query()->get() as $record) {
                 $records[(string) $record->code] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,

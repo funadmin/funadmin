@@ -75,7 +75,7 @@ class Member extends BaseModel {
         if ($groupId > 0) {
             $query->whereIn('id', function ($relationQuery) use ($groupId): void {
                 $relationQuery->from((new MemberGroupRelation())->getTable())
-                    ->select('member_id')->where('group_id', $groupId);
+                    ->select('member_id')->where('group_id', $groupId)->whereNull('deleted_at');
             });
         }
         if ($levelId > 0) {

@@ -18,10 +18,7 @@ final class DatabasePluginAppPublicationRepository implements PluginAppPublicati
     public function replaceAppForPlugin(string $pluginCode, array $records): void
     {
         Db::transaction(static function () use ($pluginCode, $records): void {
-            PluginResource::where('plugin_code', $pluginCode)->where('resource_type', 'native_app')->delete();
-            foreach ($records as $record) {
-                PluginResource::create($record);
-            }
+            PluginResource::replaceOwned($pluginCode, 'native_app', $records);
         });
     }
 }

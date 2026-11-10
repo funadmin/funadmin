@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace app\admin\ai\model;
 
 use app\common\model\BaseModel;
+use app\common\model\concern\LaravelSoftDelete;
 
 /** 不可变 AI 任务事件。 */
 final class AiTaskEvent extends BaseModel
 {
+    use LaravelSoftDelete;
+
+    protected $hidden = ['deleted_token'];
+
     protected $name = 'ai_task_event';
     protected $fillable = ['task_id', 'sequence', 'type', 'payload'];
     protected $casts = ['payload' => 'array'];

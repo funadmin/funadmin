@@ -43,7 +43,7 @@ final class PluginValidate extends Command
                 throw new \RuntimeException("生命周期钩子不得修改数据库结构，结构变更必须写入插件 migration：\n" . implode("\n", $ddl));
             }
             $records = [];
-            foreach (Plugin::whereNull('deleted_at')->get() as $record) {
+            foreach (Plugin::query()->get() as $record) {
                 $records[(string) $record->code] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,

@@ -64,7 +64,7 @@ final class FormListConfirmationSecretTest extends TestCase
     public function test_missing_secret_table_is_reported_as_unavailable_without_leaking_details(): void
     {
         $this->database = sys_get_temp_dir() . '/funadmin-secret-' . bin2hex(random_bytes(6)) . '.sqlite';
-        (new \PDO('sqlite:' . $this->database))->exec('CREATE TABLE fun_form_list_action_execution (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64) NOT NULL, state VARCHAR(16) NOT NULL, result TEXT)');
+        (new \PDO('sqlite:' . $this->database))->exec('CREATE TABLE fun_form_list_action_execution (id INTEGER PRIMARY KEY AUTOINCREMENT, scope VARCHAR(64) NOT NULL, digest VARCHAR(64) NOT NULL, state VARCHAR(16) NOT NULL, result TEXT, deleted_at DATETIME NULL, deleted_token INTEGER NOT NULL DEFAULT 0, UNIQUE (scope, deleted_token))');
         $this->expectExceptionMessage('FORM_LIST_CONFIRMATION_UNAVAILABLE');
         (new FormRegistryFactory($this->config()))->listExecutor();
     }
@@ -118,7 +118,7 @@ final class FormListConfirmationSecretTest extends TestCase
     {
         $this->database = sys_get_temp_dir() . '/funadmin-secret-' . bin2hex(random_bytes(6)) . '.sqlite';
         $pdo = new \PDO('sqlite:' . $this->database, options: [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
-        $pdo->exec('CREATE TABLE fun_form_list_action_execution (scope VARCHAR(64) PRIMARY KEY, digest VARCHAR(64) NOT NULL, state VARCHAR(16) NOT NULL, result TEXT)');
+        $pdo->exec('CREATE TABLE fun_form_list_action_execution (id INTEGER PRIMARY KEY AUTOINCREMENT, scope VARCHAR(64) NOT NULL, digest VARCHAR(64) NOT NULL, state VARCHAR(16) NOT NULL, result TEXT, deleted_at DATETIME NULL, deleted_token INTEGER NOT NULL DEFAULT 0, UNIQUE (scope, deleted_token))');
         $pdo->exec('CREATE TABLE fun_system_secret (name VARCHAR(64) PRIMARY KEY, value VARCHAR(255) NOT NULL, created_at DATETIME NULL)');
         return $pdo;
     }

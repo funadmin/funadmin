@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace app\admin\system\model;
 
 use app\common\model\BaseModel;
+use app\common\model\concern\LaravelSoftDelete;
 
 class MemberTagRelation extends BaseModel
 {
+    use LaravelSoftDelete;
+
+    protected $hidden = ['deleted_token'];
+
     protected $table = 'member_tag_relation';
-
-    /** 复合主键 (member_id, tag_id)：Eloquent 不支持复合主键，只经查询构造器读写。 */
-    public $incrementing = false;
-
 }
