@@ -165,8 +165,7 @@ class Member extends BaseModel {
             $memberGroups[(int) $member->id] = [];
             $levelIds[] = (int) $member->level_id;
         }
-        $relations = $memberIds ? MemberGroupRelation::whereIn('member_id', $memberIds)
-            ->select(['member_id', 'group_id'])->orderBy('group_id')->get()->toArray() : [];
+        $relations = self::relationRows(MemberGroupRelation::class, 'group_id', $members);
         $groupIds = [];
         foreach ($relations as $relation) {
             $memberId = (int) $relation['member_id'];
@@ -179,7 +178,7 @@ class Member extends BaseModel {
         $groups = $groupIds ? MemberGroup::withTrashed()->whereIn('id', $groupIds)->pluck('name', 'id')->all() : [];
         $levels = $levelIds ? MemberLevel::withTrashed()->whereIn('id', $levelIds)->pluck('name', 'id')->all() : [];
         $memberTags = array_fill_keys($memberIds, []);
-        $tagRelations = $memberIds ? MemberTagRelation::whereIn('member_id', $memberIds)->select(['member_id', 'tag_id'])->orderBy('tag_id')->get()->toArray() : [];
+        $tagRelations = self::relationRows(MemberTagRelation::class, 'tag_id', $members);
         $tagIds = [];
         foreach ($tagRelations as $relation) {
             $memberTags[(int) $relation['member_id']][] = (int) $relation['tag_id'];
@@ -188,6 +187,43 @@ class Member extends BaseModel {
         $tagIds = array_values(array_unique($tagIds));
         $tags = $tagIds ? MemberTag::withTrashed()->whereIn('id', $tagIds)->pluck('name', 'id')->all() : [];
         return [$memberGroups, $groups, $levels, $memberTags, $tags];
+    }
+
+    /**
+     * 列表展示用的关联行：未删除会员取有效关联；回收站中的会员取随它一起删除的关联
+     * （deleted_at 与会员相同，见 MemberCascade），这样回收站里仍能看到恢复后会带回的分组 / 标签。
+     *
+     * @param class-string $relation
+     * @return list<array<string, int>>
+     */
+    private static function relationRows(string $relation, string $key, array $members): array
+    {
+        $live = [];
+        $trashed = [];
+        foreach ($members as $member) {
+            $deletedAt = $member->getRawOriginal('deleted_at');
+            if ($deletedAt === null) {
+                $live[] = (int) $member->id;
+            } else {
+                $trashed[(int) $member->id] = (string) $deletedAt;
+            }
+        }
+        $rows = $live ? $relation::whereIn('member_id', $live)->select(['member_id', $key])->orderBy($key)->get()->toArray() : [];
+        if ($trashed) {
+            $seen = [];
+            $candidates = $relation::onlyTrashed()->whereIn('member_id', array_keys($trashed))
+                ->select(['member_id', $key, 'deleted_at'])->orderBy($key)->get();
+            foreach ($candidates as $row) {
+                $memberId = (int) $row->member_id;
+                $value = (int) $row->getAttribute($key);
+                if ((string) $row->getRawOriginal('deleted_at') !== $trashed[$memberId] || isset($seen[$memberId][$value])) {
+                    continue;
+                }
+                $seen[$memberId][$value] = true;
+                $rows[] = ['member_id' => $memberId, $key => $value];
+            }
+        }
+        return $rows;
     }
 
     public static function groupIdsFor(int $memberId): array

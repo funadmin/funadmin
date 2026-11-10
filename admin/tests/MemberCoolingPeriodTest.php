@@ -193,6 +193,11 @@ final class MemberCoolingPeriodTest extends TestCase
         // 删除后又有一条相同的有效分组关联（例如数据修复写入）：恢复时跳过冲突的那条，不报错。
         Db::table('member_group_relation')->insert(['member_id' => $id, 'group_id' => 72, 'created_at' => date('Y-m-d H:i:s')]);
 
+        // 回收站列表仍显示这次删除带走的分组 / 标签（编辑时移除的不显示）。
+        $recycled = $this->member('GET', '/admin/system/member?recycled=1', [], static fn ($c) => $c->index());
+        self::assertSame([[71, 72]], array_column($recycled['data']['list'], 'groupIds'));
+        self::assertSame([[81]], array_column($recycled['data']['list'], 'tagIds'));
+
         $payload = $this->member('POST', '/admin/system/member/restore', ['ids' => [$id]], static fn ($c) => $c->restore());
         self::assertSame(200, $payload['code'], $payload['msg']);
         self::assertNull(Db::table('member')->where('id', $id)->value('deleted_at'));
