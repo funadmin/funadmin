@@ -1,6 +1,6 @@
 import http from '@/utils/http';
 import { adminApiUrl } from '@/utils/apiUrl';
-import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy, CmsForm, FormSubmissionList, FormSubmissionDetail, FormOption } from './types';
+import type { Scope, FormData, Site, Settings, SiteEditorOptions, ContentModel, ContentRow, ContentList, Revision, Category, Provider, TagEditorOptions, TemplateTag, TemplateTagListItem, SiteContext, AccessData, SiteMember, SiteConfiguration, ContributionPolicy, CmsForm, FormSubmissionList, FormSubmissionDetail, FormOption, TrashedMenu, TrashedForm, TrashedSubmissionList, TrashedMember, RecycleResult } from './types';
 const base = '/plugins/cms';
 const get = <T>(path: string, params?: FormData) => http.get<T>(`${base}${path}`, params);
 const post = <T>(path: string, data: FormData) => http.post<T>(`${base}${path}`, data);
@@ -19,6 +19,12 @@ export const cmsApi = {
   transitionFormSubmission: (data: FormData) => post<FormSubmissionDetail>('/forms/submissions/transition', data),
   invalidateFormSubmissions: (data: FormData) => post<{count: number}>('/forms/submissions/invalidate', data),
   removeFormSubmissions: (data: FormData) => post<{count: number}>('/forms/submissions/remove', data),
+  trashedForms: (site_id: string) => get<TrashedForm[]>('/forms/recycle', {site_id}),
+  restoreForms: (data: FormData) => post<RecycleResult>('/forms/restore', data),
+  destroyForms: (data: FormData) => post<RecycleResult>('/forms/destroy', data),
+  trashedSubmissions: (site_id: string, page: number) => get<TrashedSubmissionList>('/forms/submissions/recycle', {site_id, page}),
+  restoreSubmissions: (data: FormData) => post<RecycleResult>('/forms/submissions/restore', data),
+  destroySubmissions: (data: FormData) => post<RecycleResult>('/forms/submissions/destroy', data),
   formExportUrl: (params: FormData) => link('/forms/submissions/export', params),
   formFileUrl: (site_id: string, file_id: string, preview = false) => link('/forms/files/download', preview ? {site_id, id: file_id, preview: 1} : {site_id, id: file_id}),
   contributionSettings: (site_id:string) => get<ContributionPolicy>('/contributions/settings',{site_id}),
@@ -31,6 +37,9 @@ export const cmsApi = {
   saveRole: (data: FormData) => post('/access/roles/save', data),
   assignRoles: (data: FormData) => post('/access/members/save', data),
   removeMember: (data: FormData) => post('/access/members/remove', data),
+  trashedMembers: (site_id: string) => get<TrashedMember[]>('/access/members/recycle', {site_id}),
+  restoreMembers: (data: FormData) => post<RecycleResult>('/access/members/restore', data),
+  destroyMembers: (data: FormData) => post<RecycleResult>('/access/members/destroy', data),
   siteModels: (scope: Scope) => get<Settings['models']>('/models/bindings', scope),
   sites: () => get<{items: Site[]; is_super: boolean}>('/sites'),
   settings: (site_id: string) => get<Settings>('/settings', {site_id}),
@@ -67,6 +76,9 @@ export const cmsApi = {
   menus: (scope: Scope) => get<FormData[]>('/menus', scope),
   saveMenu: (data: FormData) => post('/menus/save', data),
   removeMenu: (data: FormData) => post('/menus/remove', data),
+  trashedMenus: (scope: Scope) => get<TrashedMenu[]>('/menus/recycle', scope),
+  restoreMenus: (data: FormData) => post<RecycleResult>('/menus/restore', data),
+  destroyMenus: (data: FormData) => post<RecycleResult>('/menus/destroy', data),
   tags: (scope: Scope) => get<TemplateTagListItem[]>('/tags', scope),
   providers: (scope: Scope) => get<Provider[]>('/tags/providers', scope),
   tagOptions: (scope: Scope) => get<TagEditorOptions>('/tags/options', scope),

@@ -46,3 +46,10 @@ export interface FormSubmissionList { list: FormSubmissionRow[]; total: number; 
 export interface FormSubmissionFile { id: Id; field: string; name: string; mime: string; size: number; created_at: string }
 export interface FormSubmissionEvent { id: Id; type: string; admin_id: Id|null; body: string; from_status: FormSubmissionStatus|null; to_status: FormSubmissionStatus|null; created_at: string }
 export interface FormSubmissionDetail extends Omit<FormSubmissionRow, 'summary'> { fields: Array<{name: string; type: string; label: string; value: unknown; text: string; files?: FormSubmissionFile[]}>; files: FormSubmissionFile[]; events: FormSubmissionEvent[] }
+/** 回收站（1.6.0）：恢复返回恢复数与因冲突或上级缺失而跳过的子记录数；彻底删除只返回数量。 */
+export interface RecycleResult { count: number; skipped?: number; submissions?: number }
+export interface TrashedMenu { id: Id; code: string; name: string; locale: string; deleted_at: string; item_count: number }
+export interface TrashedForm { id: Id; code: string; name: string; deleted_at: string; submission_count: number }
+export interface TrashedSubmission { id: Id; form_id: Id; form_code: string; form_name: string; status: string; created_at: string; deleted_at: string; summary: Array<{label: string; value: string}> }
+export interface TrashedSubmissionList { list: TrashedSubmission[]; total: number; page: number; pageSize: number }
+export interface TrashedMember { id: Id; admin_id: Id; username: string; real_name: string; deleted_at: string; manageable: boolean; roles: Array<{id: Id; name: string; status: number}> }

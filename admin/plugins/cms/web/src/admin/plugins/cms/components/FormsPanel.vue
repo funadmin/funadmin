@@ -3,9 +3,11 @@ import TablePagination from '@/components/TablePagination/index.vue';
 import { useCmsI18n } from '@/composables/useCmsI18n';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { cmsApi } from '../api';
-import type { CmsForm, FormData, FormSubmissionRow, FormSubmissionStatus, Scope } from '../types';
+import type { CmsForm, FormData, FormSubmissionRow, FormSubmissionStatus, Scope, TrashedForm, TrashedSubmission } from '../types';
 import FormEditor from './FormEditor.vue';
 import FormSubmissionDrawer from './FormSubmissionDrawer.vue';
+import RecycleDrawer from './RecycleDrawer.vue';
+import type { RecycleSource } from './recycle';
 import { FORM_SUBMISSION_STATUSES } from './formFields';
 import { useOperation } from './useOperation';
 const { t, locale } = useCmsI18n();
@@ -20,6 +22,23 @@ const detailId=ref<string>(),editorOpen=ref(false),editing=ref<CmsForm|null>(nul
 const statuses=computed<Record<string,string>>(()=>Object.fromEntries(FORM_SUBMISSION_STATUSES.map(status=>[status,t(`cms.forms.statuses.${status}`)])));
 const embedCodes=computed(()=>embed.value?[{label:t('cms.forms.bladeUsage'),code:`{{ $cms->tag('form', ['name' => '${embed.value.code}']) }}`},{label:t('cms.forms.tagUsage'),code:`{cms:form name="${embed.value.code}" /}`}]:[]);
 let generation=0;
+const recycleOpen=ref(false);
+/** 回收站：表单（恢复时带回一起删除的提交）与提交两个页签，各按自己的本站权限显示。 */
+const recycleSources=computed<RecycleSource<any>[]>(()=>{
+  const site=props.scope.site_id;
+  const forms:RecycleSource<TrashedForm>={key:'forms',label:t('cms.recycle.forms'),canView:props.can('cms:form:recycle'),canRestore:props.can('cms:form:restore'),canDestroy:props.can('cms:form:destroy'),
+    load:async()=>{const rows=await cmsApi.trashedForms(site);return {rows,total:rows.length,pageSize:Math.max(rows.length,1)};},
+    title:row=>row.name,meta:row=>t('cms.recycle.formMeta',{code:row.code,count:row.submission_count}),
+    restore:ids=>cmsApi.restoreForms({site_id:site,ids}),destroy:ids=>cmsApi.destroyForms({site_id:site,ids}),
+    destroyBody:row=>t('cms.recycle.destroyFormBody',{name:row.name})};
+  const submissions:RecycleSource<TrashedSubmission>={key:'submissions',label:t('cms.recycle.submissions'),canView:props.can('cms:form:submission-recycle'),canRestore:props.can('cms:form:submission-restore'),canDestroy:props.can('cms:form:submission-destroy'),
+    load:async(page)=>{const data=await cmsApi.trashedSubmissions(site,page);return {rows:data.list,total:data.total,pageSize:data.pageSize};},
+    title:row=>row.summary.map(item=>t('cms.forms.summaryItem',{label:item.label,value:item.value})).join('  ')||row.form_name,meta:row=>t('cms.recycle.submissionMeta',{form:row.form_name,time:String(row.created_at).slice(0,16)}),
+    restore:ids=>cmsApi.restoreSubmissions({site_id:site,ids}),destroy:ids=>cmsApi.destroySubmissions({site_id:site,ids}),
+    destroyBody:()=>t('cms.recycle.destroySubmissionBody')};
+  return [forms,submissions];
+});
+const canRecycle=computed(()=>recycleSources.value.some(source=>source.canView));
 /** 读取筛选控件当前值；未选任何状态即“全部状态”，显式发送四个状态，避免服务端回落到默认的新提交+跟进中。 */
 function readFilters():FormData{
   const [from,to]=filters.range||[];
@@ -71,7 +90,7 @@ async function toggle(form:CmsForm,enabled:boolean){
   await loadForms();
 }
 async function removeForm(form:CmsForm){
-  if(!canManage.value||form.submission_count)return;
+  if(!canManage.value)return;
   notice.value='';
   const done=await run(async()=>{await cmsApi.deleteForm({site_id:props.scope.site_id,id:form.id});return true;});
   if(done&&filters.form_id===form.id)filters.form_id='';
@@ -90,6 +109,7 @@ onMounted(()=>void refresh());onBeforeUnmount(()=>generation++);
 <template>
   <section class="forms-panel">
     <el-alert v-if="error" :title="error" type="error" :closable="false" /><el-alert v-if="notice" :title="notice" type="success" :closable="false" />
+    <div v-if="canRecycle" class="toolbar recycle-entry"><el-button data-testid="open-recycle" @click="recycleOpen=true">{{ t('cms.recycle.open') }}</el-button></div>
     <el-tabs v-model="tab">
       <el-tab-pane v-if="canSubmissions" name="submissions" :label="t('cms.forms.newSubmissionsTab',{count:newCount})">
         <div class="toolbar">
@@ -126,11 +146,12 @@ onMounted(()=>void refresh());onBeforeUnmount(()=>generation++);
           <el-table-column :label="t('cms.forms.actions')" min-width="200"><template #default="{row}">
             <el-button v-if="canManage" link type="primary" @click="openEditor(row as CmsForm)">{{ t('cms.forms.edit') }}</el-button>
             <el-button link @click="embed=row as CmsForm">{{ t('cms.forms.embedCode') }}</el-button>
-            <el-popconfirm v-if="canManage&&!row.submission_count" :title="t('cms.forms.deleteFormConfirm',{name:row.name})" width="300" :confirm-button-text="t('cms.forms.confirmDelete')" :cancel-button-text="t('cms.forms.cancel')" @confirm="removeForm(row as CmsForm)"><template #reference><el-button link type="danger" :disabled="busy">{{ t('cms.forms.delete') }}</el-button></template></el-popconfirm>
+            <el-popconfirm v-if="canManage" :title="row.submission_count?t('cms.forms.deleteFormWithSubmissionsConfirm',{name:row.name,count:row.submission_count}):t('cms.forms.deleteFormConfirm',{name:row.name})" width="300" :confirm-button-text="t('cms.forms.confirmDelete')" :cancel-button-text="t('cms.forms.cancel')" @confirm="removeForm(row as CmsForm)"><template #reference><el-button link type="danger" :disabled="busy">{{ t('cms.forms.delete') }}</el-button></template></el-popconfirm>
           </template></el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
+    <RecycleDrawer v-if="canRecycle" v-model="recycleOpen" :sources="recycleSources" @changed="refresh" />
     <FormSubmissionDrawer v-if="canSubmissions" :id="detailId" :scope="scope" :can="can" @close="detailId=undefined" @changed="refresh" />
     <FormEditor v-if="editorOpen&&canManage" :site-id="scope.site_id" :form="editing" :languages="languages" @saved="saved" @close="editorOpen=false" />
     <el-dialog :model-value="!!embed" :title="t('cms.forms.embedCode')" width="min(640px,94vw)" @close="embed=undefined">
@@ -140,5 +161,5 @@ onMounted(()=>void refresh());onBeforeUnmount(()=>generation++);
   </section>
 </template>
 <style scoped>
-.forms-panel .el-alert{margin-bottom:16px}.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}.toolbar .el-select{width:180px}.toolbar .el-input{width:200px}.muted{color:var(--el-text-color-secondary);font-size:12px}.summary-item{display:inline-block;margin-right:12px;overflow-wrap:anywhere}.embed-code{margin-bottom:16px}.embed-code h4{margin:0 0 8px;font-size:13px}.embed-code pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--el-fill-color-light);padding:12px;margin:0 0 8px;font-size:13px}
+.forms-panel .el-alert{margin-bottom:16px}.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px}.toolbar .el-select{width:180px}.toolbar .el-input{width:200px}.recycle-entry{justify-content:flex-end;margin-bottom:0}.muted{color:var(--el-text-color-secondary);font-size:12px}.summary-item{display:inline-block;margin-right:12px;overflow-wrap:anywhere}.embed-code{margin-bottom:16px}.embed-code h4{margin:0 0 8px;font-size:13px}.embed-code pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--el-fill-color-light);padding:12px;margin:0 0 8px;font-size:13px}
 </style>
