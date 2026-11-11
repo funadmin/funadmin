@@ -426,7 +426,7 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
 
 ## 1.6.0 统一软删除表结构
 
-升级：停用 CMS → 更新（执行 `007_soft_delete.sql`）→ 启用。007 按 information_schema 判断后再执行，可以重复执行；存量数据全部保留。已安装的 CMS 必须走插件更新执行 007：1.6.0 的代码按新列读写（`deleted_at`、`deleted_token`、关系表的 `id`），只替换代码而不执行迁移时 CMS 读写会报错。
+升级：停用 CMS → 更新（执行 `007_soft_delete.sql`）→ 启用。已安装问答插件时，问答依赖 CMS，插件服务在问答启用期间拒绝停用 CMS：先停用问答，再停用、更新、启用 CMS，之后更新问答（执行 `002_soft_delete`，到 1.1.0）并启用。007 按 information_schema 判断后再执行，可以重复执行；存量数据全部保留。已安装的 CMS 必须走插件更新执行 007：1.6.0 的代码按新列读写（`deleted_at`、`deleted_token`、关系表的 `id`），只替换代码而不执行迁移时 CMS 读写会报错。
 
 - 除只追加的历史表 `cms_form_event`、`cms_site_auth_audit`、`cms_model_version`、`cms_content_revision`、`cms_template_tag_version` 外，其余 21 张表都有自增 `id` 主键和 `deleted_at DATETIME NULL`（建 `idx_<表名>_deleted_at` 索引）。
 - 有唯一索引的 16 张表另加 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（未删除为 0，删除后为本行 id）。17 个唯一索引保持原名，改为“原列 + `deleted_token`”，删除后可以用相同的标识、域名、路径或组合重新创建。历史表的唯一索引不变。

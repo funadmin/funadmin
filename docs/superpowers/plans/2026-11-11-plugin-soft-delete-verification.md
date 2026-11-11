@@ -67,7 +67,7 @@
 | OSS | 未安装 |
 | 业务表 `fun_order` | 有 `deleted_at`，没有唯一键；升级命令只会补 `deleted_at` 索引 |
 
-本地安装副本已经是新代码（CMS、文档读写依赖新列），所以在执行下面的升级之前，开发环境里的 CMS 和技术文档读写会报错。由用户执行：
+本地安装副本已经是新代码（CMS、文档读写依赖新列），所以在执行下面的升级之前，开发环境里的 CMS 和技术文档读写会报错。由用户按顺序执行：先备份；技术文档（停用、更新 004、启用）；CMS（停用、更新 007、启用；已装问答时先停用问答）；问答（若已安装，更新并启用）；最后 `business:soft-delete-upgrade --table=order --dry-run`，再正式执行。
 
 1. **先备份开发库**（`admin/` 下，库名、账号取自 `.env`）：
 
@@ -75,9 +75,13 @@
    mysqldump --single-transaction --routines --triggers -h <DB_HOST> -P <DB_PORT> -u <DB_USERNAME> -p <DB_DATABASE> > ~/funadmin-dev-before-plugin-soft-delete.sql
    ```
 
-2. **插件更新**：在后台插件中心依次对技术文档（执行 `004_soft_delete`，到 1.5.0）、CMS（执行 `007_soft_delete`，到 1.6.0）执行“停用 → 更新 → 启用”。问答若已安装则在 CMS 之后同样更新（`002_soft_delete`，1.1.0；依赖 CMS）。OSS 未安装，不需要操作。CMS 007 会重建 6 张 TIMESTAMP 表和 4 张关系表，表很小，开发库上应很快。
+2. **插件更新**（后台插件中心，按以下顺序）：
+   1. 技术文档：停用 → 更新（执行 `004_soft_delete`，到 1.5.0）→ 启用。
+   2. CMS：停用 → 更新（执行 `007_soft_delete`，到 1.6.0）→ 启用。问答依赖 CMS，插件服务在问答启用期间拒绝停用 CMS：**若已安装问答，先停用问答再停用 CMS**。CMS 007 会重建 6 张 TIMESTAMP 表和 4 张关系表，表很小，开发库上应很快。
+   3. 问答（仅已安装时）：在 CMS 启用之后更新（执行 `002_soft_delete`，到 1.1.0）→ 启用。当前开发库未安装问答，跳过。
+   OSS 未安装，不需要操作。
 
-3. **业务表升级**（先看计划，再执行）：
+3. **业务表升级**（插件更新之后；先 `--dry-run` 看计划，再正式执行）：
 
    ```sh
    cd admin
