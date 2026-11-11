@@ -32,7 +32,7 @@ final class ContributionPolicy
             }
             $settings = $row['settings'] ?? [];
             $settings['member_content'] = ['enabled' => $input['enabled'], 'model_codes' => array_values(array_unique($codes))];
-            Site::query()->withTrashed()->where('id', $site)->update(['settings' => Input::json($settings), 'updated_at' => Input::now()]);
+            Site::query()->where('id', $site)->update(['settings' => Input::json($settings), 'updated_at' => Input::now()]);
             return $this->read($site);
         });
     }
@@ -58,7 +58,7 @@ final class ContributionPolicy
     private function models(string $site): array
     {
         $models = [];
-        $rows = Db::table('cms_content_model as m')->join('cms_site_model as s', 's.model_id', '=', 'm.id')->where('s.site_id', Input::id($site))->where('s.status', 1)->where('m.status', 1)->orderBy('m.id')->select('m.id', 'm.code', 'm.name', 'm.current_version')->get();
+        $rows = Db::table('cms_content_model as m')->join('cms_site_model as s', 's.model_id', '=', 'm.id')->where('s.site_id', Input::id($site))->where('s.status', 1)->where('m.status', 1)->whereNull('s.deleted_at')->whereNull('m.deleted_at')->orderBy('m.id')->select('m.id', 'm.code', 'm.name', 'm.current_version')->get();
         foreach ($rows as $row) {
             $version = Input::row(ModelVersion::query()->where('model_id', $row->id)->where('version', $row->current_version)->first());
             if (!$version) {

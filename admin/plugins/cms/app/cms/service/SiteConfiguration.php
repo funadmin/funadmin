@@ -115,7 +115,7 @@ final class SiteConfiguration
             } else {
                 $fields=self::fields($input['fields']??$site['settings']['configuration']['fields']??self::defaults());$values=self::values($fields,$input['values']??$site['settings']['configuration']['values']??[]);
                 self::reconcileLocales($siteId,$fields);
-                $settings=array_replace($site['settings']??[],['configuration'=>['fields'=>$fields,'values'=>$values]]);Site::query()->withTrashed()->where('id',$siteId)->update(['settings'=>Input::json($settings),'updated_at'=>Input::now()]);
+                $settings=array_replace($site['settings']??[],['configuration'=>['fields'=>$fields,'values'=>$values]]);Site::query()->where('id',$siteId)->update(['settings'=>Input::json($settings),'updated_at'=>Input::now()]);
             }
             (new PublicPageCache())->invalidateSite($siteId);
             return $this->read($siteId,$locale);

@@ -46,10 +46,10 @@ final class SiteRoleService
             $code=Input::code($input['code']??$old['code']??'');if($old&&$old['code']!==$code)throw new \InvalidArgumentException('角色标识不可修改',422);
             $name=Input::text($input['name']??'',100);if($name==='')throw new \InvalidArgumentException('角色名称不能为空',422);
             $data=['code'=>$code,'name'=>$name,'status'=>$this->status($input['status']??$old['status']??1),'updated_at'=>Input::now()];
-            if($old)SiteRole::query()->withTrashed()->where('id',$id)->where('site_id',$siteId)->update($data);else{$row=new SiteRole();$row->fill($data+['site_id'=>$siteId,'created_at'=>Input::now()])->save();$id=(string)$row->getKey();}
+            if($old)SiteRole::query()->where('id',$id)->where('site_id',$siteId)->update($data);else{$row=new SiteRole();$row->fill($data+['site_id'=>$siteId,'created_at'=>Input::now()])->save();$id=(string)$row->getKey();}
             $before=$old?($old+['permissions'=>$this->permissions($siteId,$id)]):[];
-            SiteRolePermission::query()->forSite($siteId)->where('role_id',$id)->delete();
-            foreach($permissions as $p)SiteRolePermission::query()->insert(['site_id'=>$siteId,'role_id'=>$id,'permission_code'=>$p]);
+            // 站点行已加锁（所属锁）：权限按差异同步，原样保存不产生软删除行。
+            RelationSync::sync(SiteRolePermission::class,['site_id'=>$siteId,'role_id'=>$id],'permission_code',$permissions);
             $after=$this->role($siteId,$id)+['permissions'=>$permissions];$this->audit($siteId,$actorId,'role',$id,$old?'role.update':'role.create',$before,$after);return $after;
         });
     }
@@ -62,8 +62,8 @@ final class SiteRoleService
             $before=array_map('strval',SiteRoleMember::query()->forSite($siteId)->where('admin_id',$adminId)->pluck('role_id')->all());
             // Replacing a stronger pre-existing grant is also a privileged operation.
             if(!(new SiteAccess())->isSuper($actorId))foreach($before as $id)if(array_diff($this->permissions($siteId,$id),$own))throw new \InvalidArgumentException('不能修改超出自己权限的成员角色',403);
-            SiteAdmin::query()->insertOrIgnore(['site_id'=>$siteId,'admin_id'=>$adminId]);SiteRoleMember::query()->forSite($siteId)->where('admin_id',$adminId)->delete();
-            foreach($ids as $id)SiteRoleMember::query()->insert(['site_id'=>$siteId,'role_id'=>$id,'admin_id'=>$adminId]);
+            SiteAdmin::query()->insertOrIgnore(['site_id'=>$siteId,'admin_id'=>$adminId]);
+            RelationSync::sync(SiteRoleMember::class,['site_id'=>$siteId,'admin_id'=>$adminId],'role_id',$ids);
             $this->audit($siteId,$actorId,'member',$adminId,'member.assign',$before,$ids);
         });
     }
@@ -73,7 +73,65 @@ final class SiteRoleService
             (new SiteService())->lock($siteId);(new SiteAuthorization())->assert($siteId,$actorId,'cms:access:members');$this->assertManageable($actorId,$adminId);
             $before=array_map('strval',SiteRoleMember::query()->forSite($siteId)->where('admin_id',$adminId)->pluck('role_id')->all());
             if(!(new SiteAccess())->isSuper($actorId))foreach($before as $id)if(array_diff($this->permissions($siteId,$id),(new SiteAuthorization())->effective($siteId,$actorId)))throw new \InvalidArgumentException('不能撤销超出自己权限的成员角色',403);
-            SiteRoleMember::query()->forSite($siteId)->where('admin_id',$adminId)->delete();SiteAdmin::query()->forSite($siteId)->where('admin_id',$adminId)->delete();$this->audit($siteId,$actorId,'member',$adminId,'member.remove',$before,[]);
+            // 成员身份与它的角色共用一个删除时间：回收站恢复时据此带回一起移除的角色。
+            $at=RecycleBin::now();RecycleBin::trash(SiteRoleMember::query()->forSite($siteId)->where('admin_id',$adminId),$at);RecycleBin::trash(SiteAdmin::query()->forSite($siteId)->where('admin_id',$adminId),$at);
+            $this->audit($siteId,$actorId,'member',$adminId,'member.remove',$before,[]);
+        });
+    }
+    /** 回收站：本站被移除的成员身份（差异同步移除的单个角色不算成员删除，不在这里）。roles 为恢复时会带回的角色。 */
+    public function trashedMembers(string $siteId,string $actorId): array
+    {
+        $siteId=Input::id($siteId);$rows=[];
+        foreach(SiteAdmin::onlyTrashed()->forSite($siteId)->orderByDesc('deleted_at')->orderByDesc('id')->limit(200)->get() as $member){
+            $at=RecycleBin::deletedAt($member);$adminId=(string)$member->admin_id;$admin=Admin::where('id',$adminId)->first();
+            $roleIds=array_map('strval',SiteRoleMember::onlyTrashed()->forSite($siteId)->where('admin_id',$adminId)->where('deleted_at',$at)->pluck('role_id')->all());
+            $roles=$roleIds?array_map(static fn(array $r): array=>['id'=>$r['id'],'name'=>$r['name'],'status'=>(int)$r['status']],Input::rows(SiteRole::query()->forSite($siteId)->whereIn('id',$roleIds)->orderBy('id')->get())):[];
+            $rows[]=['id'=>(string)$member->getRawOriginal('id'),'admin_id'=>$adminId,'username'=>$admin?->username??'','real_name'=>$admin?->real_name??'','deleted_at'=>$at,'roles'=>$roles,'manageable'=>$this->manageable($actorId,$adminId)];
+        }
+        return $rows;
+    }
+    /**
+     * 恢复成员身份，并带回与它一起移除的角色。校验与分配角色相同：账号必须可管理；角色已删除或停用时跳过（计入 skipped）；
+     * 非平台管理员不能恢复超出自己本站权限的角色（403）。该账号已重新加入本站时整批 409。
+     * @return array{count:int,skipped:int}
+     */
+    public function restoreMembers(string $siteId,string $actorId,mixed $ids): array
+    {
+        $siteId=Input::id($siteId);$ids=RecycleBin::ids($ids);
+        return Db::transaction(function()use($siteId,$actorId,$ids): array {
+            (new SiteService())->lock($siteId);$auth=new SiteAuthorization();$auth->assert($siteId,$actorId,'cms:access:restore');
+            $members=RecycleBin::locked(SiteAdmin::class,$siteId,$ids,'成员不在回收站或不属于本站');$skipped=0;$super=(new SiteAccess())->isSuper($actorId);$own=$super?[]:$auth->effective($siteId,$actorId);
+            foreach($members as $member){
+                $adminId=(string)$member->admin_id;$this->assertManageable($actorId,$adminId);$at=RecycleBin::deletedAt($member);
+                $restore=[];
+                foreach(SiteRoleMember::onlyTrashed()->forSite($siteId)->where('admin_id',$adminId)->where('deleted_at',$at)->get() as $row){
+                    $role=Input::row(SiteRole::query()->forSite($siteId)->where('id',$row->role_id)->first());
+                    if(!$role||(int)$role['status']!==1){$skipped++;continue;}
+                    if(!$super&&array_diff($this->permissions($siteId,$role['id']),$own))throw new \InvalidArgumentException('角色权限超出您的本站权限',403);
+                    $restore[]=$row->getKey();
+                }
+                $member->restore();if($restore)SiteRoleMember::onlyTrashed()->whereKey($restore)->restore();
+                $this->audit($siteId,$actorId,'member',$adminId,'member.restore',[],array_map('strval',SiteRoleMember::query()->forSite($siteId)->where('admin_id',$adminId)->pluck('role_id')->all()));
+            }
+            return ['count'=>count($members),'skipped'=>$skipped];
+        });
+    }
+    /**
+     * 彻底删除回收站中的成员身份及与它一起移除的角色记录，不可恢复；账号必须可管理。
+     * @return array{count:int}
+     */
+    public function destroyMembers(string $siteId,string $actorId,mixed $ids): array
+    {
+        $siteId=Input::id($siteId);$ids=RecycleBin::ids($ids);
+        return Db::transaction(function()use($siteId,$actorId,$ids): array {
+            (new SiteService())->lock($siteId);(new SiteAuthorization())->assert($siteId,$actorId,'cms:access:destroy');
+            $members=RecycleBin::locked(SiteAdmin::class,$siteId,$ids,'成员不在回收站或不属于本站');
+            foreach($members as $member){
+                $adminId=(string)$member->admin_id;$this->assertManageable($actorId,$adminId);
+                SiteRoleMember::onlyTrashed()->forSite($siteId)->where('admin_id',$adminId)->where('deleted_at',RecycleBin::deletedAt($member))->forceDelete();$member->forceDelete();
+                $this->audit($siteId,$actorId,'member',$adminId,'member.destroy',[],[]);
+            }
+            return ['count'=>count($members)];
         });
     }
     private function permissions(string $siteId,string $roleId): array { return SiteRolePermission::query()->forSite($siteId)->where('role_id',$roleId)->pluck('permission_code')->all(); }

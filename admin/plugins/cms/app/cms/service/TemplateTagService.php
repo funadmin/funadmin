@@ -27,14 +27,14 @@ final class TemplateTagService
         $siteId=Input::id($siteId);$locale=Input::locale($locale);
         (new SiteService())->language($siteId,$locale);
         $models=Db::table('cms_content_model as m')->join('cms_site_model as s','s.model_id','=','m.id')
-            ->where('s.site_id',$siteId)->where('s.status',1)->where('m.status',1)->orderBy('m.id')->get(['m.code','m.name']);
+            ->where('s.site_id',$siteId)->where('s.status',1)->where('m.status',1)->whereNull('s.deleted_at')->whereNull('m.deleted_at')->orderBy('m.id')->get(['m.code','m.name']);
         // 选项只读取名称和标识，不沿用公开列表的 100 条上限。
         $categories=Db::table('cms_category_locale as l')->join('cms_category as c','c.id','=','l.category_id')
             ->leftJoin('cms_route as r',static function($join): void {
                 $join->on('r.id','=','l.canonical_route_id')->on('r.site_id','=','l.site_id')
-                    ->on('r.target_id','=','l.id')->where('r.target_type','category')->where('r.kind','page');
+                    ->on('r.target_id','=','l.id')->where('r.target_type','category')->where('r.kind','page')->whereNull('r.deleted_at');
             })->where('l.site_id',$siteId)->where('c.site_id',$siteId)->where('l.locale',$locale)
-            ->where('l.status',1)->where('c.status',1)->whereNull('c.deleted_at')
+            ->where('l.status',1)->where('c.status',1)->whereNull('l.deleted_at')->whereNull('c.deleted_at')
             ->orderBy('c.sort_order')->orderBy('c.id')->get(['c.id','l.name','r.path']);
         return [
             'models'=>array_map(static fn(array $model):array=>['value'=>$model['code'],'label'=>$model['name']],Input::rows($models)),
@@ -52,17 +52,17 @@ final class TemplateTagService
         return Db::transaction(function()use($siteId,$locale,$input,$adminId,$name,$provider,$fragment,$remark): array {
             $old=empty($input['id'])?TemplateTag::query()->where('site_id',$siteId)->where('locale',$locale)->where('name',$name)->lockForUpdate()->first():TemplateTag::query()->where('site_id',$siteId)->where('locale',$locale)->where('id',Input::id($input['id']))->lockForUpdate()->first();
             if(!empty($input['id'])&&!$old)throw new InvalidArgumentException('标签不存在',404);if($old&&$old->name!==$name)throw new InvalidArgumentException('标签名不可修改');$now=Input::now();
-            if($old){$id=(string)$old->getRawOriginal('id');if($remark!==null)TemplateTag::query()->withTrashed()->where('id',$id)->update(['remark'=>$remark,'updated_at'=>$now]);}
+            if($old){$id=(string)$old->getRawOriginal('id');if($remark!==null)TemplateTag::query()->where('id',$id)->update(['remark'=>$remark,'updated_at'=>$now]);}
             else{$row=new TemplateTag();$row->fill(['site_id'=>$siteId,'locale'=>$locale,'name'=>$name,'remark'=>$remark??'','current_version'=>0,'status'=>1,'created_at'=>$now,'updated_at'=>$now])->save();$id=(string)$row->getKey();}
             $version=(int)TemplateTagVersion::query()->where('tag_id',$id)->max('version')+1;
             TemplateTagVersion::query()->insert(['tag_id'=>$id,'version'=>$version,'provider'=>$provider,'parameters'=>Input::json($input['parameters']??[]),'template_fragment'=>$fragment,'created_by'=>Input::id($adminId),'created_at'=>$now]);
-            return Input::row(TemplateTag::query()->withTrashed()->where('id',$id)->first())+['draft_version'=>$version];
+            return Input::row(TemplateTag::query()->where('id',$id)->first())+['draft_version'=>$version];
         });
     }
     public function publish(string $siteId,string $id,int $version): void
     {
         $tag=TemplateTag::query()->where('site_id',Input::id($siteId))->where('id',Input::id($id))->first();if(!$tag||!TemplateTagVersion::query()->where('tag_id',$id)->where('version',$version)->exists())throw new InvalidArgumentException('标签版本不存在');
-        TemplateTag::query()->withTrashed()->where('site_id',$siteId)->where('id',$id)->update(['current_version'=>$version,'updated_at'=>Input::now()]);
+        TemplateTag::query()->where('site_id',$siteId)->where('id',$id)->update(['current_version'=>$version,'updated_at'=>Input::now()]);
     }
     public function register(TagRegistry $registry,RenderContext $context,?string $excludeName=null): void
     {

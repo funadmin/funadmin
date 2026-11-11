@@ -21,7 +21,7 @@ final class RouteService
         $table=$this->targetTable($type);
         return Db::transaction(function()use($siteId,$locale,$type,$targetId,$path,$table): string {
             (new SiteService())->lock($siteId);
-            $target=Db::table($table)->where('id',$targetId)->where('site_id',$siteId)->where('locale',$locale)->lockForUpdate()->first();
+            $target=Db::table($table)->where('id',$targetId)->where('site_id',$siteId)->where('locale',$locale)->whereNull('deleted_at')->lockForUpdate()->first();
             if(!$target) throw new InvalidArgumentException('路由目标不属于本站或当前语言');
             if($path==='/'&&$type!=='home') throw new InvalidArgumentException('根路径保留给首页');
             $alternatives=array_unique([$path,$path==='/'?'/':(str_ends_with($path,'/')?rtrim($path,'/'):$path.'/')]);
@@ -31,7 +31,7 @@ final class RouteService
             $old=Route::query()->forSite($siteId)->where('path',$path)->first();
             if($old) { $id=(string)$old->getRawOriginal('id');Route::query()->where('id',$id)->update(['kind'=>'page','updated_at'=>$now]); }
             else { $row=new Route();$row->fill(['site_id'=>$siteId,'path'=>$path,'locale'=>$locale,'kind'=>'page','target_type'=>$type,'target_id'=>$targetId,'created_at'=>$now,'updated_at'=>$now])->save();$id=(string)$row->getKey(); }
-            Db::table($table)->where('id',$targetId)->where('site_id',$siteId)->update(['canonical_route_id'=>$id]);
+            Db::table($table)->where('id',$targetId)->where('site_id',$siteId)->whereNull('deleted_at')->update(['canonical_route_id'=>$id]);
             return $id;
         });
     }
@@ -44,7 +44,7 @@ final class RouteService
     }
     public function canonical(string $siteId,string $type,string|int $targetId): ?array
     {
-        $target=Db::table($this->targetTable($type))->where('site_id',Input::id($siteId))->where('id',Input::id($targetId))->first();
+        $target=Db::table($this->targetTable($type))->where('site_id',Input::id($siteId))->where('id',Input::id($targetId))->whereNull('deleted_at')->first();
         if(!$target||!$target->canonical_route_id) return null;
         return Input::row(Route::query()->where('id',$target->canonical_route_id)->forSite($siteId)->where('target_type',$type)->where('target_id',$targetId)->where('kind','page')->first());
     }

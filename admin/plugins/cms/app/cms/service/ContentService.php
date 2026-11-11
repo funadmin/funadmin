@@ -32,7 +32,7 @@ final class ContentService
             if($translation&&(!array_key_exists('lock_version',$input)||(int)$input['lock_version']!==(int)$translation['lock_version']))throw new InvalidArgumentException('内容已被修改，请刷新后重试',409);
             if(!$translation) {
                 $row=new ContentLocale();$row->fill(['site_id'=>$siteId,'content_id'=>$contentId,'locale'=>$locale,'status'=>'draft','lock_version'=>0,'created_at'=>$now,'updated_at'=>$now])->save();$id=(string)$row->getKey();
-                $translation=Input::row(ContentLocale::query()->withTrashed()->where('id',$id)->first());
+                $translation=Input::row(ContentLocale::query()->where('id',$id)->first());
             }
             $title=Input::text($input['title']??'');if($title==='')throw new InvalidArgumentException('标题不能为空');
             $data=(new ModelService())->validate($schema['id'],$input['data']??[]);
@@ -47,8 +47,8 @@ final class ContentService
             $formCode=array_key_exists('form_code',$input)?FormService::attachable($siteId,$input['form_code']):(string)(($translation['draft_revision_id']??null)?ContentRevision::query()->where('id',$translation['draft_revision_id'])->value('form_code'):'');
             $revision=['site_id'=>$siteId,'content_locale_id'=>$translation['id'],'form_code'=>$formCode,'revision_no'=>$number,'model_version_id'=>$schema['id'],'category_id'=>$categoryId,'title'=>$title,'summary'=>Input::text($input['summary']??'',20000),'body_html'=>HtmlSanitizer::clean((string)($input['body_html']??'')),'desired_path'=>RouteService::normalize((string)($input['desired_path']??'')),'cover_attach_id'=>$cover,'author_name'=>Input::text($input['author_name']??'',100),'template'=>Input::template($template),'seo_title'=>Input::text($input['seo_title']??''),'seo_description'=>Input::text($input['seo_description']??'',500),'robots'=>$robots,'data'=>Input::json($data),'created_by'=>$adminId,'created_at'=>$now];
             $row=new ContentRevision();$row->fill($revision)->save();$revisionId=(string)$row->getKey();
-            ContentLocale::query()->withTrashed()->where('id',$translation['id'])->update(['draft_revision_id'=>$revisionId,'lock_version'=>(int)$translation['lock_version']+1,'updated_at'=>$now]);
-            Content::query()->withTrashed()->where('id',$contentId)->update(['updated_by'=>$adminId,'updated_at'=>$now]);
+            ContentLocale::query()->where('id',$translation['id'])->update(['draft_revision_id'=>$revisionId,'lock_version'=>(int)$translation['lock_version']+1,'updated_at'=>$now]);
+            Content::query()->where('id',$contentId)->update(['updated_by'=>$adminId,'updated_at'=>$now]);
             return $this->editor($siteId,$translation['id']);
         });
     }
@@ -66,7 +66,7 @@ final class ContentService
             $schema=Input::row(ModelVersion::query()->where('id',$revision['model_version_id'])->where('model_id',$content['model_id'])->first());if(!$schema)throw new InvalidArgumentException('模型版本不匹配');
             (new ModelService())->validate($schema['id'],$revision['data']);if($revision['cover_attach_id'])(new ModelService())->attachment($revision['cover_attach_id']);
             $routeId=(new RouteService())->publish($siteId,$translation['locale'],'content',$localeId,$revision['desired_path']);$now=Input::now();
-            ContentLocale::query()->withTrashed()->where('id',$localeId)->update(['status'=>'published','canonical_route_id'=>$routeId,'published_revision_id'=>$revisionId,'published_at'=>$translation['published_at']??$now,'published_updated_at'=>$now,'lock_version'=>$lockVersion+1,'updated_at'=>$now]);
+            ContentLocale::query()->where('id',$localeId)->update(['status'=>'published','canonical_route_id'=>$routeId,'published_revision_id'=>$revisionId,'published_at'=>$translation['published_at']??$now,'published_updated_at'=>$now,'lock_version'=>$lockVersion+1,'updated_at'=>$now]);
             (new PublicPageCache())->invalidateSite($siteId);
             return $this->editor($siteId,$localeId);
         });
@@ -86,7 +86,7 @@ final class ContentService
     public function offline(string $siteId,string $localeId,int $lockVersion): void
     {
         $this->editor($siteId,$localeId);
-        if(ContentLocale::query()->withTrashed()->where('site_id',$siteId)->where('id',$localeId)->where('lock_version',$lockVersion)->update(['status'=>'offline','lock_version'=>$lockVersion+1,'updated_at'=>Input::now()])!==1)throw new InvalidArgumentException('内容版本已变化',409);
+        if(ContentLocale::query()->where('site_id',$siteId)->where('id',$localeId)->where('lock_version',$lockVersion)->update(['status'=>'offline','lock_version'=>$lockVersion+1,'updated_at'=>Input::now()])!==1)throw new InvalidArgumentException('内容版本已变化',409);
         (new PublicPageCache())->invalidateSite($siteId);
     }
     public function publicDetail(string $siteId,string $localeId): ?array
@@ -107,8 +107,8 @@ final class ContentService
         $offset=filter_var($filters['offset']??0,FILTER_VALIDATE_INT);
         if($offset===false||$offset<0||$offset>10000)throw new InvalidArgumentException('offset 必须为0至10000的整数');
         $query=Db::table('cms_content_locale as l')->join('cms_content as c','c.id','=','l.content_id')->where('l.site_id',Input::id($siteId))->where('c.site_id',$siteId)->where('l.locale',Input::locale($locale))->whereNull('l.deleted_at')->whereNull('c.deleted_at');
-        if($public)$query->where('l.status','published')->join('cms_content_model as m','m.id','=','c.model_id')->where('m.status',1)->join('cms_site_model as sm',function($join)use($siteId){$join->on('sm.model_id','=','c.model_id')->where('sm.site_id',$siteId)->where('sm.status',1);});
-        if(!empty($filters['model']))$query->whereIn('c.model_id',Db::table('cms_content_model')->select('id')->where('code',Input::code($filters['model'])));
+        if($public)$query->where('l.status','published')->join('cms_content_model as m','m.id','=','c.model_id')->where('m.status',1)->whereNull('m.deleted_at')->join('cms_site_model as sm',function($join)use($siteId){$join->on('sm.model_id','=','c.model_id')->where('sm.site_id',$siteId)->where('sm.status',1)->whereNull('sm.deleted_at');});
+        if(!empty($filters['model']))$query->whereIn('c.model_id',Db::table('cms_content_model')->select('id')->where('code',Input::code($filters['model']))->whereNull('deleted_at'));
         if(!empty($filters['category_id']))$query->where('r.category_id',Input::id($filters['category_id']));
         $limit=max(1,min(100,(int)($filters['limit']??12)));$page=max(1,min(10000,(int)($filters['page']??1)));
         if($offset>0&&$page>1)throw new InvalidArgumentException('分页列表不能设置 offset');

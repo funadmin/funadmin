@@ -245,22 +245,23 @@ final class FormSubmissionService
         });
     }
 
-    /** 删除提交及其附件记录与时间线；事务提交后再删磁盘文件（已不存在的文件忽略）。返回删除数。 */
+    /**
+     * 删除提交（软删除，进入提交回收站）：附件记录一起软删除，共用一个删除时间；时间线保留，磁盘文件不动，
+     * 只在回收站彻底删除时清理。跳过不属于本站或已删除的 id，返回删除数。
+     */
     public function delete(string $siteId, array $ids): int
     {
         $siteId = Input::id($siteId);
         $ids = self::ids($ids);
         if ($ids === []) return 0;
-        [$count, $paths] = Db::transaction(function () use ($siteId, $ids): array {
+        return Db::transaction(function () use ($siteId, $ids): int {
             $found = FormSubmission::query()->where('site_id', $siteId)->whereIn('id', $ids)->lockForUpdate()->pluck('id')->all();
-            if ($found === []) return [0, []];
-            $paths = FormFile::query()->where('site_id', $siteId)->whereIn('submission_id', $found)->pluck('path')->all();
-            foreach (['cms_form_file', 'cms_form_event'] as $table) Db::table($table)->where('site_id', $siteId)->whereIn('submission_id', $found)->delete();
-            FormSubmission::query()->where('site_id', $siteId)->whereIn('id', $found)->delete();
-            return [count($found), $paths];
+            if ($found === []) return 0;
+            $at = RecycleBin::now();
+            RecycleBin::trash(FormFile::query()->where('site_id', $siteId)->whereIn('submission_id', $found), $at);
+            RecycleBin::trash(FormSubmission::query()->where('site_id', $siteId)->whereIn('id', $found), $at);
+            return count($found);
         });
-        $this->unlink($siteId, $paths);
-        return $count;
     }
 
     /**
@@ -299,7 +300,7 @@ final class FormSubmissionService
         $forms = $this->formNames($siteId);
         foreach ($this->batches($query) as $batch) {
             $names = [];
-            foreach (Db::table('cms_form_file')->where('site_id', $siteId)->whereIn('submission_id', array_column($batch, 'id'))->orderBy('id')->get(['submission_id', 'field', 'original_name']) as $file) {
+            foreach (Db::table('cms_form_file')->where('site_id', $siteId)->whereIn('submission_id', array_column($batch, 'id'))->whereNull('deleted_at')->orderBy('id')->get(['submission_id', 'field', 'original_name']) as $file) {
                 $names[(string)$file->submission_id][$file->field][] = $file->original_name;
             }
             foreach ($batch as $row) {

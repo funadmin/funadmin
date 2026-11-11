@@ -46,7 +46,7 @@ final class SiteService
             // 表单权限补齐标记由系统维护：编辑时沿用旧值；新站点创建时即按预设授权，直接标记为已补齐。
             $marker=$old?($old['settings'][FormPermissionUpgrade::MARKER]??null):$now;unset($settings[FormPermissionUpgrade::MARKER]);if($marker!==null)$settings[FormPermissionUpgrade::MARKER]=$marker;
             $data=['code'=>Input::code($input['code']??$old['code']??''),'name'=>Input::text($input['name']??$old['name']??'',100),'default_locale'=>$locale,'theme'=>Input::template($input['theme']??$old['theme']??'default'),'settings'=>Input::json($settings),'status'=>(int)($input['status']??$old['status']??1),'updated_at'=>$now];
-            if($old) { $id=$old['id'];Site::query()->withTrashed()->where('id',$id)->update($data); }
+            if($old) { $id=$old['id'];Site::query()->where('id',$id)->update($data); }
             else {
                 $row=new Site();$row->fill($data+['created_at'=>$now])->save();$id=(string)$row->getKey();
                 $this->saveLocale($id,['locale'=>$locale,'url_prefix'=>'','name'=>$data['name']]);
@@ -55,7 +55,7 @@ final class SiteService
             if(!empty($input['host'])) $this->saveDomain($id,['host'=>$input['host'],'primary'=>true]);
             if(isset($input['primary_domain_id'])) {
                 $domain=Domain::query()->where('id',Input::id($input['primary_domain_id']))->forSite($id)->enabled()->first();if(!$domain) throw new InvalidArgumentException('主域名必须属于本站且启用');
-                Site::query()->withTrashed()->where('id',$id)->update(['primary_domain_id'=>$domain->getRawOriginal('id')]);
+                Site::query()->where('id',$id)->update(['primary_domain_id'=>$domain->getRawOriginal('id')]);
             }
             if(!$old)SiteRoleSchema::seedSite($id);
             (new PublicPageCache())->invalidateSite($id);
@@ -101,7 +101,7 @@ final class SiteService
             $now=Input::now();$data=['site_id'=>$siteId,'host'=>$host,'status'=>$status,'updated_at'=>$now];
             if($old) { $id=$old['id'];Domain::query()->where('id',$id)->update($data); }
             else { $row=new Domain();$row->fill($data+['verification_status'=>'pending','created_at'=>$now])->save();$id=(string)$row->getKey(); }
-            if(($input['primary']??false)||(!$site['primary_domain_id']&&$status===1)) Site::query()->withTrashed()->where('id',$siteId)->update(['primary_domain_id'=>$id]);
+            if(($input['primary']??false)||(!$site['primary_domain_id']&&$status===1)) Site::query()->where('id',$siteId)->update(['primary_domain_id'=>$id]);
             (new PublicPageCache())->invalidateSite($siteId);
             return Input::row(Domain::query()->where('id',$id)->first());
         });

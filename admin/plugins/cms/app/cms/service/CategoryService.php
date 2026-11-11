@@ -22,7 +22,7 @@ final class CategoryService
             }
             $model=empty($input['model_id'])?null:Input::id($input['model_id']);if($model&&!SiteModel::query()->forSite($siteId)->where('model_id',$model)->enabled()->exists())throw new InvalidArgumentException('栏目模型未启用');
             $now=Input::now();$data=['site_id'=>$siteId,'parent_id'=>$parent,'model_id'=>$model,'sort_order'=>max(0,(int)($input['sort_order']??50)),'status'=>(int)($input['status']??1),'updated_at'=>$now];
-            if($id)Category::query()->withTrashed()->where('id',$id)->update($data);else{$row=new Category();$row->fill($data+['created_at'=>$now])->save();$id=(string)$row->getKey();}
+            if($id)Category::query()->where('id',$id)->update($data);else{$row=new Category();$row->fill($data+['created_at'=>$now])->save();$id=(string)$row->getKey();}
             $name=Input::text($input['name']??'',100);if($name==='')throw new InvalidArgumentException('栏目名称不能为空');
             $translated=['site_id'=>$siteId,'category_id'=>$id,'locale'=>$locale,'name'=>$name,'description'=>Input::text($input['description']??'',20000),'list_template'=>Input::template($input['list_template']??'category'),'detail_template'=>Input::template($input['detail_template']??'detail'),'seo_title'=>Input::text($input['seo_title']??''),'seo_description'=>Input::text($input['seo_description']??'',500),'status'=>(int)($input['locale_status']??$input['status']??1),'updated_at'=>$now];
             $existing=CategoryLocale::query()->where('category_id',$id)->forLocale($locale)->first();
@@ -57,7 +57,7 @@ final class CategoryService
                 $result[]=$row;
             }return $result;
         }
-        $query=Db::table('cms_category_locale as l')->join('cms_category as c','c.id','=','l.category_id')->where('l.site_id',Input::id($siteId))->where('c.site_id',$siteId)->where('l.locale',Input::locale($locale))->whereNull('c.deleted_at');
+        $query=Db::table('cms_category_locale as l')->join('cms_category as c','c.id','=','l.category_id')->where('l.site_id',Input::id($siteId))->where('c.site_id',$siteId)->where('l.locale',Input::locale($locale))->whereNull('l.deleted_at')->whereNull('c.deleted_at');
         if($public)$query->where('l.status',1)->where('c.status',1);
         if($parent!==null){if($parent==='0')$query->whereNull('c.parent_id');else $query->where('c.parent_id',Input::id($parent));}
         $rows=[];foreach($query->select('l.id')->orderBy('c.sort_order')->orderBy('c.id')->limit(100)->get() as $id){$row=$this->detail($siteId,(string)$id->id,$public);if($row)$rows[]=$row;}return $rows;

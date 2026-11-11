@@ -67,6 +67,7 @@ final class Sites extends Base
         $status=(int)($input['status']??$old->status??0);$template=Input::template($input['default_template']??$old->default_template??'detail');
         if($status!==(int)($old->status??0))$auth->assert($site,$this->actor(),'cms:model:status');
         if($template!==($old->default_template??'detail'))$auth->assert($site,$this->actor(),'cms:model:template');
-        SiteModel::query()->updateOrInsert(['site_id'=>$site,'model_id'=>$id],['status'=>$status,'default_template'=>$template]);return true;
+        // 只更新未删除的绑定；没有时新增一行（已删除的绑定保持删除，不被复活）。
+        if($old)SiteModel::query()->whereKey($old->getKey())->update(['status'=>$status,'default_template'=>$template]);else SiteModel::query()->insert(['site_id'=>$site,'model_id'=>$id,'status'=>$status,'default_template'=>$template]);return true;
     })); }
 }

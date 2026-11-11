@@ -39,7 +39,7 @@ final class SiteRoleSchema
         Db::transaction(function()use($siteId): void {
             (new SiteService())->lock($siteId);
             foreach(PermissionCatalog::presets() as $code=>[$name,$permissions]){
-                if(Db::table('cms_site_role')->where('site_id',$siteId)->where('code',$code)->exists())continue;
+                if(Db::table('cms_site_role')->where('site_id',$siteId)->where('code',$code)->whereNull('deleted_at')->exists())continue;
                 $role=Db::table('cms_site_role')->insertGetId(['site_id'=>$siteId,'code'=>$code,'name'=>$name,'status'=>1,'created_at'=>Input::now(),'updated_at'=>Input::now()]);
                 foreach($permissions as $p)Db::table('cms_site_role_permission')->insert(['site_id'=>$siteId,'role_id'=>$role,'permission_code'=>$p]);
             }

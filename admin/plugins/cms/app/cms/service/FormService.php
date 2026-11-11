@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\cms\service;
 
 use app\cms\model\Form;
+use app\cms\model\FormFile;
 use app\cms\model\FormSubmission;
 use app\cms\model\Site;
 use app\cms\model\SiteLocale;
@@ -96,6 +97,10 @@ final class FormService
         return $result;
     }
 
+    /**
+     * 删除表单（软删除，进入表单回收站）：它的未删除提交与附件记录一起软删除，共用一个删除时间，恢复表单时一并带回。
+     * 时间线（cms_form_event）是只追加的历史表，保留；磁盘附件只在回收站彻底删除时清理。删除后表单代码可以重新使用。
+     */
     public function delete(string $siteId, string $formId): void
     {
         $siteId = Input::id($siteId);
@@ -103,10 +108,11 @@ final class FormService
         Db::transaction(function () use ($siteId, $formId): void {
             (new SiteService())->lock($siteId);
             $this->locked($siteId, $formId);
-            if (FormSubmission::query()->where('site_id', $siteId)->where('form_id', $formId)->exists()) {
-                throw new InvalidArgumentException('表单已有提交，只能停用', 409);
-            }
-            Form::query()->where('site_id', $siteId)->where('id', $formId)->delete();
+            $at = RecycleBin::now();
+            $submissions = FormSubmission::query()->where('site_id', $siteId)->where('form_id', $formId)->select('id');
+            RecycleBin::trash(FormFile::query()->where('site_id', $siteId)->whereIn('submission_id', $submissions), $at);
+            RecycleBin::trash(FormSubmission::query()->where('site_id', $siteId)->where('form_id', $formId), $at);
+            RecycleBin::trash(Form::query()->where('site_id', $siteId)->where('id', $formId), $at);
         });
         (new PublicPageCache())->invalidateSite($siteId);
     }
