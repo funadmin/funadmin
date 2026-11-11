@@ -30,7 +30,7 @@
 - `oss_setting`
 
 **Former-PK tables** get a surrogate `id` primary key, and their old PK or unique key becomes `uk_<table>_pk (old cols, deleted_token)`:
-- CMS `site_admin`, `site_model`, `site_role_permission`, `site_role_member`
+- CMS `site_admin`, `site_model`, `site_role_permission`, `site_role_member` (these had no PK, only a unique key: they get a surrogate `id` and keep their existing unique key name with `deleted_token` appended — ruling during Task 3)
 - document `document_category_links`
 - oss `oss_profile` (its string PK becomes the unique key)
 
