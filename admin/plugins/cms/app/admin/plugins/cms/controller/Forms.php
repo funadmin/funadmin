@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace app\admin\plugins\cms\controller;
+use app\cms\service\FormRecycleBin;
 use app\cms\service\FormService;
 use app\cms\service\FormSubmissionService;
 use app\cms\service\Input;
@@ -149,6 +150,39 @@ final class Forms extends Base
             $site = $this->site('cms:form:delete');
             return ['count' => (new FormSubmissionService())->delete($site, $this->batchIds())];
         });
+    }
+
+    /** 表单回收站：已删除的表单；恢复时带回与它一起删除的提交。彻底删除连同提交、附件与时间线，不可恢复。 */
+    #[Get('/recycle')]
+    public function recycle(): Response
+    {
+        return $this->action(fn(): array => (new FormRecycleBin())->trashedForms($this->site('cms:form:recycle')));
+    }
+    #[Post('/restore')]
+    public function restore(): Response
+    {
+        return $this->action(fn(): array => (new FormRecycleBin())->restoreForms($this->site('cms:form:restore'), $this->input()['ids'] ?? null));
+    }
+    #[Post('/destroy')]
+    public function destroy(): Response
+    {
+        return $this->action(fn(): array => (new FormRecycleBin())->destroyForms($this->site('cms:form:destroy'), $this->input()['ids'] ?? null));
+    }
+    /** 提交回收站：表单仍存在的已删除提交（分页）。 */
+    #[Get('/submissions/recycle')]
+    public function submissionRecycle(): Response
+    {
+        return $this->action(fn(): array => (new FormRecycleBin())->trashedSubmissions($this->site('cms:form:submission-recycle'), (int)($this->input()['page'] ?? 1)));
+    }
+    #[Post('/submissions/restore')]
+    public function submissionRestore(): Response
+    {
+        return $this->action(fn(): array => (new FormRecycleBin())->restoreSubmissions($this->site('cms:form:submission-restore'), $this->input()['ids'] ?? null));
+    }
+    #[Post('/submissions/destroy')]
+    public function submissionDestroy(): Response
+    {
+        return $this->action(fn(): array => (new FormRecycleBin())->destroySubmissions($this->site('cms:form:submission-destroy'), $this->input()['ids'] ?? null));
     }
 
     /** 返回非 JSON 响应的接口：成功时原样返回构造的响应，出错时沿用 action() 的 JSON 错误规则。 */

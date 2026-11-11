@@ -231,6 +231,54 @@
       {
         "code": "cms:form:delete",
         "name": "删除表单提交"
+      },
+      {
+        "code": "cms:menu:recycle",
+        "name": "查看导航回收站"
+      },
+      {
+        "code": "cms:menu:restore",
+        "name": "恢复导航组"
+      },
+      {
+        "code": "cms:menu:destroy",
+        "name": "彻底删除导航组"
+      },
+      {
+        "code": "cms:access:recycle",
+        "name": "查看成员回收站"
+      },
+      {
+        "code": "cms:access:restore",
+        "name": "恢复站点成员"
+      },
+      {
+        "code": "cms:access:destroy",
+        "name": "彻底删除站点成员"
+      },
+      {
+        "code": "cms:form:recycle",
+        "name": "查看表单回收站"
+      },
+      {
+        "code": "cms:form:restore",
+        "name": "恢复表单"
+      },
+      {
+        "code": "cms:form:destroy",
+        "name": "彻底删除表单"
+      },
+      {
+        "code": "cms:form:submission-recycle",
+        "name": "查看提交回收站"
+      },
+      {
+        "code": "cms:form:submission-restore",
+        "name": "恢复表单提交"
+      },
+      {
+        "code": "cms:form:submission-destroy",
+        "name": "彻底删除表单提交"
       }
     ],
     "permissionGroups": {

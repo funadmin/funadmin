@@ -36,6 +36,7 @@ abstract class Base extends AdminController
     {
         try{$data=$callback();if($this->request->method()!=='GET')$this->invalidatePublicPages();return $this->ok(data:$data);}
         catch(\InvalidArgumentException $e){return $this->fail(msg:$e->getMessage(),code:in_array($e->getCode(),[401,403,404,409,422],true)?$e->getCode():422);}
+        catch(\app\common\model\concern\RestoreConflictException $e){return $this->fail(msg:$e->getMessage(),code:409);}
         catch(\Illuminate\Database\UniqueConstraintViolationException){return $this->fail(msg:'记录或访问路径已被占用，请刷新后重试',code:409);}
         catch(\Throwable){return $this->fail(msg:'CMS 操作失败，请检查插件安装及服务器日志',code:500);}
     }

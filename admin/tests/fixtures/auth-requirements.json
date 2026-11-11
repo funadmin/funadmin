@@ -474,6 +474,11 @@
         "login": true,
         "permission": "cms:access:candidates"
     },
+    "GET /admin/plugins/cms/access/members/recycle => app\\admin\\plugins\\cms\\controller\\Access::memberRecycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:access:member-recycle"
+    },
     "GET /admin/plugins/cms/categories => app\\admin\\plugins\\cms\\controller\\Categories::index": {
         "guard": "plugin",
         "login": true,
@@ -544,6 +549,11 @@
         "login": true,
         "permission": "cms:forms:file"
     },
+    "GET /admin/plugins/cms/forms/recycle => app\\admin\\plugins\\cms\\controller\\Forms::recycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:recycle"
+    },
     "GET /admin/plugins/cms/forms/submissions => app\\admin\\plugins\\cms\\controller\\Forms::submissions": {
         "guard": "plugin",
         "login": true,
@@ -559,6 +569,11 @@
         "login": true,
         "permission": "cms:forms:export"
     },
+    "GET /admin/plugins/cms/forms/submissions/recycle => app\\admin\\plugins\\cms\\controller\\Forms::submissionRecycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:submission-recycle"
+    },
     "GET /admin/plugins/cms/forms/summary => app\\admin\\plugins\\cms\\controller\\Forms::summary": {
         "guard": "plugin",
         "login": true,
@@ -568,6 +583,11 @@
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:index"
+    },
+    "GET /admin/plugins/cms/menus/recycle => app\\admin\\plugins\\cms\\controller\\Menus::recycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:menus:recycle"
     },
     "GET /admin/plugins/cms/menus/targets => app\\admin\\plugins\\cms\\controller\\Menus::targets": {
         "guard": "plugin",
@@ -1434,10 +1454,20 @@
         "login": true,
         "permission": "form:data:validate-async"
     },
+    "POST /admin/plugins/cms/access/members/destroy => app\\admin\\plugins\\cms\\controller\\Access::memberDestroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:access:member-destroy"
+    },
     "POST /admin/plugins/cms/access/members/remove => app\\admin\\plugins\\cms\\controller\\Access::remove": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:access:remove"
+    },
+    "POST /admin/plugins/cms/access/members/restore => app\\admin\\plugins\\cms\\controller\\Access::memberRestore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:access:member-restore"
     },
     "POST /admin/plugins/cms/access/members/save => app\\admin\\plugins\\cms\\controller\\Access::assign": {
         "guard": "plugin",
@@ -1504,6 +1534,16 @@
         "login": true,
         "permission": "cms:forms:delete"
     },
+    "POST /admin/plugins/cms/forms/destroy => app\\admin\\plugins\\cms\\controller\\Forms::destroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:destroy"
+    },
+    "POST /admin/plugins/cms/forms/restore => app\\admin\\plugins\\cms\\controller\\Forms::restore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:restore"
+    },
     "POST /admin/plugins/cms/forms/save => app\\admin\\plugins\\cms\\controller\\Forms::save": {
         "guard": "plugin",
         "login": true,
@@ -1513,6 +1553,11 @@
         "guard": "plugin",
         "login": true,
         "permission": "cms:forms:status"
+    },
+    "POST /admin/plugins/cms/forms/submissions/destroy => app\\admin\\plugins\\cms\\controller\\Forms::submissionDestroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:submission-destroy"
     },
     "POST /admin/plugins/cms/forms/submissions/invalidate => app\\admin\\plugins\\cms\\controller\\Forms::invalidate": {
         "guard": "plugin",
@@ -1529,6 +1574,11 @@
         "login": true,
         "permission": "cms:forms:remove"
     },
+    "POST /admin/plugins/cms/forms/submissions/restore => app\\admin\\plugins\\cms\\controller\\Forms::submissionRestore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:forms:submission-restore"
+    },
     "POST /admin/plugins/cms/forms/submissions/transition => app\\admin\\plugins\\cms\\controller\\Forms::transition": {
         "guard": "plugin",
         "login": true,
@@ -1539,10 +1589,20 @@
         "login": true,
         "permission": "cms:sites:locale-save"
     },
+    "POST /admin/plugins/cms/menus/destroy => app\\admin\\plugins\\cms\\controller\\Menus::destroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:menus:destroy"
+    },
     "POST /admin/plugins/cms/menus/remove => app\\admin\\plugins\\cms\\controller\\Menus::remove": {
         "guard": "plugin",
         "login": true,
         "permission": "cms:menus:remove"
+    },
+    "POST /admin/plugins/cms/menus/restore => app\\admin\\plugins\\cms\\controller\\Menus::restore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "cms:menus:restore"
     },
     "POST /admin/plugins/cms/menus/save => app\\admin\\plugins\\cms\\controller\\Menus::save": {
         "guard": "plugin",

@@ -22,6 +22,13 @@ final class Menus extends Base
     /** 删除导航组和导航项；需同时具备系统及本站的导航删除权限。 */
     #[Post('/remove')]
     public function remove(): Response { return $this->action(function(): bool {(new MenuService())->remove($this->site('cms:menu:delete'),$this->locale(),\app\cms\service\Input::id($this->input()['id']??''));return true;}); }
+    /** 回收站：已删除的导航组（当前语言）。恢复与彻底删除各需独立的本站权限；彻底删除不可恢复。 */
+    #[Get('/recycle')]
+    public function recycle(): Response { return $this->action(fn()=>(new MenuService())->trashed($this->site('cms:menu:recycle'),$this->locale())); }
+    #[Post('/restore')]
+    public function restore(): Response { return $this->action(fn()=>(new MenuService())->restore($this->site('cms:menu:restore'),$this->input()['ids']??null)); }
+    #[Post('/destroy')]
+    public function destroy(): Response { return $this->action(fn()=>(new MenuService())->destroy($this->site('cms:menu:destroy'),$this->input()['ids']??null)); }
     #[Post('/save')]
     public function save(): Response { return $this->action(fn()=>$this->mutate('menu',fn($site)=>(new MenuService())->save($site,$this->locale(),$this->input()))); }
 }

@@ -12,12 +12,12 @@ final class PermissionCatalog
             'site'=>['name'=>'站点管理','menu'=>'detail','actions'=>['detail'=>'查看设置','edit'=>'修改基本设置','domain'=>'管理域名','locale'=>'管理语言']],
             'category'=>['name'=>'栏目管理','menu'=>'list','actions'=>['list'=>'查看栏目','create'=>'新建栏目','edit'=>'编辑栏目','status'=>'启用/停用']],
             'content'=>['name'=>'内容管理','menu'=>'list','actions'=>['list'=>'查看内容','create'=>'新建内容','edit'=>'编辑草稿','preview'=>'预览内容','publish'=>'发布/发布历史修订','offline'=>'下架内容']],
-            'menu'=>['name'=>'导航管理','menu'=>'list','actions'=>['list'=>'查看导航组','create'=>'新建导航组','edit'=>'编辑导航组','status'=>'启用/停用','delete'=>'删除导航组']],
+            'menu'=>['name'=>'导航管理','menu'=>'list','actions'=>['list'=>'查看导航组','create'=>'新建导航组','edit'=>'编辑导航组','status'=>'启用/停用','delete'=>'删除导航组','recycle'=>'查看导航回收站','restore'=>'恢复导航组','destroy'=>'彻底删除导航组']],
             'tag'=>['name'=>'模板标签','menu'=>'list','actions'=>['list'=>'查看标签','create'=>'新建标签','edit'=>'编辑草稿','preview'=>'预览标签','publish'=>'发布标签']],
             'model'=>['name'=>'内容模型','menu'=>'list','actions'=>['list'=>'查看模型','status'=>'本站启用/停用','template'=>'本站默认模板']],
             'submission'=>['name'=>'会员投稿','menu'=>'list','actions'=>['list'=>'查看投稿','review'=>'审核投稿']],
-            'access'=>['name'=>'站点权限','menu'=>'list','actions'=>['list'=>'查看成员/角色','members'=>'管理成员','roles'=>'管理角色/权限']],
-            'form'=>['name'=>'表单','menu'=>'list','actions'=>['list'=>'查看表单','manage'=>'管理表单','submissions'=>'查看提交','handle'=>'跟进处理','export'=>'导出提交','delete'=>'删除提交']],
+            'access'=>['name'=>'站点权限','menu'=>'list','actions'=>['list'=>'查看成员/角色','members'=>'管理成员','roles'=>'管理角色/权限','recycle'=>'查看成员回收站','restore'=>'恢复成员','destroy'=>'彻底删除成员']],
+            'form'=>['name'=>'表单','menu'=>'list','actions'=>['list'=>'查看表单','manage'=>'管理表单','submissions'=>'查看提交','handle'=>'跟进处理','export'=>'导出提交','delete'=>'删除提交','recycle'=>'查看表单回收站','restore'=>'恢复表单','destroy'=>'彻底删除表单','submission-recycle'=>'查看提交回收站','submission-restore'=>'恢复提交','submission-destroy'=>'彻底删除提交']],
         ];
     }
     public static function operations(): array
@@ -59,6 +59,9 @@ final class PermissionCatalog
         'cms:menu:edit' => ['cms:menus:save', 'cms:menus:status'],
         'cms:menu:status' => ['cms:menus:save', 'cms:menus:status'],
         'cms:menu:delete' => ['cms:menus:remove'],
+        'cms:menu:recycle' => ['cms:menus:recycle'],
+        'cms:menu:restore' => ['cms:menus:restore'],
+        'cms:menu:destroy' => ['cms:menus:destroy'],
         'cms:tag:list' => ['cms:sites:context', 'cms:tags:index', 'cms:tags:options', 'cms:tags:providers'],
         'cms:tag:create' => ['cms:tags:save'],
         'cms:tag:edit' => ['cms:tags:save'],
@@ -72,13 +75,27 @@ final class PermissionCatalog
         'cms:access:list' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
         'cms:access:members' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
         'cms:access:roles' => ['cms:access:assign', 'cms:access:candidates', 'cms:access:index', 'cms:access:remove', 'cms:access:save-role', 'cms:sites:context'],
+        'cms:access:recycle' => ['cms:access:member-recycle'],
+        'cms:access:restore' => ['cms:access:member-restore'],
+        'cms:access:destroy' => ['cms:access:member-destroy'],
         'cms:form:list' => ['cms:forms:index', 'cms:forms:summary', 'cms:sites:context'],
         'cms:form:manage' => ['cms:forms:save', 'cms:forms:status', 'cms:forms:delete'],
         'cms:form:submissions' => ['cms:forms:submissions', 'cms:forms:detail', 'cms:forms:file'],
         'cms:form:handle' => ['cms:forms:note', 'cms:forms:transition', 'cms:forms:invalidate'],
         'cms:form:export' => ['cms:forms:export'],
         'cms:form:delete' => ['cms:forms:remove'],
+        'cms:form:recycle' => ['cms:forms:recycle'],
+        'cms:form:restore' => ['cms:forms:restore'],
+        'cms:form:destroy' => ['cms:forms:destroy'],
+        'cms:form:submission-recycle' => ['cms:forms:submission-recycle'],
+        'cms:form:submission-restore' => ['cms:forms:submission-restore'],
+        'cms:form:submission-destroy' => ['cms:forms:submission-destroy'],
     ];
+    /**
+     * 1.6.0 回收站操作（查看、恢复、彻底删除各自独立）：只预设给站点管理员；已有站点的管理员角色由
+     * FormPermissionUpgrade::backfillRecycle() 补齐一次。
+     */
+    public const RECYCLE = ['cms:menu:recycle', 'cms:menu:restore', 'cms:menu:destroy', 'cms:access:recycle', 'cms:access:restore', 'cms:access:destroy', 'cms:form:recycle', 'cms:form:restore', 'cms:form:destroy', 'cms:form:submission-recycle', 'cms:form:submission-restore', 'cms:form:submission-destroy'];
     /** 站点操作码升级前同时用作接口权限的那些路由（冻结）：站点操作生效时这些接口随之可见。 */
     private const ROUTES = [
         'cms:site:detail' => ['cms:contributions:settings'],

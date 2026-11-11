@@ -431,6 +431,27 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
 - 除只追加的历史表 `cms_form_event`、`cms_site_auth_audit`、`cms_model_version`、`cms_content_revision`、`cms_template_tag_version` 外，其余 21 张表都有自增 `id` 主键和 `deleted_at DATETIME NULL`（建 `idx_<表名>_deleted_at` 索引）。
 - 有唯一索引的 16 张表另加 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（未删除为 0，删除后为本行 id）。17 个唯一索引保持原名，改为“原列 + `deleted_token`”，删除后可以用相同的标识、域名、路径或组合重新创建。历史表的唯一索引不变。
 - `cms_site`、`cms_category`、`cms_content`、`cms_content_locale`、`cms_template_tag`、`cms_site_role` 的 `deleted_at` 由 TIMESTAMP 改为 DATETIME（`MODIFY` 会重建表，大表升级需要预留时间）。已软删除的存量行回填 `deleted_token = id`。
-- 原本没有主键的 `cms_site_admin`、`cms_site_model`、`cms_site_role_permission`、`cms_site_role_member` 新增自增 `id` 主键，存量行自动编号，唯一索引名不变。
-- 除上述历史表外，所有模型都使用 `LaravelSoftDelete`。经模型执行的删除都是软删除；`deleted_token` 不出现在接口返回中（`Input::row()` 去掉该列）。
+- 原本没有主键的 `cms_site_admin`、`cms_site_model`、`cms_site_role_permission`、`cms_site_role_member` 新增自增 `id` 主键（`ADD COLUMN ... FIRST` 加 `ADD PRIMARY KEY`），这 4 张关系表会整表重建，存量行自动编号，唯一索引名不变。
+- 其余表的 `ADD COLUMN` / `ADD INDEX` / 重建唯一索引按 MySQL 8.0 的在线 DDL 执行，但仍会在开始和结束时短暂持有元数据锁，并在执行期间占用 IO；大表请在低峰期升级。
+- 如果 MySQL 开启了 `sql_generate_invisible_primary_key`（8.0.30+，GIPK），没有主键的 4 张关系表在建表时已被自动加上隐藏主键 `my_row_id`，此时 007 无法再加 `id` 主键而会失败。升级前请确认该选项未开启，或先删除隐藏主键列后再升级。
+- 除上述历史表外，所有模型都使用 `LaravelSoftDelete`；`deleted_token` 不出现在接口返回中（`Input::row()` 去掉该列）。
 - SQLite 测试使用等价实现 `app\cms\service\SoftDeleteSchema::install()`，在其他各段 Schema 之后执行。
+
+### 删除行为与回收站
+
+后台现有的 4 个删除操作改为软删除，并各自提供回收站。没有删除功能的资源（站点、域名、语言、栏目、内容、路由、模板标签、站点角色）不新增删除。
+
+| 删除操作 | 一起软删除（同一删除时间） | 回收站接口 | 站点操作（查看 / 恢复 / 彻底删除） |
+|---|---|---|---|
+| 删除导航组 | 导航组下的全部导航项 | `GET menus/recycle`、`POST menus/restore`、`POST menus/destroy` | `cms:menu:recycle` / `cms:menu:restore` / `cms:menu:destroy` |
+| 删除表单 | 表单的未删除提交及其附件记录 | `GET forms/recycle`、`POST forms/restore`、`POST forms/destroy` | `cms:form:recycle` / `cms:form:restore` / `cms:form:destroy` |
+| 删除提交 | 提交的附件记录 | `GET forms/submissions/recycle`、`POST forms/submissions/restore`、`POST forms/submissions/destroy` | `cms:form:submission-recycle` / `cms:form:submission-restore` / `cms:form:submission-destroy` |
+| 移除站点成员 | 成员身份（`cms_site_admin`）与成员的全部角色 | `GET access/members/recycle`、`POST access/members/restore`、`POST access/members/destroy` | `cms:access:recycle` / `cms:access:restore` / `cms:access:destroy` |
+
+- **恢复**只带回与父记录一起删除（`deleted_at` 完全相同）的子记录；之前单独删除或被编辑移除的子记录保持删除。恢复时撞上已有的相同标识（如同名导航组、表单代码、已重新加入的成员）返回 409，整批回滚。导航项的上级未恢复时跳过并返回跳过数；成员的角色已删除或停用时跳过。恢复表单提交前，所属表单必须未删除。
+- **彻底删除**只作用于回收站中的行，不可恢复，界面会二次确认；仍有未删除的子记录时返回 409。表单与提交的彻底删除连同附件记录和时间线（`cms_form_event`），并在事务提交后删除磁盘上的附件文件。软删除时附件文件和时间线都保留。
+- 批量接口的 `ids` 必须是 1–100 个 ID 的数组，任何一个不在本站回收站中就整批 404；所有操作先锁站点行。
+- 删除表单不再要求没有提交：提交随表单进入回收站，表单代码可以立即重新使用。
+- 菜单项、角色权限、成员角色的保存改为按差异同步，原样保存不再产生软删除行，这些行也不进入回收站。
+- 删除时间与其他 CMS 时间一样写 UTC（`CmsModel::freshTimestamp()`）。删除时间精确到秒：同一秒内先删除子记录、再删除父记录时，恢复父记录会把那条子记录一起带回。
+- 回收站操作只预设给“站点管理员”。已有站点的管理员角色在启用时补齐一次（`FormPermissionUpgrade::backfillRecycle()`，站点设置记 `recycle_permissions_backfilled_at`），之后收回的权限不会被补回。
