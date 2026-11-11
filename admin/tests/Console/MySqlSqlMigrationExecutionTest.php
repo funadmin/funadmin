@@ -100,6 +100,39 @@ final class MySqlSqlMigrationExecutionTest extends TestCase
         self::assertStringContainsString('PLUGIN_TABLE_STRUCTURE_CONFLICT', $error->getMessage());
     }
 
+    /** 软删除规则：UUID 主键 + 唯一字段生成 deleted_token、row_no 与以令牌结尾的唯一键，安装检查接受新索引形状。 */
+    public function test_plugin_generated_uuid_unique_table_installs_with_token_suffixed_unique_key(): void
+    {
+        (new \app\common\plugin\sdk\PluginScaffolder($this->root . '/plugins'))->scaffold('sqlfixture');
+        $data = CrudDefinitionFixture::make('sql-fixture', 'mysql')->toArray();
+        $data['target'] = ['type' => 'plugin', 'plugin' => 'sqlfixture', 'scope' => 'admin'];
+        $data['table'] = 'console_sql_fixture'; $data['tableIdentity'] = ['source' => 'created', 'kind' => 'physical'];
+        $data['module'] = 'sqlfixture'; $data['permissionPrefix'] = 'sqlfixture:sql-fixture';
+        $data['fields'][0] = array_merge($data['fields'][0], ['dbType' => 'char(36)', 'format' => 'uuid']);
+        $data['fields'][] = ['name' => 'code', 'label' => '编码', 'dbType' => 'varchar(40)', 'nullable' => false, 'component' => 'input', 'unique' => true];
+        unset($data['generationTargets']);
+        $definition = \app\common\crud\CrudDefinition::fromArray($data);
+        $generator = new \app\common\crud\CrudGenerator($this->root);
+        $plan = $generator->plan($definition);
+        $generator->generate($definition, $plan['confirmToken']);
+        $manifest = \app\common\plugin\sdk\Manifest::fromDirectory($this->root . '/plugins/sqlfixture');
+        $infrastructure = new \app\admin\plugin\service\PluginInfrastructureService(projectRoot: $this->root);
+        $infrastructure->assertExternalTables($manifest);
+        self::assertSame(['001_create_sql_fixture'], $infrastructure->migrate($manifest)['executed']);
+        // 表已存在时安装前结构检查按快照核对索引：唯一键覆盖 (code, deleted_token)。
+        $infrastructure->assertExternalTables($manifest);
+        $indexes = array_column(\app\common\crud\SchemaInspector::forConnection()->inspect('console_sql_fixture')['indexes'], 'columns', 'name');
+        self::assertSame(['code', 'deleted_token'], $indexes['uk_console_sql_fixture_code']);
+        self::assertSame(['deleted_at'], $indexes['idx_console_sql_fixture_deleted_at']);
+        self::assertSame(['row_no'], $indexes['idx_console_sql_fixture_row_no']);
+        Db::table('sql_fixture')->insert(['id' => 'a', 'title' => 'A', 'code' => 'C']);
+        $rowNo = (int) Db::table('sql_fixture')->where('id', 'a')->value('row_no');
+        self::assertGreaterThan(0, $rowNo);
+        Db::table('sql_fixture')->where('id', 'a')->update(['deleted_at' => date('Y-m-d H:i:s'), 'deleted_token' => $rowNo]);
+        Db::table('sql_fixture')->insert(['id' => 'b', 'title' => 'B', 'code' => 'C']);
+        self::assertSame(2, Db::table('sql_fixture')->where('code', 'C')->count());
+    }
+
     public function test_later_unsafe_migration_blocks_batch_before_any_ddl(): void
     {
         file_put_contents($this->root . '/001_create_fixture.sql', 'CREATE TABLE console_sql_fixture (id INT PRIMARY KEY) ENGINE=InnoDB;');

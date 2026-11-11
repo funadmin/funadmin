@@ -207,8 +207,8 @@ final class GeneratedSoftDeleteSchemaTest extends TestCase
         $current = $this->snapshot($this->pluginDefinition(true));
         $alter = (new \ReflectionMethod(PluginCrudTarget::class, 'forwardAlter'))->invoke(new PluginCrudTarget(sys_get_temp_dir()), $legacy, $current);
         self::assertSame([
-            'ADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0',
             'ADD KEY `idx_plugin_soft_deleted_at` (`deleted_at`)',
+            'ADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0',
             'DROP INDEX `uk_plugin_soft_code`',
             'ADD UNIQUE KEY `uk_plugin_soft_code` (`code`, `deleted_token`)',
         ], $alter);
