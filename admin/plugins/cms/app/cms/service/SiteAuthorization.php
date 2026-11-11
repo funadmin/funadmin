@@ -25,7 +25,7 @@ final class SiteAuthorization
         if(!SiteAdmin::query()->forSite($siteId)->where('admin_id',$adminId)->exists())return [];
         $registered=PermissionCatalog::registered();
         $globalCodes=array_values(array_intersect($globalCodes??$this->hostCodes($adminId),$registered));
-        $roles=Db::table('cms_site_role_member as m')->join('cms_site_role as r',function($j){$j->on('r.id','=','m.role_id')->on('r.site_id','=','m.site_id');})->where('m.site_id',$siteId)->where('m.admin_id',$adminId)->where('r.status',1)->whereNull('r.deleted_at')->pluck('r.id');
+        $roles=Db::table('cms_site_role_member as m')->join('cms_site_role as r',function($j){$j->on('r.id','=','m.role_id')->on('r.site_id','=','m.site_id');})->where('m.site_id',$siteId)->where('m.admin_id',$adminId)->whereNull('m.deleted_at')->where('r.status',1)->whereNull('r.deleted_at')->pluck('r.id');
         $assigned=SiteRolePermission::query()->forSite($siteId)->whereIn('role_id',$roles)->pluck('permission_code')->all();
         return array_values(array_filter(PermissionCatalog::operations(),fn($p)=>in_array($p,$registered,true)&&in_array($p,$assigned,true)&&array_diff(PermissionCatalog::ceilings($p),$globalCodes)===[]));
     }

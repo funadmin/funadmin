@@ -7,4 +7,5 @@ final class SiteRole extends CmsModel
 {
     use BelongsToSite, HasStatus, LaravelSoftDelete;
     protected $table = 'cms_site_role';
+    protected $hidden = ['deleted_token'];
 }

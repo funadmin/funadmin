@@ -7,4 +7,5 @@ final class ContentLocale extends CmsModel
 {
     use BelongsToSite, Localized, LaravelSoftDelete;
     protected $table = 'cms_content_locale';
+    protected $hidden = ['deleted_token'];
 }

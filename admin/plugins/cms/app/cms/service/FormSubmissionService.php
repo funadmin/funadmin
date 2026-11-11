@@ -332,7 +332,7 @@ final class FormSubmissionService
 
     private function filtered(string $siteId, array $filters): Builder
     {
-        $query = Db::table('cms_form_submission')->where('site_id', $siteId);
+        $query = Db::table('cms_form_submission')->where('site_id', $siteId)->whereNull('deleted_at');
         if (($filters['form_id'] ?? '') !== '' && $filters['form_id'] !== null) $query->where('form_id', Input::id($filters['form_id']));
         $statuses = $filters['status'] ?? [];
         $statuses = is_array($statuses) ? array_values($statuses) : [$statuses];

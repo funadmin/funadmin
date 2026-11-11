@@ -7,4 +7,5 @@ final class TemplateTag extends CmsModel
 {
     use BelongsToSite, Localized, HasStatus, LaravelSoftDelete;
     protected $table = 'cms_template_tag';
+    protected $hidden = ['deleted_token'];
 }

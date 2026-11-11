@@ -168,7 +168,7 @@ PHP);
     public function test_cms_upload_uses_the_same_storage_hooks_and_can_be_saved_as_a_content_attachment(): void
     {
         require_once __DIR__.'/Cms/bootstrap.php';
-        \app\cms\service\Schema::install();\app\cms\service\SiteRoleSchema::install();\app\cms\service\PageFormSchema::install();\app\cms\service\ModelService::seed();
+        \app\cms\service\Schema::install();\app\cms\service\SiteRoleSchema::install();\app\cms\service\PageFormSchema::install();\app\cms\service\SoftDeleteSchema::install();\app\cms\service\ModelService::seed();
         $site=(new \app\cms\service\SiteService())->save(['code'=>'upload','name'=>'Upload','host'=>'uploads.test'],'1');
         $response=$this->uploadResponse($site['id']);$result=json_decode($response->rawBody(),true);
         self::assertSame(200,$result['code'],$response->rawBody());$file=$result['data'];

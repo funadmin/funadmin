@@ -21,7 +21,7 @@ final class SiteRoleService
     public function members(string $siteId,string $actorId): array
     {
         (new SiteAuthorization())->assert($siteId,$actorId,'cms:access:list');
-        $rows=Input::rows(Db::table('cms_site_admin as m')->join('admin as a','a.id','=','m.admin_id')->where('m.site_id',$siteId)->whereNull('a.deleted_at')->select(['a.id','a.username','a.real_name','a.status'])->orderBy('a.id')->get());
+        $rows=Input::rows(Db::table('cms_site_admin as m')->join('admin as a','a.id','=','m.admin_id')->where('m.site_id',$siteId)->whereNull('m.deleted_at')->whereNull('a.deleted_at')->select(['a.id','a.username','a.real_name','a.status'])->orderBy('a.id')->get());
         foreach($rows as &$row){$row['role_ids']=array_map('strval',SiteRoleMember::query()->forSite($siteId)->where('admin_id',$row['id'])->pluck('role_id')->all());$row['manageable']=$this->manageable($actorId,$row['id']);$row['effective']=(new SiteAuthorization())->effective($siteId,$row['id']);$row['host_permissions']=(new SiteAuthorization())->hostCodes($row['id']);}return $rows;
     }
     public function candidates(string $siteId,string $actorId): array

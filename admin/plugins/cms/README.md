@@ -423,3 +423,14 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
   - Schema 与升级代码（`SiteRoleSchema` 的种子、`FormPermissionUpgrade`）：要针对执行当时的表结构工作，不随模型演进；
   - 表单提交的筛选/导出管线（`FormSubmissionService` 的 `filtered()`、导出 `rows()` 中的附件名查询）和表单列表的提交计数（`selectRaw ... groupBy`）：管线以 `Query\Builder` 为类型分批读取原始行，计数是原始聚合。
 - `Db::transaction`、`Db::schema`、`Db::connection` 照旧使用。`lockForUpdate` 共 21 处，位置和条件不变。
+
+## 1.6.0 统一软删除表结构
+
+升级：停用 CMS → 更新（执行 `007_soft_delete.sql`）→ 启用。007 按 information_schema 判断后再执行，可以重复执行；存量数据全部保留。
+
+- 除只追加的历史表 `cms_form_event`、`cms_site_auth_audit`、`cms_model_version`、`cms_content_revision`、`cms_template_tag_version` 外，其余 21 张表都有自增 `id` 主键和 `deleted_at DATETIME NULL`（建 `idx_<表名>_deleted_at` 索引）。
+- 有唯一索引的 16 张表另加 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（未删除为 0，删除后为本行 id）。17 个唯一索引保持原名，改为“原列 + `deleted_token`”，删除后可以用相同的标识、域名、路径或组合重新创建。历史表的唯一索引不变。
+- `cms_site`、`cms_category`、`cms_content`、`cms_content_locale`、`cms_template_tag`、`cms_site_role` 的 `deleted_at` 由 TIMESTAMP 改为 DATETIME（`MODIFY` 会重建表，大表升级需要预留时间）。已软删除的存量行回填 `deleted_token = id`。
+- 原本没有主键的 `cms_site_admin`、`cms_site_model`、`cms_site_role_permission`、`cms_site_role_member` 新增自增 `id` 主键，存量行自动编号，唯一索引名不变。
+- 除上述历史表外，所有模型都使用 `LaravelSoftDelete`。经模型执行的删除都是软删除；`deleted_token` 不出现在接口返回中（`Input::row()` 去掉该列）。
+- SQLite 测试使用等价实现 `app\cms\service\SoftDeleteSchema::install()`，在其他各段 Schema 之后执行。

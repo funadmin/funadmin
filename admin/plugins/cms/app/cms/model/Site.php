@@ -7,4 +7,5 @@ final class Site extends CmsModel
 {
     use HasStatus, LaravelSoftDelete;
     protected $table = 'cms_site';
+    protected $hidden = ['deleted_token'];
 }

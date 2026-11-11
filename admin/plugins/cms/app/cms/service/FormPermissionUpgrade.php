@@ -27,7 +27,7 @@ final class FormPermissionUpgrade
                 if(!empty($settings[self::MARKER]))return 0;
                 $count=0;
                 foreach(Db::table('cms_site_role')->where('site_id',$site->id)->whereNull('deleted_at')->where('code','administrator')->orderBy('id')->pluck('id') as $roleId){
-                    $existing=Db::table('cms_site_role_permission')->where('site_id',$site->id)->where('role_id',$roleId)->whereIn('permission_code',$operations)->pluck('permission_code')->all();
+                    $existing=Db::table('cms_site_role_permission')->where('site_id',$site->id)->where('role_id',$roleId)->whereNull('deleted_at')->whereIn('permission_code',$operations)->pluck('permission_code')->all();
                     foreach(array_diff($operations,$existing) as $code)$count+=Db::table('cms_site_role_permission')->insertOrIgnore(['site_id'=>$site->id,'role_id'=>$roleId,'permission_code'=>$code]);
                 }
                 $settings[self::MARKER]=Input::now();

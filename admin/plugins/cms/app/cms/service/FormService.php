@@ -243,7 +243,7 @@ final class FormService
     /** @return array<string,int> form_id → 提交数 */
     private function counts(string $siteId, ?string $status): array
     {
-        $query = Db::table('cms_form_submission')->where('site_id', $siteId);
+        $query = Db::table('cms_form_submission')->where('site_id', $siteId)->whereNull('deleted_at');
         if ($status !== null) $query->where('status', $status);
         $counts = [];
         foreach ($query->selectRaw('form_id, count(*) as aggregate')->groupBy('form_id')->get() as $row) $counts[(string)$row->form_id] = (int)$row->aggregate;

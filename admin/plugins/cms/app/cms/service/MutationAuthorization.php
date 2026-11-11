@@ -16,7 +16,7 @@ final class MutationAuthorization
         if(!in_array($kind,['category','menu'],true))throw new \LogicException('Unknown status kind');
         return Db::transaction(function()use($site,$actor,$kind,$locale,$input):bool{
             (new SiteService())->lock($site);(new SiteAuthorization())->assert($site,$actor,"cms:$kind:status");$id=Input::id($input['id']??'');
-            $q=Db::table('cms_'.$kind)->where('site_id',$site)->where('id',$id);if($kind==='category')$q->whereNull('deleted_at');
+            $q=Db::table('cms_'.$kind)->where('site_id',$site)->where('id',$id)->whereNull('deleted_at');
             if(!$q->exists())throw new \InvalidArgumentException('记录不属于本站',404);
             foreach(['status','locale_status'] as $field)if(array_key_exists($field,$input)&&!in_array($input[$field],[0,1,'0','1',true,false],true))throw new \InvalidArgumentException('状态无效',422);
             if(array_key_exists('status',$input))$q->update(['status'=>(int)$input['status'],'updated_at'=>Input::now()]);

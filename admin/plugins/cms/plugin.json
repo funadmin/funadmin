@@ -3,7 +3,7 @@
   "code": "cms",
   "name": "CMS 内容管理",
   "description": "多站点、多语言、服务端模板与自定义标签",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
