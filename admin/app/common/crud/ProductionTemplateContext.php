@@ -134,6 +134,16 @@ final class ProductionTemplateContext
             $auto = ($field['primary'] ?? false) && str_contains(strtolower($field['dbType']), 'int') ? ' AUTO_INCREMENT' : '';
             $default = array_key_exists('default', $field) && $field['default'] !== null
                 ? ' DEFAULT ' . self::sqlLiteral($field['default']) : '';
+            // 软删除内部列（从已升级的表推断出的受管字段）一律按生成器自己的定义渲染，不按字段原样输出。
+            if ($name === GeneratedSoftDeleteColumns::TOKEN) {
+                $columns[] = '  `' . $name . '` ' . GeneratedSoftDeleteColumns::TOKEN_DEFINITION;
+                continue;
+            }
+            if ($name === GeneratedSoftDeleteColumns::ROW_NO) {
+                $columns[] = '  `' . $name . '` ' . GeneratedSoftDeleteColumns::ROW_NO_DEFINITION;
+                $indexes[] = "  KEY `idx_{$data['table']}_" . GeneratedSoftDeleteColumns::ROW_NO . '` (`' . GeneratedSoftDeleteColumns::ROW_NO . '`)';
+                continue;
+            }
             $columns[] = "  `{$name}` {$field['dbType']} {$null}{$default}{$auto}";
             if (($field['unique'] ?? false) === true) {
                 $indexes[] = "  UNIQUE KEY `uk_{$data['table']}_{$name}` (" . GeneratedSoftDeleteColumns::columnList(GeneratedSoftDeleteColumns::uniqueColumns($name, $soft['token'])) . ')';

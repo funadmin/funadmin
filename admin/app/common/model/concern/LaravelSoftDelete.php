@@ -48,7 +48,13 @@ trait LaravelSoftDelete
      */
     public function getDeletedTokenSourceColumn(): string
     {
-        return $this->getKeyName();
+        // 主键不是整数（UUID、字符串）时不能写入数字令牌：表上有自增序号 row_no（升级命令或生成器添加）就以它为来源，
+        // 未重新生成、没有覆盖本方法的旧模型同样正确。整数主键的模型不做任何检测，行为不变。
+        if ($this->getKeyType() !== 'string' || !TokenSoftDeletingScope::modelHasColumn($this, 'row_no')) {
+            return $this->getKeyName();
+        }
+
+        return 'row_no';
     }
 
     /**

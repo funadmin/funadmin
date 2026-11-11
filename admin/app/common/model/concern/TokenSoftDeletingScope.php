@@ -86,9 +86,17 @@ class TokenSoftDeletingScope extends SoftDeletingScope
      */
     public static function modelHasDeletedToken(Model $model): bool
     {
+        return self::modelHasColumn($model, self::TOKEN_COLUMN);
+    }
+
+    /**
+     * 判断模型所在表是否有某列（deleted_token、row_no）；按连接、带前缀的表名与列名只缓存存在的结果。
+     */
+    public static function modelHasColumn(Model $model, string $column): bool
+    {
         $connection = $model->getConnection();
         $table = $model->getTable();
-        $key = $connection->getName() . '|' . $connection->getTablePrefix() . $table;
+        $key = $connection->getName() . '|' . $connection->getTablePrefix() . $table . ($column === self::TOKEN_COLUMN ? '' : '|' . $column);
 
         if (isset(self::$tokenColumnCache[$key])) {
             return true;
@@ -96,7 +104,7 @@ class TokenSoftDeletingScope extends SoftDeletingScope
 
         // 只缓存“存在”：列只会被迁移补上，不会被删除；不缓存“不存在”，
         // 这样在线升级（不重启 worker）补列后立即生效。
-        if (!$connection->getSchemaBuilder()->hasColumn($table, self::TOKEN_COLUMN)) {
+        if (!$connection->getSchemaBuilder()->hasColumn($table, $column)) {
             return false;
         }
 

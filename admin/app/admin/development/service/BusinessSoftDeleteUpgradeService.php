@@ -9,11 +9,14 @@ use app\common\crud\CrudDefinition;
 use app\common\crud\GeneratedSoftDeleteColumns;
 use app\common\crud\PathGuard;
 use app\common\model\concern\TokenSoftDeletingScope;
+use app\common\model\SystemMigration;
+use app\common\plugin\model\Plugin;
 use app\common\service\database\MigrationService;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Blueprint;
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 use support\Db;
 
 /**
@@ -52,8 +55,11 @@ final class BusinessSoftDeleteUpgradeService
         foreach ($modules as $module) {
             try {
                 $results[] = $this->upgradeModule($module, $dryRun);
-            } catch (InvalidArgumentException|RuntimeException $error) {
+            } catch (InvalidArgumentException $error) {
                 $results[] = $this->result($module, (string) $module['table_name'], 'refused', $error->getMessage());
+            } catch (Throwable $error) {
+                // 单张表失败不影响其余表，结果中写明失败原因，命令以非零退出。
+                $results[] = $this->result($module, (string) $module['table_name'], 'failed', $error->getMessage());
             }
         }
         TokenSoftDeletingScope::flushDeletedTokenCache();
@@ -66,23 +72,30 @@ final class BusinessSoftDeleteUpgradeService
         $rows = BusinessModule::query()->whereNotNull('published_schema_hash')->where('published_schema_hash', '<>', '')
             ->orderBy('id')->get()->map(static fn (BusinessModule $module): array => $module->toArray())->all();
         if ($table === null || $table === '') return $rows;
-        $matched = array_values(array_filter($rows, function (array $module) use ($table): bool {
-            [$physical, $logical] = $this->names($module);
-            return in_array($table, [$physical, $logical], true);
-        }));
+        // 先按物理表名精确匹配；没有时再按「连接前缀 + 参数」匹配（--table=order 对应 fun_order）。
+        $matched = array_values(array_filter($rows, static fn (array $module): bool => (string) ($module['table_name'] ?? '') === $table));
+        if ($matched === []) {
+            $matched = array_values(array_filter($rows, fn (array $module): bool
+                => (string) ($module['table_name'] ?? '') === $this->connection($module)->getTablePrefix() . $table));
+        }
         if ($matched === []) {
             throw new InvalidArgumentException('表 ' . $table . ' 不是已发布的业务模块表（business_module 未登记或未发布），拒绝处理');
         }
         return $matched;
     }
 
-    /** @return array{0: string, 1: string} [物理表名, 逻辑表名] */
+    /**
+     * table_name 存的就是物理表名（新建表带前缀，采纳的表可能没有前缀），原样使用，绝不再补前缀；
+     * 逻辑名只用于核对核心/插件基线表：去掉连接前缀后比较。
+     *
+     * @return array{0: string, 1: string} [物理表名, 逻辑表名]
+     */
     private function names(array $module): array
     {
         $prefix = $this->connection($module)->getTablePrefix();
         $table = (string) ($module['table_name'] ?? '');
         $logical = $prefix !== '' && str_starts_with($table, $prefix) ? substr($table, strlen($prefix)) : $table;
-        return [$prefix . $logical, $logical];
+        return [$table, $logical];
     }
 
     private function connection(array $module): Connection
@@ -116,7 +129,7 @@ final class BusinessSoftDeleteUpgradeService
         $plan = $this->plan($physical, $state);
         $notes = [];
         if ($plan['rowNo'] !== null) {
-            $notes[] = '主键不是整数：令牌来源为 row_no，请重新生成该模块代码（模型 getDeletedTokenSourceColumn() 返回 row_no），否则软删除会把主键写入数字令牌列';
+            $notes[] = '主键不是整数：加自增序号 row_no 作为删除令牌来源（软删除 trait 检测到 row_no 自动使用，模型无需重新生成）；加列会复制整表并阻塞写入，请在维护窗口执行';
         }
         $sql = [];
         if ($plan['clauses'] !== []) $sql[] = 'ALTER TABLE `' . $physical . '` ' . implode(', ', $plan['clauses']);
@@ -127,38 +140,127 @@ final class BusinessSoftDeleteUpgradeService
             if (isset($state['columns'][GeneratedSoftDeleteColumns::TOKEN])) $query->where(GeneratedSoftDeleteColumns::TOKEN, 0);
             $backfill = $query->count();
         }
-        $migration = $plugin !== '' && ($target['tableStrategy'] ?? 'owned') === 'owned'
-            ? $this->pluginMigration($plugin, $physical, $logical, $connection->getTablePrefix(), $plan) : null;
-        if ($migration !== null && $migration['note'] !== null) $notes[] = $migration['note'];
-        $file = $migration['path'] ?? null;
-        if ($plan['clauses'] === [] && $backfill === 0 && $file === null) {
+        if ($plugin !== '' && ($target['tableStrategy'] ?? 'owned') === 'owned') {
+            return $this->upgradePluginTable($module, $plugin, $physical, $logical, $connection, $plan, $sql, $backfill, $notes, $dryRun);
+        }
+        if ($plan['clauses'] === [] && $backfill === 0) {
             return $this->result($module, $physical, 'current', '无需升级', notes: $notes);
         }
         if ($dryRun) {
-            return $this->result($module, $physical, 'planned', 'dry-run：仅列出计划，未执行', $sql, $backfill, $file, $notes);
+            return $this->result($module, $physical, 'planned', 'dry-run：仅列出计划，未执行', $sql, $backfill, notes: $notes);
         }
         if ($plan['clauses'] !== []) $this->apply($reader, $physical, $plan);
         if ($plan['token']) {
             $backfill = $reader->table($physical)->whereNotNull('deleted_at')->where(GeneratedSoftDeleteColumns::TOKEN, 0)
                 ->update([GeneratedSoftDeleteColumns::TOKEN => $reader->raw($reader->getQueryGrammar()->wrap($plan['source']))]);
         }
-        if ($migration !== null && $file !== null) {
-            $absolute = PathGuard::resolve($this->projectRoot, $file, '插件迁移');
-            if (file_exists($absolute)) throw new RuntimeException('插件迁移已存在，拒绝覆盖：' . $file);
-            if (file_put_contents($absolute, $migration['content'], LOCK_EX) === false) throw new RuntimeException('无法写入插件迁移：' . $file);
+        return $this->result($module, $physical, 'upgraded', '已升级', $sql, $backfill, notes: $notes);
+    }
+
+    /**
+     * 插件目标的生成表：不直接 ALTER。先做前置检查（dry-run 同样执行）：插件迁移目录可写、插件没有进行中的操作、
+     * 版本号未被占用；再写出可重复执行的插件迁移，并经 MigrationService::runVersion(..., 'plugin:<code>') 执行
+     * （库级迁移锁、登记 system_migration，与其他安装执行的是同一份 SQL）。写入失败时不做任何改动；执行失败时撤回文件。
+     */
+    private function upgradePluginTable(array $module, string $plugin, string $physical, string $logical, Connection $connection,
+        array $plan, array $sql, int $backfill, array $notes, bool $dryRun): array
+    {
+        if ($connection->getName() !== Db::connection()->getName()) {
+            throw new InvalidArgumentException('插件目标的业务表必须位于默认连接');
         }
-        return $this->result($module, $physical, 'upgraded', '已升级', $sql, $backfill, $file, $notes);
+        $migration = $this->pluginMigration($plugin, $physical, $logical, $connection->getTablePrefix(), $plan);
+        $scope = 'plugin:' . $plugin;
+        $version = $migration['version'];
+        if ($version === null) {
+            // 最新快照已是升级后的形状：该迁移尚未在本库执行时执行它，否则表结构必须已经到位。
+            $latest = $migration['latest'];
+            $pending = !$this->recorded($scope, $latest);
+            if (!$pending && $plan['clauses'] === [] && $backfill === 0) {
+                return $this->result($module, $physical, 'current', '无需升级', notes: $notes);
+            }
+            if (!$pending) {
+                throw new RuntimeException('表结构与插件迁移 ' . $latest . ' 的结构快照不一致，请人工检查后手写插件迁移');
+            }
+            $this->assertPluginWritable($plugin, $migration['directory'], null);
+            $file = $migration['relative'] . '/' . $latest . '.sql';
+            if ($dryRun) {
+                return $this->result($module, $physical, 'planned', 'dry-run：将执行尚未在本库执行的插件迁移，未执行', $sql, $backfill, $file, $notes);
+            }
+            $this->assertMysql($connection);
+            (new MigrationService())->runVersion($migration['directory'], $latest, $scope);
+            return $this->result($module, $physical, 'upgraded', '已执行插件迁移 ' . $latest, $sql, $backfill, $file, $notes);
+        }
+        $this->assertPluginWritable($plugin, $migration['directory'], $version);
+        $file = $migration['relative'] . '/' . $version . '.sql';
+        $sql = [$migration['content']];
+        if ($dryRun) {
+            return $this->result($module, $physical, 'planned', 'dry-run：仅列出计划，未写文件、未执行', $sql, $backfill, $file, $notes);
+        }
+        $this->assertMysql($connection);
+        $absolute = $migration['directory'] . '/' . $version . '.sql';
+        $handle = @fopen($absolute, 'x');
+        if ($handle === false) {
+            throw new RuntimeException('无法写入插件迁移 ' . $file . '，未做任何改动');
+        }
+        $written = fwrite($handle, $migration['content']);
+        fclose($handle);
+        if ($written !== strlen($migration['content'])) {
+            @unlink($absolute);
+            throw new RuntimeException('无法写入插件迁移 ' . $file . '，未做任何改动');
+        }
+        try {
+            (new MigrationService())->runVersion($migration['directory'], $version, $scope);
+        } catch (Throwable $error) {
+            // 未登记的文件撤回；迁移的每个子句都按 information_schema 守卫，重新执行本命令即可继续。
+            if (!$this->recorded($scope, $version)) @unlink($absolute);
+            throw new RuntimeException('插件迁移 ' . $file . ' 执行失败，已撤回该文件：' . $error->getMessage(), 0, $error);
+        }
+        return $this->result($module, $physical, 'upgraded', '已写出并执行插件迁移（已登记 ' . $scope . '/' . $version . '）', $sql, $backfill, $file, $notes);
+    }
+
+    private function assertMysql(Connection $connection): void
+    {
+        if ($connection->getDriverName() !== 'mysql') {
+            throw new RuntimeException('插件目标的升级经插件迁移执行，只支持 MySQL');
+        }
+    }
+
+    private function recorded(string $scope, string $version): bool
+    {
+        return Db::schema()->hasTable('system_migration')
+            && SystemMigration::ledger()->where('scope', $scope)->where('version', $version)->exists();
+    }
+
+    /** 前置检查：迁移目录可写、插件没有进行中的生命周期操作或待恢复操作、新版本号未被占用。 */
+    private function assertPluginWritable(string $plugin, string $directory, ?string $version): void
+    {
+        clearstatcache(true, $directory);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            throw new InvalidArgumentException('插件 ' . $plugin . ' 的迁移目录不可写，未做任何改动');
+        }
+        if (Db::schema()->hasTable('plugin')) {
+            $state = Plugin::query()->where('code', $plugin)->first();
+            if ($state !== null && (!empty($state->operation_token) || !empty($state->recovery_token)
+                || !in_array((string) ($state->lifecycle_state ?? 'enabled'), ['discovered', 'enabled', 'disabled'], true))) {
+                throw new InvalidArgumentException('插件 ' . $plugin . ' 正在执行生命周期操作或待恢复，未做任何改动');
+            }
+        }
+        if ($version !== null && (file_exists($directory . '/' . $version . '.sql') || $this->recorded('plugin:' . $plugin, $version))) {
+            throw new InvalidArgumentException('插件迁移版本 ' . $version . ' 已被占用，未做任何改动');
+        }
     }
 
     /** 核心表与插件基线表不属于业务表；插件生成表只属于它的插件目标。 */
     private function assertBusinessTable(string $physical, string $logical, string $plugin): void
     {
+        // 物理名去掉前缀后与核心/插件基线表重名也拒绝（例如采纳的无前缀表 admin），宁可拒绝也不误改。
         $owners = $this->baselineOwners();
-        if (($owners[$logical] ?? null) === 'core') {
-            throw new InvalidArgumentException('表 ' . $physical . ' 是核心表，由核心迁移 005_soft_delete 处理，拒绝');
+        $owner = $owners[$logical] ?? $owners[$physical] ?? null;
+        if ($owner === 'core') {
+            throw new InvalidArgumentException('表 ' . $physical . ' 是核心表或与核心表重名，由核心迁移 005_soft_delete 处理，拒绝');
         }
-        if (isset($owners[$logical])) {
-            throw new InvalidArgumentException('表 ' . $physical . ' 是插件 ' . $owners[$logical] . ' 的基线表，由插件迁移处理，拒绝');
+        if ($owner !== null) {
+            throw new InvalidArgumentException('表 ' . $physical . ' 是插件 ' . $owner . ' 的基线表或与之重名，由插件迁移处理，拒绝');
         }
         $generated = $this->generatedOwners()[$physical] ?? null;
         if ($generated !== null && $generated !== $plugin) {
@@ -171,6 +273,7 @@ final class BusinessSoftDeleteUpgradeService
     {
         if ($this->baselineOwners !== null) return $this->baselineOwners;
         $templatePrefix = (string) config('funadmin.mysqlPrefix', 'fun_');
+        $prefix = Db::connection()->getTablePrefix();
         $owners = [];
         $files = array_map(static fn (string $file): array => [$file, 'core'], glob(MigrationService::coreDirectory() . '/*.sql') ?: []);
         foreach (glob($this->projectRoot . '/plugins/*/database/migrations/*.sql') ?: [] as $file) {
@@ -183,9 +286,9 @@ final class BusinessSoftDeleteUpgradeService
             preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z][a-z0-9_]*)`?/i', $sql, $matches);
             foreach ($matches[1] as $table) {
                 $table = strtolower($table);
-                if (!str_starts_with($sql, "-- funadmin-physical-table\n") && $templatePrefix !== '' && str_starts_with($table, $templatePrefix)) {
-                    $table = substr($table, strlen($templatePrefix));
-                }
+                // 统一成逻辑名：模板 SQL 去掉模板前缀，物理表文件去掉当前连接前缀。
+                $strip = str_starts_with($sql, "-- funadmin-physical-table\n") ? $prefix : $templatePrefix;
+                if ($strip !== '' && str_starts_with($table, $strip)) $table = substr($table, strlen($strip));
                 $owners[$table] ??= $owner;
             }
         }
@@ -320,29 +423,33 @@ final class BusinessSoftDeleteUpgradeService
 
     /**
      * 插件生成表的升级迁移：以该表最新结构快照为基础，加上升级后的形状（deleted_at 索引、令牌、row_no）；
-     * 与最新快照相同时不写。SQL 只用 ASCII，每个子句按 information_schema 守卫，DROP INDEX 只出现在 PREPARE 中。
+     * 与最新快照相同时不写（version 为 null）。SQL 只用 ASCII，每个子句按 information_schema 守卫，DROP INDEX 只出现在 PREPARE 中。
      *
-     * @return array{path: ?string, content: string, note: ?string}
+     * @return array{relative: string, directory: string, latest: string, version: ?string, content: string}
      */
     private function pluginMigration(string $plugin, string $physical, string $logical, string $prefix, array $plan): array
     {
         if (preg_match('/\A[a-z][a-z0-9]*\z/D', $plugin) !== 1) throw new InvalidArgumentException('插件代码不合法：' . $plugin);
         $relative = 'plugins/' . $plugin . '/database/migrations';
-        $directory = $this->projectRoot . '/' . $relative;
+        $directory = PathGuard::resolve($this->projectRoot, $relative, '插件迁移目录');
         if (!is_dir($directory)) {
-            return ['path' => null, 'content' => '', 'note' => '插件 ' . $plugin . ' 没有迁移目录，未写升级迁移；其他安装需各自运行本命令'];
+            throw new InvalidArgumentException('插件 ' . $plugin . ' 没有迁移目录，无法写插件升级迁移，未做任何改动');
         }
         $maximum = 0;
         $previous = null;
+        $latest = '';
         $files = glob($directory . '/*.sql') ?: [];
         sort($files, SORT_STRING);
         foreach ($files as $file) {
             if (preg_match('/^(\d{3})_/', basename($file), $match) === 1) $maximum = max($maximum, (int) $match[1]);
             $snapshot = self::snapshotOf((string) file_get_contents($file), $prefix);
-            if ($snapshot !== null && ($snapshot['table'] ?? null) === $physical) $previous = $snapshot;
+            if ($snapshot !== null && ($snapshot['table'] ?? null) === $physical) {
+                $previous = $snapshot;
+                $latest = pathinfo($file, PATHINFO_FILENAME);
+            }
         }
         if ($previous === null) {
-            return ['path' => null, 'content' => '', 'note' => '插件迁移中没有该表的结构快照，未写升级迁移；其他安装需各自运行本命令'];
+            throw new InvalidArgumentException('插件迁移中没有该表的结构快照，无法生成插件升级迁移；请手写插件迁移，未做任何改动');
         }
         $snapshot = $previous;
         $fields = (array) ($snapshot['fields'] ?? []);
@@ -354,12 +461,12 @@ final class BusinessSoftDeleteUpgradeService
             }
         }
         $snapshot['fields'] = $fields;
-        if (CrudDefinition::canonicalJson($snapshot) === CrudDefinition::canonicalJson($previous)) {
-            return ['path' => null, 'content' => '', 'note' => null];
-        }
+        $result = ['relative' => $relative, 'directory' => $directory, 'latest' => $latest, 'version' => null, 'content' => ''];
+        if (CrudDefinition::canonicalJson($snapshot) === CrudDefinition::canonicalJson($previous)) return $result;
         if ($maximum >= 999) throw new RuntimeException('插件 migration 三位编号已耗尽');
-        $name = sprintf('%03d_soft_delete_%s.sql', $maximum + 1, preg_replace('/[^a-z0-9_]/', '_', $logical));
-        return ['path' => $relative . '/' . $name, 'content' => $this->pluginMigrationSql($physical, $snapshot, $plan) . '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson($snapshot)) . "\n", 'note' => null];
+        $result['version'] = sprintf('%03d_soft_delete_%s', $maximum + 1, preg_replace('/[^a-z0-9_]/', '_', $logical));
+        $result['content'] = $this->pluginMigrationSql($physical, $snapshot, $plan) . '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson($snapshot)) . "\n";
+        return $result;
     }
 
     private function pluginMigrationSql(string $physical, array $snapshot, array $plan): string

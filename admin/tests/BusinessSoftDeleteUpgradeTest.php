@@ -27,6 +27,25 @@ use Tests\Support\TestDatabase;
  * 唯一键按原名重建为「原列 + deleted_token」；可重复执行；只处理 business_module 登记的已发布表。
  * SQLite 上验证计划、执行与幂等；UUID 主键的 row_no（AUTO_INCREMENT）在 MySQL 控制台测试中执行。
  */
+final class LegacyUuidItem extends \app\common\model\BaseModel
+{
+    use \app\common\model\concern\LaravelSoftDelete;
+
+    protected $table = 'legacy_uuid_items';
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+    public $timestamps = false;
+    protected $guarded = [];
+}
+
+final class LegacyIntItem extends \app\common\model\BaseModel
+{
+    use \app\common\model\concern\LaravelSoftDelete;
+
+    protected $table = 'legacy_int_items';
+}
+
 #[RunTestsInSeparateProcesses]
 #[PreserveGlobalState(false)]
 final class BusinessSoftDeleteUpgradeTest extends TestCase
@@ -260,7 +279,8 @@ final class BusinessSoftDeleteUpgradeTest extends TestCase
         $display = $plan->getDisplay();
         self::assertStringContainsString('ADD COLUMN `row_no` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, ADD KEY `idx_' . $prefix . 'biz_ticket_row_no` (`row_no`)', $display);
         self::assertStringContainsString('SET `deleted_token` = `row_no`', $display);
-        self::assertStringContainsString('重新生成', $display, '提示重新生成模型（令牌来源改为 row_no）');
+        self::assertStringContainsString('无需重新生成', $display, 'trait 自动以 row_no 为令牌来源');
+        self::assertStringContainsString('维护窗口', $display, '加 row_no 会复制整表');
 
         // SQLite 不支持非主键自增列：拒绝执行，不做任何改动（MySQL 执行见控制台测试）。
         $real = $this->upgrade(['--table' => 'biz_ticket']);
@@ -303,8 +323,8 @@ final class BusinessSoftDeleteUpgradeTest extends TestCase
         return CrudDefinition::fromArray($data);
     }
 
-    /** 插件目标的生成表：升级后写入带新结构快照、可重复执行的插件迁移，重新生成不再回到旧形状。 */
-    public function test_plugin_target_upgrade_writes_migration_snapshot_so_regeneration_keeps_token_shape(): void
+    /** 插件目标的生成表：dry-run 列出将写出的插件迁移；前置检查（目录可写、插件未锁定）在 dry-run 中同样执行。执行见 MySQL 控制台测试。 */
+    public function test_plugin_target_upgrade_is_preflighted_and_runs_only_through_plugin_migration(): void
     {
         $prefix = $this->prefix();
         $table = $prefix . 'plugin_soft';
@@ -337,26 +357,123 @@ final class BusinessSoftDeleteUpgradeTest extends TestCase
         self::assertStringContainsString('plugins/softkit/database/migrations/002_soft_delete_plugin_soft.sql', $dry->getDisplay());
         self::assertFileDoesNotExist($migrations . '/002_soft_delete_plugin_soft.sql', 'dry-run 不写文件');
 
+        $indexes = $this->indexes('plugin_soft');
+        $rows = $this->rows('plugin_soft');
+        // 插件目标经插件迁移（MigrationService，仅 MySQL）执行，不直接 ALTER：SQLite 上拒绝，不写文件、不改表。
         $real = $this->upgrade(['--table' => 'plugin_soft'], $this->root);
-        self::assertSame(0, $real->getStatusCode(), $real->getDisplay());
-        self::assertSame(['code', 'deleted_token'], $this->indexes('plugin_soft')['uk_' . $table . '_code'][1]);
-        $file = $migrations . '/002_soft_delete_plugin_soft.sql';
-        self::assertFileExists($file);
-        $content = (string) file_get_contents($file);
-        // 迁移运行器的 forward-only 守卫接受该文件（DROP INDEX 只在 PREPARE 中，全部 ASCII）。
-        (new \ReflectionMethod(\app\common\service\database\MigrationService::class, 'assertForwardOnly'))->invoke(new \app\common\service\database\MigrationService(), $content, '002_soft_delete_plugin_soft.sql');
-        self::assertSame(1, preg_match('/^[\x00-\x7F]*$/D', $content));
+        self::assertSame(1, $real->getStatusCode(), $real->getDisplay());
+        self::assertStringContainsString('只支持 MySQL', $real->getDisplay());
+        self::assertSame(['001_create_plugin_soft.sql'], array_map('basename', glob($migrations . '/*.sql') ?: []));
+        self::assertFalse(Db::schema()->hasColumn('plugin_soft', 'deleted_token'));
 
-        // 重新生成：快照与当前定义一致，沿用升级迁移，不生成新的 ALTER，也不回到旧形状。
-        $regenerated = (new \ReflectionMethod(PluginCrudTarget::class, 'migration'))->invoke($target, $definition, 'softkit', 'plugin-soft', $create);
-        self::assertSame('plugins/softkit/database/migrations/002_soft_delete_plugin_soft.sql', $regenerated['path']);
-        self::assertSame($content, $regenerated['content']);
+        // 前置检查在 dry-run 中同样执行：迁移目录不可写时拒绝，不做任何改动。
+        chmod($migrations, 0500);
+        try {
+            foreach ([['--dry-run' => true], []] as $options) {
+                $blocked = $this->upgrade(['--table' => 'plugin_soft'] + $options, $this->root);
+                self::assertSame(1, $blocked->getStatusCode(), $blocked->getDisplay());
+                self::assertStringContainsString('迁移目录不可写', $blocked->getDisplay());
+            }
+        } finally {
+            chmod($migrations, 0700);
+        }
+        self::assertSame(['001_create_plugin_soft.sql'], array_map('basename', glob($migrations . '/*.sql') ?: []));
+        self::assertSame($indexes, $this->indexes('plugin_soft'));
+        self::assertSame($rows, $this->rows('plugin_soft'));
 
-        // 再次执行：无结构变更，也不再写迁移。
-        $again = $this->upgrade(['--table' => 'plugin_soft'], $this->root);
-        self::assertSame(0, $again->getStatusCode(), $again->getDisplay());
-        self::assertStringContainsString('无需升级', $again->getDisplay());
-        self::assertSame(['001_create_plugin_soft.sql', '002_soft_delete_plugin_soft.sql'], array_map('basename', glob($migrations . '/*.sql') ?: []));
+        // 插件有进行中的生命周期操作：同样拒绝。
+        Db::table('plugin')->insert(['code' => 'softkit', 'name' => 'softkit', 'lifecycle_state' => 'enabled', 'operation_token' => 'busy']);
+        $locked = $this->upgrade(['--table' => 'plugin_soft', '--dry-run' => true], $this->root);
+        self::assertSame(1, $locked->getStatusCode(), $locked->getDisplay());
+        self::assertStringContainsString('正在执行生命周期操作', $locked->getDisplay());
+    }
+
+    /** I1：table_name 是物理表名，采纳的无前缀表原样处理，绝不补前缀改到别的表；与核心表重名的无前缀表拒绝。 */
+    public function test_adopted_unprefixed_table_is_used_as_is_and_core_name_collision_is_refused(): void
+    {
+        $prefix = $this->prefix();
+        self::assertNotSame('', $prefix);
+        foreach (['orders', $prefix . 'orders'] as $physical) {
+            Db::statement('CREATE TABLE "' . $physical . '" ("id" integer primary key autoincrement not null, "code" varchar(40) not null, "deleted_at" datetime)');
+            Db::statement('CREATE UNIQUE INDEX "uk_' . $physical . '_code" ON "' . $physical . '" ("code")');
+        }
+        Db::table('business_module')->insert([
+            'code' => 'orders', 'name' => 'orders', 'origin' => 'database', 'connection_name' => (string) config('database.default'),
+            'table_name' => 'orders', 'runtime_route' => '', 'module_route' => '', 'lifecycle_status' => 'dynamic_published',
+            'generation_status' => 'idle', 'metadata' => '{}', 'published_schema_hash' => str_repeat('c', 64), 'published_schema_version' => 1,
+        ]);
+        $columns = static fn (string $table): array => array_column(Db::select('PRAGMA table_info("' . $table . '")'), 'name');
+        $prefixedBefore = $columns($prefix . 'orders');
+
+        $tester = $this->upgrade(['--table' => 'orders']);
+
+        self::assertSame(0, $tester->getStatusCode(), $tester->getDisplay());
+        self::assertStringContainsString('[已升级] orders（', $tester->getDisplay());
+        self::assertContains('deleted_token', $columns('orders'));
+        self::assertSame($prefixedBefore, $columns($prefix . 'orders'), '带前缀的同名表不受影响');
+
+        // 采纳的无前缀表名与核心表重名（admin）：拒绝。
+        Db::statement('CREATE TABLE "admin" ("id" integer primary key autoincrement not null, "username" varchar(40) not null, "deleted_at" datetime)');
+        Db::table('business_module')->insert([
+            'code' => 'adopted_admin', 'name' => 'admin', 'origin' => 'database', 'connection_name' => (string) config('database.default'),
+            'table_name' => 'admin', 'runtime_route' => '', 'module_route' => '', 'lifecycle_status' => 'dynamic_published',
+            'generation_status' => 'idle', 'metadata' => '{}', 'published_schema_hash' => str_repeat('d', 64), 'published_schema_version' => 1,
+        ]);
+        $collision = $this->upgrade(['--table' => 'admin']);
+        self::assertSame(1, $collision->getStatusCode(), $collision->getDisplay());
+        self::assertStringContainsString('核心表', $collision->getDisplay());
+        self::assertSame([], array_column(Db::select('PRAGMA index_list("admin")'), 'name'));
+    }
+
+    /** I3：没有覆盖令牌来源的旧 UUID 模型，表上有 row_no 时单条删除、批量删除都写入 row_no，恢复清零。 */
+    public function test_uuid_model_without_override_uses_row_no_when_table_has_it(): void
+    {
+        $t = $this->prefix() . 'legacy_uuid_items';
+        Db::statement('CREATE TABLE "' . $t . '" ("id" varchar(36) primary key not null, "code" varchar(40) not null, "deleted_at" datetime, "deleted_token" integer not null default 0, "row_no" integer not null default 0)');
+        Db::statement('CREATE UNIQUE INDEX "uk_' . $t . '_code" ON "' . $t . '" ("code", "deleted_token")');
+        // SQLite 不支持非主键自增：用触发器模拟 MySQL 的 row_no AUTO_INCREMENT。
+        Db::statement('CREATE TRIGGER "' . $t . '_row_no" AFTER INSERT ON "' . $t . '" BEGIN UPDATE "' . $t . '" SET "row_no" = NEW.rowid + 500 WHERE rowid = NEW.rowid; END');
+        foreach (['a', 'b', 'c'] as $id) LegacyUuidItem::query()->create(['id' => $id, 'code' => strtoupper($id)]);
+        $rowNo = static fn (string $id): int => (int) Db::table('legacy_uuid_items')->where('id', $id)->value('row_no');
+        $token = static fn (string $id): int => (int) Db::table('legacy_uuid_items')->where('id', $id)->value('deleted_token');
+
+        self::assertSame('row_no', (new LegacyUuidItem())->getDeletedTokenSourceColumn());
+        LegacyUuidItem::query()->findOrFail('a')->delete();
+        self::assertSame($rowNo('a'), $token('a'));
+        self::assertGreaterThan(500, $token('a'));
+        LegacyUuidItem::query()->whereIn('id', ['b', 'c'])->delete();
+        self::assertSame([$rowNo('b'), $rowNo('c')], [$token('b'), $token('c')]);
+        LegacyUuidItem::query()->create(['id' => 'a2', 'code' => 'A']);
+        self::assertTrue(LegacyUuidItem::withTrashed()->findOrFail('b')->restore());
+        self::assertSame(0, $token('b'));
+        LegacyUuidItem::withTrashed()->whereIn('id', ['c'])->restore();
+        self::assertSame(0, $token('c'));
+
+        // 整数主键模型不检测 row_no，仍取主键。
+        self::assertSame('id', (new LegacyIntItem())->getDeletedTokenSourceColumn());
+    }
+
+    /** M1：受管的 deleted_token / row_no 一律按生成器定义渲染（默认值 0、AUTO_INCREMENT 与索引），不按字段原样输出。 */
+    public function test_managed_soft_delete_columns_render_generator_definitions(): void
+    {
+        $data = \Tests\Console\CrudDefinitionFixture::make('managed-render', 'mysql')->toArray();
+        $data['fields'][0] = array_merge($data['fields'][0], ['dbType' => 'char(36)', 'format' => 'uuid']);
+        $data['fields'][] = ['name' => 'code', 'label' => '编码', 'dbType' => 'varchar(40)', 'nullable' => false, 'component' => 'input', 'unique' => true];
+        $data['fields'][] = ['name' => 'deleted_token', 'label' => '令牌', 'dbType' => 'bigint unsigned', 'nullable' => false, 'component' => 'inputNumber', 'managed' => true, 'writable' => false, 'form' => false];
+        $data['fields'][] = ['name' => 'row_no', 'label' => '序号', 'dbType' => 'bigint unsigned', 'nullable' => false, 'component' => 'inputNumber', 'managed' => true, 'writable' => false, 'form' => false];
+        $definition = CrudDefinition::fromArray($data);
+        (new DefinitionValidator())->validate($definition, sys_get_temp_dir());
+        $sql = ProductionTemplateContext::build($definition)['migrationContent'];
+        self::assertStringContainsString('`deleted_token` bigint unsigned NOT NULL DEFAULT 0', $sql);
+        self::assertStringContainsString('`row_no` bigint unsigned NOT NULL AUTO_INCREMENT', $sql);
+        self::assertSame(1, substr_count($sql, 'KEY `idx_managed_render_row_no` (`row_no`)'));
+        self::assertSame(1, substr_count($sql, '`deleted_token` bigint'));
+
+        $data['target'] = ['type' => 'plugin', 'plugin' => 'softkit', 'scope' => 'admin'];
+        unset($data['generationTargets']);
+        $snapshot = (new \ReflectionMethod(PluginCrudTarget::class, 'schemaSnapshot'))->invoke(new PluginCrudTarget(sys_get_temp_dir()), CrudDefinition::fromArray($data));
+        self::assertSame(['definition' => 'bigint unsigned NOT NULL DEFAULT 0', 'index' => ''], $snapshot['fields']['deleted_token']);
+        self::assertSame(['definition' => 'bigint unsigned NOT NULL AUTO_INCREMENT', 'index' => 'index'], $snapshot['fields']['row_no']);
     }
 
     public function test_reserved_soft_delete_names_require_the_generated_definition(): void

@@ -21,6 +21,16 @@ use Symfony\Component\Console\Tester\CommandTester;
  * 唯一键按原名重建（前缀长度保留）；重复执行不发 ALTER；数据保留。插件目标的生成表写出的升级迁移可在另一套安装上
  * 通过迁移运行器执行并重放，重新生成沿用该迁移。需要一次性 MySQL 测试库（tests/Console/run-mysql.php）。
  */
+final class MySqlLegacyTicket extends \app\common\model\BaseModel
+{
+    use \app\common\model\concern\LaravelSoftDelete;
+
+    protected $table = 'biz_ticket';
+    public $incrementing = false;
+    protected $keyType = 'string';
+    protected $guarded = [];
+}
+
 final class MySqlBusinessSoftDeleteUpgradeTest extends TestCase
 {
     private const TABLES = ['biz_order', 'biz_ticket', 'biz_note', 'biz_plain', 'plugin_soft'];
@@ -145,7 +155,16 @@ final class MySqlBusinessSoftDeleteUpgradeTest extends TestCase
         self::assertGreaterThan(0, (int) $trashed->row_no);
         self::assertSame((int) $trashed->row_no, (int) $trashed->deleted_token, 'UUID 主键表以 row_no 回填');
         self::assertSame(0, (int) Db::table('biz_ticket')->where('id', '00000000-0000-4000-8000-000000000001')->value('deleted_token'));
-        self::assertStringContainsString('重新生成', $real->getDisplay());
+        self::assertStringContainsString('无需重新生成', $real->getDisplay());
+
+        // I3：未重新生成、没有覆盖令牌来源的旧 UUID 模型，在升级后的表上同样以 row_no 写令牌。
+        MySqlLegacyTicket::query()->create(['id' => '00000000-0000-4000-8000-000000000009', 'title' => 'old', 'code' => 'OLD']);
+        MySqlLegacyTicket::query()->findOrFail('00000000-0000-4000-8000-000000000009')->delete();
+        $old = Db::table('biz_ticket')->where('id', '00000000-0000-4000-8000-000000000009')->first();
+        self::assertSame((int) $old->row_no, (int) $old->deleted_token);
+        self::assertTrue(MySqlLegacyTicket::withTrashed()->findOrFail('00000000-0000-4000-8000-000000000009')->restore());
+        self::assertSame(0, (int) Db::table('biz_ticket')->where('id', '00000000-0000-4000-8000-000000000009')->value('deleted_token'));
+        Db::table('biz_ticket')->where('id', '00000000-0000-4000-8000-000000000009')->delete();
 
         $note = $this->structure('biz_note');
         ksort($note['indexes']);
@@ -193,12 +212,24 @@ final class MySqlBusinessSoftDeleteUpgradeTest extends TestCase
 
     public function test_plugin_target_upgrade_migration_upgrades_other_installs_and_regeneration_reuses_it(): void
     {
+        $this->pluginTargetRoundTrip(false);
+    }
+
+    /** M6：UUID 主键的插件目标表：升级迁移在另一套安装上加 row_no 并以它回填，结果与第一套安装一致。 */
+    public function test_uuid_plugin_target_upgrade_migration_adds_row_no_on_second_install(): void
+    {
+        $this->pluginTargetRoundTrip(true);
+    }
+
+    private function pluginTargetRoundTrip(bool $uuid): void
+    {
         $p = Db::connection()->getTablePrefix();
         $table = $p . 'plugin_soft';
         $data = CrudDefinitionFixture::make('plugin-soft', 'mysql')->toArray();
         $data['target'] = ['type' => 'plugin', 'plugin' => 'softkit', 'scope' => 'admin'];
         $data['table'] = $table;
         unset($data['generationTargets']);
+        if ($uuid) $data['fields'][0] = array_merge($data['fields'][0], ['dbType' => 'char(36)', 'format' => 'uuid']);
         $data['fields'][] = ['name' => 'code', 'label' => '编码', 'dbType' => 'varchar(40)', 'nullable' => false, 'component' => 'input', 'unique' => true];
         $definition = CrudDefinition::fromArray($data);
         $this->root = sys_get_temp_dir() . '/funadmin-sdu-mysql-' . bin2hex(random_bytes(6));
@@ -206,47 +237,70 @@ final class MySqlBusinessSoftDeleteUpgradeTest extends TestCase
         mkdir($migrations, 0700, true);
         $target = new PluginCrudTarget($this->root);
         $snapshot = (new \ReflectionMethod($target, 'schemaSnapshot'))->invoke($target, $definition);
-        unset($snapshot['fields']['deleted_token']);
+        unset($snapshot['fields']['deleted_token'], $snapshot['fields']['row_no']);
         $snapshot['fields']['deleted_at']['index'] = '';
         $create = ProductionTemplateContext::build($definition)['migrationContent'];
         $legacy = (new \ReflectionMethod(PluginCrudTarget::class, 'legacyCreateSql'))->invoke(null, $create, $table);
+        self::assertStringNotContainsString('row_no', $legacy);
         file_put_contents($migrations . '/001_create_plugin_soft.sql', rtrim($legacy) . "\n-- funadmin-crud-schema: " . base64_encode(CrudDefinition::canonicalJson($snapshot)) . "\n");
         $service = new MigrationService();
-        $seed = static function (): void {
+        $ids = $uuid ? ['00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b'] : [1, 2];
+        $seed = static function () use ($ids): void {
             Db::table('plugin_soft')->insert([
-                ['id' => 1, 'title' => 'a', 'code' => 'A', 'deleted_at' => null],
-                ['id' => 2, 'title' => 'b', 'code' => 'B', 'deleted_at' => '2026-03-01 00:00:00'],
+                ['id' => $ids[0], 'title' => 'a', 'code' => 'A', 'deleted_at' => null],
+                ['id' => $ids[1], 'title' => 'b', 'code' => 'B', 'deleted_at' => '2026-03-01 00:00:00'],
             ]);
         };
+        $tokens = static function () use ($uuid): array {
+            $rows = Db::table('plugin_soft')->orderBy('code')->get()->all();
+            return array_map(static fn ($row): array => [(int) $row->deleted_token, $uuid ? (int) $row->row_no : (int) $row->id], $rows);
+        };
 
-        // 安装 A：命令直接升级，并写出插件升级迁移。
+        // 安装 A：命令写出插件升级迁移并经迁移运行器执行（登记 system_migration），不直接 ALTER。
         self::assertSame(['001_create_plugin_soft'], $service->runVersion($migrations, '001_create_plugin_soft', 'plugin:softkit'));
         $seed();
         $this->register('plugin_soft', 'plugin_soft', ['target' => ['type' => 'plugin', 'pluginCode' => 'softkit', 'tableStrategy' => 'owned']]);
         $tester = $this->upgrade(['--table' => 'plugin_soft'], $this->root);
         self::assertSame(0, $tester->getStatusCode(), $tester->getDisplay());
-        self::assertFileExists($migrations . '/002_soft_delete_plugin_soft.sql');
+        $file = $migrations . '/002_soft_delete_plugin_soft.sql';
+        self::assertFileExists($file);
+        $content = (string) file_get_contents($file);
+        self::assertSame(1, preg_match('/^[\x00-\x7F]*$/D', $content), '插件升级迁移只用 ASCII');
+        $ledger = Db::table('system_migration')->where('scope', 'plugin:softkit')->where('version', '002_soft_delete_plugin_soft')->first();
+        self::assertNotNull($ledger, '升级迁移已登记');
+        self::assertSame(hash('sha256', $content), (string) $ledger->checksum);
         $upgradedA = $this->structure('plugin_soft');
-        $rowsA = $this->rows('plugin_soft');
         self::assertSame('code,deleted_token', $upgradedA['indexes']['uk_' . $table . '_code']);
-        self::assertSame([0, 2], array_map(static fn (array $row): int => (int) $row['deleted_token'], $rowsA));
-        // 安装 A 上运行升级迁移：全部到位，不再改动。
-        self::assertSame(['002_soft_delete_plugin_soft'], $service->runVersion($migrations, '002_soft_delete_plugin_soft', 'plugin:softkit'));
-        self::assertSame($upgradedA, $this->structure('plugin_soft'));
-        self::assertSame($rowsA, $this->rows('plugin_soft'));
+        self::assertSame('deleted_at', $upgradedA['indexes']['idx_' . $table . '_deleted_at']);
+        if ($uuid) self::assertSame('row_no', $upgradedA['indexes']['idx_' . $table . '_row_no']);
+        [$live, $trashed] = $tokens();
+        self::assertSame(0, $live[0]);
+        self::assertSame($trashed[1], $trashed[0], $uuid ? '以 row_no 回填' : '以 id 回填');
+        self::assertGreaterThan(0, $trashed[0]);
+        $rowsA = $this->rows('plugin_soft');
 
-        // 安装 B：旧形状的表随插件迁移升级，结果与安装 A 一致；重放不变。
+        // 再次执行：已登记、结构到位，无需升级。
+        $again = $this->upgrade(['--table' => 'plugin_soft'], $this->root);
+        self::assertSame(0, $again->getStatusCode(), $again->getDisplay());
+        self::assertStringContainsString('无需升级', $again->getDisplay());
+        self::assertSame(['001_create_plugin_soft.sql', '002_soft_delete_plugin_soft.sql'], array_map('basename', glob($migrations . '/*.sql') ?: []));
+
+        // 安装 B：旧形状的表带数据，随插件迁移升级，结果与安装 A 一致；重放不变。
         Db::schema()->dropIfExists('plugin_soft');
         Db::table('system_migration')->where('scope', 'plugin:softkit')->delete();
         self::assertSame(['001_create_plugin_soft'], $service->runVersion($migrations, '001_create_plugin_soft', 'plugin:softkit'));
         $seed();
         self::assertSame(['002_soft_delete_plugin_soft'], $service->runVersion($migrations, '002_soft_delete_plugin_soft', 'plugin:softkit'));
         self::assertSame($upgradedA, $this->structure('plugin_soft'));
-        self::assertSame($rowsA, $this->rows('plugin_soft'));
+        [$live, $trashed] = $tokens();
+        self::assertSame(0, $live[0]);
+        self::assertSame($trashed[1], $trashed[0]);
+        if (!$uuid) self::assertSame($rowsA, $this->rows('plugin_soft'));
+        $rowsB = $this->rows('plugin_soft');
         Db::table('system_migration')->where('scope', 'plugin:softkit')->where('version', '002_soft_delete_plugin_soft')->delete();
         self::assertSame(['002_soft_delete_plugin_soft'], $service->runVersion($migrations, '002_soft_delete_plugin_soft', 'plugin:softkit'));
         self::assertSame($upgradedA, $this->structure('plugin_soft'));
-        self::assertSame($rowsA, $this->rows('plugin_soft'));
+        self::assertSame($rowsB, $this->rows('plugin_soft'));
 
         // 重新生成：沿用 002，不生成新的 ALTER。
         $regenerated = (new \ReflectionMethod(PluginCrudTarget::class, 'migration'))->invoke($target, $definition, 'softkit', 'plugin-soft', $create);

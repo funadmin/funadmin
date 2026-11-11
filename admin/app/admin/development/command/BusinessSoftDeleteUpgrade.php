@@ -17,7 +17,7 @@ use Throwable;
 #[AsCommand(name: 'business:soft-delete-upgrade')]
 final class BusinessSoftDeleteUpgrade extends Command
 {
-    private const LABELS = ['upgraded' => '已升级', 'planned' => '计划', 'current' => '无需升级', 'skipped' => '跳过', 'refused' => '拒绝'];
+    private const LABELS = ['upgraded' => '已升级', 'planned' => '计划', 'current' => '无需升级', 'skipped' => '跳过', 'refused' => '拒绝', 'failed' => '失败'];
 
     public function __construct(private readonly ?string $projectRoot = null)
     {
@@ -48,9 +48,16 @@ final class BusinessSoftDeleteUpgrade extends Command
         }
         $failed = false;
         foreach ($results as $result) {
-            $failed = $failed || $result['status'] === 'refused';
+            $failed = $failed || in_array($result['status'], ['refused', 'failed'], true);
             $output->writeln(sprintf('[%s] %s（业务模块 %s）：%s', self::LABELS[$result['status']] ?? $result['status'], $result['table'], $result['module'], $result['message']));
-            foreach ($result['sql'] as $sql) $output->writeln('  ' . $sql . ';');
+            foreach ($result['sql'] as $sql) {
+                // 插件升级迁移是整份 SQL 文件，逐行缩进输出。
+                if (str_contains($sql, "\n")) {
+                    foreach (explode("\n", rtrim($sql)) as $line) $output->writeln('    ' . $line);
+                } else {
+                    $output->writeln('  ' . $sql . ';');
+                }
+            }
             if ($result['backfill'] > 0) $output->writeln('  回填已删除行的 deleted_token：' . $result['backfill'] . ' 行');
             if ($result['migration'] !== null) $output->writeln('  插件升级迁移：' . $result['migration']);
             foreach ($result['notes'] as $note) $output->writeln('  注意：' . $note);

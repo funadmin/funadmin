@@ -165,6 +165,15 @@ final class PluginCrudTarget
         $data = $definition->toArray();
         $fields = [];
         foreach ($data['fields'] as $field) {
+            // 软删除内部列按生成器自己的定义记录，与建表 SQL 一致。
+            if ($field['name'] === GeneratedSoftDeleteColumns::TOKEN) {
+                $fields[$field['name']] = ['definition' => GeneratedSoftDeleteColumns::TOKEN_DEFINITION, 'index' => ''];
+                continue;
+            }
+            if ($field['name'] === GeneratedSoftDeleteColumns::ROW_NO) {
+                $fields[$field['name']] = ['definition' => GeneratedSoftDeleteColumns::ROW_NO_DEFINITION, 'index' => 'index'];
+                continue;
+            }
             $fields[$field['name']] = [
                 'definition' => $this->columnDefinition($field),
                 'index' => ($field['unique'] ?? false) ? 'unique' : ((($field['search'] ?? false) || ($field['relation'] ?? '') !== '') ? 'index' : ''),
