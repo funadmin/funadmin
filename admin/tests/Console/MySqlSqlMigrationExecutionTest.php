@@ -133,6 +133,49 @@ final class MySqlSqlMigrationExecutionTest extends TestCase
         self::assertSame(2, Db::table('sql_fixture')->where('code', 'C')->count());
     }
 
+    /** 软删除规则之前生成的带唯一字段插件表：重新生成只补 deleted_at 索引，生成的 ALTER 能通过迁移运行器守卫并执行。 */
+    public function test_regenerated_legacy_unique_plugin_table_alter_runs_through_migration_runner(): void
+    {
+        (new \app\common\plugin\sdk\PluginScaffolder($this->root . '/plugins'))->scaffold('sqlfixture');
+        $data = CrudDefinitionFixture::make('sql-fixture', 'mysql')->toArray();
+        $data['target'] = ['type' => 'plugin', 'plugin' => 'sqlfixture', 'scope' => 'admin'];
+        $data['table'] = 'console_sql_fixture'; $data['tableIdentity'] = ['source' => 'created', 'kind' => 'physical'];
+        $data['module'] = 'sqlfixture'; $data['permissionPrefix'] = 'sqlfixture:sql-fixture';
+        $data['fields'][] = ['name' => 'code', 'label' => '编码', 'dbType' => 'varchar(40)', 'nullable' => false, 'component' => 'input', 'unique' => true];
+        unset($data['generationTargets']);
+        $definition = \app\common\crud\CrudDefinition::fromArray($data);
+        // 模拟旧版生成的 001：单列唯一键、无 deleted_token、deleted_at 无索引，快照同为旧形状。
+        $target = new \app\common\crud\PluginCrudTarget($this->root);
+        $snapshot = (new \ReflectionMethod($target, 'schemaSnapshot'))->invoke($target, $definition);
+        unset($snapshot['fields']['deleted_token']);
+        $snapshot['fields']['deleted_at']['index'] = '';
+        $create = \app\common\crud\ProductionTemplateContext::build($definition)['migrationContent'];
+        $legacy = (new \ReflectionMethod(\app\common\crud\PluginCrudTarget::class, 'legacyCreateSql'))->invoke(null, $create, 'console_sql_fixture');
+        $migrations = $this->root . '/plugins/sqlfixture/database/migrations';
+        file_put_contents($migrations . '/001_create_sql_fixture.sql', rtrim($legacy) . "\n-- funadmin-crud-schema: " . base64_encode(\app\common\crud\CrudDefinition::canonicalJson($snapshot)) . "\n");
+        $manifest = \app\common\plugin\sdk\Manifest::fromDirectory($this->root . '/plugins/sqlfixture');
+        $infrastructure = new \app\admin\plugin\service\PluginInfrastructureService(projectRoot: $this->root);
+        self::assertSame(['001_create_sql_fixture'], $infrastructure->migrate($manifest)['executed']);
+
+        $generator = new \app\common\crud\CrudGenerator($this->root);
+        $plan = $generator->plan($definition);
+        $generator->generate($definition, $plan['confirmToken']);
+        $alter = (string) file_get_contents($migrations . '/002_alter_sql_fixture.sql');
+        self::assertStringNotContainsString('DROP', $alter);
+        $manifest = \app\common\plugin\sdk\Manifest::fromDirectory($this->root . '/plugins/sqlfixture');
+        $infrastructure->assertExternalTables($manifest);
+        // 与 PluginInfrastructureService::migrate 相同路径：插件 scope 的 MigrationService::runDirectory。
+        self::assertSame(['002_alter_sql_fixture'], (new MigrationService())->runDirectory($migrations, 'plugin:sqlfixture'));
+        $indexes = array_column(\app\common\crud\SchemaInspector::forConnection()->inspect('console_sql_fixture')['indexes'], 'columns', 'name');
+        self::assertSame(['deleted_at'], $indexes['idx_console_sql_fixture_deleted_at']);
+        self::assertSame(['code'], $indexes['uk_console_sql_fixture_code'], '旧唯一键保持不变，等升级命令重建');
+        self::assertFalse(Db::schema()->hasColumn('sql_fixture', 'deleted_token'));
+        // 再次生成不产生新的迁移。
+        $plan = $generator->plan($definition);
+        $generator->generate($definition, $plan['confirmToken']);
+        self::assertFileDoesNotExist($migrations . '/003_alter_sql_fixture.sql');
+    }
+
     public function test_later_unsafe_migration_blocks_batch_before_any_ddl(): void
     {
         file_put_contents($this->root . '/001_create_fixture.sql', 'CREATE TABLE console_sql_fixture (id INT PRIMARY KEY) ENGINE=InnoDB;');

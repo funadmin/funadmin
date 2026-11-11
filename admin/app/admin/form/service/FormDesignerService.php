@@ -76,6 +76,9 @@ final class FormDesignerService
             if (!preg_match('/^[a-z][a-z0-9_]{0,60}$/', $fieldName)) {
                 throw new InvalidArgumentException($label . '字段名不合法：' . $fieldName);
             }
+            if (in_array($fieldName, ['deleted_token', 'row_no'], true)) {
+                throw new InvalidArgumentException($label . '字段名 ' . $fieldName . ' 是软删除保留字段，不能使用');
+            }
             if (isset($seen[$fieldName])) {
                 throw new InvalidArgumentException('字段名重复：' . $fieldName);
             }

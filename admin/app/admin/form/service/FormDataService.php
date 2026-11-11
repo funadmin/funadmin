@@ -393,7 +393,7 @@ final class FormDataService
      * $deleteMode 只影响删除时的引用检查：
      * - strict（默认，生成模型等）：任何引用行（含已软删除）都拒绝；
      * - soft（FormDataService 软删除）：只看未删除的引用行，外键规则为级联/置空的引用交给 applySoftDeleteForeignKeys 处理；
-     * - permanent（彻底删除/无软删除的表）：级联/置空交给数据库真实外键，其余引用（含已软删除）仍拒绝。
+     * - permanent（彻底删除/无软删除的表）：级联/置空交给 applyPermanentForeignKeys（有真实外键时由数据库执行），其余引用（含已软删除）仍拒绝。
      */
     public function guardTreeWrite(string $key, int|string $id, array $data = [], bool $deleting = false, string $deleteMode = 'strict'): void
     {
@@ -467,7 +467,7 @@ final class FormDataService
                     }
                 }
                 if ($field->relationType() === 'belongs_to' && $field->relationTable() === (string) $source->table_name && $field->relationValueField() === $primary) {
-                    // 级联/置空由 applySoftDeleteForeignKeys（软删除）或数据库真实外键（彻底删除）处理。
+                    // 级联/置空由 applySoftDeleteForeignKeys（软删除）或 applyPermanentForeignKeys（彻底删除）处理。
                     if ($deleteMode !== 'strict' && in_array($field->relationOnDelete(), ['cascade', 'set_null'], true)) continue;
                     $references[] = $field->name();
                 }
@@ -496,19 +496,25 @@ final class FormDataService
      *
      * @return list<array{table: string, field: string, rule: string}>
      */
-    private function foreignKeyReferences(string $connectionName, string $table, string $primary): array
+    private function foreignKeyReferences(string $connectionName, string $table, string $primary, bool $restoring = false): array
     {
         $strictness = ['cascade' => 0, 'set_null' => 1, 'restrict' => 2];
         $references = [];
         foreach (BusinessModule::withTrashed()->where('published_schema_hash', '<>', '')->get() as $module) {
             $version = FormSchemaVersion::where('form_id', (int) $module->form_id)->where('version', (int) $module->published_schema_version)->where('schema_hash', (string) $module->published_schema_hash)->first();
+            // 恢复只是尽力恢复级联子记录：无关模块的快照问题不阻断恢复。
+            if (!$version && $restoring) continue;
             if (!$version) throw new InvalidArgumentException('引用快照不完整，拒绝删除');
             $compiled = (new FormSchemaRepository())->compile((array) $version->schema_document);
             $database = (array) ($compiled->document()['database'] ?? []);
             $childTable = (string) ($database['table'] ?? '');
             foreach ($compiled->fields() as $field) {
                 if ($field->relationType() !== 'belongs_to' || $field->relationTable() !== $table || ($field->relationValueField() ?: 'id') !== $primary) continue;
-                if ((string) ($database['connection'] ?? 'mysql') !== $connectionName) throw new InvalidArgumentException('跨连接引用无法原子检查，拒绝删除');
+                if ((string) ($database['connection'] ?? 'mysql') !== $connectionName) {
+                    // 跨连接的子记录删除时就会被拒绝，不可能被级联删除；恢复时跳过。
+                    if ($restoring) continue;
+                    throw new InvalidArgumentException('跨连接引用无法原子检查，拒绝删除');
+                }
                 $this->assertIdentifier($childTable, '引用表');
                 $this->assertIdentifier($field->name(), '引用字段');
                 $rule = array_key_exists($field->relationOnDelete(), $strictness) ? $field->relationOnDelete() : 'restrict';
@@ -561,6 +567,71 @@ final class FormDataService
     }
 
     /**
+     * 彻底删除（回收站或无 deleted_at 的表）前按外键规则处理所有子记录（含已软删除的）：
+     * 子表上有对应规则的真实外键时由数据库执行；否则在程序中执行——级联则先处理孙记录再物理删除子记录，置空则外键置空，禁止则有子记录时拒绝。
+     *
+     * @param list<int|string> $ids 即将被物理删除的父记录主键
+     */
+    private function applyPermanentForeignKeys(\Illuminate\Database\Connection $connection, string $connectionName, string $table, string $primary, array $ids, int $depth = 0): void
+    {
+        if ($ids === []) return;
+        if ($depth > 16) throw new InvalidArgumentException('外键级联层级过深，拒绝删除');
+        foreach ($this->foreignKeyReferences($connectionName, $table, $primary) as $reference) {
+            $childSchema = $this->tableFields($connection, $reference['table']);
+            $childTable = $this->logicalTable($connection, $reference['table']);
+            $rows = $connection->table($childTable)->whereIn($reference['field'], $ids);
+            if ($reference['rule'] === 'restrict') {
+                if ((clone $rows)->lockForUpdate()->exists()) {
+                    throw new InvalidArgumentException('仍有关联数据引用（' . $reference['table'] . '.' . $reference['field'] . '），外键规则不允许删除，不能删除');
+                }
+                continue;
+            }
+            $database = $this->hasDatabaseForeignKey($connection, $reference['table'], $reference['field'], $table, $primary, $reference['rule']);
+            if ($reference['rule'] === 'set_null') {
+                if ($database) continue;
+                if (($childSchema[$reference['field']]['notnull'] ?? false) && (clone $rows)->exists()) {
+                    throw new InvalidArgumentException('外键字段 ' . $reference['table'] . '.' . $reference['field'] . ' 不允许为空，无法按置空规则删除');
+                }
+                $rows->update([$reference['field'] => null]);
+                continue;
+            }
+            $childPrimary = $this->primaryKey($childSchema)['name'];
+            $childIds = (clone $rows)->lockForUpdate()->pluck($childPrimary)->all();
+            if ($childIds === []) continue;
+            // 孙记录可能只有程序级规则：先处理，再删除子记录（有真实级联外键时由数据库删除子记录）。
+            $this->applyPermanentForeignKeys($connection, $connectionName, $reference['table'], $childPrimary, $childIds, $depth + 1);
+            if (!$database) $connection->table($childTable)->whereIn($childPrimary, $childIds)->delete();
+        }
+    }
+
+    /**
+     * 子表上是否存在与表单设计器规则一致、且会被数据库执行的真实外键
+     * （MySQL：information_schema.REFERENTIAL_CONSTRAINTS；SQLite：PRAGMA foreign_key_list，且需开启 foreign_keys）。
+     */
+    private function hasDatabaseForeignKey(\Illuminate\Database\Connection $connection, string $childTable, string $field, string $parentTable, string $parentColumn, string $rule): bool
+    {
+        $expected = $rule === 'set_null' ? 'SET NULL' : 'CASCADE';
+        $driver = $connection->getDriverName();
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            return $connection->selectOne(
+                'SELECT 1 AS found FROM information_schema.KEY_COLUMN_USAGE k JOIN information_schema.REFERENTIAL_CONSTRAINTS r'
+                . ' ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME AND r.TABLE_NAME = k.TABLE_NAME'
+                . ' WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = ? AND k.COLUMN_NAME = ? AND k.REFERENCED_TABLE_NAME = ? AND k.REFERENCED_COLUMN_NAME = ? AND r.DELETE_RULE = ?',
+                [$childTable, $field, $parentTable, $parentColumn, $expected]
+            ) !== null;
+        }
+        if ($driver === 'sqlite') {
+            if ((int) ($connection->selectOne('PRAGMA foreign_keys')->foreign_keys ?? 0) !== 1) return false;
+            $this->assertIdentifier($childTable, '引用表');
+            foreach ($connection->select('PRAGMA foreign_key_list("' . $childTable . '")') as $key) {
+                if ((string) $key->from === $field && (string) $key->table === $parentTable && (string) ($key->to ?? $parentColumn) === $parentColumn
+                    && strtoupper((string) $key->on_delete) === $expected) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 恢复父记录时恢复与它同一时间被级联软删除的子孙记录（deleted_at 相同）；
      * 子记录撞上唯一值时跳过并记入 $conflicts，不影响父记录与其它子记录。
      *
@@ -572,7 +643,7 @@ final class FormDataService
         if ($deletedAt === [] || $depth > 16) return;
         $groups = [];
         foreach ($deletedAt as $id => $time) $groups[(string) $time][] = $id;
-        foreach ($this->foreignKeyReferences($connectionName, $table, $primary) as $reference) {
+        foreach ($this->foreignKeyReferences($connectionName, $table, $primary, true) as $reference) {
             if ($reference['rule'] !== 'cascade') continue;
             $childSchema = $this->tableFields($connection, $reference['table']);
             $childColumns = array_keys($childSchema);
@@ -792,6 +863,7 @@ final class FormDataService
                 $this->applySoftDeleteForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], [$id], $time);
                 return ['removed' => 1, 'mode' => 'soft'];
             }
+            $this->applyPermanentForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], [$id]);
             $connection->delete();
             return ['removed' => 1, 'mode' => 'hard'];
         });
@@ -844,6 +916,7 @@ final class FormDataService
                 $this->applySoftDeleteForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], $removedIds, $time);
                 return ['removed' => (int) $removed, 'mode' => 'soft'];
             }
+            $this->applyPermanentForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], (clone $query)->lockForUpdate()->pluck($primary['name'])->all());
             return ['removed' => (int) $query->delete(), 'mode' => 'hard'];
         });
     }
@@ -895,8 +968,10 @@ final class FormDataService
         $database = Db::connection((string) $form->connection);
         return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
             foreach ($ids as $id) $this->guardTreeWrite((string) $form->form_key, $id, [], true, 'permanent');
-            $destroyed = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))
-                ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at')->delete();
+            $query = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))
+                ->whereIn($primary['name'], $ids)->whereNotNull('deleted_at');
+            $this->applyPermanentForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], (clone $query)->lockForUpdate()->pluck($primary['name'])->all());
+            $destroyed = $query->delete();
             return ['destroyed' => (int) $destroyed];
         });
     }

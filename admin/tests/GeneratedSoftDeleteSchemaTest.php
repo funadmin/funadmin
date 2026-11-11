@@ -193,25 +193,60 @@ final class GeneratedSoftDeleteSchemaTest extends TestCase
         self::assertSame(['uk_plugin_soft_code' => ['name' => 'uk_plugin_soft_code', 'unique' => true, 'columns' => ['code']]], PluginCrudTarget::snapshotIndexes('plugin_soft', $legacy));
     }
 
-    public function test_plugin_forward_alter_upgrades_legacy_snapshot_to_token_suffixed_unique_keys(): void
+    private const LEGACY_SNAPSHOT = ['table' => 'plugin_soft', 'fields' => [
+        'id' => ['definition' => 'bigint NOT NULL AUTO_INCREMENT', 'index' => ''],
+        'title' => ['definition' => 'varchar(80) NOT NULL', 'index' => 'index'],
+        'metadata' => ['definition' => 'json NULL', 'index' => ''],
+        'code' => ['definition' => 'varchar(40) NOT NULL', 'index' => 'unique'],
+        'created_at' => ['definition' => 'datetime NULL', 'index' => ''],
+        'updated_at' => ['definition' => 'datetime NULL', 'index' => ''],
+        'deleted_at' => ['definition' => 'datetime NULL', 'index' => ''],
+    ]];
+
+    /** 在临时项目根下放置插件旧迁移，返回重新生成的迁移（PluginCrudTarget::migration）。 */
+    private function regenerate(string $legacyFile, CrudDefinition $definition): array
     {
-        $legacy = ['table' => 'plugin_soft', 'fields' => [
-            'id' => ['definition' => 'bigint NOT NULL AUTO_INCREMENT', 'index' => ''],
-            'title' => ['definition' => 'varchar(80) NOT NULL', 'index' => 'index'],
-            'metadata' => ['definition' => 'json NULL', 'index' => ''],
-            'code' => ['definition' => 'varchar(40) NOT NULL', 'index' => 'unique'],
-            'created_at' => ['definition' => 'datetime NULL', 'index' => ''],
-            'updated_at' => ['definition' => 'datetime NULL', 'index' => ''],
-            'deleted_at' => ['definition' => 'datetime NULL', 'index' => ''],
-        ]];
-        $current = $this->snapshot($this->pluginDefinition(true));
-        $alter = (new \ReflectionMethod(PluginCrudTarget::class, 'forwardAlter'))->invoke(new PluginCrudTarget(sys_get_temp_dir()), $legacy, $current);
-        self::assertSame([
-            'ADD KEY `idx_plugin_soft_deleted_at` (`deleted_at`)',
-            'ADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0',
-            'DROP INDEX `uk_plugin_soft_code`',
-            'ADD UNIQUE KEY `uk_plugin_soft_code` (`code`, `deleted_token`)',
-        ], $alter);
+        $root = sys_get_temp_dir() . '/funadmin-plugin-soft-' . bin2hex(random_bytes(6));
+        mkdir($root . '/plugins/softkit/database/migrations', 0700, true);
+        file_put_contents($root . '/plugins/softkit/database/migrations/001_create_plugin_soft.sql', $legacyFile);
+        register_shutdown_function(static function () use ($root): void {
+            foreach (glob($root . '/plugins/softkit/database/migrations/*') ?: [] as $file) unlink($file);
+            foreach (['/plugins/softkit/database/migrations', '/plugins/softkit/database', '/plugins/softkit', '/plugins', ''] as $dir) @rmdir($root . $dir);
+        });
+        $create = ProductionTemplateContext::build($definition)['migrationContent'];
+        return (new \ReflectionMethod(PluginCrudTarget::class, 'migration'))->invoke(new PluginCrudTarget($root), $definition, 'softkit', 'plugin-soft', $create);
+    }
+
+    public function test_regenerating_legacy_unique_plugin_table_keeps_old_shape_and_only_indexes_deleted_at(): void
+    {
+        $definition = $this->pluginDefinition(true);
+        $legacyCreate = (new \ReflectionMethod(PluginCrudTarget::class, 'legacyCreateSql'))->invoke(null, ProductionTemplateContext::build($definition)['migrationContent'], 'plugin_soft');
+        $migration = $this->regenerate($legacyCreate . '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson(self::LEGACY_SNAPSHOT)) . "\n", $definition);
+        self::assertSame('plugins/softkit/database/migrations/002_alter_plugin_soft.sql', $migration['path']);
+        self::assertStringContainsString("ALTER TABLE `plugin_soft`\n  ADD KEY `idx_plugin_soft_deleted_at` (`deleted_at`);\n", $migration['content']);
+        self::assertStringNotContainsString('DROP', $migration['content']);
+        self::assertStringNotContainsString('deleted_token', explode('-- funadmin-crud-schema', $migration['content'])[0]);
+        preg_match('/^-- funadmin-crud-schema: (\S+)$/m', $migration['content'], $match);
+        $snapshot = json_decode((string) base64_decode($match[1]), true);
+        self::assertArrayNotHasKey('deleted_token', $snapshot['fields'], '沿用旧形状，等升级命令重建唯一键');
+        self::assertSame(['uk_plugin_soft_code' => ['name' => 'uk_plugin_soft_code', 'unique' => true, 'columns' => ['code']]],
+            array_filter(PluginCrudTarget::snapshotIndexes('plugin_soft', $snapshot), static fn (array $index): bool => $index['unique']));
+        // 迁移运行器的 forward-only 守卫接受该文件（不再含 DROP INDEX）。
+        (new \ReflectionMethod(\app\common\service\database\MigrationService::class, 'assertForwardOnly'))->invoke(new \app\common\service\database\MigrationService(), $migration['content'], '002_alter_plugin_soft.sql');
+    }
+
+    public function test_regenerating_metadata_less_legacy_create_without_changes_is_accepted(): void
+    {
+        $definition = $this->pluginDefinition(true);
+        $current = ProductionTemplateContext::build($definition)['migrationContent'];
+        $legacy = (new \ReflectionMethod(PluginCrudTarget::class, 'legacyCreateSql'))->invoke(null, $current, 'plugin_soft');
+        self::assertStringContainsString('UNIQUE KEY `uk_plugin_soft_code` (`code`)', $legacy);
+        self::assertStringNotContainsString('deleted_token', $legacy);
+        self::assertStringNotContainsString('idx_plugin_soft_deleted_at', $legacy);
+        $legacyFile = $legacy;
+        $migration = $this->regenerate($legacyFile, $definition);
+        self::assertSame('plugins/softkit/database/migrations/001_create_plugin_soft.sql', $migration['path']);
+        self::assertSame($legacyFile, $migration['content']);
     }
 
     // ---- 表单设计器外键 ----
@@ -354,5 +389,112 @@ final class GeneratedSoftDeleteSchemaTest extends TestCase
         // 子记录已在回收站：软删除父记录不再被拒绝（真实外键只在彻底删除时生效）。
         Db::table('fk_child_restrict')->where('id', $child)->update(['deleted_at' => date('Y-m-d H:i:s'), 'deleted_token' => $child]);
         self::assertSame('soft', $service->remove('fk_parent', $parent, $this->hash)['mode']);
+    }
+
+    // ---- 彻底删除：没有真实外键时由程序执行规则 ----
+
+    public function test_destroy_without_database_foreign_key_applies_cascade_permanently(): void
+    {
+        $service = $this->fkFixture(['cascade']);
+        $parent = $this->parentRow('P');
+        $child = (int) Db::table('fk_child_cascade')->insertGetId(['parent_id' => $parent, 'code' => 'K1']);
+        $trashedChild = (int) Db::table('fk_child_cascade')->insertGetId(['parent_id' => $parent, 'code' => 'K0', 'deleted_at' => '2020-01-01 00:00:00', 'deleted_token' => 999]);
+        $grand = (int) Db::table('fk_grand')->insertGetId(['child_id' => $trashedChild]);
+        $service->remove('fk_parent', $parent, $this->hash);
+        self::assertSame(1, $service->destroy('fk_parent', [$parent], $this->hash)['destroyed']);
+        self::assertSame(0, Db::table('fk_child_cascade')->whereIn('id', [$child, $trashedChild])->count(), '子记录（含早已删除的）一并物理删除，不留孤儿');
+        self::assertFalse(Db::table('fk_grand')->where('id', $grand)->exists());
+    }
+
+    public function test_destroy_without_database_foreign_key_sets_null_and_restricts(): void
+    {
+        $service = $this->fkFixture(['set_null', 'restrict']);
+        $parent = $this->parentRow('P');
+        $nulled = (int) Db::table('fk_child_set_null')->insertGetId(['parent_id' => $parent, 'code' => 'N1', 'deleted_at' => '2020-01-01 00:00:00', 'deleted_token' => 1]);
+        $restricted = (int) Db::table('fk_child_restrict')->insertGetId(['parent_id' => $parent, 'code' => 'R1', 'deleted_at' => '2020-01-01 00:00:00', 'deleted_token' => 1]);
+        $service->remove('fk_parent', $parent, $this->hash);
+        try {
+            $service->destroy('fk_parent', [$parent], $this->hash);
+            self::fail('禁止规则下仍有（已删除的）子记录时不能彻底删除');
+        } catch (InvalidArgumentException $error) {
+            self::assertStringContainsString('不能删除', $error->getMessage());
+        }
+        self::assertTrue(Db::table('fk_parent')->where('id', $parent)->exists());
+        Db::table('fk_child_restrict')->where('id', $restricted)->delete();
+        self::assertSame(1, $service->destroy('fk_parent', [$parent], $this->hash)['destroyed']);
+        self::assertNull(Db::table('fk_child_set_null')->where('id', $nulled)->value('parent_id'));
+    }
+
+    public function test_destroy_with_database_foreign_key_leaves_cascade_to_the_database(): void
+    {
+        $service = $this->fkFixture([]);
+        Db::statement('PRAGMA foreign_keys = ON');
+        $prefix = Db::connection()->getTablePrefix();
+        $connection = (string) config('database.default');
+        Db::schema()->create('fk_child_real', static function (Blueprint $table) use ($prefix): void {
+            $table->id(); $table->unsignedBigInteger('parent_id'); $table->timestamps(); $table->dateTime('deleted_at')->nullable();
+            $table->foreign('parent_id')->references('id')->on('fk_parent')->cascadeOnDelete();
+        });
+        $child = FormBuilder::make('fk_child_real')->title('real')->table($prefix . 'fk_child_real', $connection, 'created');
+        $child->number('parent_id', '父')->column('bigint', false, true)->relation('belongs_to', $prefix . 'fk_parent', 'title', 'id', false, 'cascade');
+        $this->publish($child, 'fk_child_real', $prefix . 'fk_child_real');
+        $method = new \ReflectionMethod(FormDataService::class, 'hasDatabaseForeignKey');
+        self::assertTrue($method->invoke($service, Db::connection(), $prefix . 'fk_child_real', 'parent_id', $prefix . 'fk_parent', 'id', 'cascade'));
+        self::assertFalse($method->invoke($service, Db::connection(), $prefix . 'fk_child_real', 'parent_id', $prefix . 'fk_parent', 'id', 'set_null'), '规则不一致不算');
+        $parent = $this->parentRow('P');
+        $row = (int) Db::table('fk_child_real')->insertGetId(['parent_id' => $parent]);
+        $service->remove('fk_parent', $parent, $this->hash);
+        self::assertNotNull(Db::table('fk_child_real')->where('id', $row)->value('deleted_at'));
+        $log = [];
+        Db::connection()->listen(static function (QueryExecuted $query) use (&$log): void { $log[] = $query->sql; });
+        $service->destroy('fk_parent', [$parent], $this->hash);
+        self::assertFalse(Db::table('fk_child_real')->where('id', $row)->exists(), '数据库外键级联删除子记录');
+        self::assertSame([], array_values(array_filter($log, static fn (string $sql): bool => preg_match('/^delete from "' . $prefix . 'fk_child_real"/', $sql) === 1)), '程序不重复删除');
+    }
+
+    // ---- 恢复不受无关快照影响 ----
+
+    public function test_restore_ignores_unrelated_incomplete_snapshots(): void
+    {
+        $service = $this->fkFixture(['cascade']);
+        $parent = $this->parentRow('P');
+        $child = (int) Db::table('fk_child_cascade')->insertGetId(['parent_id' => $parent, 'code' => 'K1']);
+        $service->remove('fk_parent', $parent, $this->hash);
+        // 无关模块的发布快照缺失：删除检查会拒绝，但恢复不受影响。
+        Db::table('business_module')->insert([
+            'code' => 'broken', 'name' => 'broken', 'form_id' => 999, 'origin' => 'visual', 'connection_name' => 'other', 'table_name' => 'broken',
+            'runtime_route' => '', 'module_route' => '', 'lifecycle_status' => 'dynamic_published', 'generation_status' => 'none', 'metadata' => '{}',
+            'published_schema_hash' => str_repeat('b', 64), 'published_schema_version' => 1,
+        ]);
+        self::assertSame(1, $service->restore('fk_parent', [$parent], $this->hash)['restored']);
+        self::assertNull(Db::table('fk_child_cascade')->where('id', $child)->value('deleted_at'));
+    }
+
+    // ---- 保留字段名 ----
+
+    public function test_soft_delete_internal_field_names_are_reserved(): void
+    {
+        foreach (['deleted_token', 'row_no'] as $name) {
+            $data = \Tests\Console\CrudDefinitionFixture::make('reserved-name')->toArray();
+            $data['fields'][] = ['name' => $name, 'label' => '保留', 'dbType' => 'bigint', 'nullable' => false, 'component' => 'input'];
+            try {
+                (new \app\common\crud\DefinitionValidator())->validate(CrudDefinition::fromArray($data), sys_get_temp_dir());
+                self::fail('生成器应拒绝保留字段名 ' . $name);
+            } catch (InvalidArgumentException $error) {
+                self::assertSame('字段名 ' . $name . ' 是软删除保留字段，不能作为业务字段', $error->getMessage());
+            }
+            $document = FormBuilder::make('reserved_probe')->title('保留')->table('reserved_probe', 'mysql', 'created');
+            $document->number($name, '保留')->column('bigint');
+            try {
+                (new \app\admin\form\service\FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR))->validateFields($document->compile(), 'created');
+                self::fail('表单设计器应拒绝保留字段名 ' . $name);
+            } catch (InvalidArgumentException $error) {
+                self::assertStringContainsString('字段名 ' . $name . ' 是软删除保留字段', $error->getMessage());
+            }
+        }
+        // 从现有表推断出的受管列（managed）仍允许同名。
+        $data = \Tests\Console\CrudDefinitionFixture::make('reserved-managed')->toArray();
+        $data['fields'][] = ['name' => 'deleted_token', 'label' => '令牌', 'dbType' => 'bigint unsigned', 'nullable' => false, 'component' => 'inputNumber', 'managed' => true, 'writable' => false, 'form' => false];
+        (new \app\common\crud\DefinitionValidator())->validate(CrudDefinition::fromArray($data), sys_get_temp_dir());
     }
 }

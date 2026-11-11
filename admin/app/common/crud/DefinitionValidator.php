@@ -367,6 +367,10 @@ final class DefinitionValidator
             }
             $name = (string) $field['name'];
             $this->identifier($name, '字段名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
+            // 软删除内部列由生成器维护；只有从现有表推断的受管字段可以同名。
+            if (in_array($name, [GeneratedSoftDeleteColumns::TOKEN, GeneratedSoftDeleteColumns::ROW_NO], true) && ($field['managed'] ?? false) !== true) {
+                throw new InvalidArgumentException('字段名 ' . $name . ' 是软删除保留字段，不能作为业务字段');
+            }
             $this->text((string) $field['dbType'], '字段类型');
             if (!preg_match('/^[a-z]+(?:\([0-9]+(?:,[0-9]+)?\))?(?: unsigned)?$/iD', (string) $field['dbType'])) {
                 throw new InvalidArgumentException('字段类型不合法');

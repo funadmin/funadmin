@@ -98,7 +98,6 @@ final class PluginCrudTarget
         $relative = "plugins/{$plugin}/database/migrations";
         $directory = PathGuard::resolve($this->projectRoot, $relative, '插件目录');
         $snapshot = $this->schemaSnapshot($definition);
-        $metadata = '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson($snapshot)) . "\n";
         $maximum = 0;
         $previous = null;
         foreach (glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: [] as $file) {
@@ -128,6 +127,12 @@ final class PluginCrudTarget
                 $previous = ['path' => $relative . '/' . $name, 'content' => $content, 'effectiveContent' => $effectiveContent, 'snapshot' => null];
             }
         }
+        if ($previous !== null && $previous['snapshot'] !== null && self::legacyUniqueSnapshot($previous['snapshot'])) {
+            // 旧表的唯一键不以 deleted_token 结尾：沿用旧形状（不加 deleted_token/row_no、不重建唯一键），
+            // 重建需要 DROP INDEX，只能由升级命令执行；trait 在没有令牌列时只写 deleted_at，行为安全。
+            unset($snapshot['fields'][GeneratedSoftDeleteColumns::TOKEN], $snapshot['fields'][GeneratedSoftDeleteColumns::ROW_NO]);
+        }
+        $metadata = '-- funadmin-crud-schema: ' . base64_encode(CrudDefinition::canonicalJson($snapshot)) . "\n";
         if ($previous === null) {
             return [
                 'path' => sprintf('%s/%03d_create_%s.sql', $relative, $this->nextSequence($maximum), str_replace('-', '_', $entity)),
@@ -136,7 +141,10 @@ final class PluginCrudTarget
         }
         if ($previous['snapshot'] === null) {
             $comparableSql = static fn (string $sql): string => rtrim(str_starts_with($sql, "-- funadmin-physical-table\n") ? substr($sql, strlen("-- funadmin-physical-table\n")) : $sql);
-            if (hash_equals(hash('sha256', $comparableSql($previous['effectiveContent'])), hash('sha256', $comparableSql($createSql)))) {
+            $existing = hash('sha256', $comparableSql($previous['effectiveContent']));
+            // 软删除规则之前生成的无 metadata 建表文件：与旧形状渲染一致时同样视为无变更。
+            if (hash_equals($existing, hash('sha256', $comparableSql($createSql)))
+                || hash_equals($existing, hash('sha256', $comparableSql(self::legacyCreateSql($createSql, $table))))) {
                 return ['path' => $previous['path'], 'content' => $previous['content']];
             }
             throw new InvalidArgumentException('已有表结构变更不可表达：旧 migration 缺少 schema metadata，请手写 forward migration');
@@ -254,18 +262,32 @@ final class PluginCrudTarget
                 $operations[] = $this->addIndex($table, (string) $name, (string) $field['index'], $token);
             }
         }
-        // 旧快照没有 deleted_token：已有唯一键重建为以 deleted_token 结尾（同名，同一条 ALTER）。
-        if ($token && !isset($oldFields[GeneratedSoftDeleteColumns::TOKEN])) {
-            foreach ($oldFields as $name => $field) {
-                if (($field['index'] ?? '') !== 'unique') continue;
-                $operations[] = "DROP INDEX `uk_{$table}_{$name}`";
-                $operations[] = $this->addIndex($table, (string) $name, 'unique', true);
-            }
-        }
         if ($operations === []) {
             throw new InvalidArgumentException('已有表结构变更不可表达，请手写 forward migration');
         }
         return $operations;
+    }
+
+    /** 旧快照有唯一字段却没有 deleted_token：表上的唯一键仍是单列。 */
+    private static function legacyUniqueSnapshot(array $snapshot): bool
+    {
+        $fields = (array) ($snapshot['fields'] ?? []);
+        if (isset($fields[GeneratedSoftDeleteColumns::TOKEN])) return false;
+        foreach ($fields as $field) {
+            if (($field['index'] ?? '') === 'unique') return true;
+        }
+        return false;
+    }
+
+    /** 软删除规则之前的建表渲染：无 deleted_at 索引、deleted_token、row_no，唯一键为单列。 */
+    private static function legacyCreateSql(string $sql, string $table): string
+    {
+        $quoted = preg_quote($table, '/');
+        return (string) preg_replace([
+            '/,\n  KEY `idx_' . $quoted . '_(?:deleted_at|row_no)` \(`(?:deleted_at|row_no)`\)/',
+            '/,\n  `(?:deleted_token|row_no)` bigint unsigned NOT NULL (?:DEFAULT 0|AUTO_INCREMENT)/',
+            '/(UNIQUE KEY `uk_' . $quoted . '_[a-z0-9_]+` \(`[a-z0-9_]+`), `deleted_token`\)/',
+        ], ['', '', '$1)'], $sql);
     }
 
     private function addIndex(string $table, string $field, string $type, bool $token = false): string
