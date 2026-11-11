@@ -16,7 +16,7 @@
 ## 我替用户做的决定（用户中途打断了选择题，按推荐方案执行，可推翻）
 
 1. **只追加、从不删除的日志和版本表豁免**：`cms_form_event`、`cms_site_auth_audit`、`cms_model_version`、`cms_content_revision`、`cms_template_tag_version`、`document_events`、`document_revisions`。原因：这些表没有删除功能，加列只会让最大的几张表锁得更久。它们的主表被删除后，它们作为历史保留，不连带删除。表中如有唯一索引，保持原样（只追加、不会删除，所以不会冲突）。
-2. **OSS 配置表 `oss_profile` 主键是 16 位字符串**：沿用核心那 12 张表的做法，新增自增 `id` 作为主键，原字符串主键改为“原字段 + deleted_token”的唯一索引，其他表通过原字段引用它，引用不受影响。`oss_setting` 是单行设置表，豁免。
+2. **OSS 配置表 `oss_profile` 主键是 16 位随机字符串**：保留字符串主键，只加 `deleted_at` 及索引，不加 surrogate id 和 `deleted_token`。原因：没有其他唯一索引，id 随机生成永不复用，且被 `current_profile_id`、附件驱动名 `oss_<id>`、加密引用；改主键需要重命名列或搬数据，迁移守卫不允许。`oss_setting` 是单行设置表，豁免。（执行中调整）
 3. **问答表 `qa_question` 的主键复用 CMS 提交记录的 id，不自增**：`deleted_token` 写入的是这一行的主键值，主键本身是数字且唯一，规则照样成立，不需要改主键。
 4. **CMS 中 4 张没有主键的关系表**（`site_admin`、`site_model`、`site_role_permission`、`site_role_member`），以及文档的 `document_category_links`（复合主键）：新增自增 `id` 作为主键，原唯一键或主键改为以 `deleted_token` 结尾的唯一索引。
 5. **`deleted_at` 由 TIMESTAMP 改为 DATETIME**，与核心保持一致。用 `MODIFY` 修改，会重建表，迁移说明中写明。
