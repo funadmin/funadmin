@@ -11,9 +11,10 @@ use InvalidArgumentException;
 /** 匿名阅读边界：始终读取当前发布修订，不查询草稿正文。 */
 final class PublicDocumentService
 {
+    /** 带别名的联表：模型的软删除作用域按表名限定列，这里关掉后显式过滤 d.deleted_at（document_revisions 只追加，没有删除）。 */
     private function published(): Builder
     {
-        return Document::query()->from('documents as d')
+        return Document::withTrashed()->from('documents as d')
             ->join('document_revisions as r', static function ($join): void {
                 $join->on('r.document_id', '=', 'd.id')->on('r.revision_no', '=', 'd.current_revision_no');
             })
@@ -92,7 +93,7 @@ final class PublicDocumentService
     public function navigation(): array
     {
         $documents = [];
-        foreach ($this->published()->join('document_category_links as l', 'l.document_id', '=', 'd.id')
+        foreach ($this->published()->join('document_category_links as l', 'l.document_id', '=', 'd.id')->whereNull('l.deleted_at')
             ->orderBy('d.sort_order')->orderBy('d.id')->get(['l.category_id', 'd.slug', 'r.title']) as $row) {
             $documents[(int)$row->category_id][] = ['slug'=>(string)$row->slug, 'title'=>(string)$row->title];
         }

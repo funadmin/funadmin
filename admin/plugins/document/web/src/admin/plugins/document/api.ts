@@ -9,7 +9,9 @@ import type {
   FeedbackPage,
   FeedbackQuery,
   RevisionDetail,
-  RevisionSummary
+  RevisionSummary,
+  TrashedCategory,
+  TrashedDocumentPage
 } from './types';
 
 const docs = '/plugins/document/documents';
@@ -39,6 +41,14 @@ export const documentApi = {
   revision: (id: number, revisionNo: number) => http.get<RevisionDetail>(`${docs}/${id}/revisions/${revisionNo}`),
   restore: (id: number, revisionNo: number, lockVersion: number) =>
     http.post<DocumentDetail>(`${docs}/${id}/revisions/${revisionNo}/restore`, { lockVersion }, quiet),
+
+  // 回收站：列表、恢复、彻底删除（不可恢复），每个操作有独立权限。
+  trashedDocuments: (query: { page?: number; pageSize?: number; keyword?: string }) => http.get<TrashedDocumentPage>(`${docs}/recycle`, query),
+  recoverDocument: (id: number) => http.post<DocumentDetail>(`${docs}/${id}/recover`, undefined, quiet),
+  destroyDocument: (id: number) => http.delete(`${docs}/${id}/destroy`, undefined, quiet),
+  trashedCategories: () => http.get<{ list: TrashedCategory[] }>(`${categories}/recycle`),
+  restoreCategory: (id: number) => http.post<DocumentCategory>(`${categories}/${id}/restore`, undefined, quiet),
+  destroyCategory: (id: number) => http.delete(`${categories}/${id}/destroy`, undefined, quiet),
 
   feedback: (query: FeedbackQuery) => http.get<FeedbackPage>(feedback, { ...query, withComment: query.withComment ? 1 : undefined })
 };

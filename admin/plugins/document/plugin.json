@@ -3,7 +3,7 @@
   "code": "document",
   "name": "技术文档",
   "description": "FunAdmin 简约官方文档站，支持章节化内容、后台编辑与公开阅读",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
@@ -88,6 +88,30 @@
       {
         "code": "document:category:delete",
         "name": "删除文档目录"
+      },
+      {
+        "code": "document:document:recycle",
+        "name": "查看技术文档回收站"
+      },
+      {
+        "code": "document:document:recover",
+        "name": "从回收站恢复技术文档"
+      },
+      {
+        "code": "document:document:destroy",
+        "name": "彻底删除技术文档"
+      },
+      {
+        "code": "document:category:recycle",
+        "name": "查看文档目录回收站"
+      },
+      {
+        "code": "document:category:restore",
+        "name": "从回收站恢复文档目录"
+      },
+      {
+        "code": "document:category:destroy",
+        "name": "彻底删除文档目录"
       },
       {
         "code": "document:feedback:index",

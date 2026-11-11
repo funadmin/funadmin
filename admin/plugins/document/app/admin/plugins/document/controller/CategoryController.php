@@ -42,4 +42,28 @@ final class CategoryController extends DocumentApiController
             return ['id' => $id];
         }, '删除成功');
     }
+
+    /** 回收站：已删除的目录。 */
+    #[Get('/recycle')]
+    public function recycle(): Response
+    {
+        return $this->action(fn () => (new DocumentCategoryService())->trashed());
+    }
+
+    /** 从回收站恢复目录；上级目录仍在回收站或标识已被占用时返回 409。 */
+    #[Post('/{id:\d+}/restore')]
+    public function restore(int $id): Response
+    {
+        return $this->action(fn () => (new DocumentCategoryService())->restore($id), '已恢复');
+    }
+
+    /** 彻底删除回收站中的目录，不可恢复；未删除的目录返回 404。 */
+    #[Delete('/{id:\d+}/destroy')]
+    public function destroy(int $id): Response
+    {
+        return $this->action(function () use ($id): array {
+            (new DocumentCategoryService())->destroy($id);
+            return ['id' => $id];
+        }, '已彻底删除');
+    }
 }

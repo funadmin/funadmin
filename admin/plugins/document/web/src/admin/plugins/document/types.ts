@@ -135,3 +135,31 @@ export interface RevisionDetail {
   createdAt: string;
   content: JSONContent;
 }
+
+/** 回收站中的文档（已删除） */
+export interface TrashedDocument {
+  id: number;
+  title: string;
+  slug: string;
+  scope: DocumentScope;
+  status: DocumentStatus;
+  deletedAt: string;
+}
+
+export interface TrashedDocumentPage {
+  list: TrashedDocument[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 回收站中的目录（已删除） */
+export interface TrashedCategory {
+  id: number;
+  scope: DocumentScope;
+  parentId: number;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  deletedAt: string;
+}

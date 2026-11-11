@@ -118,7 +118,7 @@ final class DocumentVersionService
     /** 锁定文档行；传入 lockVersion 时校验乐观锁。 */
     private function lock(int $id, ?int $lockVersion): object
     {
-        $row = Document::query()->where('id', $id)->whereNull('deleted_at')->lockForUpdate()->first();
+        $row = Document::query()->where('id', $id)->lockForUpdate()->first();
         if (!$row) throw new InvalidArgumentException('文档不存在', 404);
         if ($lockVersion !== null && (int) $row->lock_version !== $lockVersion) {
             throw new InvalidArgumentException('文档已被他人修改，请重新载入后再保存', 409);

@@ -13,7 +13,8 @@ use support\Db;
  * - 首次见到的内置条目（按稳定 slug 登记）会被插入；删除或改名后不再补回。
  * - 仍保持内置原样的条目会随插件升级同步到最新的目录结构、排序和正文；
  *   管理员一旦修改过（目录：updated_at 变化；文档：编辑元数据、保存草稿、发布或归档），就不再触碰。
- * - RETIRED_CATEGORIES 中列出的旧内置目录，在未被修改且已经清空时删除。
+ * - RETIRED_CATEGORIES 中列出的旧内置目录，在未被修改且已经清空时软删除（进入回收站，不做物理删除）。
+ * - 已删除（回收站中）的条目视为不存在，不会被更新，也不会被补回。
  */
 final class SeedService
 {
@@ -126,16 +127,15 @@ final class SeedService
         ];
     }
 
-    /** 目标目录不存在（例如管理员删掉了）时保留原有归属，不把文档变成无目录。 */
+    /** 目标目录不存在（例如管理员删掉了）时保留原有归属，不把文档变成无目录。关联按差异同步。 */
     private function link(int $id, array $data, array $categories): void
     {
         $categoryId = isset($data['category']) ? ($categories[$data['category']] ?? null) : null;
         if ($categoryId === null) return;
-        DocumentCategoryLink::query()->where('document_id', $id)->delete();
-        DocumentCategoryLink::query()->insert(['document_id' => $id, 'category_id' => $categoryId]);
+        CategoryLinks::sync($id, [$categoryId]);
     }
 
-    /** 删除已退役、未被修改且已经没有文档和子目录的内置目录（由内向外逐层清理）。 */
+    /** 软删除已退役、未被修改且已经没有文档和子目录的内置目录（由内向外逐层处理）。 */
     private function retireCategories(array $seedSlugs): void
     {
         $retired = array_values(array_diff(self::RETIRED_CATEGORIES, $seedSlugs));
@@ -147,7 +147,7 @@ final class SeedService
                 if (!$this->ownedCategory($category)) continue;
                 if (DocumentCategory::query()->where('parent_id', $category->id)->exists()) continue;
                 if (DocumentCategoryLink::query()->where('category_id', $category->id)->exists()) continue;
-                $removed += DocumentCategory::query()->where('id', $category->id)->delete();
+                $removed += $category->delete() ? 1 : 0;
             }
         } while ($removed > 0);
     }
@@ -161,7 +161,7 @@ final class SeedService
     /** 管理员没有动过的内置文档：元数据、正文、发布状态都保持写入时的样子。 */
     private function ownedDocument(object $row): bool
     {
-        return (string) $row->source === 'seed' && $row->deleted_at === null && (string) $row->status === 'published'
+        return (string) $row->source === 'seed' && (string) $row->status === 'published'
             && (int) $row->lock_version === 1 && (int) $row->meta_version === 1 && (int) $row->current_revision_no === 1
             && !(bool) $row->has_unpublished_changes;
     }

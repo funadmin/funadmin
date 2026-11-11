@@ -32,6 +32,8 @@ abstract class DocumentApiController extends AdminController
         } catch (\InvalidArgumentException $e) {
             $code = in_array($e->getCode(), [403, 404, 409, 422], true) ? $e->getCode() : 422;
             return $this->fail(msg: $e->getMessage(), code: $code);
+        } catch (\app\common\model\concern\RestoreConflictException $e) {
+            return $this->fail(msg: $e->getMessage(), code: 409);
         } catch (\Illuminate\Database\UniqueConstraintViolationException) {
             return $this->fail(msg: '标识已存在，请刷新后重试', code: 409);
         } catch (\Throwable) {

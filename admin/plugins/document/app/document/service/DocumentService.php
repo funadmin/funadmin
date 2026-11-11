@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\document\service;
 
-use app\document\model\{Document, DocumentCategory, DocumentCategoryLink};
+use app\document\model\{Document, DocumentCategory, DocumentCategoryLink, DocumentFeedback};
 use InvalidArgumentException;
 use support\Db;
 
@@ -51,22 +51,87 @@ final class DocumentService
             if (array_key_exists('categoryIds', $payload)) {
                 $this->syncCategories($id, Rules::ids($payload['categoryIds']), $meta['scope']);
             } elseif ($meta['scope'] !== $current->scope) {
-                // 换范围但没给新目录：去掉旧范围的目录关联，避免跨范围挂载。
-                DocumentCategoryLink::query()->where('document_id', $id)->delete();
+                // 换范围但没给新目录：去掉（软删除）旧范围的目录关联，避免跨范围挂载。
+                CategoryLinks::sync($id, []);
             }
             Events::record($id, 'update_meta');
         });
         return $this->find($id);
     }
 
+    /** 软删除文档，目录关联写入相同的删除时间一起软删除；修订与操作记录作为历史保留。 */
     public function delete(int $id): void
     {
         $this->row($id);
         Db::transaction(static function () use ($id): void {
-            Document::query()->where('id', $id)->update(['deleted_at' => Rules::now()]);
-            DocumentCategoryLink::query()->where('document_id', $id)->delete();
+            $row = Document::query()->whereKey($id)->lockForUpdate()->first();
+            if (!$row) throw new InvalidArgumentException('文档不存在', 404);
+            $row->delete();
+            CategoryLinks::afterSoftDelete($id, (string) Document::withTrashed()->whereKey($id)->value('deleted_at'));
             Events::record($id, 'delete');
         });
+    }
+
+    /** 回收站：已删除的文档，最近删除的在前。 */
+    public function trashed(array $query): array
+    {
+        $page = max(1, min(10000, (int) ($query['page'] ?? 1)));
+        $pageSize = max(1, min(100, (int) ($query['pageSize'] ?? 20)));
+        $builder = Document::onlyTrashed();
+        $keyword = is_string($query['keyword'] ?? null) ? trim($query['keyword']) : '';
+        if ($keyword !== '') {
+            $like = Rules::like(mb_substr($keyword, 0, 100));
+            $builder->where(static fn ($where) => $where->where('title', 'like', $like)->orWhere('slug', 'like', $like));
+        }
+        $total = (clone $builder)->count();
+        $rows = $builder->orderByDesc('deleted_at')->orderByDesc('id')->forPage($page, $pageSize)
+            ->get(['id', 'title', 'slug', 'scope', 'status', 'deleted_at']);
+        return [
+            'list' => $rows->map(static fn ($row): array => [
+                'id' => (int) $row->id, 'title' => (string) $row->title, 'slug' => (string) $row->slug, 'scope' => (string) $row->scope,
+                'status' => (string) $row->status, 'deletedAt' => (string) $row->getRawOriginal('deleted_at'),
+            ])->all(),
+            'total' => $total, 'page' => $page, 'pageSize' => $pageSize,
+        ];
+    }
+
+    /**
+     * 从回收站恢复文档：标识已被未删除的文档占用时抛 RestoreConflictException（409）。
+     * 同时恢复这次删除带走的目录关联（已删除或换了范围的目录跳过）。
+     */
+    public function restore(int $id): array
+    {
+        Db::transaction(static function () use ($id): void {
+            $row = self::lockTrashed($id);
+            $deletedAt = (string) $row->getRawOriginal('deleted_at');
+            $row->restore();
+            CategoryLinks::afterRestore($id, (string) $row->scope, $deletedAt);
+            Events::record($id, 'recover');
+        });
+        return $this->find($id);
+    }
+
+    /**
+     * 彻底删除回收站中的文档：文档、全部目录关联（含已软删除的）与读者反馈物理删除，不可恢复。
+     * 修订与操作记录是只追加的历史表，按设计保留，不连带删除。
+     */
+    public function destroy(int $id): void
+    {
+        Db::transaction(static function () use ($id): void {
+            self::lockTrashed($id);
+            CategoryLinks::purge($id);
+            DocumentFeedback::withTrashed()->where('document_id', $id)->forceDelete();
+            Document::onlyTrashed()->whereKey($id)->forceDelete();
+            Events::record($id, 'destroy');
+        });
+    }
+
+    /** 锁定回收站中的文档；未删除或不存在时 404。 */
+    private static function lockTrashed(int $id): Document
+    {
+        $row = Document::onlyTrashed()->whereKey($id)->lockForUpdate()->first();
+        if (!$row) throw new InvalidArgumentException('回收站中没有这篇文档', 404);
+        return $row;
     }
 
     public function find(int $id): array
@@ -79,7 +144,7 @@ final class DocumentService
     {
         $page = max(1, (int) ($query['page'] ?? 1));
         $pageSize = max(1, min(100, (int) ($query['pageSize'] ?? 20)));
-        $builder = Document::query()->whereNull('deleted_at');
+        $builder = Document::query();
         if (!empty($query['scope'])) $builder->where('scope', Rules::scope($query['scope']));
         if (!empty($query['type'])) $builder->where('type', Rules::type($query['type']));
         if (!empty($query['pluginCode'])) $builder->where('plugin_code', Rules::pluginCode($query['pluginCode']));
@@ -110,7 +175,7 @@ final class DocumentService
     /** @internal 供版本服务在事务内复用。 */
     public function row(int $id): object
     {
-        $row = Document::query()->where('id', $id)->whereNull('deleted_at')->first();
+        $row = Document::query()->where('id', $id)->first();
         if (!$row) throw new InvalidArgumentException('文档不存在', 404);
         return $row;
     }
@@ -132,7 +197,7 @@ final class DocumentService
 
     private function assertSlugFree(string $slug): void
     {
-        // 软删除的文档仍占用标识，避免旧链接指向新文档。
+        // 只检查未删除的文档：删除后可以用相同标识重建（唯一索引含 deleted_token）。
         if (Document::query()->where('slug', $slug)->exists()) throw new InvalidArgumentException('文档标识已存在', 409);
     }
 
@@ -142,10 +207,7 @@ final class DocumentService
             $valid = DocumentCategory::query()->whereIn('id', $categoryIds)->where('scope', $scope)->count();
             if ($valid !== count($categoryIds)) throw new InvalidArgumentException('目录不存在或不属于该文档范围', 422);
         }
-        DocumentCategoryLink::query()->where('document_id', $id)->delete();
-        if ($categoryIds) {
-            DocumentCategoryLink::query()->insert(array_map(static fn (int $c) => ['document_id' => $id, 'category_id' => $c], $categoryIds));
-        }
+        CategoryLinks::sync($id, $categoryIds);
     }
 
     public function dto(object $row, bool $withContent): array

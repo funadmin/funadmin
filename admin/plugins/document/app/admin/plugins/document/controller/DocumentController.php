@@ -68,6 +68,30 @@ final class DocumentController extends DocumentApiController
         }, '删除成功');
     }
 
+    /** 回收站：已删除的文档（可按 keyword 搜索标题或标识，page / pageSize 分页）。 */
+    #[Get('/recycle')]
+    public function recycle(): Response
+    {
+        return $this->action(fn () => (new DocumentService())->trashed($this->input()));
+    }
+
+    /** 从回收站恢复文档，连同这次删除带走的目录关联；标识已被占用时返回 409。（restore 已用于恢复历史版本。） */
+    #[Post('/{id:\d+}/recover')]
+    public function recover(int $id): Response
+    {
+        return $this->action(fn () => (new DocumentService())->restore($id), '已恢复');
+    }
+
+    /** 彻底删除回收站中的文档，不可恢复；未删除的文档返回 404。 */
+    #[Delete('/{id:\d+}/destroy')]
+    public function destroy(int $id): Response
+    {
+        return $this->action(function () use ($id): array {
+            (new DocumentService())->destroy($id);
+            return ['id' => $id];
+        }, '已彻底删除');
+    }
+
     #[Post('/{id:\d+}/publish')]
     public function publish(int $id): Response
     {

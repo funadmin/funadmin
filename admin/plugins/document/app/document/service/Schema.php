@@ -17,12 +17,20 @@ final class Schema
         return ['document_categories', 'documents', 'document_category_links', 'document_revisions', 'document_events', 'document_seed_entries', 'document_feedback'];
     }
 
-    /** 按迁移顺序建全部表：基线（001）+ 读者反馈（002）+ 文档排序（003）。 */
+    /** 只追加的历史表：没有删除功能，不加软删除列。 */
+    public const SOFT_DELETE_EXEMPT = ['document_revisions', 'document_events'];
+
+    /**
+     * 按迁移顺序建全部表：基线（001）+ 读者反馈（002）+ 文档排序（003）+ 统一软删除（004）。
+     * 004 是按 information_schema 守卫的手写 PREPARE 迁移，无法由蓝图导出；softDelete() 是它的等价实现，
+     * 测试在 MySQL 上核对两者结构一致。
+     */
     public static function install(): void
     {
         self::create(Db::schema());
         self::feedback(Db::schema());
         self::documentSort(Db::schema());
+        self::softDelete(Db::schema());
     }
 
     public static function drop(): void
@@ -59,6 +67,55 @@ final class Schema
         $queries = $connection->pretend(static fn () => $definition($connection->getSchemaBuilder()));
         return "-- {$title} Prefix rewritten by host migration runner.\n"
             . implode(";\n", array_map(static fn ($q) => $q['query'], $queries)) . ";\n";
+    }
+
+    /**
+     * 004：除只追加的历史表外，每张表有 id 主键与 deleted_at（DATETIME，带索引）；有唯一索引的表加 deleted_token
+     * 并把唯一索引按原名重建为「原列 + deleted_token」。documents.deleted_at 由 TIMESTAMP 改为 DATETIME。
+     * document_category_links 原为复合主键：新增自增 id 主键，原主键改为 uk_document_category_links_pk。
+     * 只用于新建（install），关联表此时为空，直接按终态重建。
+     */
+    private static function softDelete(Builder $s): void
+    {
+        $s->table('document_categories', static function (Blueprint $t): void {
+            $t->dateTime('deleted_at')->nullable();
+            $t->unsignedBigInteger('deleted_token')->default(0);
+            $t->index('deleted_at', 'idx_document_categories_deleted_at');
+            $t->dropUnique('document_categories_slug_unique');
+            $t->unique(['slug', 'deleted_token'], 'document_categories_slug_unique');
+        });
+        $s->table('documents', static function (Blueprint $t): void {
+            $t->dateTime('deleted_at')->nullable()->change();
+            $t->unsignedBigInteger('deleted_token')->default(0);
+            $t->index('deleted_at', 'idx_documents_deleted_at');
+            $t->dropUnique('documents_slug_unique');
+            $t->unique(['slug', 'deleted_token'], 'documents_slug_unique');
+        });
+        $s->drop('document_category_links');
+        $s->create('document_category_links', static function (Blueprint $t): void {
+            $t->id();
+            $t->unsignedBigInteger('document_id');
+            $t->unsignedBigInteger('category_id');
+            $t->index('category_id');
+            $t->dateTime('deleted_at')->nullable();
+            $t->unsignedBigInteger('deleted_token')->default(0);
+            $t->index('deleted_at', 'idx_document_category_links_deleted_at');
+            $t->unique(['document_id', 'category_id', 'deleted_token'], 'uk_document_category_links_pk');
+        });
+        $s->table('document_seed_entries', static function (Blueprint $t): void {
+            $t->dateTime('deleted_at')->nullable();
+            $t->unsignedBigInteger('deleted_token')->default(0);
+            $t->index('deleted_at', 'idx_document_seed_entries_deleted_at');
+            $t->dropUnique('document_seed_entries_kind_slug_unique');
+            $t->unique(['kind', 'slug', 'deleted_token'], 'document_seed_entries_kind_slug_unique');
+        });
+        $s->table('document_feedback', static function (Blueprint $t): void {
+            $t->dateTime('deleted_at')->nullable();
+            $t->unsignedBigInteger('deleted_token')->default(0);
+            $t->index('deleted_at', 'idx_document_feedback_deleted_at');
+            $t->dropUnique('document_feedback_document_id_voter_unique');
+            $t->unique(['document_id', 'voter', 'deleted_token'], 'document_feedback_document_id_voter_unique');
+        });
     }
 
     /** 同一目录内文档的阅读顺序：数值小的在前，相同时按创建顺序。 */

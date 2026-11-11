@@ -64,8 +64,8 @@ final class FeedbackService
         DocumentFeedback::query()->upsert([[
             'document_id' => $target['id'], 'revision_no' => $target['revisionNo'], 'helpful' => $helpful,
             'reasons' => json_encode($reasons, JSON_THROW_ON_ERROR), 'comment' => $comment,
-            'voter' => hash('sha256', 'document-feedback|' . $visitor), 'created_at' => $now, 'updated_at' => $now,
-        ]], ['document_id', 'voter'], ['revision_no', 'helpful', 'reasons', 'comment', 'updated_at']);
+            'voter' => hash('sha256', 'document-feedback|' . $visitor), 'deleted_token' => 0, 'created_at' => $now, 'updated_at' => $now,
+        ]], ['document_id', 'voter', 'deleted_token'], ['revision_no', 'helpful', 'reasons', 'comment', 'updated_at']);
         return ['helpful' => $helpful];
     }
 
@@ -91,7 +91,9 @@ final class FeedbackService
     {
         $page = max(1, min(10000, (int) ($query['page'] ?? 1)));
         $pageSize = max(1, min(100, (int) ($query['pageSize'] ?? 20)));
-        $builder = DocumentFeedback::query()->from('document_feedback as f')->join('documents as d', 'd.id', '=', 'f.document_id')->whereNull('d.deleted_at');
+        // 带别名的联表：关掉模型作用域，两张表都显式过滤 deleted_at。
+        $builder = DocumentFeedback::withTrashed()->from('document_feedback as f')->join('documents as d', 'd.id', '=', 'f.document_id')
+            ->whereNull('f.deleted_at')->whereNull('d.deleted_at');
         if (($query['documentId'] ?? '') !== '' && $query['documentId'] !== null) $builder->where('f.document_id', Rules::id($query['documentId']));
         $summary = ['helpful' => 0, 'unhelpful' => 0];
         foreach ((clone $builder)->groupBy('f.helpful')->select('f.helpful')->selectRaw('count(*) as total')->get() as $row) {

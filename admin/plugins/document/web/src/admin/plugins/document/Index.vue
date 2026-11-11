@@ -15,6 +15,7 @@ import DocumentMetaDialog from './components/DocumentMetaDialog.vue';
 import DocumentVersionDrawer from './components/DocumentVersionDrawer.vue';
 import DocumentFeedbackDrawer from './components/DocumentFeedbackDrawer.vue';
 import DocumentCategoryDialog from './components/DocumentCategoryDialog.vue';
+import DocumentRecycleDrawer from './components/DocumentRecycleDrawer.vue';
 import DocumentEditor from './editor/DocumentEditor.vue';
 import DocumentPreview from './editor/DocumentPreview.vue';
 import DocumentOutline from './editor/DocumentOutline.vue';
@@ -36,6 +37,7 @@ const can = {
   restore: computed(() => hasPermission('document:document:restore')),
   remove: computed(() => hasPermission('document:document:delete')),
   feedback: computed(() => hasPermission('document:feedback:index')),
+  recycle: computed(() => hasPermission(['document:document:recycle', 'document:category:recycle'])),
   manageCategories: computed(() => hasPermission(['document:category:create', 'document:category:update', 'document:category:delete']))
 };
 
@@ -55,6 +57,11 @@ async function openFromFeedback(id: number) {
   await open(id);
 }
 const categoriesOpen = ref(false);
+const recycleOpen = ref(false);
+/** 回收站中恢复或彻底删除后刷新目录树与列表。 */
+async function recycleChanged() {
+  await Promise.all([store.loadTree(), store.loadList()]);
+}
 /** 空字符串表示默认：草稿与已发布（不含归档）。 */
 const statusFilter = ref<'' | 'draft' | 'published' | 'archived'>('');
 const filterStatus = () => store.loadList({ status: statusFilter.value, page: 1 });
@@ -207,7 +214,7 @@ function jumpTo(index: number) {
         </el-select>
         <el-button v-if="can.manageCategories.value" size="small" data-testid="manage-categories" @click="categoriesOpen = true">{{ t('pluginDocument.categories.manage') }}</el-button>
       </div>
-      <div class="doc-list-count"><span>{{ t('pluginDocument.count', { n: store.total }) }}</span><span class="doc-list-links"><button v-if="can.feedback.value" type="button" class="doc-public-link doc-link-button" @click="openFeedback(null)">{{ t('pluginDocument.feedback.title') }}</button><a href="/docs" target="_blank" rel="noopener noreferrer" class="doc-public-link">{{ t('pluginDocument.publicHome') }} ↗</a></span></div>
+      <div class="doc-list-count"><span>{{ t('pluginDocument.count', { n: store.total }) }}</span><span class="doc-list-links"><button v-if="can.recycle.value" type="button" class="doc-public-link doc-link-button" data-testid="open-recycle" @click="recycleOpen = true">{{ t('pluginDocument.recycle.open') }}</button><button v-if="can.feedback.value" type="button" class="doc-public-link doc-link-button" @click="openFeedback(null)">{{ t('pluginDocument.feedback.title') }}</button><a href="/docs" target="_blank" rel="noopener noreferrer" class="doc-public-link">{{ t('pluginDocument.publicHome') }} ↗</a></span></div>
       <DocumentList :documents="store.documents" :current-id="store.current?.id ?? null" :loading="store.loadingList" @open="open" />
       <TablePagination
         v-if="store.total > store.query.pageSize"
@@ -283,6 +290,7 @@ function jumpTo(index: number) {
 
     <DocumentMetaDialog v-model="metaOpen" :row="metaRow" :tree="store.tree" :default-scope="store.selectedScope" :default-category-id="store.selectedCategoryId" @submit="submitMeta" />
     <DocumentCategoryDialog v-model="categoriesOpen" :tree="store.tree" @changed="categoriesChanged" />
+    <DocumentRecycleDrawer v-model="recycleOpen" @changed="recycleChanged" />
     <DocumentFeedbackDrawer v-model="feedbackOpen" :document-id="feedbackDocumentId" :document-title="feedbackDocumentId === store.current?.id ? store.current?.title : ''" @open="openFromFeedback" />
     <DocumentVersionDrawer v-if="store.current" v-model="versionsOpen" :document-id="store.current.id" :can-restore="can.restore.value" @restore="restore" />
   </div>
