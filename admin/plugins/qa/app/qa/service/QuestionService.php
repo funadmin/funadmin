@@ -16,7 +16,8 @@ final class QuestionService
         return Db::transaction(function()use($site,$locale,$member,$input):array {
             (new SiteService())->lock($site);
             $submission=(new ContributionService())->submit($site,$locale,$member,'question',$this->payload($input));
-            if(!QaQuestion::query()->where('id',$submission['id'])->exists()) {
+            // 含已软删除的行：主键复用投稿 id，同一投稿重放时不能再插入一行。
+            if(!QaQuestion::withTrashed()->where('id',$submission['id'])->exists()) {
                 $now=Input::now();QaQuestion::query()->insert(['id'=>$submission['id'],'site_id'=>$site,'locale'=>$locale,'accepted_answer_id'=>null,'closed'=>false,'lock_version'=>0,'created_at'=>$now,'updated_at'=>$now]);
             }
             return $this->withState($submission,$this->state($site,$locale,$submission['id']));
@@ -103,7 +104,7 @@ final class QuestionService
     private function publicColumns(): array { return ['s.id','s.title','s.body_html','s.member_id','s.status','s.lock_version','s.created_at','m.nickname as author_name']; }
     private function publicQuestions(string $site,string $locale): Builder
     {
-        return MemberSubmission::query()->from('cms_member_submission as s')->join('qa_question as q',function($j):void {$j->on('q.id','=','s.id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','question')->where('s.status','published')->select([...$this->publicColumns(),'q.accepted_answer_id','q.closed','q.lock_version as question_version']);
+        return MemberSubmission::query()->from('cms_member_submission as s')->join('qa_question as q',function($j):void {$j->on('q.id','=','s.id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale')->whereNull('q.deleted_at');})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','question')->where('s.status','published')->select([...$this->publicColumns(),'q.accepted_answer_id','q.closed','q.lock_version as question_version']);
     }
     private function publicSubmission(object $row): array
     {

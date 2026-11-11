@@ -4,7 +4,7 @@
   "name": "OSS 云存储",
   "description": "阿里云 OSS、腾讯云 COS、七牛云 Kodo，全局接管统一公开附件上传",
   "author": "FunAdmin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",

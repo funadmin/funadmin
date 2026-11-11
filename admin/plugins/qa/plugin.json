@@ -3,7 +3,7 @@
   "code": "qa",
   "name": "问答社区",
   "description": "会员提问、回答、审核与作者采纳，复用 CMS 投稿和站点权限",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
