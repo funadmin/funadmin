@@ -129,8 +129,8 @@ The webman is open-sourced software licensed under the MIT.
 
 **新增核心表必须遵守**
 
-- 主键为 `id`；带 `deleted_at DATETIME NULL` 及其索引，以及 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（0 表示未删除，软删除时写入该行 `id`）。
-- 唯一索引以 `deleted_token` 结尾，例如 `UNIQUE KEY username (username, deleted_token)`，这样删除后可以用相同的值重建。
+- 主键为 `id`；带 `deleted_at DATETIME NULL` 及其索引。
+- **有唯一索引的表**再加 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（0 表示未删除，软删除时写入该行 `id`），且唯一索引以 `deleted_token` 结尾，例如 `UNIQUE KEY username (username, deleted_token)`，这样删除后可以用相同的值重建。没有唯一索引的新表只需 `deleted_at`（已有核心表统一带 `deleted_token`，不回退）。
 - 模型使用 `app\common\model\concern\LaravelSoftDelete`（内含 `TokenSoftDeletingScope`，删除时写 `deleted_token`，恢复时清零）。
 - 绕过模型的读取（`Db::table`、join、原生 SQL）必须自行加 `deleted_at IS NULL`；通过 `Db::table` 或原生 SQL 删除时，必须同时写入 `deleted_at` 和 `deleted_token = id`，不能调用物理删除。
 - 关联表保存按差异处理（参考 `RelationRowSync`）：只软删除被移除的行，只插入缺少的行，不要先全删再全插。
