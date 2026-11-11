@@ -142,4 +142,50 @@ final class MySqlFormDataSoftDeleteTest extends TestCase
         $this->assertRowNoToken('uuid_lines', self::uuid(21));
         self::assertNull(Db::table('uuid_lines')->where('id', self::uuid(22))->value('deleted_at'));
     }
+    /** 表单设计器给旧表补唯一字段：UUID 表另加 row_no，整数表只加令牌；已删除行先回填令牌，再建唯一键，严格模式下删除只写数字令牌。 */
+    public function test_designer_adds_row_no_and_backfills_tokens_on_legacy_tables_under_strict_mode(): void
+    {
+        self::assertStringContainsString('STRICT_TRANS_TABLES', (string) Db::selectOne('SELECT @@SESSION.sql_mode m')->m);
+        $p = Db::connection()->getTablePrefix();
+        $forms = new \app\admin\form\service\FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        $service = new FormDataService(permissionChecker: static fn (string $permission): bool => true);
+        $trashed = '2026-01-01 00:00:00';
+
+        Db::statement("CREATE TABLE `{$p}legacy_uuid` (`id` char(36) NOT NULL, `code` varchar(40) NOT NULL, `created_at` datetime NULL, `updated_at` datetime NULL,"
+            . " `deleted_at` datetime NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        Db::table('legacy_uuid')->insert([
+            ['id' => self::uuid(31), 'code' => 'U1', 'deleted_at' => $trashed],
+            ['id' => self::uuid(32), 'code' => 'U1', 'deleted_at' => null],
+            ['id' => self::uuid(33), 'code' => 'U2', 'deleted_at' => null],
+        ]);
+        $uuid = FormBuilder::make('legacy_uuid')->title('旧 UUID')->table($p . 'legacy_uuid', 'mysql', 'created');
+        $uuid->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        $compiled = $uuid->compile();
+        $preview = $forms->previewMigration($compiled);
+        self::assertSame('additive', $preview['mode']);
+        self::assertStringContainsString('ADD COLUMN `row_no` bigint unsigned NOT NULL AUTO_INCREMENT', $preview['sql']);
+        self::assertTrue($forms->applyDynamicDdl($compiled, hash('sha256', (string) $preview['sql']))['applied']);
+        $old = Db::table('legacy_uuid')->where('id', self::uuid(31))->first();
+        self::assertGreaterThan(0, (int) $old->row_no);
+        self::assertSame((int) $old->row_no, (int) $old->deleted_token, '已删除行令牌回填为 row_no');
+        self::assertSame(0, (int) Db::table('legacy_uuid')->where('id', self::uuid(32))->value('deleted_token'));
+        $hash = $this->publish($uuid, 'legacy_uuid', $p . 'legacy_uuid');
+        self::assertSame('soft', $service->remove('legacy_uuid', self::uuid(33), $hash)['mode']);
+        $this->assertRowNoToken('legacy_uuid', self::uuid(33));
+        Db::table('legacy_uuid')->insert(['id' => self::uuid(34), 'code' => 'U2']);
+
+        Db::statement("CREATE TABLE `{$p}legacy_int` (`id` bigint unsigned NOT NULL AUTO_INCREMENT, `code` varchar(40) NOT NULL, `created_at` datetime NULL,"
+            . " `updated_at` datetime NULL, `deleted_at` datetime NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $deletedId = (int) Db::table('legacy_int')->insertGetId(['code' => 'N1', 'deleted_at' => $trashed]);
+        $liveId = (int) Db::table('legacy_int')->insertGetId(['code' => 'N1']);
+        $integer = FormBuilder::make('legacy_int')->title('旧整数')->table($p . 'legacy_int', 'mysql', 'created');
+        $integer->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        $compiled = $integer->compile();
+        $preview = $forms->previewMigration($compiled);
+        self::assertStringNotContainsString('row_no', $preview['sql']);
+        self::assertTrue($forms->applyDynamicDdl($compiled, hash('sha256', (string) $preview['sql']))['applied']);
+        self::assertSame($deletedId, (int) Db::table('legacy_int')->where('id', $deletedId)->value('deleted_token'), '已删除行令牌回填为 id');
+        self::assertSame(0, (int) Db::table('legacy_int')->where('id', $liveId)->value('deleted_token'));
+        self::assertFalse(Db::getSchemaBuilder()->hasColumn('legacy_int', 'row_no'));
+    }
 }

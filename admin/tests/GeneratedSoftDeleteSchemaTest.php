@@ -565,6 +565,95 @@ final class GeneratedSoftDeleteSchemaTest extends TestCase
         self::assertNull(Db::table('fk_child_cascade')->where('id', $child)->value('deleted_at'));
     }
 
+    // ---- 表单设计器为已有旧表补删除令牌 ----
+
+    /** @return array{0: \app\admin\form\service\FormDesignerService, 1: string} */
+    private function legacyTokenSql(string $physical, bool $existingCode = true): array
+    {
+        $document = FormBuilder::make('legacy_probe')->title('旧表')->table($physical, Db::connection()->getName(), 'created');
+        $document->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        if (!$existingCode) $document->input('title', '标题')->column('varchar(120)');
+        $forms = new \app\admin\form\service\FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        $sql = (new \ReflectionMethod($forms, 'additiveSql'))->invoke($forms, $physical, $document->compile()->fields(), Db::connection()->getName());
+        return [$forms, $sql];
+    }
+
+    private function guard(\app\admin\form\service\FormDesignerService $forms, string $sql): array
+    {
+        return (new \ReflectionMethod($forms, 'assertDynamicForwardSql'))->invoke($forms, $sql);
+    }
+
+    public function test_additive_sql_adds_row_no_with_token_on_legacy_uuid_table_and_guard_accepts(): void
+    {
+        $p = Db::connection()->getTablePrefix();
+        Db::statement("CREATE TABLE \"{$p}legacy_uuid\" (\"id\" char(36) NOT NULL PRIMARY KEY, \"code\" varchar(40) NOT NULL, \"deleted_at\" datetime NULL)");
+        [$forms, $sql] = $this->legacyTokenSql($p . 'legacy_uuid');
+
+        self::assertSame("ALTER TABLE `{$p}legacy_uuid`\nADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0,\n"
+            . "  ADD COLUMN `row_no` bigint unsigned NOT NULL AUTO_INCREMENT,\n  ADD KEY `idx_{$p}legacy_uuid_row_no` (`row_no`);\n"
+            . "UPDATE `{$p}legacy_uuid` SET `deleted_token` = `row_no` WHERE `deleted_at` IS NOT NULL AND `deleted_token` = 0;\n"
+            . "ALTER TABLE `{$p}legacy_uuid`\nADD UNIQUE KEY `uk_{$p}legacy_uuid_code` (`code`, `deleted_token`);\n", $sql);
+        self::assertCount(3, $this->guard($forms, $sql));
+
+        // 已有 row_no（例如升级命令加过）：不再加列，回填取 row_no。
+        Db::statement("CREATE TABLE \"{$p}legacy_rowno\" (\"id\" varchar(36) NOT NULL PRIMARY KEY, \"row_no\" integer NOT NULL, \"code\" varchar(40) NOT NULL, \"deleted_at\" datetime NULL)");
+        [, $sql] = $this->legacyTokenSql($p . 'legacy_rowno');
+        self::assertStringNotContainsString('ADD COLUMN `row_no`', $sql);
+        self::assertStringContainsString('SET `deleted_token` = `row_no` WHERE', $sql);
+    }
+
+    public function test_additive_sql_adds_token_without_row_no_on_integer_table_and_backfills_trashed_rows(): void
+    {
+        $p = Db::connection()->getTablePrefix();
+        Db::statement("CREATE TABLE \"{$p}legacy_int\" (\"id\" integer NOT NULL PRIMARY KEY AUTOINCREMENT, \"code\" varchar(40) NOT NULL, \"deleted_at\" datetime NULL)");
+        Db::table('legacy_int')->insert([['code' => 'A', 'deleted_at' => '2026-01-01 00:00:00'], ['code' => 'B', 'deleted_at' => null], ['code' => 'C', 'deleted_at' => '2026-01-02 00:00:00']]);
+        [$forms, $sql] = $this->legacyTokenSql($p . 'legacy_int', false);
+
+        self::assertStringNotContainsString('row_no', $sql);
+        self::assertStringContainsString("ALTER TABLE `{$p}legacy_int`\nADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0;\n", $sql);
+        self::assertStringContainsString("UPDATE `{$p}legacy_int` SET `deleted_token` = `id` WHERE `deleted_at` IS NOT NULL AND `deleted_token` = 0;\n", $sql);
+        self::assertStringContainsString('ADD COLUMN `title` varchar(120)', $sql);
+        self::assertStringContainsString("ADD UNIQUE KEY `uk_{$p}legacy_int_code` (`code`, `deleted_token`)", $sql);
+        $statements = $this->guard($forms, $sql);
+        self::assertCount(3, $statements);
+
+        // 前两条（加令牌列、回填）在 SQLite 上可执行：已删除行令牌等于 id，未删除行仍为 0，删除后的值可重建。
+        Db::statement(str_replace('`', '"', $statements[0]));
+        Db::statement(str_replace('`', '"', $statements[1]));
+        self::assertSame([1 => 1, 2 => 0, 3 => 3], Db::table('legacy_int')->orderBy('id')->pluck('deleted_token', 'id')->map(static fn ($v): int => (int) $v)->all());
+        Db::statement("CREATE UNIQUE INDEX \"uk_{$p}legacy_int_code\" ON \"{$p}legacy_int\" (\"code\", \"deleted_token\")");
+        Db::table('legacy_int')->insert(['code' => 'A']);
+        self::assertSame(2, Db::table('legacy_int')->where('code', 'A')->count());
+    }
+
+    public function test_dynamic_guard_accepts_only_the_token_backfill_statement_shape(): void
+    {
+        $forms = new \app\admin\form\service\FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        $alter = "ALTER TABLE `t`\nADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0,\n  ADD COLUMN `row_no` bigint unsigned NOT NULL AUTO_INCREMENT,\n  ADD KEY `idx_t_row_no` (`row_no`);\n";
+        $update = "UPDATE `t` SET `deleted_token` = `row_no` WHERE `deleted_at` IS NOT NULL AND `deleted_token` = 0;\n";
+        self::assertCount(2, $this->guard($forms, $alter . $update));
+        self::assertCount(3, $this->guard($forms, $alter . $update . "ALTER TABLE `t` ADD UNIQUE KEY `uk_t_code` (`code`, `deleted_token`);\n"));
+        foreach ([
+            '回填不得出现在不加令牌列的 ALTER 之后' => "ALTER TABLE `t` ADD COLUMN `title` varchar(10) NOT NULL DEFAULT '';\n" . $update,
+            '回填必须是同一张表' => $alter . str_replace('`t`', '`other`', $update),
+            '回填条件不得放宽' => $alter . "UPDATE `t` SET `deleted_token` = `row_no` WHERE `deleted_token` = 0;\n",
+            '回填不得改其他列' => $alter . "UPDATE `t` SET `deleted_token` = `row_no`, `code` = '' WHERE `deleted_at` IS NOT NULL AND `deleted_token` = 0;\n",
+            '第三条必须是同表新增' => $alter . $update . "ALTER TABLE `t` DROP COLUMN `code`;\n",
+            '第三条不得换表' => $alter . $update . "ALTER TABLE `other` ADD KEY `k` (`code`);\n",
+            '不接受删除语句' => $alter . "DELETE FROM `t` WHERE `deleted_at` IS NOT NULL;\n",
+            '不接受第四条' => $alter . $update . "ALTER TABLE `t` ADD KEY `a` (`code`);\nALTER TABLE `t` ADD KEY `b` (`code`);\n",
+            '建表不得带多语句' => "CREATE TABLE IF NOT EXISTS `t` (`id` int);\n" . $update,
+            '不接受空语句' => $alter . ";\n" . $update,
+        ] as $reason => $sql) {
+            try {
+                $this->guard($forms, $sql);
+                self::fail($reason);
+            } catch (InvalidArgumentException) {
+                self::addToAssertionCount(1);
+            }
+        }
+    }
+
     // ---- 保留字段名 ----
 
     public function test_soft_delete_internal_field_names_are_reserved(): void

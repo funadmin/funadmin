@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\form\service;
 
+use app\common\crud\GeneratedSoftDeleteColumns;
 use app\common\crud\SchemaInspector;
 use app\common\crud\SqlLiteral;
 use app\common\form\registry\FieldCapabilityRegistry;
@@ -23,6 +24,8 @@ use Throwable;
  */
 final class FormDesignerService
 {
+    private const INTEGER_TYPES = ['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'bigint'];
+
     /** 表单字段/业务/布局控件注册表：type => 默认列类型，布局类型为空。 */
     public const CONTROL_TYPES = [
         'input' => 'varchar(255)', 'password' => 'varchar(255)', 'textarea' => 'text',
@@ -260,35 +263,66 @@ final class FormDesignerService
             return $preview + ['applied' => false];
         }
         $connection = Db::connection($this->identity($schema)['connection']);
-        $this->assertDynamicForwardSql((string) $preview['sql']);
+        $statements = $this->assertDynamicForwardSql((string) $preview['sql']);
         $ddlApplied = false;
         try {
             \app\common\service\database\DdlEncodingGuard::check($connection, (string) $preview['sql']);
-            $connection->statement(rtrim(trim((string) $preview['sql']), ';'));
-            $ddlApplied = true;
+            foreach ($statements as $statement) {
+                $connection->statement($statement);
+                $ddlApplied = true;
+            }
         } catch (Throwable $exception) {
             throw new FormMigrationException($exception->getMessage(), $ddlApplied, $exception);
         }
         return array_diff_key($preview, ['file' => true]) + ['applied' => true];
     }
 
-    private function assertDynamicForwardSql(string $sql): void
+    /**
+     * 动态发布只接受 forward-only SQL：单条 CREATE TABLE IF NOT EXISTS 或单条只新增列/索引/约束的 ALTER TABLE；
+     * 唯一的多语句形状是已有表补删除令牌：ALTER（含 ADD COLUMN `deleted_token`）→ 回填已删除行令牌的固定 UPDATE →（可选）ALTER，三者同一张表。
+     *
+     * @return list<string> 按顺序执行的语句
+     */
+    private function assertDynamicForwardSql(string $sql): array
     {
-        $statement = rtrim(trim($sql), ';');
-        if ($statement === '' || str_contains($statement, ';')) {
-            throw new InvalidArgumentException('动态发布仅允许单条 forward-only CREATE TABLE 或 ADDITIVE ALTER TABLE');
+        $message = '动态发布仅允许单条 forward-only CREATE TABLE 或 ADDITIVE ALTER TABLE';
+        $statements = array_map('trim', explode(';', rtrim(trim($sql), ';')));
+        if (in_array('', $statements, true)) {
+            throw new InvalidArgumentException($message);
         }
-        if (preg_match('/^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\b/is', $statement) === 1) {
-            return;
+        if (count($statements) === 1 && preg_match('/^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\b/is', $statements[0]) === 1) {
+            return $statements;
         }
-        if (preg_match('/^ALTER\s+TABLE\s+(?:`[^`]+`|[a-z_][a-z0-9_]*)\s+(.+)$/is', $statement, $match) !== 1) {
-            throw new InvalidArgumentException('动态发布仅允许单条 forward-only CREATE TABLE 或 ADDITIVE ALTER TABLE');
+        if (count($statements) === 1) {
+            $this->additiveAlterTable($statements[0], $message);
+            return $statements;
         }
-        foreach ($this->dynamicAlterActions($match[1]) as $action) {
+        if (count($statements) > 3) {
+            throw new InvalidArgumentException($message);
+        }
+        [$table, $actions] = $this->additiveAlterTable($statements[0], $message);
+        if (!in_array(true, array_map(static fn (string $action): bool => preg_match('/^ADD\s+COLUMN\s+`deleted_token`\s/is', $action) === 1, $actions), true)
+            || preg_match('/^UPDATE\s+`([a-z_][a-z0-9_]*)`\s+SET\s+`deleted_token`\s*=\s*`[a-z_][a-z0-9_]*`\s+WHERE\s+`deleted_at`\s+IS\s+NOT\s+NULL\s+AND\s+`deleted_token`\s*=\s*0$/D', $statements[1], $update) !== 1
+            || $update[1] !== $table
+            || (isset($statements[2]) && $this->additiveAlterTable($statements[2], $message)[0] !== $table)) {
+            throw new InvalidArgumentException($message);
+        }
+        return $statements;
+    }
+
+    /** @return array{0: string, 1: list<string>} 表名与 ALTER 动作；任一动作不是新增列/索引/约束即拒绝。 */
+    private function additiveAlterTable(string $statement, string $message): array
+    {
+        if (preg_match('/^ALTER\s+TABLE\s+(?:`([^`]+)`|([a-z_][a-z0-9_]*))\s+(.+)$/is', $statement, $match) !== 1) {
+            throw new InvalidArgumentException($message);
+        }
+        $actions = $this->dynamicAlterActions($match[3]);
+        foreach ($actions as $action) {
             if (preg_match('/^ADD\s+(?:COLUMN|KEY|UNIQUE\s+KEY|CONSTRAINT)\b/is', $action) !== 1) {
                 throw new InvalidArgumentException('动态发布 ALTER TABLE 仅允许新增列、索引或约束');
             }
         }
+        return [$match[1] !== '' ? $match[1] : $match[2], $actions];
     }
 
     /** 按顶层逗号切分 ALTER 动作，避免把 decimal(10,2) 或注释文本误识别为新动作。 */
@@ -385,22 +419,29 @@ final class FormDesignerService
         return $sql;
     }
 
-    /** @param list<FormFieldView> $fields */
+    /**
+     * 已有表只新增列/索引。新增唯一键以 deleted_token 结尾；表上还没有令牌列时先单独补令牌列（主键不是整数且没有 row_no 时另加自增 row_no），
+     * 再把已删除行的令牌回填为令牌来源（整数主键为主键，否则 row_no），最后加业务列与索引，避免已删除行以令牌 0 占用唯一值。
+     * 已有唯一键的改造由升级命令处理。
+     *
+     * @param list<FormFieldView> $fields
+     */
     private function additiveSql(string $table, array $fields, string $connection = 'mysql'): string
     {
         $metadata = SchemaInspector::forConnection($connection)->inspect($table);
-        $existing = array_column($metadata['columns'], 'name');
+        $columns = array_column($metadata['columns'], null, 'name');
+        $existing = array_keys($columns);
         $existingIndexes = array_column($metadata['indexes'], 'name');
-        $parts = [];
-        // 新增唯一键以 deleted_token 结尾；表上还没有令牌列时一并新增（仅加列，已有唯一键的改造由升级命令处理）。
-        $token = in_array('deleted_token', $existing, true);
+        $prelude = '';
+        $token = in_array(GeneratedSoftDeleteColumns::TOKEN, $existing, true);
         foreach ($fields as $field) {
             if (!$token && in_array('deleted_at', $existing, true) && !$field->isVirtual() && $field->index() === 'unique'
                 && !in_array('uk_' . $table . '_' . trim($field->name()), $existingIndexes, true)) {
-                $parts[] = 'ADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0';
+                $prelude = $this->tokenPreludeSql($table, $columns, (array) $metadata['primaryKey']);
                 $token = true;
             }
         }
+        $parts = [];
         foreach ($fields as $field) {
             if ($field->isVirtual()) {
                 continue;
@@ -411,12 +452,41 @@ final class FormDesignerService
             }
             $indexType = $field->index();
             if ($indexType === 'unique' && !in_array('uk_' . $table . '_' . $name, $existingIndexes, true)) {
-                $parts[] = 'ADD UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`' . ($token ? ', `deleted_token`' : '') . ')';
+                $parts[] = 'ADD UNIQUE KEY `uk_' . $table . '_' . $name . '` (' . GeneratedSoftDeleteColumns::columnList(GeneratedSoftDeleteColumns::uniqueColumns($name, $token)) . ')';
             } elseif ($indexType === 'index' && !in_array('idx_' . $table . '_' . $name, $existingIndexes, true)) {
                 $parts[] = 'ADD KEY `idx_' . $table . '_' . $name . '` (`' . $name . '`)';
             }
         }
-        return $parts === [] ? '' : 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n";
+        return $prelude . ($parts === [] ? '' : 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n");
+    }
+
+    /**
+     * 补令牌列的前置语句：ALTER 加 deleted_token（必要时加 row_no 与 idx_<表>_row_no），再回填已删除行。
+     *
+     * @param array<string, array{name: string, type: string, extra: string}> $columns
+     * @param list<string> $primary
+     */
+    private function tokenPreludeSql(string $table, array $columns, array $primary): string
+    {
+        if (count($primary) !== 1) {
+            throw new InvalidArgumentException('表 ' . $table . ' 没有单列主键，无法确定删除令牌来源，请先运行软删除升级或手写迁移');
+        }
+        $parts = ['ADD COLUMN `' . GeneratedSoftDeleteColumns::TOKEN . '` ' . GeneratedSoftDeleteColumns::TOKEN_DEFINITION];
+        $source = $primary[0];
+        if (!in_array(preg_replace('/\W.*$/s', '', (string) ($columns[$source]['type'] ?? '')), self::INTEGER_TYPES, true)) {
+            $source = GeneratedSoftDeleteColumns::ROW_NO;
+            if (!isset($columns[$source])) {
+                foreach ($columns as $name => $column) {
+                    if (str_contains(strtolower((string) $column['extra']), 'auto_increment')) {
+                        throw new InvalidArgumentException('表 ' . $table . ' 已有自增列 ' . $name . '，无法添加 row_no，请手写迁移');
+                    }
+                }
+                $parts[] = 'ADD COLUMN `' . $source . '` ' . GeneratedSoftDeleteColumns::ROW_NO_DEFINITION;
+                $parts[] = 'ADD KEY `idx_' . $table . '_' . $source . '` (`' . $source . '`)';
+            }
+        }
+        return 'ALTER TABLE `' . $table . "`\n" . implode(",\n  ", $parts) . ";\n"
+            . 'UPDATE `' . $table . '` SET `' . GeneratedSoftDeleteColumns::TOKEN . '` = `' . $source . '` WHERE `deleted_at` IS NOT NULL AND `' . GeneratedSoftDeleteColumns::TOKEN . "` = 0;\n";
     }
 
     private function columnDdl(FormFieldView $field): string
