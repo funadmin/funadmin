@@ -13,7 +13,7 @@ use Illuminate\Database\QueryException;
 /**
  * 软删除作用域：批量删除/恢复时同时维护 deleted_token。
  *
- * - 批量删除：deleted_at = now，deleted_token = 各行自身主键（列表达式）。
+ * - 批量删除：deleted_at = now，deleted_token = 各行令牌来源列（列表达式；默认主键，模型可经 getDeletedTokenSourceColumn() 覆盖）。
  * - 批量恢复：deleted_at = null，deleted_token = 0；撞唯一键时抛 RestoreConflictException。
  * - 表上没有 deleted_token 列时只写 deleted_at。
  */
@@ -33,7 +33,7 @@ class TokenSoftDeletingScope extends SoftDeletingScope
             $columns = [$this->getDeletedAtColumn($builder) => $model->freshTimestampString()];
             if (self::modelHasDeletedToken($model)) {
                 $columns[$this->getDeletedTokenColumn($builder)] = new Expression(
-                    $builder->getQuery()->getGrammar()->wrap($this->getKeyColumn($builder))
+                    $builder->getQuery()->getGrammar()->wrap($this->getTokenSourceColumn($builder))
                 );
             }
 
@@ -70,14 +70,15 @@ class TokenSoftDeletingScope extends SoftDeletingScope
         return self::TOKEN_COLUMN;
     }
 
-    protected function getKeyColumn(Builder $builder): string
+    protected function getTokenSourceColumn(Builder $builder): string
     {
         $model = $builder->getModel();
+        $column = method_exists($model, 'getDeletedTokenSourceColumn') ? $model->getDeletedTokenSourceColumn() : $model->getKeyName();
         if ((array) $builder->getQuery()->joins !== []) {
-            return $model->getQualifiedKeyName();
+            return $model->qualifyColumn($column);
         }
 
-        return $model->getKeyName();
+        return $column;
     }
 
     /**

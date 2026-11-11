@@ -167,10 +167,44 @@ final class PluginCrudTarget
                 $fields[$timestamp] ??= ['definition' => 'datetime NULL', 'index' => ''];
             }
         }
+        $soft = GeneratedSoftDeleteColumns::plan($data);
         if ($data['softDeletes'] && !isset($fields['deleted_at'])) {
-            $fields['deleted_at'] = ['definition' => 'datetime NULL', 'index' => ''];
+            $fields['deleted_at'] = ['definition' => 'datetime NULL', 'index' => 'index'];
+        }
+        if ($soft['token']) {
+            $fields[GeneratedSoftDeleteColumns::TOKEN] ??= ['definition' => GeneratedSoftDeleteColumns::TOKEN_DEFINITION, 'index' => ''];
+        }
+        if ($soft['rowNo']) {
+            $fields[GeneratedSoftDeleteColumns::ROW_NO] ??= ['definition' => GeneratedSoftDeleteColumns::ROW_NO_DEFINITION, 'index' => 'index'];
         }
         return ['table' => $data['table'], 'fields' => $fields];
+    }
+
+    /**
+     * 结构快照约定的二级索引：unique → uk_<表>_<列>，index → idx_<表>_<列>；
+     * 快照含 deleted_token 时唯一键覆盖 [列, deleted_token]，旧快照（无令牌）仍为 [列]。
+     *
+     * @return array<string, array{name: string, unique: bool, columns: list<string>}>
+     */
+    public static function snapshotIndexes(string $table, array $snapshot): array
+    {
+        $fields = (array) ($snapshot['fields'] ?? []);
+        $token = isset($fields[GeneratedSoftDeleteColumns::TOKEN]);
+        $indexes = [];
+        foreach ($fields as $name => $field) {
+            $kind = (string) ($field['index'] ?? '');
+            if ($kind === '') continue;
+            if (!in_array($kind, ['unique', 'index'], true)) {
+                throw new InvalidArgumentException('无效索引快照');
+            }
+            $indexName = ($kind === 'unique' ? 'uk_' : 'idx_') . $table . '_' . $name;
+            $indexes[$indexName] = [
+                'name' => $indexName,
+                'unique' => $kind === 'unique',
+                'columns' => $kind === 'unique' ? GeneratedSoftDeleteColumns::uniqueColumns((string) $name, $token) : [(string) $name],
+            ];
+        }
+        return $indexes;
     }
 
     private function columnDefinition(array $field): string
@@ -208,15 +242,24 @@ final class PluginCrudTarget
             }
         }
         $table = (string) $new['table'];
+        $token = isset($newFields[GeneratedSoftDeleteColumns::TOKEN]);
         $operations = [];
         foreach ($newFields as $name => $field) {
             if (!isset($oldFields[$name])) {
                 $operations[] = "ADD COLUMN `{$name}` {$field['definition']}";
                 if (($field['index'] ?? '') !== '') {
-                    $operations[] = $this->addIndex($table, (string) $name, (string) $field['index']);
+                    $operations[] = $this->addIndex($table, (string) $name, (string) $field['index'], $token);
                 }
             } elseif (($oldFields[$name]['index'] ?? '') === '' && ($field['index'] ?? '') !== '') {
-                $operations[] = $this->addIndex($table, (string) $name, (string) $field['index']);
+                $operations[] = $this->addIndex($table, (string) $name, (string) $field['index'], $token);
+            }
+        }
+        // 旧快照没有 deleted_token：已有唯一键重建为以 deleted_token 结尾（同名，同一条 ALTER）。
+        if ($token && !isset($oldFields[GeneratedSoftDeleteColumns::TOKEN])) {
+            foreach ($oldFields as $name => $field) {
+                if (($field['index'] ?? '') !== 'unique') continue;
+                $operations[] = "DROP INDEX `uk_{$table}_{$name}`";
+                $operations[] = $this->addIndex($table, (string) $name, 'unique', true);
             }
         }
         if ($operations === []) {
@@ -225,10 +268,12 @@ final class PluginCrudTarget
         return $operations;
     }
 
-    private function addIndex(string $table, string $field, string $type): string
+    private function addIndex(string $table, string $field, string $type, bool $token = false): string
     {
-        $prefix = $type === 'unique' ? 'ADD UNIQUE KEY `uk_' : 'ADD KEY `idx_';
-        return $prefix . $table . '_' . $field . '` (`' . $field . '`)';
+        if ($type === 'unique') {
+            return 'ADD UNIQUE KEY `uk_' . $table . '_' . $field . '` (' . GeneratedSoftDeleteColumns::columnList(GeneratedSoftDeleteColumns::uniqueColumns($field, $token)) . ')';
+        }
+        return 'ADD KEY `idx_' . $table . '_' . $field . '` (`' . $field . '`)';
     }
 
     private function nextSequence(int $maximum): int

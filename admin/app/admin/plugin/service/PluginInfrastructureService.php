@@ -458,15 +458,11 @@ final class PluginInfrastructureService
                 throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 字段集合不同');
             }
             // 生成快照中的索引也是结构契约，不能因 IF NOT EXISTS 静默跳过。
-            $expectedIndexes = [];
-            foreach ((array) ($snapshot['fields'] ?? []) as $name => $field) {
-                $kind = (string) ($field['index'] ?? '');
-                if ($kind === '') continue;
-                if (!in_array($kind, ['unique', 'index'], true)) {
-                    throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 无效索引快照');
-                }
-                $indexName = ($kind === 'unique' ? 'uk_' : 'idx_') . $table . '_' . $name;
-                $expectedIndexes[$indexName] = ['name' => $indexName, 'unique' => $kind === 'unique', 'columns' => [(string) $name]];
+            // 唯一键在快照含 deleted_token 时覆盖 [列, deleted_token]（软删除规则），旧快照仍为 [列]。
+            try {
+                $expectedIndexes = \app\common\crud\PluginCrudTarget::snapshotIndexes($table, (array) $snapshot);
+            } catch (\InvalidArgumentException) {
+                throw new \InvalidArgumentException('PLUGIN_TABLE_STRUCTURE_CONFLICT: 无效索引快照');
             }
             $actualIndexes = array_column(array_values(array_filter($actual['indexes'],
                 static fn (array $index): bool => $index['name'] !== 'PRIMARY')), null, 'name');

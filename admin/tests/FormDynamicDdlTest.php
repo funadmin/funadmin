@@ -81,6 +81,69 @@ final class FormDynamicDdlTest extends TestCase
         self::assertStringContainsString('`title` varchar(255)', $sql);
     }
 
+    /** @return list<\app\common\form\schema\FormFieldView> */
+    private function probeFields(bool $unique): array
+    {
+        $document = FormBuilder::make('soft_probe')->title('软删除探针')->table('soft_probe', self::CONNECTION, 'created');
+        $document->input('title', '标题')->column('varchar(120)', true, false, 'index');
+        if ($unique) $document->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        return $document->compile()->fields();
+    }
+
+    private function createSql(bool $unique): string
+    {
+        $forms = new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        return (new \ReflectionMethod($forms, 'createTableSql'))->invoke($forms, 'soft_probe', $this->probeFields($unique));
+    }
+
+    public function test_create_sql_indexes_deleted_at_without_token_when_no_unique_field(): void
+    {
+        $sql = $this->createSql(false);
+        self::assertStringContainsString('`deleted_at` datetime NULL', $sql);
+        self::assertStringContainsString('KEY `idx_soft_probe_deleted_at` (`deleted_at`)', $sql);
+        self::assertStringNotContainsString('deleted_token', $sql);
+    }
+
+    public function test_create_sql_adds_token_and_suffixes_unique_keys(): void
+    {
+        $sql = $this->createSql(true);
+        self::assertStringContainsString('`deleted_token` bigint unsigned NOT NULL DEFAULT 0', $sql);
+        self::assertStringContainsString('UNIQUE KEY `uk_soft_probe_code` (`code`, `deleted_token`)', $sql);
+        self::assertStringContainsString('KEY `idx_soft_probe_title` (`title`)', $sql);
+        self::assertStringContainsString('KEY `idx_soft_probe_deleted_at` (`deleted_at`)', $sql);
+    }
+
+    public function test_dynamic_create_with_unique_field_allows_recreate_after_soft_delete(): void
+    {
+        $this->registerProbeConnection();
+        $forms = new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        $document = FormBuilder::make('soft_probe')->title('软删除探针')->table('soft_probe_dyn', self::CONNECTION, 'created');
+        $document->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        $compiled = $document->compile();
+        $preview = $forms->previewMigration($compiled);
+        self::assertTrue($forms->applyDynamicDdl($compiled, hash('sha256', (string) $preview['sql']))['applied']);
+        $connection = Db::connection(self::CONNECTION);
+        $id = 1;
+        $connection->table('soft_probe_dyn')->insert(['id' => $id, 'code' => 'A']);
+        $connection->table('soft_probe_dyn')->where('id', $id)->update(['deleted_at' => date('Y-m-d H:i:s'), 'deleted_token' => $id]);
+        $connection->table('soft_probe_dyn')->insert(['id' => 2, 'code' => 'A']);
+        self::assertSame(2, $connection->table('soft_probe_dyn')->where('code', 'A')->count());
+    }
+
+    public function test_additive_sql_adds_token_for_new_unique_field_on_existing_table(): void
+    {
+        $this->registerProbeConnection();
+        $connection = Db::connection(self::CONNECTION);
+        $connection->getSchemaBuilder()->create('soft_probe_add', static function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id(); $table->string('title')->nullable(); $table->timestamps(); $table->dateTime('deleted_at')->nullable();
+        });
+        $forms = new FormDesignerService(sys_get_temp_dir() . DIRECTORY_SEPARATOR);
+        $sql = (new \ReflectionMethod($forms, 'additiveSql'))->invoke($forms, 'soft_probe_add', $this->probeFields(true), self::CONNECTION);
+        self::assertStringContainsString('ADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0', $sql);
+        self::assertStringContainsString('ADD UNIQUE KEY `uk_soft_probe_add_code` (`code`, `deleted_token`)', $sql);
+        (new \ReflectionMethod($forms, 'assertDynamicForwardSql'))->invoke($forms, $sql);
+    }
+
     /** 空字段或身份不合法：发布在保存前以 validation_failed 拒绝，不写草稿与版本。 */
     public function test_publish_rejects_empty_or_invalid_identity_before_save(): void
     {
@@ -178,7 +241,8 @@ final class MysqlDialectSqliteConnection extends SQLiteConnection
 
     public function statement($query, $bindings = [])
     {
-        $sqlite = preg_replace(['/\s+AUTO_INCREMENT\b/i', '/\)\s*ENGINE=[^;]*$/s'], ['', ')'], (string) $query);
+        // SQLite 的 CREATE TABLE 不支持内联普通 KEY：降级时去掉（唯一键与外键保留）。
+        $sqlite = preg_replace(['/\s+AUTO_INCREMENT\b/i', '/,\s*KEY\s+`[^`]+`\s*\([^)]*\)/i', '/\bUNIQUE\s+KEY\s+(`[^`]+`)\s*\(/i', '/\)\s*ENGINE=[^;]*$/s'], ['', '', 'CONSTRAINT $1 UNIQUE (', ')'], (string) $query);
         return parent::statement((string) $sqlite, $bindings);
     }
 }

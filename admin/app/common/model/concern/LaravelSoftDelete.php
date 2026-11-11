@@ -10,7 +10,8 @@ use Illuminate\Database\QueryException;
 /**
  * 使用 Laravel 风格 deleted_at 字段实现软删除，并维护 deleted_token。
  *
- * - 删除：deleted_at = now，deleted_token = 自身主键（唯一索引含 deleted_token，删除后可重建相同唯一值）。
+ * - 删除：deleted_at = now，deleted_token = 令牌来源列的值（默认自身主键；唯一索引含 deleted_token，删除后可重建相同唯一值）。
+ *   主键不是数字的表（例如生成器的 UUID 表）覆盖 getDeletedTokenSourceColumn() 返回自增序号列（row_no）。
  * - 恢复：deleted_at = null，deleted_token = 0；与未删除记录唯一值冲突时抛 RestoreConflictException。
  * - 表上没有 deleted_token 列时只写 deleted_at。
  * - 真实删除使用 forceDelete()。
@@ -42,6 +43,34 @@ trait LaravelSoftDelete
         return TokenSoftDeletingScope::TOKEN_COLUMN;
     }
 
+    /**
+     * deleted_token 的来源列，默认主键；必须是数字且每行唯一、永不复用。
+     */
+    public function getDeletedTokenSourceColumn(): string
+    {
+        return $this->getKeyName();
+    }
+
+    /**
+     * 软删除时写入 deleted_token 的值：默认即 getKey()；
+     * 覆盖了来源列且内存中没有该值时（例如刚插入、数据库自增生成），从数据库读取。
+     */
+    public function getDeletedTokenValue(): mixed
+    {
+        $column = $this->getDeletedTokenSourceColumn();
+        if ($column === $this->getKeyName()) {
+            return $this->getKey();
+        }
+        $value = $this->getAttribute($column);
+        if ($value === null) {
+            $value = $this->newModelQuery()->whereKey($this->getKey())->value($column);
+            $this->attributes[$column] = $value;
+            $this->syncOriginalAttribute($column);
+        }
+
+        return $value;
+    }
+
     protected function runSoftDelete()
     {
         $query = $this->setKeysForSaveQuery($this->newModelQuery());
@@ -53,8 +82,9 @@ trait LaravelSoftDelete
         $this->{$this->getDeletedAtColumn()} = $time;
 
         if ($this->hasDeletedToken()) {
-            $columns[$this->getDeletedTokenColumn()] = $this->getKey();
-            $this->{$this->getDeletedTokenColumn()} = $this->getKey();
+            $token = $this->getDeletedTokenValue();
+            $columns[$this->getDeletedTokenColumn()] = $token;
+            $this->{$this->getDeletedTokenColumn()} = $token;
         }
 
         if ($this->usesTimestamps() && ! is_null($this->getUpdatedAtColumn())) {

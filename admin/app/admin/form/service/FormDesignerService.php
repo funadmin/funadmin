@@ -350,6 +350,8 @@ final class FormDesignerService
     {
         $lines = ['  `id` bigint unsigned NOT NULL AUTO_INCREMENT'];
         $indexes = [];
+        // 软删除规则：有唯一字段才加 deleted_token，唯一键以 deleted_token 结尾（删除后可重建相同值）。
+        $token = array_filter($fields, static fn (FormFieldView $field): bool => !$field->isVirtual() && $field->index() === 'unique') !== [];
         foreach ($fields as $field) {
             if ($field->isVirtual()) {
                 continue;
@@ -358,7 +360,7 @@ final class FormDesignerService
             $indexType = $field->index();
             $name = trim($field->name());
             if ($indexType === 'unique') {
-                $indexes[] = '  UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`)';
+                $indexes[] = '  UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`' . ($token ? ', `deleted_token`' : '') . ')';
             } elseif ($indexType === 'index') {
                 $indexes[] = '  KEY `idx_' . $table . '_' . $name . '` (`' . $name . '`)';
             }
@@ -373,7 +375,9 @@ final class FormDesignerService
         $lines[] = '  `created_at` datetime NULL';
         $lines[] = '  `updated_at` datetime NULL';
         $lines[] = '  `deleted_at` datetime NULL';
+        if ($token) $lines[] = '  `deleted_token` bigint unsigned NOT NULL DEFAULT 0';
         $lines[] = '  PRIMARY KEY (`id`)';
+        $indexes[] = '  KEY `idx_' . $table . '_deleted_at` (`deleted_at`)';
         $sql = 'CREATE TABLE IF NOT EXISTS `' . $table . "` (\n" . implode(",\n", array_merge($lines, $indexes)) . "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='表单数据表';\n";
         return $sql;
     }
@@ -385,6 +389,15 @@ final class FormDesignerService
         $existing = array_column($metadata['columns'], 'name');
         $existingIndexes = array_column($metadata['indexes'], 'name');
         $parts = [];
+        // 新增唯一键以 deleted_token 结尾；表上还没有令牌列时一并新增（仅加列，已有唯一键的改造由升级命令处理）。
+        $token = in_array('deleted_token', $existing, true);
+        foreach ($fields as $field) {
+            if (!$token && in_array('deleted_at', $existing, true) && !$field->isVirtual() && $field->index() === 'unique'
+                && !in_array('uk_' . $table . '_' . trim($field->name()), $existingIndexes, true)) {
+                $parts[] = 'ADD COLUMN `deleted_token` bigint unsigned NOT NULL DEFAULT 0';
+                $token = true;
+            }
+        }
         foreach ($fields as $field) {
             if ($field->isVirtual()) {
                 continue;
@@ -395,7 +408,7 @@ final class FormDesignerService
             }
             $indexType = $field->index();
             if ($indexType === 'unique' && !in_array('uk_' . $table . '_' . $name, $existingIndexes, true)) {
-                $parts[] = 'ADD UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`)';
+                $parts[] = 'ADD UNIQUE KEY `uk_' . $table . '_' . $name . '` (`' . $name . '`' . ($token ? ', `deleted_token`' : '') . ')';
             } elseif ($indexType === 'index' && !in_array('idx_' . $table . '_' . $name, $existingIndexes, true)) {
                 $parts[] = 'ADD KEY `idx_' . $table . '_' . $name . '` (`' . $name . '`)';
             }

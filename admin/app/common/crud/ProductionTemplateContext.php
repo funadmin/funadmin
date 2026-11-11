@@ -127,6 +127,7 @@ final class ProductionTemplateContext
     {
         $columns = [];
         $indexes = [];
+        $soft = GeneratedSoftDeleteColumns::plan($data);
         foreach ($data['fields'] as $field) {
             $name = $field['name'];
             $null = $field['nullable'] ? 'NULL' : 'NOT NULL';
@@ -135,7 +136,7 @@ final class ProductionTemplateContext
                 ? ' DEFAULT ' . self::sqlLiteral($field['default']) : '';
             $columns[] = "  `{$name}` {$field['dbType']} {$null}{$default}{$auto}";
             if (($field['unique'] ?? false) === true) {
-                $indexes[] = "  UNIQUE KEY `uk_{$data['table']}_{$name}` (`{$name}`)";
+                $indexes[] = "  UNIQUE KEY `uk_{$data['table']}_{$name}` (" . GeneratedSoftDeleteColumns::columnList(GeneratedSoftDeleteColumns::uniqueColumns($name, $soft['token'])) . ')';
             } elseif (($field['search'] ?? false) || ($field['relation'] ?? '') !== '') {
                 $indexes[] = "  KEY `idx_{$data['table']}_{$name}` (`{$name}`)";
             }
@@ -148,6 +149,14 @@ final class ProductionTemplateContext
         }
         if ($data['softDeletes'] && !in_array('deleted_at', $names, true)) {
             $columns[] = '  `deleted_at` datetime NULL';
+            $indexes[] = "  KEY `idx_{$data['table']}_deleted_at` (`deleted_at`)";
+        }
+        if ($soft['token'] && !in_array(GeneratedSoftDeleteColumns::TOKEN, $names, true)) {
+            $columns[] = '  `' . GeneratedSoftDeleteColumns::TOKEN . '` ' . GeneratedSoftDeleteColumns::TOKEN_DEFINITION;
+        }
+        if ($soft['rowNo'] && !in_array(GeneratedSoftDeleteColumns::ROW_NO, $names, true)) {
+            $columns[] = '  `' . GeneratedSoftDeleteColumns::ROW_NO . '` ' . GeneratedSoftDeleteColumns::ROW_NO_DEFINITION;
+            $indexes[] = "  KEY `idx_{$data['table']}_" . GeneratedSoftDeleteColumns::ROW_NO . '` (`' . GeneratedSoftDeleteColumns::ROW_NO . '`)';
         }
         $lines = array_merge($columns, ["  PRIMARY KEY (`{$primary['name']}`)"], $indexes);
         return "-- funadmin-physical-table\n-- Generated forward migration; review before applying.\n"
@@ -197,6 +206,13 @@ final class ProductionTemplateContext
         $softImport = $data['softDeletes']
             ? "use app\\common\\model\\concern\\LaravelSoftDelete;\n" : '';
         $softTrait = $data['softDeletes'] ? "    use LaravelSoftDelete;\n\n" : '';
+        $soft = GeneratedSoftDeleteColumns::plan($data);
+        $hidden = $soft['token'] ? [GeneratedSoftDeleteColumns::TOKEN] : [];
+        if ($soft['rowNo']) {
+            $hidden[] = GeneratedSoftDeleteColumns::ROW_NO;
+            // 主键不是数字：删除令牌取自增序号 row_no（deleted_token 只存数字）。
+            $methods[] = "    public function getDeletedTokenSourceColumn(): string\n    {\n        return '" . GeneratedSoftDeleteColumns::ROW_NO . "';\n    }";
+        }
         if (!empty($data['formSchema']['key'])) {
             $key = $data['formSchema']['key'];
             $connection = var_export((string) ($data['connection'] ?? 'mysql'), true);
@@ -217,7 +233,9 @@ final class ProductionTemplateContext
             . '    public $incrementing = ' . (self::primaryKeyType($primary) === 'integer' ? 'true' : 'false') . ";\n"
             . "    protected \$keyType = '" . (self::primaryKeyType($primary) === 'integer' ? 'int' : 'string') . "';\n"
             . '    protected $fillable = ' . self::phpArray(array_column(array_filter($data['fields'], static fn (array $field): bool => ($field['writable'] ?? true) && !($field['primary'] ?? false)), 'name')) . ";\n"
-            . '    protected $casts = ' . self::phpArray(array_map(static fn (string $cast): string => $cast === 'json' ? 'array' : $cast, $casts)) . ";\n\n"
+            . '    protected $casts = ' . self::phpArray(array_map(static fn (string $cast): string => $cast === 'json' ? 'array' : $cast, $casts)) . ";\n"
+            . ($hidden === [] ? '' : '    protected $hidden = [' . implode(', ', array_map(static fn (string $column): string => var_export($column, true), $hidden)) . "];\n")
+            . "\n"
             . implode("\n\n", $methods) . "\n}\n" . implode('', $pivotModels);
     }
 

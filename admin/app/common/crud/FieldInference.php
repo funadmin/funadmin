@@ -9,7 +9,10 @@ namespace app\common\crud;
  */
 final class FieldInference
 {
-    private const MANAGED_FIELDS = ['created_at', 'updated_at', 'deleted_at'];
+    private const MANAGED_FIELDS = ['created_at', 'updated_at', 'deleted_at', 'deleted_token', 'row_no'];
+
+    /** 软删除内部列：deleted_token（删除令牌）与 row_no（UUID 表的令牌来源序号），不展示、不可写。 */
+    private const INTERNAL_FIELDS = ['deleted_token', 'row_no'];
 
     public function infer(array $schema): array
     {
@@ -36,6 +39,9 @@ final class FieldInference
             $options = $this->commentOptions((string) ($column['comment'] ?? ''));
             if ($options !== []) {
                 return array_merge($field, ['component' => 'radio', 'valueType' => 'integer', 'options' => $options, 'inferredBy' => 'comment']);
+            }
+            if (in_array($name, self::INTERNAL_FIELDS, true)) {
+                return array_merge($field, ['component' => 'inputNumber', 'valueType' => 'integer', 'managed' => true, 'writable' => false, 'list' => false, 'detail' => false, 'inferredBy' => 'laravel']);
             }
             if (in_array($name, self::MANAGED_FIELDS, true)) {
                 return array_merge($field, ['component' => 'datetime', 'valueType' => 'datetime', 'managed' => true, 'writable' => false, 'inferredBy' => 'laravel']);
