@@ -132,7 +132,7 @@ The webman is open-sourced software licensed under the MIT.
 - 主键为 `id`；带 `deleted_at DATETIME NULL` 及其索引。
 - **有唯一索引的表**再加 `deleted_token BIGINT UNSIGNED NOT NULL DEFAULT 0`（0 表示未删除，软删除时写入该行 `id`），且唯一索引以 `deleted_token` 结尾，例如 `UNIQUE KEY username (username, deleted_token)`，这样删除后可以用相同的值重建。没有唯一索引的新表只需 `deleted_at`（已有核心表统一带 `deleted_token`，不回退）。
 - 模型使用 `app\common\model\concern\LaravelSoftDelete`（内含 `TokenSoftDeletingScope`，删除时写 `deleted_token`，恢复时清零）。
-- 绕过模型的读取（`Db::table`、join、原生 SQL）必须自行加 `deleted_at IS NULL`；通过 `Db::table` 或原生 SQL 删除时，必须同时写入 `deleted_at` 和 `deleted_token = id`，不能调用物理删除。
+- 绕过模型的读取（`Db::table`、join、原生 SQL）必须自行加 `deleted_at IS NULL`；通过 `Db::table` 或原生 SQL 删除时，必须同时写入 `deleted_at` 和 `deleted_token = 令牌来源列`（整数主键为 `id`，非整数主键为 `row_no`），不能调用物理删除。
 - 关联表保存按差异处理（参考 `RelationRowSync`）：只软删除被移除的行，只插入缺少的行，不要先全删再全插。
 - 系统不会自动物理删除数据，没有定时物理清理。`auth:prune` 只软删除过期且尚未删除的令牌、会话和登录尝试，记录一直保留；普通配置、语言（含译文）和附件删除也只做软删除，附件文件保留。真实删除只能由管理员在回收站明确操作时执行 `forceDelete`（操作日志的“彻底删除 / 清空回收站”只作用于已删除记录，会员回收站的“彻底删除”同理）。
 
@@ -142,7 +142,7 @@ The webman is open-sourced software licensed under the MIT.
 
 **代码生成器与表单设计器**：生成的建表 SQL 带 `deleted_at` 索引；有唯一字段时才加 `deleted_token`，唯一键以它结尾。表单设计器配置的外键（`ON DELETE` 级联 / 置空 / 禁止）在软删除父记录时由程序执行：级联则以同一时间软删除子记录（逐级向下），置空则把子记录外键置空，禁止则仍有未删除子记录时拒绝；恢复父记录时一并恢复同一时间级联删除的子记录，撞唯一值的子记录跳过并在结果 `conflicts` 中返回。数据库里的真实外键只在回收站彻底删除时生效；子表没有对应真实外键（追加字段或采纳的表）时，彻底删除由程序按同样规则执行。插件 CRUD 若在此之前已生成过带唯一字段的表，重新生成只补 `deleted_at` 索引，原有单列唯一键与无 `deleted_token` 的结构保持不变，需要运行升级命令后才能重建。
 
-**已发布业务表升级**：软删除规则之前发布的业务表（例如订单表）用 `php webman business:soft-delete-upgrade [--table=<表>] [--dry-run]` 升级。只处理 `business_module` 登记且已发布的表，核心表、插件基线表和未登记的表一律拒绝；没有 `deleted_at` 的表（生成时关闭软删除）只报告并跳过，不自动加软删除。每张表按现状只发一条 `ALTER`：补 `deleted_at` 索引；有唯一键时补 `deleted_token`（主键不是整数时另加自增 `row_no` 作为令牌来源），已删除行回填 `deleted_token`，唯一键按原名重建为「原列 + `deleted_token`」。可重复执行，全部到位时不做任何改动；先用 `--dry-run` 查看计划。`table_name` 按物理表名原样使用（采纳的无前缀表不补前缀），去掉前缀后与核心表或插件基线表重名的一律拒绝。插件目标的生成表不直接 `ALTER`：先检查插件迁移目录可写、插件没有进行中的操作、版本号未占用（`--dry-run` 同样检查），再写出可重复执行的插件迁移（`NNN_soft_delete_<表>.sql`，带新的结构快照）并经迁移运行器执行、登记到 `system_migration`；其他安装随插件迁移升级，重新生成代码也不会回到旧形状。主键不是整数的模型无需重新生成：软删除 trait 在主键为字符串、表上有 `row_no` 时自动以 `row_no` 作为令牌来源（单条与批量删除都是）。**加 `row_no`（AUTO_INCREMENT）会复制整表、期间阻塞写入，请在维护窗口执行升级**；其他子句（加列、加索引、重建唯一键）在 MySQL 8 上通常可在线执行，但同一条 ALTER 里有 `row_no` 时整条按复制表执行。
+**已发布业务表升级**：软删除规则之前发布的业务表（例如订单表）用 `php webman business:soft-delete-upgrade [--table=<表>] [--dry-run]` 升级。只处理 `business_module` 登记且已发布的表，核心表、插件基线表和未登记的表一律拒绝；没有 `deleted_at` 的表（生成时关闭软删除）只报告并跳过，不自动加软删除。每张表按现状只发一条 `ALTER`：补 `deleted_at` 索引；有唯一键时补 `deleted_token`（主键不是整数时另加自增 `row_no` 作为令牌来源），已删除行回填 `deleted_token`，唯一键按原名重建为「原列 + `deleted_token`」。可重复执行，全部到位时不做任何改动；先用 `--dry-run` 查看计划。`table_name` 按物理表名原样使用（采纳的无前缀表不补前缀），去掉前缀后与核心表或插件基线表重名的一律拒绝。插件目标的生成表不直接 `ALTER`：先检查插件迁移目录可写、插件没有进行中的操作、版本号未占用（`--dry-run` 同样检查），再写出可重复执行的插件迁移（`NNN_soft_delete_<表>.sql`，带新的结构快照）并经迁移运行器执行、登记到 `system_migration`；其他安装随插件迁移升级，重新生成代码也不会回到旧形状。主键不是整数的模型无需重新生成：软删除 trait 在主键为字符串、表上有 `row_no` 时自动以 `row_no` 作为令牌来源（单条与批量删除都是）；表单数据接口（`FormDataService` 的单条、批量删除、外键级联与子表移除行）按同一规则写 `deleted_token = row_no`，恢复时令牌归零。**加 `row_no`（AUTO_INCREMENT）会复制整表、期间阻塞写入，请在维护窗口执行升级**；其他子句（加列、加索引、重建唯一键）在 MySQL 8 上通常可在线执行，但同一条 ALTER 里有 `row_no` 时整条按复制表执行。
 
 **插件与生成表**：官方插件表遵守同样的规则（CMS 007 / 1.6.0、技术文档 004 / 1.5.0、问答与 OSS 002 / 1.1.0，已安装插件必须走插件更新执行迁移）。
 - 只追加的历史表与单行设置表豁免，不加软删除列：`cms_form_event`、`cms_site_auth_audit`、`cms_model_version`、`cms_content_revision`、`cms_template_tag_version`、`document_events`、`document_revisions`、`oss_setting`。

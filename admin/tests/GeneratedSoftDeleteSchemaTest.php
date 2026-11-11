@@ -452,6 +452,101 @@ final class GeneratedSoftDeleteSchemaTest extends TestCase
         self::assertSame([], array_values(array_filter($log, static fn (string $sql): bool => preg_match('/^delete from "' . $prefix . 'fk_child_real"/', $sql) === 1)), '程序不重复删除');
     }
 
+    // ---- 表单数据：非整数主键用 row_no 作为删除标记 ----
+
+    /** UUID 主键、唯一字段 code（以 deleted_token 结尾）、row_no 由触发器模拟 MySQL 的 AUTO_INCREMENT；可选外键列。 */
+    private function uuidTable(string $table, string $foreignKey = ''): void
+    {
+        $t = Db::connection()->getTablePrefix() . $table;
+        Db::statement('CREATE TABLE "' . $t . '" ("id" varchar(36) primary key not null, ' . ($foreignKey !== '' ? '"' . $foreignKey . '" integer null, ' : '')
+            . '"code" varchar(40) not null, "created_at" datetime, "updated_at" datetime, "deleted_at" datetime, '
+            . '"deleted_token" integer not null default 0, "row_no" integer not null default 0)');
+        Db::statement('CREATE UNIQUE INDEX "uk_' . $t . '_code" ON "' . $t . '" ("code", "deleted_token")');
+        Db::statement('CREATE TRIGGER "' . $t . '_row_no" AFTER INSERT ON "' . $t . '" BEGIN UPDATE "' . $t . '" SET "row_no" = NEW.rowid + 500 WHERE rowid = NEW.rowid; END');
+    }
+
+    private function assertRowNoToken(string $table, string $id): void
+    {
+        $row = Db::table($table)->where('id', $id)->first();
+        self::assertNotNull($row->deleted_at);
+        self::assertTrue(is_numeric($row->deleted_token), '令牌必须是数字');
+        self::assertGreaterThan(500, (int) $row->deleted_token);
+        self::assertSame((int) $row->row_no, (int) $row->deleted_token, $table . '.' . $id . ' 令牌取 row_no，不写字符串主键');
+    }
+
+    public function test_uuid_form_rows_use_row_no_token_for_single_batch_cascade_and_subtable_removal(): void
+    {
+        $service = $this->fkFixture([]);
+        $prefix = Db::connection()->getTablePrefix();
+        $connection = (string) config('database.default');
+        $uuid = static fn (string $n): string => sprintf('00000000-0000-4000-8000-%012d', (int) $n);
+
+        // 单条与批量删除。
+        $this->uuidTable('uuid_items');
+        $items = FormBuilder::make('uuid_items')->title('UUID')->table($prefix . 'uuid_items', $connection, 'created');
+        $items->input('id', '主键')->column('char(36)', false, false);
+        $items->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        $itemsHash = $this->publish($items, 'uuid_items', $prefix . 'uuid_items');
+        foreach ([1, 2, 3] as $n) Db::table('uuid_items')->insert(['id' => $uuid((string) $n), 'code' => 'I' . $n]);
+        self::assertSame('soft', $service->remove('uuid_items', $uuid('1'), $itemsHash)['mode']);
+        $this->assertRowNoToken('uuid_items', $uuid('1'));
+        self::assertSame(2, $service->batchRemove('uuid_items', [$uuid('2'), $uuid('3')], $itemsHash)['removed']);
+        $this->assertRowNoToken('uuid_items', $uuid('2'));
+        $this->assertRowNoToken('uuid_items', $uuid('3'));
+        Db::table('uuid_items')->insert(['id' => $uuid('4'), 'code' => 'I1']);
+        self::assertSame(2, $service->restore('uuid_items', [$uuid('2'), $uuid('3')], $itemsHash)['restored']);
+        self::assertSame(0, (int) Db::table('uuid_items')->where('id', $uuid('2'))->value('deleted_token'), '恢复令牌归零');
+
+        // 父记录软删除级联到 UUID 子表。
+        $this->uuidTable('uuid_cascade', 'parent_id');
+        $cascade = FormBuilder::make('uuid_cascade')->title('级联')->table($prefix . 'uuid_cascade', $connection, 'created');
+        $cascade->number('parent_id', '父')->column('bigint', true, true)->relation('belongs_to', $prefix . 'fk_parent', 'title', 'id', false, 'cascade');
+        $cascade->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        $this->publish($cascade, 'uuid_cascade', $prefix . 'uuid_cascade');
+        $parent = $this->parentRow('P');
+        Db::table('uuid_cascade')->insert(['id' => $uuid('11'), 'parent_id' => $parent, 'code' => 'C1']);
+        $service->remove('fk_parent', $parent, $this->hash);
+        $this->assertRowNoToken('uuid_cascade', $uuid('11'));
+        $second = $this->parentRow('Q');
+        Db::table('uuid_cascade')->insert(['id' => $uuid('12'), 'parent_id' => $second, 'code' => 'C2']);
+        $service->batchRemove('fk_parent', [$second], $this->hash);
+        $this->assertRowNoToken('uuid_cascade', $uuid('12'));
+        self::assertSame(1, $service->restore('fk_parent', [$second], $this->hash)['restored']);
+        self::assertSame(0, (int) Db::table('uuid_cascade')->where('id', $uuid('12'))->value('deleted_token'));
+
+        // 子表编辑时移除的行。
+        Db::schema()->create('uuid_host', static function (Blueprint $table): void {
+            $table->id(); $table->string('title')->default(''); $table->timestamps(); $table->dateTime('deleted_at')->nullable();
+        });
+        $this->uuidTable('uuid_lines', 'host_id');
+        $lines = FormBuilder::make('uuid_lines')->title('明细')->table($prefix . 'uuid_lines', $connection, 'created');
+        $lines->input('id', '主键')->column('char(36)', false, false);
+        $lines->number('host_id', '主表')->column('bigint', true, true);
+        $lines->input('code', '编码')->column('varchar(40)', false, false, 'unique');
+        $this->publish($lines, 'uuid_lines', $prefix . 'uuid_lines');
+        $host = FormBuilder::make('uuid_host')->title('主表')->table($prefix . 'uuid_host', $connection, 'created');
+        $host->input('title', '标题')->column('varchar(120)');
+        $host->subform('lines', '明细', $prefix . 'uuid_lines', 'host_id', static function ($children): void { $children->input('code', '编码'); });
+        $hostHash = $this->publish($host, 'uuid_host', $prefix . 'uuid_host');
+        $hostId = (int) Db::table('uuid_host')->insertGetId(['title' => 'H']);
+        Db::table('uuid_lines')->insert([['id' => $uuid('21'), 'host_id' => $hostId, 'code' => 'L1'], ['id' => $uuid('22'), 'host_id' => $hostId, 'code' => 'L2']]);
+        $service->update('uuid_host', $hostId, ['title' => 'H', 'lines' => [['id' => $uuid('22'), 'code' => 'L2']]], ['lines'], $hostHash);
+        $this->assertRowNoToken('uuid_lines', $uuid('21'));
+        self::assertNull(Db::table('uuid_lines')->where('id', $uuid('22'))->value('deleted_at'));
+    }
+
+    public function test_integer_primary_key_form_rows_keep_primary_key_token(): void
+    {
+        $service = $this->fkFixture(['cascade']);
+        $parent = $this->parentRow('P');
+        $child = (int) Db::table('fk_child_cascade')->insertGetId(['parent_id' => $parent, 'code' => 'K1']);
+        $log = [];
+        Db::connection()->listen(static function (QueryExecuted $query) use (&$log): void { $log[] = $query->sql; });
+        $service->remove('fk_parent', $parent, $this->hash);
+        self::assertMatchesRegularExpression('/"deleted_token" = "id"/', implode("\n", $log));
+        self::assertSame($child, (int) Db::table('fk_child_cascade')->where('id', $child)->value('deleted_token'));
+    }
+
     // ---- 恢复不受无关快照影响 ----
 
     public function test_restore_ignores_unrelated_incomplete_snapshots(): void

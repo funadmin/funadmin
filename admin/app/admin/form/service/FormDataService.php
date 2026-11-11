@@ -561,7 +561,7 @@ final class FormDataService
             $childIds = (clone $live)->lockForUpdate()->pluck($childPrimary)->all();
             if ($childIds === []) continue;
             $connection->table($this->logicalTable($connection, $reference['table']))->whereIn($childPrimary, $childIds)->whereNull('deleted_at')
-                ->update($this->softDeletePayload($connection, $childColumns, $childPrimary, $time));
+                ->update($this->softDeletePayload($connection, $childSchema, $time));
             $this->applySoftDeleteForeignKeys($connection, $connectionName, $reference['table'], $childPrimary, $childIds, $time, $depth + 1);
         }
     }
@@ -849,7 +849,7 @@ final class FormDataService
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
         $database = Db::connection((string) $form->connection);
-        return $database->transaction(function () use ($database, $form, $columns, $primary, $id, $published): array {
+        return $database->transaction(function () use ($database, $form, $schema, $columns, $primary, $id, $published): array {
             $connection = $this->applyDataScope(
                 $database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name)
             )->where($primary['name'], $id);
@@ -859,7 +859,7 @@ final class FormDataService
             $this->guardTreeWrite((string) $form->form_key, $id, [], true, $soft ? 'soft' : 'permanent');
             if ($soft) {
                 $time = date('Y-m-d H:i:s');
-                $connection->update($this->softDeletePayload($database, $columns, $primary['name'], $time));
+                $connection->update($this->softDeletePayload($database, $schema, $time));
                 $this->applySoftDeleteForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], [$id], $time);
                 return ['removed' => 1, 'mode' => 'soft'];
             }
@@ -870,17 +870,25 @@ final class FormDataService
     }
 
     /**
-     * 软删除写入：含 deleted_token 的表同时写入 deleted_token = 行主键（与模型软删除一致，释放唯一键给新建记录），
-     * 不含该列的业务表保持只写 deleted_at。
-     * @param list<string> $columns
+     * 软删除写入：含 deleted_token 的表同时写入 deleted_token = 令牌来源列（列表达式，与模型软删除一致，释放唯一键给新建记录），
+     * 不含该列的业务表保持只写 deleted_at。令牌只存数字：主键是整数时取主键；主键不是整数（UUID、字符串）且表上有 row_no 时取 row_no，
+     * 与 LaravelSoftDelete::getDeletedTokenSourceColumn() 的规则相同。
+     * @param array<string, array<string, mixed>> $schema tableFields() 的结果
      */
-    private function softDeletePayload($connection, array $columns, string $primaryColumn, ?string $time = null): array
+    private function softDeletePayload($connection, array $schema, ?string $time = null): array
     {
         $payload = ['deleted_at' => $time ?? date('Y-m-d H:i:s')];
-        if (in_array('deleted_token', $columns, true)) {
-            $payload['deleted_token'] = $connection->raw($connection->getQueryGrammar()->wrap($primaryColumn));
+        if (array_key_exists('deleted_token', $schema)) {
+            $payload['deleted_token'] = $connection->raw($connection->getQueryGrammar()->wrap($this->deletedTokenSource($schema)));
         }
         return $payload;
+    }
+
+    /** @param array<string, array<string, mixed>> $schema */
+    private function deletedTokenSource(array $schema): string
+    {
+        $primary = $this->primaryKey($schema);
+        return $primary['type'] !== 'integer' && array_key_exists('row_no', $schema) ? 'row_no' : $primary['name'];
     }
 
     /** 回收站 scope 解析：仅 normal/recycled，且回收站要求表含 deleted_at。 */
@@ -904,7 +912,7 @@ final class FormDataService
         $columns = array_keys($schema);
         $primary = $this->primaryKey($schema);
         $database = Db::connection((string) $form->connection);
-        return $database->transaction(function () use ($database, $form, $columns, $primary, $ids): array {
+        return $database->transaction(function () use ($database, $form, $schema, $columns, $primary, $ids): array {
             $query = $this->applyDataScope($database->table($this->logicalTable($database, (string) $form->table_name)), $form, $columns, $this->logicalTable($database, (string) $form->table_name))->whereIn($primary['name'], $ids);
             $soft = in_array('deleted_at', $columns, true);
             if ($soft) $query->whereNull('deleted_at');
@@ -912,7 +920,7 @@ final class FormDataService
             if ($soft) {
                 $time = date('Y-m-d H:i:s');
                 $removedIds = (clone $query)->lockForUpdate()->pluck($primary['name'])->all();
-                $removed = $query->update($this->softDeletePayload($database, $columns, $primary['name'], $time));
+                $removed = $query->update($this->softDeletePayload($database, $schema, $time));
                 $this->applySoftDeleteForeignKeys($database, (string) $form->connection, (string) $form->table_name, $primary['name'], $removedIds, $time);
                 return ['removed' => (int) $removed, 'mode' => 'soft'];
             }
@@ -1931,7 +1939,7 @@ final class FormDataService
                 $removed = array_values(array_diff($existingIds, array_keys($submitted)));
                 if ($removed !== []) {
                     $query = $this->childQuery($connection, $context)->where($context['foreignKey'], $parentId)->whereIn($primaryName, $removed);
-                    if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update($this->softDeletePayload($connection, array_keys($context['schema']), $primaryName));
+                    if (in_array('deleted_at', array_keys($context['schema']), true)) $query->update($this->softDeletePayload($connection, $context['schema']));
                     else $query->delete();
                 }
             }
