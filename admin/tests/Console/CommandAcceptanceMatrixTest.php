@@ -18,6 +18,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
             'crud:preview' => ['development', 'CrudPreview', CrudGenerationExecutionTest::class, 'test_cli_validate_preview_generate_and_token_file_permissions', 'test_cli_validate_preview_generate_and_token_file_permissions'],
             'crud:generate' => ['development', 'CrudGenerate', CrudGenerationExecutionTest::class, 'test_cli_validate_preview_generate_and_token_file_permissions', 'test_cli_validate_preview_generate_and_token_file_permissions'],
             'business:generation-recover' => ['development', 'BusinessGenerationRecover', BusinessGenerationRecoveryTest::class, 'test_cli_inspection_and_rollback_of_uncommitted_files_are_idempotent', 'test_drift_requires_manual_recovery_without_overwriting_human_edit'],
+            'business:soft-delete-upgrade' => ['development', 'BusinessSoftDeleteUpgrade', \Tests\BusinessSoftDeleteUpgradeTest::class, 'test_real_run_upgrades_backfills_keeps_data_and_is_idempotent', 'test_refuses_unregistered_draft_core_and_plugin_baseline_tables'],
             'plugin:activation-cache' => ['plugin', 'PluginActivationCacheRebuild', PluginActivationExecutionTest::class, 'test_command_compiles_database_states_including_deleted_records_to_trusted_snapshot', 'test_command_compiles_database_states_including_deleted_records_to_trusted_snapshot'],
             'plugin:crud-generate' => ['plugin', 'PluginCrudGenerate', PluginCrudExecutionTest::class, 'test_preview_generate_cli_enforces_token_permissions_and_replay', 'test_preview_generate_cli_enforces_token_permissions_and_replay'],
             'plugin:crud-preview' => ['plugin', 'PluginCrudPreview', PluginCrudExecutionTest::class, 'test_preview_generate_cli_enforces_token_permissions_and_replay', 'test_preview_generate_cli_enforces_token_permissions_and_replay'],
@@ -41,7 +42,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
     {
         return [
             'development' => [
-                'services' => ['app/admin/development/service/DevCrudService.php', 'app/admin/development/service/GenerationTransactionService.php', 'app/admin/development/service/GenerationResourceTransaction.php', 'app/common/crud/CrudGenerator.php', 'app/common/crud/ProductionTemplateContext.php', 'app/common/crud/CrudResourceInstaller.php', 'app/common/crud/LangPackTranslator.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php', 'app/common/service/database/MigrationService.php'],
+                'services' => ['app/admin/development/service/DevCrudService.php', 'app/admin/development/service/BusinessSoftDeleteUpgradeService.php', 'app/admin/development/service/GenerationTransactionService.php', 'app/admin/development/service/GenerationResourceTransaction.php', 'app/common/crud/CrudGenerator.php', 'app/common/crud/ProductionTemplateContext.php', 'app/common/crud/CrudResourceInstaller.php', 'app/common/crud/LangPackTranslator.php', 'app/common/plugin/sdk/PluginRoute.php', 'app/common/plugin/sdk/Service.php', 'app/common/functions/plugin.php', 'app/common/service/database/MigrationService.php'],
                 'configuration' => ['crud.connections', 'crud.confirm_secret', 'database.connections', 'config/bootstrap.php', 'config/autoload.php'],
                 'storage' => ['business_module', 'crud_generation', 'generated_file_baseline', 'form', 'form_schema_version', 'system_migration'],
                 'paths' => ['runtime/private/business-development', 'runtime/cache/crud-confirm-nonces', 'app/admin/business', 'database/business'],
@@ -76,7 +77,7 @@ final class CommandAcceptanceMatrixTest extends TestCase
 
     public function test_all_live_commands_have_traceable_normal_and_failure_execution_evidence(): void
     {
-        self::assertCount(21, self::matrix());
+        self::assertCount(22, self::matrix());
         $discovered = [];
         foreach (glob(app_path('admin/*/command/*.php')) as $file) {
             $class = 'app\\admin\\' . basename(dirname($file, 2)) . '\\command\\' . basename($file, '.php');

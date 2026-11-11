@@ -64,7 +64,7 @@ final class BusinessModuleLayoutTest extends TestCase
         $commands = array_column(json_decode($stdout, true, 512, JSON_THROW_ON_ERROR)['commands'], null, 'name');
         foreach ([
             'ai:change-set-recover', 'ai:outbox-dispatch', 'ai:sandbox-cleanup',
-            'business:generation-recover', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
+            'business:generation-recover', 'business:soft-delete-upgrade', 'crud:generate', 'crud:inspect', 'crud:preview', 'crud:validate',
             'mcp', 'plugin:activation-cache', 'plugin:crud-generate',
             'plugin:crud-preview', 'plugin:make', 'plugin:make-crud', 'plugin:migrate', 'plugin:package',
             'plugin:publication-recover', 'plugin:rebaseline', 'plugin:sync', 'plugin:validate', 'upgrade:recover-stale',
@@ -176,6 +176,7 @@ final class BusinessModuleLayoutTest extends TestCase
             'CrudPreview' => 'crud:preview',
             'CrudValidate' => 'crud:validate',
             'BusinessGenerationRecover' => 'business:generation-recover',
+            'BusinessSoftDeleteUpgrade' => 'business:soft-delete-upgrade',
             'CrudCommandSupport' => null,
         ] as $class => $command) {
             $file = __DIR__ . '/../app/admin/development/command/' . $class . '.php';

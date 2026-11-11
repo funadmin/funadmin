@@ -367,8 +367,9 @@ final class DefinitionValidator
             }
             $name = (string) $field['name'];
             $this->identifier($name, '字段名', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/D');
-            // 软删除内部列由生成器维护；只有从现有表推断的受管字段可以同名。
-            if (in_array($name, [GeneratedSoftDeleteColumns::TOKEN, GeneratedSoftDeleteColumns::ROW_NO], true) && ($field['managed'] ?? false) !== true) {
+            // 软删除内部列由生成器维护；只有从现有表推断、且与生成器定义一致（bigint unsigned NOT NULL、不可写、非主键/唯一）的受管字段可以同名，
+            // 否则例如可空的 deleted_token 会让以它结尾的唯一键失效。
+            if (in_array($name, [GeneratedSoftDeleteColumns::TOKEN, GeneratedSoftDeleteColumns::ROW_NO], true) && !self::generatedSoftDeleteColumn($field)) {
                 throw new InvalidArgumentException('字段名 ' . $name . ' 是软删除保留字段，不能作为业务字段');
             }
             $this->text((string) $field['dbType'], '字段类型');
@@ -745,5 +746,19 @@ final class DefinitionValidator
         if ($value === '' || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $value)) {
             throw new InvalidArgumentException($label . ' 文本不安全');
         }
+    }
+
+    /** 受管的 deleted_token / row_no 必须与 GeneratedSoftDeleteColumns 的列定义一致。 */
+    private static function generatedSoftDeleteColumn(array $field): bool
+    {
+        if (($field['managed'] ?? false) !== true || ($field['primary'] ?? false) === true || ($field['unique'] ?? false) === true
+            || ($field['writable'] ?? true) !== false || ($field['nullable'] ?? true) !== false
+            || preg_replace('/^bigint(?:\(\d+\))? unsigned$/', 'bigint unsigned', strtolower(trim((string) ($field['dbType'] ?? '')))) !== 'bigint unsigned') {
+            return false;
+        }
+        $default = $field['default'] ?? null;
+        return $field['name'] === GeneratedSoftDeleteColumns::TOKEN
+            ? $default === null || (string) $default === '0'
+            : $default === null;
     }
 }
