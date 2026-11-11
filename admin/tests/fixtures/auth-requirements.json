@@ -29,10 +29,20 @@
         "login": true,
         "permission": "document:category:delete"
     },
+    "DELETE /admin/plugins/document/categories/{id:\\d+}/destroy => app\\admin\\plugins\\document\\controller\\CategoryController::destroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:destroy"
+    },
     "DELETE /admin/plugins/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::delete": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:delete"
+    },
+    "DELETE /admin/plugins/document/documents/{id:\\d+}/destroy => app\\admin\\plugins\\document\\controller\\DocumentController::destroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:destroy"
     },
     "DELETE /admin/plugins/example/test => app\\admin\\plugins\\example\\controller\\TestController::recycle": {
         "guard": "plugin",
@@ -614,10 +624,20 @@
         "login": true,
         "permission": "document:category:tree"
     },
+    "GET /admin/plugins/document/categories/recycle => app\\admin\\plugins\\document\\controller\\CategoryController::recycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:recycle"
+    },
     "GET /admin/plugins/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::index": {
         "guard": "plugin",
         "login": true,
         "permission": "document:document:index"
+    },
+    "GET /admin/plugins/document/documents/recycle => app\\admin\\plugins\\document\\controller\\DocumentController::recycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:recycle"
     },
     "GET /admin/plugins/document/documents/{id:\\d+} => app\\admin\\plugins\\document\\controller\\DocumentController::detail": {
         "guard": "plugin",
@@ -1564,6 +1584,11 @@
         "login": true,
         "permission": "document:category:create"
     },
+    "POST /admin/plugins/document/categories/{id:\\d+}/restore => app\\admin\\plugins\\document\\controller\\CategoryController::restore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:category:restore"
+    },
     "POST /admin/plugins/document/documents => app\\admin\\plugins\\document\\controller\\DocumentController::create": {
         "guard": "plugin",
         "login": true,
@@ -1578,6 +1603,11 @@
         "guard": "plugin",
         "login": true,
         "permission": "document:document:publish"
+    },
+    "POST /admin/plugins/document/documents/{id:\\d+}/recover => app\\admin\\plugins\\document\\controller\\DocumentController::recover": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "document:document:recover"
     },
     "POST /admin/plugins/document/documents/{id:\\d+}/revisions/{revisionNo:\\d+}/restore => app\\admin\\plugins\\document\\controller\\DocumentController::restore": {
         "guard": "plugin",

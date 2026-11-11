@@ -39,7 +39,11 @@ final class CategoryLinks
         foreach (array_keys($wanted) as $categoryId) {
             if (!isset($kept[$categoryId])) $inserts[] = ['document_id' => $documentId, 'category_id' => $categoryId];
         }
-        if ($inserts !== []) DocumentCategoryLink::query()->insert($inserts);
+        if ($inserts === []) return;
+        // 新插入的关联：共享锁读取目标目录，只挂到未删除的目录上，与删除目录的事务串行化。
+        $live = DocumentCategory::query()->whereKey(array_column($inserts, 'category_id'))->sharedLock()->pluck('id')->count();
+        if ($live !== count($inserts)) throw new \InvalidArgumentException('目录不存在或已删除', 422);
+        DocumentCategoryLink::query()->insert($inserts);
     }
 
     public static function afterSoftDelete(int $documentId, string $deletedAt): void
@@ -58,7 +62,8 @@ final class CategoryLinks
         if ($deletedAt === null || $deletedAt === '') return 0;
         $rows = DocumentCategoryLink::onlyTrashed()->where('document_id', $documentId)->where('deleted_at', $deletedAt)->orderBy('id')->get();
         if ($rows->isEmpty()) return 0;
-        $live = array_flip(array_map('intval', DocumentCategory::query()->whereKey($rows->pluck('category_id')->all())->where('scope', $scope)->pluck('id')->all()));
+        // 共享锁：与删除这些目录的事务串行化。
+        $live = array_flip(array_map('intval', DocumentCategory::query()->whereKey($rows->pluck('category_id')->all())->where('scope', $scope)->sharedLock()->pluck('id')->all()));
         $skipped = 0;
         foreach ($rows as $row) {
             $categoryId = (int) $row->category_id;

@@ -24,11 +24,15 @@ abstract class DocumentApiController extends AdminController
         throw new \InvalidArgumentException('lockVersion 无效', 422);
     }
 
-    /** 领域异常按协议码返回；其他异常不向前端暴露内部信息。 */
-    protected function action(callable $callback, string $message = '操作成功'): Response
+    /**
+     * 领域异常按协议码返回；其他异常不向前端暴露内部信息。
+     * @param string|\Closure(mixed): string $message 成功提示；闭包按返回结果生成提示
+     */
+    protected function action(callable $callback, string|\Closure $message = '操作成功'): Response
     {
         try {
-            return $this->ok($message, $callback());
+            $result = $callback();
+            return $this->ok($message instanceof \Closure ? $message($result) : $message, $result);
         } catch (\InvalidArgumentException $e) {
             $code = in_array($e->getCode(), [403, 404, 409, 422], true) ? $e->getCode() : 422;
             return $this->fail(msg: $e->getMessage(), code: $code);

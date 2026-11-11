@@ -39,20 +39,35 @@ const message = (e: unknown) => {
   return typeof m === 'string' && m ? m : tt('failed');
 };
 
+/** 请求序号：只采用最后一次请求的响应，先发出、后返回的过期响应直接丢弃。 */
+let requestId = 0;
+
 async function load() {
+  const id = ++requestId;
   loading.value = true;
   try {
     if (tab.value === 'documents') {
       if (!can.documents.value) return;
       const data = await documentApi.trashedDocuments({ page: page.value, pageSize, keyword: keyword.value.trim() || undefined });
+      if (id !== requestId) return;
+      // 当前页已被清空（恢复或彻底删除了最后一条）时回到上一页。
+      if (!data.list.length && page.value > 1) {
+        page.value -= 1;
+        await load();
+        return;
+      }
       documents.value = data.list;
       total.value = data.total;
     } else {
       if (!can.categories.value) return;
-      categories.value = (await documentApi.trashedCategories()).list;
+      const data = await documentApi.trashedCategories();
+      if (id !== requestId) return;
+      categories.value = data.list;
     }
+  } catch (e) {
+    if (id === requestId) ElMessage.error(message(e));
   } finally {
-    loading.value = false;
+    if (id === requestId) loading.value = false;
   }
 }
 
@@ -61,38 +76,52 @@ function search() {
   void load();
 }
 
+/** 打开时选定页签后只加载一次：页签变化由 tab 的监听加载，未变化时在这里加载。 */
 watch(visible, (open) => {
   if (!open) return;
-  tab.value = can.documents.value || !can.categories.value ? 'documents' : 'categories';
   keyword.value = '';
   page.value = 1;
-  void load();
+  const next = can.documents.value || !can.categories.value ? 'documents' : 'categories';
+  if (tab.value === next) void load();
+  else tab.value = next;
 });
-watch(tab, () => visible.value && void load());
+watch(tab, () => {
+  page.value = 1;
+  if (visible.value) void load();
+});
 
 async function confirmDestroy(body: string): Promise<boolean> {
   return ElMessageBox.confirm(body, tt('destroyTitle'), { type: 'error', confirmButtonText: tt('destroy'), confirmButtonClass: 'el-button--danger' })
     .then(() => true, () => false);
 }
 
-async function run(action: () => Promise<unknown>, success: string) {
+/** 执行恢复或彻底删除；notice 按接口结果返回提示（警告用于部分未恢复的情况）。 */
+async function run<T>(action: () => Promise<T>, notice: (result: T) => { type: 'success' | 'warning'; text: string }) {
+  let result: T;
   try {
-    await action();
-    ElMessage.success(success);
-    emit('changed');
-    await load();
+    result = await action();
   } catch (e) {
     ElMessage.error(message(e));
+    return;
   }
+  const { type, text } = notice(result);
+  ElMessage[type](text);
+  emit('changed');
+  await load();
 }
+const done = (text: string) => () => ({ type: 'success' as const, text });
 
-const recoverDocument = (row: TrashedDocument) => run(() => documentApi.recoverDocument(row.id), tt('restored'));
+/** 恢复文档：有目录关联因目录已删除或范围变化未恢复时，提示跳过的数量。 */
+const recoverDocument = (row: TrashedDocument) => run(() => documentApi.recoverDocument(row.id), (result) => {
+  const skipped = result?.skippedLinks ?? 0;
+  return skipped > 0 ? { type: 'warning', text: tt('restoredSkipped', { n: skipped }) } : { type: 'success', text: tt('restored') };
+});
 async function destroyDocument(row: TrashedDocument) {
-  if (await confirmDestroy(tt('destroyDocumentBody', { name: row.title }))) await run(() => documentApi.destroyDocument(row.id), tt('destroyed'));
+  if (await confirmDestroy(tt('destroyDocumentBody', { name: row.title }))) await run(() => documentApi.destroyDocument(row.id), done(tt('destroyed')));
 }
-const restoreCategory = (row: TrashedCategory) => run(() => documentApi.restoreCategory(row.id), tt('restored'));
+const restoreCategory = (row: TrashedCategory) => run(() => documentApi.restoreCategory(row.id), done(tt('restored')));
 async function destroyCategory(row: TrashedCategory) {
-  if (await confirmDestroy(tt('destroyCategoryBody', { name: row.name }))) await run(() => documentApi.destroyCategory(row.id), tt('destroyed'));
+  if (await confirmDestroy(tt('destroyCategoryBody', { name: row.name }))) await run(() => documentApi.destroyCategory(row.id), done(tt('destroyed')));
 }
 </script>
 

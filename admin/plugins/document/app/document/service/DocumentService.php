@@ -97,18 +97,19 @@ final class DocumentService
 
     /**
      * 从回收站恢复文档：标识已被未删除的文档占用时抛 RestoreConflictException（409）。
-     * 同时恢复这次删除带走的目录关联（已删除或换了范围的目录跳过）。
+     * 同时恢复这次删除带走的目录关联（已删除或换了范围的目录跳过），返回的 skippedLinks 为跳过的关联数。
      */
     public function restore(int $id): array
     {
-        Db::transaction(static function () use ($id): void {
+        $skipped = Db::transaction(static function () use ($id): int {
             $row = self::lockTrashed($id);
             $deletedAt = (string) $row->getRawOriginal('deleted_at');
             $row->restore();
-            CategoryLinks::afterRestore($id, (string) $row->scope, $deletedAt);
-            Events::record($id, 'recover');
+            $skipped = CategoryLinks::afterRestore($id, (string) $row->scope, $deletedAt);
+            Events::record($id, 'recover', 0, $skipped > 0 ? ['skippedLinks' => $skipped] : []);
+            return $skipped;
         });
-        return $this->find($id);
+        return $this->find($id) + ['skippedLinks' => $skipped];
     }
 
     /**
@@ -204,7 +205,8 @@ final class DocumentService
     private function syncCategories(int $id, array $categoryIds, string $scope): void
     {
         if ($categoryIds) {
-            $valid = DocumentCategory::query()->whereIn('id', $categoryIds)->where('scope', $scope)->count();
+            // 共享锁：与删除这些目录的事务串行化，不会在目录删除提交前挂上新的有效关联（调用方在事务内）。
+            $valid = DocumentCategory::query()->whereIn('id', $categoryIds)->where('scope', $scope)->sharedLock()->pluck('id')->count();
             if ($valid !== count($categoryIds)) throw new InvalidArgumentException('目录不存在或不属于该文档范围', 422);
         }
         CategoryLinks::sync($id, $categoryIds);

@@ -79,7 +79,9 @@ final class DocumentController extends DocumentApiController
     #[Post('/{id:\d+}/recover')]
     public function recover(int $id): Response
     {
-        return $this->action(fn () => (new DocumentService())->restore($id), '已恢复');
+        // 有目录关联因目录已删除或换了范围而未恢复时，在提示里说明数量（data.skippedLinks）。
+        return $this->action(fn () => (new DocumentService())->restore($id), static fn (array $restored): string => $restored['skippedLinks'] > 0
+            ? "已恢复，{$restored['skippedLinks']} 个目录关联因目录已删除或范围变化未恢复" : '已恢复');
     }
 
     /** 彻底删除回收站中的文档，不可恢复；未删除的文档返回 404。 */

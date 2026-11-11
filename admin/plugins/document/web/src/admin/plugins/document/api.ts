@@ -44,7 +44,7 @@ export const documentApi = {
 
   // 回收站：列表、恢复、彻底删除（不可恢复），每个操作有独立权限。
   trashedDocuments: (query: { page?: number; pageSize?: number; keyword?: string }) => http.get<TrashedDocumentPage>(`${docs}/recycle`, query),
-  recoverDocument: (id: number) => http.post<DocumentDetail>(`${docs}/${id}/recover`, undefined, quiet),
+  recoverDocument: (id: number) => http.post<DocumentDetail & { skippedLinks: number }>(`${docs}/${id}/recover`, undefined, quiet),
   destroyDocument: (id: number) => http.delete(`${docs}/${id}/destroy`, undefined, quiet),
   trashedCategories: () => http.get<{ list: TrashedCategory[] }>(`${categories}/recycle`),
   restoreCategory: (id: number) => http.post<DocumentCategory>(`${categories}/${id}/restore`, undefined, quiet),
