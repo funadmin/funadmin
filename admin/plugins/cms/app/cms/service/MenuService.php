@@ -59,15 +59,20 @@ final class MenuService
             RecycleBin::trash(Menu::query()->forSite($siteId)->forLocale($locale)->where('id',$id),$at);
         });
     }
-    /** 回收站：当前站点、语言已删除的导航组；item_count 为与导航组一起删除（恢复时会带回）的导航项数。 */
-    public function trashed(string $siteId,string $locale): array
+    /**
+     * 回收站：当前站点、语言已删除的导航组（分页）；item_count 为与导航组一起删除（恢复时会带回）的导航项数。
+     * @return array{list:list<array>,total:int,page:int,pageSize:int}
+     */
+    public function trashed(string $siteId,string $locale,mixed $page=1,mixed $pageSize=RecycleBin::PAGE_SIZE): array
     {
+        $siteId=Input::id($siteId);[$page,$pageSize]=RecycleBin::paging($page,$pageSize);
+        $query=Menu::onlyTrashed()->forSite($siteId)->forLocale(Input::locale($locale));$total=(clone $query)->count();
+        $menus=$query->orderByDesc('deleted_at')->orderByDesc('id')->forPage($page,$pageSize)->get();
+        $counts=RecycleBin::childCounts(MenuItem::onlyTrashed()->forSite($siteId),'menu_id',array_map(static fn($m): string=>(string)$m->getRawOriginal('id'),$menus->all()));
         $rows=[];
-        foreach(Menu::onlyTrashed()->forSite(Input::id($siteId))->forLocale(Input::locale($locale))->orderByDesc('deleted_at')->orderByDesc('id')->limit(200)->get() as $menu){
-            $at=RecycleBin::deletedAt($menu);$row=Input::row($menu);
-            $rows[]=['id'=>$row['id'],'code'=>$row['code'],'name'=>$row['name'],'locale'=>$row['locale'],'deleted_at'=>$at,'item_count'=>MenuItem::onlyTrashed()->forSite($siteId)->where('menu_id',$row['id'])->where('deleted_at',$at)->count()];
-        }
-        return $rows;
+        foreach($menus as $menu){$at=RecycleBin::deletedAt($menu);$row=Input::row($menu);
+            $rows[]=['id'=>$row['id'],'code'=>$row['code'],'name'=>$row['name'],'locale'=>$row['locale'],'deleted_at'=>$at,'item_count'=>$counts[$row['id'].'|'.$at]??0];}
+        return RecycleBin::result($rows,$total,$page,$pageSize);
     }
     /**
      * 恢复导航组，并带回与它一起删除（deleted_at 相同）的导航项；之前编辑时移除的项保持删除。

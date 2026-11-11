@@ -51,5 +51,7 @@ export interface RecycleResult { count: number; skipped?: number; submissions?: 
 export interface TrashedMenu { id: Id; code: string; name: string; locale: string; deleted_at: string; item_count: number }
 export interface TrashedForm { id: Id; code: string; name: string; deleted_at: string; submission_count: number }
 export interface TrashedSubmission { id: Id; form_id: Id; form_code: string; form_name: string; status: string; created_at: string; deleted_at: string; summary: Array<{label: string; value: string}> }
-export interface TrashedSubmissionList { list: TrashedSubmission[]; total: number; page: number; pageSize: number }
+/** 回收站列表（与核心回收站列表相同的分页结构）。 */
+export interface RecycleList<T> { list: T[]; total: number; page: number; pageSize: number }
+export type TrashedSubmissionList = RecycleList<TrashedSubmission>;
 export interface TrashedMember { id: Id; admin_id: Id; username: string; real_name: string; deleted_at: string; manageable: boolean; roles: Array<{id: Id; name: string; status: number}> }

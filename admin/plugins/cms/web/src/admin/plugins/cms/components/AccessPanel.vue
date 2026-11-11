@@ -35,7 +35,7 @@ async function remove(member:SiteMember){if(!props.can('cms:access:members')||!m
 const recycleOpen=ref(false);
 /** 回收站：被移除的成员身份，恢复时带回一起移除的角色；不在可管理范围内的账号只显示不可操作。 */
 const recycleSources=computed<RecycleSource<TrashedMember>[]>(()=>[{key:'members',label:t('cms.recycle.members'),canView:props.can('cms:access:recycle'),canRestore:props.can('cms:access:restore'),canDestroy:props.can('cms:access:destroy'),
-  load:async()=>{const rows=await cmsApi.trashedMembers(props.scope.site_id);return {rows,total:rows.length,pageSize:Math.max(rows.length,1)};},
+  load:async(page)=>{const data=await cmsApi.trashedMembers(props.scope.site_id,page);return {rows:data.list,total:data.total,pageSize:data.pageSize};},
   title:row=>row.real_name?`${row.real_name} (${row.username})`:row.username||row.admin_id,meta:row=>row.roles.length?t('cms.recycle.memberMeta',{roles:row.roles.map(role=>role.name).join('、')}):t('cms.labels.noRolesAssigned'),
   actionable:row=>row.manageable,
   restore:ids=>cmsApi.restoreMembers({site_id:props.scope.site_id,ids}),destroy:ids=>cmsApi.destroyMembers({site_id:props.scope.site_id,ids}),

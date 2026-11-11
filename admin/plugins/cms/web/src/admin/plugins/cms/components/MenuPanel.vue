@@ -26,7 +26,7 @@ async function toggle(row:FormData,value:unknown){if(!props.can('cms:menu:status
 const recycleOpen=ref(false);
 /** 回收站：当前语言已删除的导航组，恢复时带回一起删除的导航项。 */
 const recycleSources=computed<RecycleSource<TrashedMenu>[]>(()=>[{key:'menus',label:t('cms.recycle.menus'),canView:props.can('cms:menu:recycle'),canRestore:props.can('cms:menu:restore'),canDestroy:props.can('cms:menu:destroy'),
-  load:async()=>{const rows=await cmsApi.trashedMenus(props.scope);return {rows,total:rows.length,pageSize:Math.max(rows.length,1)};},
+  load:async(page)=>{const data=await cmsApi.trashedMenus(props.scope,page);return {rows:data.list,total:data.total,pageSize:data.pageSize};},
   title:row=>row.name,meta:row=>t('cms.recycle.menuMeta',{code:row.code,count:row.item_count}),
   restore:ids=>cmsApi.restoreMenus({...props.scope,ids}),destroy:ids=>cmsApi.destroyMenus({...props.scope,ids}),
   destroyBody:row=>t('cms.recycle.destroyMenuBody',{name:row.name})}]);

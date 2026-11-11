@@ -38,6 +38,38 @@ final class RecycleBin
         return array_values(array_unique($result));
     }
 
+    /**
+     * 回收站列表的分页参数（与核心回收站列表一致：page 从 1 开始，pageSize 1–100，默认 20）。
+     * @return array{0:int,1:int}
+     */
+    public static function paging(mixed $page, mixed $pageSize): array
+    {
+        $page = filter_var($page, FILTER_VALIDATE_INT);
+        $size = filter_var($pageSize, FILTER_VALIDATE_INT);
+        return [max(1, min(10000, $page === false ? 1 : $page)), max(1, min(100, $size === false ? self::PAGE_SIZE : $size))];
+    }
+
+    /** @return array{list:list<array>,total:int,page:int,pageSize:int} */
+    public static function result(array $list, int $total, int $page, int $pageSize): array
+    {
+        return ['list' => $list, 'total' => $total, 'page' => $page, 'pageSize' => $pageSize];
+    }
+
+    /**
+     * 一次查询统计与父记录一起删除的子记录数：按 (父 id, deleted_at) 分组，返回 "父id|deleted_at" => 数量。
+     * @param list<string> $parents
+     * @return array<string,int>
+     */
+    public static function childCounts(Builder $children, string $parentColumn, array $parents): array
+    {
+        if ($parents === []) return [];
+        $counts = [];
+        foreach ($children->whereIn($parentColumn, $parents)->toBase()->selectRaw($parentColumn . ' as parent_id, deleted_at, count(*) as aggregate')->groupBy($parentColumn, 'deleted_at')->get() as $row) {
+            $counts[$row->parent_id . '|' . $row->deleted_at] = (int)$row->aggregate;
+        }
+        return $counts;
+    }
+
     /** 本次删除使用的时间（UTC，与其他 CMS 时间一致）。 */
     public static function now(): string
     {

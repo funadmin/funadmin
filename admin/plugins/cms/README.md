@@ -454,4 +454,7 @@ Blade 主题使用 `{{ $cms->tag('form', ['name' => 'contact']) }}`（返回值�
 - 删除表单不再要求没有提交：提交随表单进入回收站，表单代码可以立即重新使用。
 - 菜单项、角色权限、成员角色的保存改为按差异同步，原样保存不再产生软删除行，这些行也不进入回收站。
 - 删除时间与其他 CMS 时间一样写 UTC（`CmsModel::freshTimestamp()`）。删除时间精确到秒：同一秒内先删除子记录、再删除父记录时，恢复父记录会把那条子记录一起带回。
+- 与之前的 CMS 站点操作一样，站点操作只在宿主授权之内生效：非平台管理员除了站点角色里的回收站操作，宿主角色还必须授予对应的接口权限码（`cms:menus:recycle`、`cms:menus:restore`、`cms:menus:destroy`、`cms:forms:recycle`、`cms:forms:restore`、`cms:forms:destroy`、`cms:forms:submission-recycle`、`cms:forms:submission-restore`、`cms:forms:submission-destroy`、`cms:access:member-recycle`、`cms:access:member-restore`、`cms:access:member-destroy`），否则回收站入口不显示、接口返回 403。升级后请在“角色管理”中为需要的宿主角色勾选这些权限。
+- 删除仍有提交的表单会把提交一起移入回收站，因此除“管理表单”外还需要“删除提交”（`cms:form:delete`）本站权限，否则返回 403；没有提交的表单只需“管理表单”。
+- 回收站列表分页（`page`、`pageSize`，pageSize 1–100，默认 20），返回 `list`、`total`、`page`、`pageSize`，与核心回收站列表一致。
 - 回收站操作只预设给“站点管理员”。已有站点的管理员角色在启用时补齐一次（`FormPermissionUpgrade::backfillRecycle()`，站点设置记 `recycle_permissions_backfilled_at`），之后收回的权限不会被补回。

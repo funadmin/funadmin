@@ -78,17 +78,29 @@ final class SiteRoleService
             $this->audit($siteId,$actorId,'member',$adminId,'member.remove',$before,[]);
         });
     }
-    /** 回收站：本站被移除的成员身份（差异同步移除的单个角色不算成员删除，不在这里）。roles 为恢复时会带回的角色。 */
-    public function trashedMembers(string $siteId,string $actorId): array
+    /**
+     * 回收站：本站被移除的成员身份（分页；差异同步移除的单个角色不算成员删除，不在这里）。roles 为恢复时会带回的角色。
+     * 账号、角色记录与角色名按页批量读取。
+     * @return array{list:list<array>,total:int,page:int,pageSize:int}
+     */
+    public function trashedMembers(string $siteId,string $actorId,mixed $page=1,mixed $pageSize=RecycleBin::PAGE_SIZE): array
     {
-        $siteId=Input::id($siteId);$rows=[];
-        foreach(SiteAdmin::onlyTrashed()->forSite($siteId)->orderByDesc('deleted_at')->orderByDesc('id')->limit(200)->get() as $member){
-            $at=RecycleBin::deletedAt($member);$adminId=(string)$member->admin_id;$admin=Admin::where('id',$adminId)->first();
-            $roleIds=array_map('strval',SiteRoleMember::onlyTrashed()->forSite($siteId)->where('admin_id',$adminId)->where('deleted_at',$at)->pluck('role_id')->all());
-            $roles=$roleIds?array_map(static fn(array $r): array=>['id'=>$r['id'],'name'=>$r['name'],'status'=>(int)$r['status']],Input::rows(SiteRole::query()->forSite($siteId)->whereIn('id',$roleIds)->orderBy('id')->get())):[];
-            $rows[]=['id'=>(string)$member->getRawOriginal('id'),'admin_id'=>$adminId,'username'=>$admin?->username??'','real_name'=>$admin?->real_name??'','deleted_at'=>$at,'roles'=>$roles,'manageable'=>$this->manageable($actorId,$adminId)];
+        $siteId=Input::id($siteId);[$page,$pageSize]=RecycleBin::paging($page,$pageSize);
+        $query=SiteAdmin::onlyTrashed()->forSite($siteId);$total=(clone $query)->count();
+        $members=$query->orderByDesc('deleted_at')->orderByDesc('id')->forPage($page,$pageSize)->get()->all();
+        $adminIds=array_values(array_unique(array_map(static fn($m): string=>(string)$m->admin_id,$members)));
+        $admins=$adminIds?Admin::whereIn('id',$adminIds)->get()->keyBy(fn($a)=>(string)$a->id):collect();
+        $links=[];if($adminIds)foreach(SiteRoleMember::onlyTrashed()->forSite($siteId)->whereIn('admin_id',$adminIds)->get(['admin_id','role_id','deleted_at']) as $link)$links[$link->admin_id.'|'.$link->getRawOriginal('deleted_at')][]=(string)$link->role_id;
+        $roleIds=array_values(array_unique(array_merge([],...array_values($links))));
+        $roles=[];if($roleIds)foreach(Input::rows(SiteRole::query()->forSite($siteId)->whereIn('id',$roleIds)->orderBy('id')->get()) as $r)$roles[$r['id']]=['id'=>$r['id'],'name'=>$r['name'],'status'=>(int)$r['status']];
+        $super=(new SiteAccess())->isSuper($actorId);$rows=[];
+        foreach($members as $member){
+            $at=RecycleBin::deletedAt($member);$adminId=(string)$member->admin_id;$admin=$admins[$adminId]??null;
+            $memberRoles=array_values(array_filter(array_map(static fn(string $id)=>$roles[$id]??null,$links[$adminId.'|'.$at]??[])));
+            usort($memberRoles,static fn($x,$y)=>(int)$x['id']<=>(int)$y['id']);
+            $rows[]=['id'=>(string)$member->getRawOriginal('id'),'admin_id'=>$adminId,'username'=>$admin?->username??'','real_name'=>$admin?->real_name??'','deleted_at'=>$at,'roles'=>$memberRoles,'manageable'=>$this->manageableAdmin($actorId,$admin&&$admin->deleted_at===null?$admin:null,$super)];
         }
-        return $rows;
+        return RecycleBin::result($rows,$total,$page,$pageSize);
     }
     /**
      * 恢复成员身份，并带回与它一起移除的角色。校验与分配角色相同：账号必须可管理；角色已删除或停用时跳过（计入 skipped）；
@@ -138,8 +150,13 @@ final class SiteRoleService
     private function role(string $siteId,string $id): array { return Input::row(SiteRole::query()->forSite($siteId)->where('id',$id)->first())??throw new \InvalidArgumentException('角色不属于本站',422); }
     private function manageable(string $actorId,string $targetId): bool
     {
-        $target=Admin::where('id',Input::id($targetId))->whereNull('deleted_at')->first();if(!$target)return false;
-        if((new SiteAccess())->isSuper($actorId))return true;
+        return $this->manageableAdmin($actorId,Admin::where('id',Input::id($targetId))->whereNull('deleted_at')->first());
+    }
+    /** 已读出的账号行（null 表示不存在或已删除）是否可由操作者管理；$super 可由调用方预先算好。 */
+    private function manageableAdmin(string $actorId,?Admin $target,?bool $super=null): bool
+    {
+        if(!$target)return false;$targetId=(string)$target->id;
+        if($super??(new SiteAccess())->isSuper($actorId))return true;
         if($actorId===$targetId||(int)$targetId===(int)config('auth.super_admin_id',1))return false;
         // Host scope is request-bound. A service caller must never spoof that identity.
         if((string)(request()?->context['admin']['id']??'')!==$actorId)return false;

@@ -24,7 +24,7 @@ final class Menus extends Base
     public function remove(): Response { return $this->action(function(): bool {(new MenuService())->remove($this->site('cms:menu:delete'),$this->locale(),\app\cms\service\Input::id($this->input()['id']??''));return true;}); }
     /** 回收站：已删除的导航组（当前语言）。恢复与彻底删除各需独立的本站权限；彻底删除不可恢复。 */
     #[Get('/recycle')]
-    public function recycle(): Response { return $this->action(fn()=>(new MenuService())->trashed($this->site('cms:menu:recycle'),$this->locale())); }
+    public function recycle(): Response { return $this->action(fn()=>(new MenuService())->trashed($this->site('cms:menu:recycle'),$this->locale(),$this->input()['page']??1,$this->input()['pageSize']??20)); }
     #[Post('/restore')]
     public function restore(): Response { return $this->action(fn()=>(new MenuService())->restore($this->site('cms:menu:restore'),$this->input()['ids']??null)); }
     #[Post('/destroy')]

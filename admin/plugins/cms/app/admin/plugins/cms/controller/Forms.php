@@ -53,7 +53,7 @@ final class Forms extends Base
     {
         return $this->action(function (): void {
             $site = $this->site('cms:form:manage');
-            (new FormService())->delete($site, Input::id($this->input()['id'] ?? ''));
+            (new FormService())->delete($site, Input::id($this->input()['id'] ?? ''), $this->actor());
         });
     }
     #[Get('/submissions')]
@@ -156,7 +156,7 @@ final class Forms extends Base
     #[Get('/recycle')]
     public function recycle(): Response
     {
-        return $this->action(fn(): array => (new FormRecycleBin())->trashedForms($this->site('cms:form:recycle')));
+        return $this->action(fn(): array => (new FormRecycleBin())->trashedForms($this->site('cms:form:recycle'), $this->input()['page'] ?? 1, $this->input()['pageSize'] ?? 20));
     }
     #[Post('/restore')]
     public function restore(): Response
@@ -172,7 +172,7 @@ final class Forms extends Base
     #[Get('/submissions/recycle')]
     public function submissionRecycle(): Response
     {
-        return $this->action(fn(): array => (new FormRecycleBin())->trashedSubmissions($this->site('cms:form:submission-recycle'), (int)($this->input()['page'] ?? 1)));
+        return $this->action(fn(): array => (new FormRecycleBin())->trashedSubmissions($this->site('cms:form:submission-recycle'), $this->input()['page'] ?? 1, $this->input()['pageSize'] ?? 20));
     }
     #[Post('/submissions/restore')]
     public function submissionRestore(): Response

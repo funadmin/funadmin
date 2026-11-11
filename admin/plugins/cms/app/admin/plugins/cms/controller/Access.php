@@ -22,7 +22,7 @@ final class Access extends Base
     public function assign(): Response { return $this->action(function():bool {(new SiteRoleService())->assign($this->site('cms:access:members'),$this->actor(),Input::id($this->input()['admin_id']??''),$this->input()['role_ids']??[]);return true;}); }
     /** 回收站：被移除的成员身份及与它一起移除的角色。恢复与彻底删除各需独立的本站权限；彻底删除不可恢复。 */
     #[Get('/members/recycle')]
-    public function memberRecycle(): Response { return $this->action(fn()=>(new SiteRoleService())->trashedMembers($this->site('cms:access:recycle'),$this->actor())); }
+    public function memberRecycle(): Response { return $this->action(fn()=>(new SiteRoleService())->trashedMembers($this->site('cms:access:recycle'),$this->actor(),$this->input()['page']??1,$this->input()['pageSize']??20)); }
     #[Post('/members/restore')]
     public function memberRestore(): Response { return $this->action(fn()=>(new SiteRoleService())->restoreMembers($this->site('cms:access:restore'),$this->actor(),$this->input()['ids']??null)); }
     #[Post('/members/destroy')]

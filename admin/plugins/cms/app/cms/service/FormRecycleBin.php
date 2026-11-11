@@ -26,18 +26,25 @@ final class FormRecycleBin
         $this->storage = $storage ?? new FormFileStorage();
     }
 
-    /** @return list<array{id:string,code:string,name:string,deleted_at:string,submission_count:int}> */
-    public function trashedForms(string $siteId): array
+    /**
+     * 表单回收站（分页）；submission_count 为与表单一起删除（恢复时会带回）的提交数。
+     * @return array{list:list<array>,total:int,page:int,pageSize:int}
+     */
+    public function trashedForms(string $siteId, mixed $page = 1, mixed $pageSize = RecycleBin::PAGE_SIZE): array
     {
         $siteId = Input::id($siteId);
+        [$page, $pageSize] = RecycleBin::paging($page, $pageSize);
+        $query = Form::onlyTrashed()->where('site_id', $siteId);
+        $total = (clone $query)->count();
+        $forms = $query->orderByDesc('deleted_at')->orderByDesc('id')->forPage($page, $pageSize)->get();
+        $counts = RecycleBin::childCounts(FormSubmission::onlyTrashed()->where('site_id', $siteId), 'form_id', array_map(static fn($f): string => (string)$f->getRawOriginal('id'), $forms->all()));
         $rows = [];
-        foreach (Form::onlyTrashed()->where('site_id', $siteId)->orderByDesc('deleted_at')->orderByDesc('id')->limit(200)->get() as $form) {
+        foreach ($forms as $form) {
             $at = RecycleBin::deletedAt($form);
             $id = (string)$form->getRawOriginal('id');
-            $rows[] = ['id' => $id, 'code' => (string)$form->code, 'name' => (string)$form->name, 'deleted_at' => $at,
-                'submission_count' => FormSubmission::onlyTrashed()->where('site_id', $siteId)->where('form_id', $id)->where('deleted_at', $at)->count()];
+            $rows[] = ['id' => $id, 'code' => (string)$form->code, 'name' => (string)$form->name, 'deleted_at' => $at, 'submission_count' => $counts[$id . '|' . $at] ?? 0];
         }
-        return $rows;
+        return RecycleBin::result($rows, $total, $page, $pageSize);
     }
 
     /** @return array{count:int,submissions:int} */
@@ -88,16 +95,16 @@ final class FormRecycleBin
     }
 
     /** @return array{list:list<array>,total:int,page:int,pageSize:int} */
-    public function trashedSubmissions(string $siteId, int $page): array
+    public function trashedSubmissions(string $siteId, mixed $page = 1, mixed $pageSize = RecycleBin::PAGE_SIZE): array
     {
         $siteId = Input::id($siteId);
-        $page = max(1, min(10000, $page));
+        [$page, $pageSize] = RecycleBin::paging($page, $pageSize);
         $forms = [];
         foreach (Form::query()->where('site_id', $siteId)->get(['id', 'code', 'name']) as $form) $forms[(string)$form->id] = ['form_code' => (string)$form->code, 'form_name' => (string)$form->name];
         $query = FormSubmission::onlyTrashed()->where('site_id', $siteId)->whereIn('form_id', array_keys($forms) ?: ['0']);
         $total = (clone $query)->count();
         $list = [];
-        foreach ($query->orderByDesc('deleted_at')->orderByDesc('id')->offset(($page - 1) * RecycleBin::PAGE_SIZE)->limit(RecycleBin::PAGE_SIZE)->get() as $row) {
+        foreach ($query->orderByDesc('deleted_at')->orderByDesc('id')->forPage($page, $pageSize)->get() as $row) {
             $item = Input::row($row);
             $values = is_string($item['values']) ? (json_decode($item['values'], true) ?: []) : (array)$item['values'];
             $fields = is_string($item['fields']) ? (json_decode($item['fields'], true) ?: []) : (array)$item['fields'];
@@ -108,7 +115,7 @@ final class FormRecycleBin
             }
             $list[] = ['id' => $item['id'], 'form_id' => $item['form_id'], 'status' => $item['status'], 'created_at' => $item['created_at'], 'deleted_at' => (string)$row->getRawOriginal('deleted_at'), 'summary' => $summary] + $forms[$item['form_id']];
         }
-        return ['list' => $list, 'total' => $total, 'page' => $page, 'pageSize' => RecycleBin::PAGE_SIZE];
+        return RecycleBin::result($list, $total, $page, $pageSize);
     }
 
     /** @return array{count:int} */

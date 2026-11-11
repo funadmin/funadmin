@@ -100,14 +100,19 @@ final class FormService
     /**
      * 删除表单（软删除，进入表单回收站）：它的未删除提交与附件记录一起软删除，共用一个删除时间，恢复表单时一并带回。
      * 时间线（cms_form_event）是只追加的历史表，保留；磁盘附件只在回收站彻底删除时清理。删除后表单代码可以重新使用。
+     * 传入操作者时（后台接口），表单仍有未删除的提交就同时要求“删除提交”（cms:form:delete）本站权限，否则 403；
+     * 在锁住表单行之后检查，与并发的新提交串行。
      */
-    public function delete(string $siteId, string $formId): void
+    public function delete(string $siteId, string $formId, ?string $actorId = null): void
     {
         $siteId = Input::id($siteId);
         $formId = Input::id($formId);
-        Db::transaction(function () use ($siteId, $formId): void {
+        Db::transaction(function () use ($siteId, $formId, $actorId): void {
             (new SiteService())->lock($siteId);
             $this->locked($siteId, $formId);
+            if ($actorId !== null && FormSubmission::query()->where('site_id', $siteId)->where('form_id', $formId)->exists()) {
+                if (!in_array('cms:form:delete', (new SiteAuthorization())->effective($siteId, $actorId), true)) throw new InvalidArgumentException('表单仍有提交，删除表单需要同时具备“删除提交”本站权限', 403);
+            }
             $at = RecycleBin::now();
             $submissions = FormSubmission::query()->where('site_id', $siteId)->where('form_id', $formId)->select('id');
             RecycleBin::trash(FormFile::query()->where('site_id', $siteId)->whereIn('submission_id', $submissions), $at);

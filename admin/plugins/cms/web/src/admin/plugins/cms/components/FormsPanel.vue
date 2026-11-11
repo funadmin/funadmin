@@ -27,7 +27,7 @@ const recycleOpen=ref(false);
 const recycleSources=computed<RecycleSource<any>[]>(()=>{
   const site=props.scope.site_id;
   const forms:RecycleSource<TrashedForm>={key:'forms',label:t('cms.recycle.forms'),canView:props.can('cms:form:recycle'),canRestore:props.can('cms:form:restore'),canDestroy:props.can('cms:form:destroy'),
-    load:async()=>{const rows=await cmsApi.trashedForms(site);return {rows,total:rows.length,pageSize:Math.max(rows.length,1)};},
+    load:async(page)=>{const data=await cmsApi.trashedForms(site,page);return {rows:data.list,total:data.total,pageSize:data.pageSize};},
     title:row=>row.name,meta:row=>t('cms.recycle.formMeta',{code:row.code,count:row.submission_count}),
     restore:ids=>cmsApi.restoreForms({site_id:site,ids}),destroy:ids=>cmsApi.destroyForms({site_id:site,ids}),
     destroyBody:row=>t('cms.recycle.destroyFormBody',{name:row.name})};
@@ -90,7 +90,7 @@ async function toggle(form:CmsForm,enabled:boolean){
   await loadForms();
 }
 async function removeForm(form:CmsForm){
-  if(!canManage.value)return;
+  if(!canManage.value||form.submission_count&&!canDelete.value)return;
   notice.value='';
   const done=await run(async()=>{await cmsApi.deleteForm({site_id:props.scope.site_id,id:form.id});return true;});
   if(done&&filters.form_id===form.id)filters.form_id='';
@@ -146,7 +146,7 @@ onMounted(()=>void refresh());onBeforeUnmount(()=>generation++);
           <el-table-column :label="t('cms.forms.actions')" min-width="200"><template #default="{row}">
             <el-button v-if="canManage" link type="primary" @click="openEditor(row as CmsForm)">{{ t('cms.forms.edit') }}</el-button>
             <el-button link @click="embed=row as CmsForm">{{ t('cms.forms.embedCode') }}</el-button>
-            <el-popconfirm v-if="canManage" :title="row.submission_count?t('cms.forms.deleteFormWithSubmissionsConfirm',{name:row.name,count:row.submission_count}):t('cms.forms.deleteFormConfirm',{name:row.name})" width="300" :confirm-button-text="t('cms.forms.confirmDelete')" :cancel-button-text="t('cms.forms.cancel')" @confirm="removeForm(row as CmsForm)"><template #reference><el-button link type="danger" :disabled="busy">{{ t('cms.forms.delete') }}</el-button></template></el-popconfirm>
+            <el-popconfirm v-if="canManage&&(!row.submission_count||canDelete)" :title="row.submission_count?t('cms.forms.deleteFormWithSubmissionsConfirm',{name:row.name,count:row.submission_count}):t('cms.forms.deleteFormConfirm',{name:row.name})" width="300" :confirm-button-text="t('cms.forms.confirmDelete')" :cancel-button-text="t('cms.forms.cancel')" @confirm="removeForm(row as CmsForm)"><template #reference><el-button link type="danger" :disabled="busy">{{ t('cms.forms.delete') }}</el-button></template></el-popconfirm>
           </template></el-table-column>
         </el-table>
       </el-tab-pane>
