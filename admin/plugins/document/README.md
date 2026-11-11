@@ -31,3 +31,11 @@
 - 仍保持内置原样的目录和文档会移动到新结构，并更新为新版正文（仍是第 1 版，不产生新的历史版本）；
 - 已清空且未修改的旧内置子目录（架构设计、安装部署、后端开发、前端开发、目录与 Manifest、生命周期与权限）会被删除；
 - 在后台编辑、发布、归档或调整过的文档和目录保持原样，不会被覆盖或移动。
+
+## 1.5.0 统一软删除与回收站
+
+升级：在插件中心对技术文档执行「更新」（执行迁移 `004_soft_delete.sql`）后重新启用。已安装的文档插件必须执行 004：1.5.0 的代码按新列读写（`deleted_at`、`deleted_token`、目录关联表的 `id`），只替换代码而不执行迁移时文档读写会报错。004 按 information_schema 判断后执行，可以重复执行，存量数据全部保留。
+
+- 除只追加的历史表 `document_revisions`、`document_events` 外，其余 5 张表都有 `deleted_at DATETIME NULL` 及其索引，并加 `deleted_token`；唯一索引保持原名，改为“原列 + `deleted_token`”，删除后可重新使用相同的 slug。已软删除的文档回填 `deleted_token = id`。
+- **锁表与复制**：`documents.deleted_at` 由 TIMESTAMP 改为 DATETIME（`MODIFY` 会复制整表）；`document_category_links` 新增自增 `id` 主键（原主键改为唯一索引 `uk_document_category_links_pk`，整表重建）。其余加列、加索引也会短暂持有元数据锁；大表请在低峰期升级。
+- 后台文档与目录的删除都是软删除，列表「回收站」可恢复或彻底删除（权限 `document:document:recycle|recover|destroy`、`document:category:recycle|restore|destroy`）。恢复撞上已有相同 slug 时返回 409；彻底删除只作用于回收站中的记录，不可恢复。

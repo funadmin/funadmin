@@ -40,3 +40,7 @@ node scripts/build-oss.mjs
 ```
 
 开发 ZIP 默认无可信签名，不能绕过插件中心的上传包签名校验。可从本地源码安装，或使用插件打包命令和部署方自己的签名密钥产生可信分发包。
+
+## 1.1.0 软删除表结构
+
+升级：在插件中心更新 OSS（执行迁移 `002_soft_delete.sql`）后重新启用。已安装的 OSS 插件必须执行 002：1.1.0 的代码按 `deleted_at` 过滤配置，只替换代码而不执行迁移时读取配置会报错。002 只给 `oss_profile` 加 `deleted_at DATETIME NULL` 与索引 `idx_oss_profile_deleted_at`；字符串主键 `id` 不变（附件 driver `oss_<id>` 与当前配置仍按它引用），没有非主键唯一索引，因此不加 `deleted_token`。`oss_setting` 是单行设置表，不加软删除。002 可以重复执行；不改列类型、不加主键，按 MySQL 8.0 在线 DDL 执行，只在开始和结束时短暂持有元数据锁。本版不新增删除功能。
