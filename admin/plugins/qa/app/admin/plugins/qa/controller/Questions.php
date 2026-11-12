@@ -2,7 +2,8 @@
 declare(strict_types=1);
 namespace app\admin\plugins\qa\controller;
 use app\cms\service\Input;
-use app\qa\service\{AdminQuestionService,AttachmentService};
+use app\qa\service\AdminQuestionService;
+use app\qa\service\AttachmentService;
 use app\qa\service\QaRecycleBin;
 use app\admin\plugins\qa\service\AdminEndpoint;
 use app\common\controller\AdminController;
