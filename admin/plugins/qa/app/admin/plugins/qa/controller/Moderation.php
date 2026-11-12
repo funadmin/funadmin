@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 namespace app\admin\plugins\qa\controller;
+
+use OpenApi\Annotations as OA;
+
 use app\common\controller\AdminController;
 use app\cms\service\ContributionService;
 use app\cms\service\Input;
@@ -13,6 +16,26 @@ use app\cms\model\MemberSubmission;
 #[RouteGroup('/admin/plugins/qa/moderation')]
 final class Moderation extends AdminController
 {
+    /**
+     * 获取待审核或指定状态的问题与回答（每页 20 条）。
+     *
+     * @OA\Get(
+     *     path="/admin/plugins/qa/moderation",
+     *     operationId="admin_plugins_qa_controller_Moderation_index_get",
+     *     tags={"问答审核"},
+     *     summary="获取待审核或指定状态的问题与回答（每页 20 条）。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}}},
+     *     @OA\Parameter(name="site_id", in="query", required=true, description="站点 ID。", @OA\Schema(type="string", pattern="^[1-9][0-9]{0,19}$")),
+     *     @OA\Parameter(name="locale", in="query", required=false, description="内容语言代码，默认 zh-cn。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="status", in="query", required=false, description="投稿状态，默认 pending。", @OA\Schema(type="string", enum={"pending", "published", "rejected", "withdrawn", "hidden"})),
+     *     @OA\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\Schema(type="integer", minimum=1)),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Get('')]
     public function index(): Response
     {
@@ -30,6 +53,36 @@ final class Moderation extends AdminController
             return ['items'=>$items,'total'=>$total,'page'=>$page,'limit'=>20];
         });
     }
+    /**
+     * 审核问题或回答（通过或驳回）。
+     *
+     * @OA\Post(
+     *     path="/admin/plugins/qa/moderation/review",
+     *     operationId="admin_plugins_qa_controller_Moderation_review_post",
+     *     tags={"问答审核"},
+     *     summary="审核问题或回答（通过或驳回）。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"site_id", "id", "lock_version", "decision"},
+     *             @OA\Property(property="site_id", type="string", pattern="^[1-9][0-9]{0,19}$", description="站点 ID。"),
+     *             @OA\Property(property="id", type="string", pattern="^[1-9][0-9]{0,19}$", description="投稿 ID。"),
+     *             @OA\Property(property="lock_version", type="integer", description="投稿版本。"),
+     *             @OA\Property(property="decision", type="string", description="审核决定。"),
+     *             @OA\Property(property="reason", type="string", description="驳回原因，最多 1000 字。")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=409, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/review')]
     public function review(): Response
     {

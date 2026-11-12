@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\document\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\document\service\FeedbackService;
 use app\document\service\PublicDocumentService;
 use app\document\service\ReaderPage;
@@ -18,6 +20,37 @@ use support\annotation\route\RouteGroup;
 #[RouteGroup('/docs')]
 final class Reader
 {
+    /**
+     * 文档阅读首页：无查询参数时显示第一篇公开文档；按范围或目录访问时跳转到该处第一篇文档。
+     *
+     * @OA\Get(
+     *     path="/docs",
+     *     operationId="document_controller_Reader_index_get",
+     *     tags={"文档阅读"},
+     *     summary="文档阅读首页：无查询参数时显示第一篇公开文档；按范围或目录访问时跳转到该处第一篇文档。",
+     *     security={},
+     *     @OA\Parameter(name="keyword", in="query", required=false, description="搜索关键字。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="scope", in="query", required=false, description="文档范围。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="categoryId", in="query", required=false, description="目录 ID。", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="服务端渲染的 HTML 页面。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string"))),
+     *     @OA\Response(response=302, description="跳转到范围或目录下的第一篇文档。", @OA\Header(header="Location", description="跳转地址。", @OA\Schema(type="string"))),
+     *     @OA\Response(response="default", description="错误页面（HTML）。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string")))
+     * )
+     *
+     * @OA\Get(
+     *     path="/docs/",
+     *     operationId="document_controller_Reader_index_slash_get",
+     *     tags={"文档阅读"},
+     *     summary="文档阅读首页：无查询参数时显示第一篇公开文档；按范围或目录访问时跳转到该处第一篇文档。",
+     *     security={},
+     *     @OA\Parameter(name="keyword", in="query", required=false, description="搜索关键字。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="scope", in="query", required=false, description="文档范围。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="categoryId", in="query", required=false, description="目录 ID。", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="服务端渲染的 HTML 页面。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string"))),
+     *     @OA\Response(response=302, description="跳转到范围或目录下的第一篇文档。", @OA\Header(header="Location", description="跳转地址。", @OA\Schema(type="string"))),
+     *     @OA\Response(response="default", description="错误页面（HTML）。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string")))
+     * )
+     */
     #[Get('')]
     #[Get('/')]
     public function index(Request $request): Response
@@ -25,9 +58,33 @@ final class Reader
         return $this->page($request);
     }
 
+    /**
+     * 阅读页样式表。
+     *
+     * @OA\Get(
+     *     path="/docs/assets/reader.css",
+     *     operationId="document_controller_Reader_stylesheet_get",
+     *     tags={"文档阅读"},
+     *     summary="阅读页样式表。",
+     *     security={},
+     *     @OA\Response(response=200, description="阅读页样式表。", @OA\MediaType(mediaType="text/css", @OA\Schema(type="string")))
+     * )
+     */
     #[Get('/assets/reader.css')]
     public function stylesheet(): Response { return $this->asset('reader.css', 'text/css; charset=utf-8'); }
 
+    /**
+     * 阅读页脚本。
+     *
+     * @OA\Get(
+     *     path="/docs/assets/reader.js",
+     *     operationId="document_controller_Reader_script_get",
+     *     tags={"文档阅读"},
+     *     summary="阅读页脚本。",
+     *     security={},
+     *     @OA\Response(response=200, description="阅读页脚本。", @OA\MediaType(mediaType="text/javascript", @OA\Schema(type="string")))
+     * )
+     */
     #[Get('/assets/reader.js')]
     public function script(): Response { return $this->asset('reader.js', 'text/javascript; charset=utf-8'); }
 
@@ -36,6 +93,21 @@ final class Reader
         return new Response(200, ['Content-Type'=>$type, 'Cache-Control'=>'public, max-age=86400, immutable', 'X-Content-Type-Options'=>'nosniff'], (string)file_get_contents(ReaderPage::assetPath($name)));
     }
 
+    /**
+     * 文档阅读页；文档不存在或未公开时返回 404 页面。
+     *
+     * @OA\Get(
+     *     path="/docs/{slug}",
+     *     operationId="document_controller_Reader_detail_get",
+     *     tags={"文档阅读"},
+     *     summary="文档阅读页；文档不存在或未公开时返回 404 页面。",
+     *     security={},
+     *     @OA\Parameter(name="slug", in="path", required=true, description="文档标识。", @OA\Schema(type="string", pattern="^[a-z0-9][a-z0-9-]{0,119}$")),
+     *     @OA\Response(response=200, description="服务端渲染的 HTML 页面。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string"))),
+     *     @OA\Response(response=404, description="文档不存在或尚未公开（HTML 页面）。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string"))),
+     *     @OA\Response(response="default", description="错误页面（HTML）。", @OA\MediaType(mediaType="text/html", @OA\Schema(type="string")))
+     * )
+     */
     #[Get('/{slug:[a-z0-9][a-z0-9-]{0,119}}')]
     public function detail(Request $request, string $slug): Response
     {
@@ -45,6 +117,37 @@ final class Reader
     /**
      * 读者反馈。只接受同源的 JSON 请求：跨站页面无法不经预检发送 application/json，
      * 浏览器带上的 Origin / Sec-Fetch-Site 也必须是本站。
+     *
+     * @OA\Post(
+     *     path="/docs/{slug}/feedback",
+     *     operationId="document_controller_Reader_feedback_post",
+     *     tags={"文档阅读"},
+     *     summary="提交读者反馈；只接受同源 application/json 请求。",
+     *     description="成功时 code=0。跨站来源返回 403，非 JSON 返回 415，频率限制返回 429。",
+     *     security={},
+     *     @OA\Parameter(name="slug", in="path", required=true, description="文档标识。", @OA\Schema(type="string", pattern="^[a-z0-9][a-z0-9-]{0,119}$")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"helpful", "visitor"},
+     *             description="字段由 FeedbackService::submit 校验。",
+     *             additionalProperties=true,
+     *             @OA\Property(property="helpful", type="boolean", description="是否有帮助。"),
+     *             @OA\Property(property="visitor", type="string", pattern="^[A-Za-z0-9_-]{16,64}$", description="浏览器生成的访客标识。"),
+     *             @OA\Property(property="reasons", description="原因选项。", type="array", @OA\Items(type="string")),
+     *             @OA\Property(property="comment", type="string", description="补充说明。")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="成功。", @OA\JsonContent(ref="#/components/schemas/PluginEnvelope")),
+     *     @OA\Response(response=403, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=404, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=415, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=422, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=429, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=500, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response="default", ref="#/components/responses/PluginError")
+     * )
      */
     #[Post('/{slug:[a-z0-9][a-z0-9-]{0,119}}/feedback')]
     public function feedback(Request $request, string $slug): Response

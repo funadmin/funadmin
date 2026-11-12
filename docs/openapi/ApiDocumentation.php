@@ -74,6 +74,29 @@ use OpenApi\Annotations as OA;
  * @OA\Tag(name="后台浏览器认证")
  * @OA\Tag(name="会员 API 令牌", description="会员 API v2 令牌：登录签发、一次性轮换刷新、登出。")
  * @OA\Tag(name="会员 API 资料", description="会员 API v2 当前会员资料。")
+ * @OA\Tag(name="安装向导", description="安装向导接口：不依赖数据库和后台认证，以安装 Cookie 与 X-CSRF-TOKEN 请求头配对校验。")
+ * @OA\Tag(name="CMS 站点", description="CMS 插件后台：站点、语言、域名、站点配置与模型绑定。")
+ * @OA\Tag(name="CMS 站点权限", description="CMS 插件后台：站点角色、成员及成员回收站。")
+ * @OA\Tag(name="CMS 栏目", description="CMS 插件后台：栏目。")
+ * @OA\Tag(name="CMS 内容", description="CMS 插件后台：内容、修订、附件与预览。")
+ * @OA\Tag(name="CMS 投稿审核", description="CMS 插件后台：会员投稿审核与投稿策略。")
+ * @OA\Tag(name="CMS 自定义表单", description="CMS 插件后台：自定义表单、提交跟进与回收站。")
+ * @OA\Tag(name="CMS 导航", description="CMS 插件后台：导航及导航回收站。")
+ * @OA\Tag(name="CMS 模型", description="CMS 插件后台：内容模型。")
+ * @OA\Tag(name="CMS 模板标签", description="CMS 插件后台：模板标签。")
+ * @OA\Tag(name="CMS 前台页面", description="CMS 插件前台：按请求域名识别站点的服务端渲染页面。")
+ * @OA\Tag(name="CMS 公开表单", description="CMS 插件前台：自定义表单提交、令牌与验证码。")
+ * @OA\Tag(name="CMS 会员投稿", description="CMS 插件会员接口：使用会员 API v2 access token 识别会员。")
+ * @OA\Tag(name="文档目录", description="文档插件后台：目录及目录回收站。")
+ * @OA\Tag(name="文档管理", description="文档插件后台：文档、草稿、发布、修订及回收站。")
+ * @OA\Tag(name="文档反馈", description="文档插件后台：读者反馈。")
+ * @OA\Tag(name="文档阅读", description="文档插件前台：公开阅读页、静态资源与读者反馈。")
+ * @OA\Tag(name="云存储配置", description="OSS 插件后台：云存储配置、连接测试及配置回收站。")
+ * @OA\Tag(name="问答问题管理", description="问答插件后台：问题列表、详情、附件、关闭、置顶、删除及回收站。")
+ * @OA\Tag(name="问答回答管理", description="问答插件后台：回答隐藏、删除及回收站。")
+ * @OA\Tag(name="问答审核", description="问答插件后台：问题与回答的投稿审核。")
+ * @OA\Tag(name="问答前台页面", description="问答插件前台：服务端渲染的问题列表与详情（SEO 页面）。")
+ * @OA\Tag(name="问答会员接口", description="问答插件前台接口：浏览公开问答；提问、回答、采纳及附件下载需要会员 API v2 access token。")
  *
  * @OA\Schema(schema="DynamicObject", type="object", description="业务字段随模型、插件或已发布 Schema 变化，以元数据和服务实际返回为准。", additionalProperties=true)
  *
@@ -1529,6 +1552,22 @@ use OpenApi\Annotations as OA;
  *     description="请求过于频繁：同一 IP 每分钟 10 次，登录另按账号每分钟 5 次。",
  *     @OA\JsonContent(ref="#/components/schemas/MemberApiEnvelope"),
  *     @OA\Header(header="Retry-After", description="建议重试等待秒数。", @OA\Schema(type="integer", example=60))
+ * )
+ *
+ * @OA\Schema(
+ *     schema="PluginEnvelope",
+ *     type="object",
+ *     required={"code", "msg", "data"},
+ *     description="插件前台与会员接口信封（不含 time）。",
+ *     @OA\Property(property="code", type="integer", description="成功为 200（CMS 会员投稿、问答会员接口）或 0（CMS 公开表单、文档读者反馈）；失败时与 HTTP 状态一致。", example=200),
+ *     @OA\Property(property="msg", type="string", example="success"),
+ *     @OA\Property(property="data", description="结构由具体插件接口决定；不推断未声明的字段。")
+ * )
+ *
+ * @OA\Response(
+ *     response="PluginError",
+ *     description="插件前台或会员接口错误；HTTP 状态与响应体 code 一致。",
+ *     @OA\JsonContent(ref="#/components/schemas/PluginEnvelope")
  * )
  *
  * @OA\Response(

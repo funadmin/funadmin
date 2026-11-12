@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\cms\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\cms\service\{FormCaptcha, FormFileStorage, FormGuard, FormMessages, FormRenderer, FormService, FormSubmissionService, FormFieldCatalog, FormValidationException, SiteService};
 use app\common\service\authentication\BearerTokenExtractor;
 use app\common\service\member\MemberApiSessionService;
@@ -38,6 +40,43 @@ final class FormEndpoint
         $this->submissions = $submissions ?? new FormSubmissionService($this->forms, new FormFileStorage(), $this->guard, $this->captcha);
     }
 
+    /**
+     * 提交自定义表单；Accept: application/json 时返回 JSON，否则渲染结果页。
+     *
+     * @OA\Post(
+     *     path="/cms/forms/{code}",
+     *     operationId="cms_controller_FormEndpoint_submit_post",
+     *     tags={"CMS 公开表单"},
+     *     summary="提交自定义表单；Accept: application/json 时返回 JSON，否则渲染结果页。",
+     *     description="站点由请求域名确定，表单代码只在该站点内查找；语言取 _locale/locale 参数（须为已启用语言），否则用站点默认语言。 携带有效会员 Bearer 令牌时记录提交会员（可选）。成功时 JSON 的 code=0。令牌无效或过期返回 419，频率限制返回 429，字段校验失败返回 422。",
+     *     security={},
+     *     @OA\Parameter(name="code", in="path", required=true, description="表单代码。", @OA\Schema(type="string")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 required={"_token"},
+     *                 description="其余字段为表单定义的字段名；文件字段按表单配置上传（字段名或 字段名[]）。",
+     *                 additionalProperties=true,
+     *                 @OA\Property(property="_token", type="string", description="由 /cms/forms/{code}/token 获取的提交令牌。"),
+     *                 @OA\Property(property="_locale", type="string", description="语言代码。"),
+     *                 @OA\Property(property="_captcha_id", type="string", description="验证码 ID（表单启用验证码时必填）。"),
+     *                 @OA\Property(property="_captcha", type="string", description="验证码答案。"),
+     *                 @OA\Property(property="_source", type="string", description="来源页面地址，只接受站内地址。")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="提交成功：JSON 为 {code:0, data:{message}}，否则为 HTML 结果页。", @OA\JsonContent(ref="#/components/schemas/PluginEnvelope"), @OA\MediaType(mediaType="text/html", @OA\Schema(type="string"))),
+     *     @OA\Response(response=404, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=419, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=422, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=429, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=500, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response="default", ref="#/components/responses/PluginError")
+     * )
+     */
     #[Post('/{code}')]
     public function submit(Request $request, string $code): Response
     {
@@ -81,6 +120,23 @@ final class FormEndpoint
         return $this->page(200, (string)$site['id'], $locale, ['ok' => true, 'message' => $message, 'problems' => [], 'back' => $back]);
     }
 
+    /**
+     * 获取表单提交令牌（data.token）。
+     *
+     * @OA\Post(
+     *     path="/cms/forms/{code}/token",
+     *     operationId="cms_controller_FormEndpoint_token_post",
+     *     tags={"CMS 公开表单"},
+     *     summary="获取表单提交令牌（data.token）。",
+     *     description="站点由请求域名确定，表单代码只在该站点内查找；语言取 _locale/locale 参数（须为已启用语言），否则用站点默认语言。",
+     *     security={},
+     *     @OA\Parameter(name="code", in="path", required=true, description="表单代码。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="_locale", in="query", required=false, description="语言代码。", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="成功。", @OA\JsonContent(ref="#/components/schemas/PluginEnvelope")),
+     *     @OA\Response(response=404, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response="default", ref="#/components/responses/PluginError")
+     * )
+     */
     #[Post('/{code}/token')]
     public function token(Request $request, string $code): Response
     {
@@ -89,6 +145,24 @@ final class FormEndpoint
         return $this->json(200, ['code' => 0, 'msg' => 'success', 'data' => ['token' => $this->guard->issue($form['site_id'], $form['id'])]]);
     }
 
+    /**
+     * 获取表单验证码；同一来源 10 分钟最多 30 次。
+     *
+     * @OA\Get(
+     *     path="/cms/forms/{code}/captcha",
+     *     operationId="cms_controller_FormEndpoint_captcha_get",
+     *     tags={"CMS 公开表单"},
+     *     summary="获取表单验证码；同一来源 10 分钟最多 30 次。",
+     *     description="站点由请求域名确定，表单代码只在该站点内查找；语言取 _locale/locale 参数（须为已启用语言），否则用站点默认语言。",
+     *     security={},
+     *     @OA\Parameter(name="code", in="path", required=true, description="表单代码。", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="_locale", in="query", required=false, description="语言代码。", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="成功。", @OA\JsonContent(ref="#/components/schemas/PluginEnvelope")),
+     *     @OA\Response(response=404, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response=429, ref="#/components/responses/PluginError"),
+     *     @OA\Response(response="default", ref="#/components/responses/PluginError")
+     * )
+     */
     #[Get('/{code}/captcha')]
     public function captcha(Request $request, string $code): Response
     {

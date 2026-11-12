@@ -47,4 +47,11 @@
 
 后续接入生成命令时，需要同时扫描控制器和本目录的 `ApiDocumentation.php`，并启用 PHPDoc 注释解析。生成结果可输出 OpenAPI 3.0.3 JSON，供文档页面或接口工具使用。
 
-建议生成时检查：注释语法、完整路径与实际路由一致、操作 ID 唯一、模型引用可解析、路径参数齐全，以及错误响应和认证方式匹配。当前范围是 `admin/app/admin` 下带路由属性的控制器，以及 `admin/app/api/controller/v2` 下的会员 API（路由在 `config/route.php` 中注册）；公共身份协议、市场客户端接口及插件源码中其他控制器不在这批注释范围内。
+建议生成时检查：注释语法、完整路径与实际路由一致、操作 ID 唯一、模型引用可解析、路径参数齐全，以及错误响应和认证方式匹配。
+
+## 覆盖范围与防回退测试
+
+- 范围：核心 `admin/app/{admin,api,common,install,...}` 下带路由属性的控制器（不含 `app/admin/plugins/`、`app/admin/business/` 等不入库目录）、`admin/app/api/controller/v2` 下的会员 API（路由在 `config/route.php` 中注册），以及随仓库提供的插件源码 `admin/plugins/<code>/app/**/controller`（CMS、文档、问答、OSS 的后台与前台控制器）。插件安装副本（`app/<code>/`、`app/admin/plugins/<code>/`）与源码相同，不重复扫描。
+- 插件标签在 `ApiDocumentation.php` 中登记；插件前台与会员接口使用 `PluginEnvelope` 与 `PluginError`（不含 `time`，`code` 与 HTTP 状态一致；CMS 公开表单与文档读者反馈成功时 `code=0`）。服务端渲染页面、文件下载和 CSV 按真实响应类型描述。
+- 代码生成器（`ProductionTemplateContext`）生成后台、插件和会员控制器时同时生成注释：`operationId` 由控制器命名空间、类名、方法和动词组成，按实体唯一；标签为实体标题。
+- `admin/tests/OpenApiCoverageTest.php` 静态检查（不依赖 swagger-php）：每个路由方法都有动词和完整 path 一致的 `@OA` 操作、路径参数以 `in="path", required=true` 声明、操作带响应和已登记的标签、`operationId` 全局唯一。同一路由声明 GET 与 HEAD 时，HEAD 由 GET 操作覆盖。检查器位于 `admin/tests/Support/OpenApiCoverage.php`，`admin/tests/Console/CrudGeneratedOpenApiTest.php` 用它检查生成的控制器。

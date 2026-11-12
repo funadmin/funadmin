@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\install\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\authentication\service\AdminLoginPath;
 use app\common\service\install\InstallSupport;
 use DomainException;
@@ -19,12 +21,43 @@ final class Index
 {
     private const COOKIE = 'funadmin_install_csrf';
 
+    /**
+     * 安装入口：已安装时跳转后台登录页，否则跳转前端安装向导。
+     *
+     * @OA\Get(
+     *     path="/install/index",
+     *     operationId="install_controller_Index_index_get",
+     *     tags={"安装向导"},
+     *     summary="安装入口：已安装时跳转后台登录页，否则跳转前端安装向导。",
+     *     security={},
+     *     @OA\Response(response=302, description="跳转到后台登录页或安装向导页面。", @OA\Header(header="Location", description="跳转地址。", @OA\Schema(type="string")))
+     * )
+     */
     #[Get('')]
     public function index(Request $request): Response
     {
         return redirect($this->installed() ? $this->adminLoginUrl() : '/#/admin/install');
     }
 
+    /**
+     * 环境检测：返回检测结果和安装 CSRF 令牌，并设置安装 Cookie；已安装时只返回后台地址。
+     *
+     * @OA\Get(
+     *     path="/install/index/step2",
+     *     operationId="install_controller_Index_step2_get",
+     *     tags={"安装向导"},
+     *     summary="环境检测：返回检测结果和安装 CSRF 令牌。",
+     *     description="安装协议：code 与 HTTP 状态一致，成功为 200，响应体不含 time。响应设置 funadmin_install_csrf Cookie（Path=/install），后续步骤需在 X-CSRF-TOKEN 请求头回传同一令牌。",
+     *     security={},
+     *     @OA\Response(
+     *         response=200,
+     *         description="检测结果；data.installed=true 时只含 backend。",
+     *         @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope"),
+     *         @OA\Header(header="Set-Cookie", description="funadmin_install_csrf 安装令牌 Cookie。", @OA\Schema(type="string"))
+     *     ),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Get('/step2')]
     public function step2(Request $request): Response
     {
@@ -37,6 +70,44 @@ final class Index
         ], '环境检测完成')->cookie(self::COOKIE, $token, null, '/install', '', $this->secure(), true, 'Strict');
     }
 
+    /**
+     * 执行安装：校验安装令牌与环境要求后写入数据库、管理员和配置。
+     *
+     * @OA\Post(
+     *     path="/install/index/step3",
+     *     operationId="install_controller_Index_step3_post",
+     *     tags={"安装向导"},
+     *     summary="执行安装：写入数据库、管理员账号和配置。",
+     *     description="安装协议：code 与 HTTP 状态一致。需携带 funadmin_install_csrf Cookie 并在 X-CSRF-TOKEN 请求头回传同一令牌；已安装返回 409，令牌不符返回 403，参数或环境不满足返回 422。",
+     *     security={},
+     *     @OA\Parameter(name="X-CSRF-TOKEN", in="header", required=true, description="step2 返回的安装令牌。", @OA\Schema(type="string", pattern="^[a-f0-9]{64}$")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/x-www-form-urlencoded",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 required={"hostname", "port", "database", "username", "adminUserName", "adminPassword", "rePassword"},
+     *                 @OA\Property(property="driver", type="string", enum={"mysql"}, default="mysql"),
+     *                 @OA\Property(property="hostname", type="string"),
+     *                 @OA\Property(property="port", type="string"),
+     *                 @OA\Property(property="database", type="string"),
+     *                 @OA\Property(property="prefix", type="string"),
+     *                 @OA\Property(property="username", type="string"),
+     *                 @OA\Property(property="password", type="string", writeOnly=true),
+     *                 @OA\Property(property="adminUserName", type="string"),
+     *                 @OA\Property(property="adminPassword", type="string", writeOnly=true),
+     *                 @OA\Property(property="rePassword", type="string", writeOnly=true),
+     *                 @OA\Property(property="email", type="string"),
+     *                 @OA\Property(property="adminLoginPath", type="string", description="后台登录入口，留空使用默认值。"),
+     *                 @OA\Property(property="app_debug", type="boolean", default=false)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="安装成功。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Post('/step3')]
     public function step3(Request $request): Response
     {
@@ -56,6 +127,21 @@ final class Index
         }
     }
 
+    /**
+     * 完成安装：确认已安装后返回后台地址并清除安装 Cookie。
+     *
+     * @OA\Post(
+     *     path="/install/index/step4",
+     *     operationId="install_controller_Index_step4_post",
+     *     tags={"安装向导"},
+     *     summary="完成安装：返回后台地址并清除安装 Cookie。",
+     *     description="安装协议：code 与 HTTP 状态一致。令牌不符返回 403，尚未安装返回 409。",
+     *     security={},
+     *     @OA\Parameter(name="X-CSRF-TOKEN", in="header", required=true, description="step2 返回的安装令牌。", @OA\Schema(type="string", pattern="^[a-f0-9]{64}$")),
+     *     @OA\Response(response=200, description="安装完成。", @OA\JsonContent(ref="#/components/schemas/BrowserAuthEnvelope")),
+     *     @OA\Response(response="default", ref="#/components/responses/BrowserAuthError")
+     * )
+     */
     #[Post('/step4')]
     public function step4(Request $request): Response
     {

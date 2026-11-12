@@ -75,8 +75,10 @@ final class ProductionTemplateContext
             'customActionsConfigContent' => self::customActionsConfig($data, $class),
             'validateContent' => self::validator($data, $class, $primary),
             'serviceContent' => self::service($data, $class, $primary),
-            'controllerContent' => self::controller($data, $class, $primary),
-            'memberControllerContent' => ($data['memberApi']['enabled'] ?? false) === true ? self::memberController($data, $class, $primary) : '',
+            'controllerContent' => self::openApi(self::controller($data, $class, $primary), $data, $data['_controllerNamespace'] . '\\' . $class . 'Controller', '/' . ltrim($data['_controllerGroup'], '/'), $data['_consoleController']),
+            'memberControllerContent' => ($data['memberApi']['enabled'] ?? false) === true
+                ? self::openApi(self::memberController($data, $class, $primary), $data, $data['_memberControllerNamespace'] . '\\' . $class . 'Controller', $data['_memberRoutePrefix'], false)
+                : '',
             // 权限菜单 SQL 仅核心目标使用；插件的权限与菜单由 plugin.json 声明，不得因其约束阻断插件生成。
             'permissionMigrationContent' => ($data['target']['type'] ?? 'core') === 'plugin' ? '' : self::permissionMigration($data),
             'apiContent' => self::api($data, $class, $primary),
@@ -1792,6 +1794,104 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
         $code = \app\admin\authorization\service\PermissionCode::derive('app\\admin\\business\\' . $formKey . '\\controller\\' . $class, 'index');
         if ($code === null) throw new \InvalidArgumentException('表单键无法推导生成控制器权限码：' . $formKey);
         return substr($code, 0, -strlen(':index'));
+    }
+
+    /**
+     * 为生成的控制器方法补 OpenAPI PHPDoc：完整 path、按命名空间与方法唯一的 operationId、参数位置及响应模型。
+     * 后台控制器使用 AdminSession（写操作加 CsrfToken）与 AdminResult；会员控制器（ApiController）使用 MemberBearer 与会员 API 信封。
+     */
+    private static function openApi(string $source, array $data, string $controllerClass, string $prefix, bool $console): string
+    {
+        $prefix = rtrim('/' . ltrim($prefix, '/'), '/');
+        $title = str_replace('"', '""', (string) $data['title']);
+        $idBase = str_replace('\\', '_', (string) preg_replace('/^app\\\\/', '', $controllerClass));
+        $summaries = [
+            'index' => "获取{$title}列表。", 'detail' => "获取{$title}详情。", 'create' => "创建{$title}。", 'update' => "更新{$title}。",
+            'status' => "切换{$title}的启用状态。", 'options' => "获取{$title}的选项数据。", 'remove' => "删除{$title}。",
+            'restore' => "从回收站恢复{$title}。", 'destroy' => "彻底删除回收站中的{$title}。", 'recycle' => "批量删除{$title}。",
+            'restoreMany' => "批量恢复回收站中的{$title}。", 'destroyMany' => "批量彻底删除回收站中的{$title}。",
+            'import' => "批量导入{$title}。", 'export' => "按筛选条件导出{$title}。", 'leftTree' => "获取{$title}的左侧树。",
+            'leftTreeForm' => "获取{$title}左侧树节点表单。", 'mutateLeftTree' => "新增、编辑或删除{$title}左侧树节点。",
+            'listActions' => "获取{$title}列表按钮。", 'listAction' => "执行{$title}列表按钮。",
+        ];
+        $source = (string) preg_replace_callback(
+            "/^    #\\[(Get|Post|Put|Delete|Patch)\\('([^']*)'\\)\\]\\n    public function (\\w+)\\(/m",
+            static function (array $match) use ($data, $prefix, $title, $idBase, $summaries, $console): string {
+                [$all, $verb, $route, $method] = $match;
+                $write = $verb !== 'Get';
+                $lines = ['@OA\\' . $verb . '('];
+                $parts = ['path="' . $prefix . self::openApiPath($route) . '"', 'operationId="' . $idBase . '_' . $method . '_' . strtolower($verb) . '"', 'tags={"' . $title . '"}', 'summary="' . ($summaries[$method] ?? "{$title}：{$method}。") . '"'];
+                $parts[] = $console
+                    ? 'description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。"'
+                    : 'description="会员 API 协议：需要会员 access token；响应体 code 与 HTTP 状态一致。"';
+                $parts[] = $console ? ($write ? 'security={{"AdminSession"={}, "CsrfToken"={}}}' : 'security={{"AdminSession"={}}}') : 'security={{"MemberBearer"={}}}';
+                foreach (self::routeParameters($route) as $name => $pattern) {
+                    $schema = preg_match('/^[A-Za-z]+(?:\\|[A-Za-z]+)+$/D', $pattern) === 1
+                        ? 'type="string", enum={"' . implode('", "', explode('|', $pattern)) . '"}'
+                        : 'type="string"' . ($pattern === '' ? '' : ', pattern="^' . $pattern . '$"');
+                    $parts[] = '@OA\\Parameter(name="' . $name . '", in="path", required=true, description="' . ($name === 'id' ? '记录主键。' : $name . ' 路径参数。') . '", @OA\\Schema(' . $schema . '))';
+                }
+                if (in_array($method, ['index', 'export'], true)) {
+                    $parts[] = '@OA\\Parameter(name="page", in="query", required=false, description="页码，从 1 开始。", @OA\\Schema(type="integer", minimum=1))';
+                    $parts[] = '@OA\\Parameter(name="pageSize", in="query", required=false, description="每页记录数。", @OA\\Schema(type="integer", minimum=1))';
+                    if ($console && ($data['softDeletes'] ?? false)) $parts[] = '@OA\\Parameter(name="recycled", in="query", required=false, description="为 1 时只查询回收站。", @OA\\Schema(type="integer", enum={0, 1}))';
+                    $parts[] = '@OA\\Parameter(name="sort", in="query", required=false, description="排序字段，须为允许排序的字段。", @OA\\Schema(type="string"))';
+                    $parts[] = '@OA\\Parameter(name="order", in="query", required=false, description="排序方向。", @OA\\Schema(type="string", enum={"asc", "desc"}))';
+                } elseif ($method === 'listActions') {
+                    $parts[] = '@OA\\Parameter(name="location", in="query", required=false, description="按钮位置，默认 row。", @OA\\Schema(type="string", default="row"))';
+                } elseif ($method === 'leftTreeForm') {
+                    $parts[] = '@OA\\Parameter(name="id", in="query", required=false, description="编辑或新增子节点时的节点 ID。", @OA\\Schema(type="string"))';
+                    $parts[] = '@OA\\Parameter(name="optionField", in="query", required=false, description="选项字段。", @OA\\Schema(type="string"))';
+                }
+                if (in_array($method, ['create', 'update'], true)) {
+                    $parts[] = '@OA\\RequestBody(required=' . ($method === 'create' ? 'true' : 'false') . ', description="' . $title . '字段，以生成的验证器为准；更新时缺省字段保留原值。", @OA\\JsonContent(ref="#/components/schemas/DynamicObject"))';
+                } elseif (in_array($method, ['recycle', 'restoreMany', 'destroyMany'], true)) {
+                    $parts[] = '@OA\\RequestBody(required=true, @OA\\JsonContent(type="object", required={"ids"}, @OA\\Property(property="ids", type="array", description="目标记录主键集合。", @OA\\Items(type="string"))))';
+                } elseif ($method === 'import') {
+                    $parts[] = '@OA\\RequestBody(required=true, @OA\\JsonContent(type="object", required={"rows"}, @OA\\Property(property="rows", type="array", description="待导入的记录数组。", @OA\\Items(ref="#/components/schemas/DynamicObject"))))';
+                } elseif ($method === 'listAction') {
+                    $parts[] = '@OA\\RequestBody(required=true, @OA\\JsonContent(ref="#/components/schemas/ListButtonInput"))';
+                } elseif ($method === 'mutateLeftTree') {
+                    $parts[] = '@OA\\RequestBody(required=true, @OA\\JsonContent(type="object", @OA\\Property(property="id", type="string"), @OA\\Property(property="sourceSchemaHash", type="string"), @OA\\Property(property="data", ref="#/components/schemas/DynamicObject")))';
+                } elseif ($method === 'status') {
+                    $parts[] = '@OA\\RequestBody(required=false, @OA\\JsonContent(type="object", @OA\\Property(property="status", type="integer", description="启用状态。")))';
+                }
+                $error = $console ? 'AdminError' : 'MemberApiError';
+                $parts[] = $console
+                    ? '@OA\\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\\JsonContent(ref="#/components/schemas/AdminResult"))'
+                    : '@OA\\Response(response=200, description="成功。", @OA\\JsonContent(ref="#/components/schemas/MemberApiEnvelope"))';
+                $parts[] = '@OA\\Response(response=401, ref="#/components/responses/' . $error . '")';
+                if ($console) $parts[] = '@OA\\Response(response=403, ref="#/components/responses/' . $error . '")';
+                if (str_contains($route, '{id')) $parts[] = '@OA\\Response(response=404, ref="#/components/responses/' . $error . '")';
+                $parts[] = '@OA\\Response(response="default", ref="#/components/responses/' . $error . '")';
+                foreach ($parts as $index => $part) $lines[] = '    ' . $part . ($index < count($parts) - 1 ? ',' : '');
+                $lines[] = ')';
+                return "    /**\n     * " . ($summaries[$method] ?? "{$title}：{$method}。") . "\n     *\n"
+                    . implode('', array_map(static fn (string $line): string => '     * ' . $line . "\n", $lines))
+                    . "     */\n" . $all;
+            },
+            $source
+        );
+        return (string) preg_replace('/^(namespace [^;]+;\n\n)/m', "$1use OpenApi\\Annotations as OA;\n\n", $source, 1);
+    }
+
+    /** Webman `{name:regex}`（正则内可含花括号）写作 OpenAPI `{name}`。 */
+    private static function openApiPath(string $route): string
+    {
+        $names = array_keys(self::routeParameters($route));
+        $index = 0;
+        return (string) preg_replace_callback('/\{(?:[^{}]|\{[^{}]*\})*\}/', static function () use ($names, &$index): string {
+            return '{' . $names[$index++] . '}';
+        }, $route);
+    }
+
+    /** @return array<string,string> 路由参数名 => 约束正则（无约束时为空串） */
+    private static function routeParameters(string $route): array
+    {
+        preg_match_all('/\{([A-Za-z_][A-Za-z0-9_]*)(?::((?:[^{}]|\{[^{}]*\})*))?\}/', $route, $matches, PREG_SET_ORDER);
+        $parameters = [];
+        foreach ($matches as $match) $parameters[$match[1]] = $match[2] ?? '';
+        return $parameters;
     }
 
     private static function phpArray(array $value): string

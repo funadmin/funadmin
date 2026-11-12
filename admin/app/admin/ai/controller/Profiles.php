@@ -222,6 +222,36 @@ final class Profiles extends AdminController
     #[Post('/{id:\d+}/models')]
     public function models(int $id): Response { return $this->run(fn ($service, $admin) => $service->models($admin, $id)); }
 
+    /**
+     * @profile 用未保存的表单值查询真实模型 ID；只传 profile_id（不带 api_key）时使用已保存档案的密钥。
+     *
+     * @OA\Post(
+     *     path="/admin/development/ai/profiles/models-preview",
+     *     operationId="admin_ai_controller_Profiles_modelsPreview_post",
+     *     tags={"AI 配置档案"},
+     *     summary="用未保存的表单值查询真实模型 ID；不返回密钥或推测能力。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 档案写入严格接收 application/json，整数与布尔值不得用字符串替代。传 profile_id 且不传 api_key 时复用该已保存档案的配置与密钥；否则按请求中的连接字段校验，model 可省略。",
+     *     security={{"AdminSession"={}, "CsrfToken"={}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="profile_id", type="integer", minimum=1, description="已保存档案 ID；不带 api_key 时使用该档案的配置与密钥。"),
+     *             @OA\Property(property="provider", type="string"),
+     *             @OA\Property(property="protocol", type="string"),
+     *             @OA\Property(property="base_url", type="string"),
+     *             @OA\Property(property="api_key", type="string", writeOnly=true),
+     *             @OA\Property(property="model", type="string", description="可省略，仅用于通过档案校验。"),
+     *             additionalProperties=true
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="业务响应；以响应体 code 判断成功与失败。", @OA\JsonContent(ref="#/components/schemas/AdminResult")),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=404, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     #[Post('/models-preview')]
     public function modelsPreview(): Response { return $this->run(fn ($service, $admin) => $service->modelsPreview($admin, $this->input())); }
 

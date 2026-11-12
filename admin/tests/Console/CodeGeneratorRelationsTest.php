@@ -29,7 +29,7 @@ final class CodeGeneratorRelationsTest extends TestCase
         'core' => [
             'definitionHash' => 'a07a1978d3f33bbb5613816efb7dbfc350de42b05ad5717c19267b9a48ccb82c',
             'files' => [
-                'app/admin/business/shop_plain/controller/ShopPlainController.php' => 'd5bdfe07b1fcf59b23783a47bd38d138e6a15862985bec2227ae29da5e5e7672',
+                'app/admin/business/shop_plain/controller/ShopPlainController.php' => '56b6c57dfd7d607a52b4cb4fa2a7cb7328edaccda4cc8a0cd58059afbc6b78ac',
                 'app/admin/business/shop_plain/lang/en-us.php' => 'cf6264058cd19ba878b3828997d7bd5f0a93e6307ad7e9a8790311790c9acee4',
                 'app/admin/business/shop_plain/lang/zh-cn.php' => 'a08ac305ea247e7492bd78090c40caa66e875223c91dbee3cbfafc74fb86a692',
                 'app/admin/business/shop_plain/model/ShopPlain.php' => '3501b9f3424727574ad0c8de8ca7d21313d0e53532ae0998170cddccd2a92f53',
@@ -49,7 +49,7 @@ final class CodeGeneratorRelationsTest extends TestCase
         'plugin' => [
             'definitionHash' => 'a75fb744e94ec91a812164be753df213a21468629d1fe3d2d862755dd08322c5',
             'files' => [
-                'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => '6f43e2318ad4976cee5a929ea898111b4cb942ca69f846c89be54a7fa34e5c27',
+                'plugins/shopkit/app/admin/plugins/shopkit/controller/ShopPlainController.php' => 'c76cf1a970b04b14533fc4bda642ba116055fcdae4eff597df9303c7d4eca09b',
                 'plugins/shopkit/app/admin/plugins/shopkit/model/ShopPlain.php' => '735cbf06dc88f65462099000fa3e0f4536f4f0550e04d89ac3be3867c044e193',
                 'plugins/shopkit/app/admin/plugins/shopkit/service/ShopPlainService.php' => '943bbd4e32e383f35c3cc0661679aaf43e37827dd4378ef69621ecae89161e0e',
                 'plugins/shopkit/app/admin/plugins/shopkit/validate/ShopPlainValidate.php' => 'b981d6cb4d36860cfd2adecb15dd763d4cecb911b7a7ea85f0dc17aa943ef0cc',
