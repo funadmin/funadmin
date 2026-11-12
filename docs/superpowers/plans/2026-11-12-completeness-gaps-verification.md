@@ -114,13 +114,13 @@
 
 - S3 Endpoint 只在字面量层面校验：阿里云元数据 `100.100.100.200`、AWS IPv6 元数据 `fd00:ec2::254`、`64:ff9b::/96` 转换地址以及解析到内网的主机名都能通过；内网地址本来就允许，持有保存权限的管理员可以让服务器访问内网 HTTPS 地址（README 已说明）；终审修复后，测试未保存的配置（不带 id）除测试权限外也需要保存权限，只有测试权限不能再指定任意 Endpoint。更严格需要在请求时解析 DNS 并固定 IP。
 - 彻底删除与上传存在理论上的竞态：上传期间配置被切换、删除再彻底删除，会留下指向不存在配置的附件。
-- 后端 409/404 提示只有中文；连接测试的 `id` 传数组时会产生 warning。
+- 后端 409/404 提示只有中文。（连接测试和保存的 `id` 传非字符串时，终审修复后返回 422。）
 - OSS 在本工作区未安装，权限快照里没有 OSS 路由；新路由只经 `plugin:validate` 与控制器约定校验。
 - 用 `--no-scripts` 重建 vendor 不会裁剪 aws-sdk（约 69MB）。
 
 **接口文档**
 
-- `config/route.php` 的检查是按已知写法解析：`require` 引入的路由文件、动态拼出的路由、插件路由加载器（`PluginRouteLoader`）注册的路由看不到，也不报错。
+- `config/route.php` 顶层按白名单检查（终审修复）：`require`/`include`、动态 `Route` 调用、`call_user_func`、`new Route`、顶层 `PluginRouteLoader::get` 都会报错。剩余缺口：藏在调用链参数里的注册调用（如 `->middleware(PluginRouteLoader::get(...))`）不报错；闭包路由的函数体里如果出现上述写法会误报。
 - 格式正确的注入内容只靠生成器转义拦截，检查器不查重复键；控制器自身 trait 中作为 config 路由目标的方法会误报；`Route::add` 的命名参数 `method` 与属性缓存按类名缓存属于边角情况。
 - 生成控制器的标签用实体标题，不在 `ApiDocumentation.php` 登记；create、update 的请求体是 `DynamicObject`，不逐字段展开。
 - 插件安装副本没有同步 Task 6 的注释（只差注释，运行行为相同）。
