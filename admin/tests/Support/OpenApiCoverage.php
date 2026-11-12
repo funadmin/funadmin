@@ -59,30 +59,39 @@ final class OpenApiCoverage
     /**
      * 解析一个控制器源码中的路由方法。
      *
+     * @param array<string,array<string,list<array{verbs:list<string>,path:string}>>> $extraRoutes config/route.php 注册的路由，按 类 => 方法 分组
+     * @param string|null $adminRoot 用于定位 trait 源码；默认为本仓库 admin/
      * @return list<array{class:string,method:string,routes:list<array{verbs:list<string>,path:string,openApiPath:string}>,doc:string}>
      */
-    public static function routedMethods(string $source): array
+    public static function routedMethods(string $source, array $extraRoutes = [], ?string $adminRoot = null): array
     {
-        $parser = (new ParserFactory())->createForHostVersion();
-        $nodes = $parser->parse($source) ?? [];
-        $traverser = new NodeTraverser();
-        $traverser->addVisitor(new NameResolver());
-        $nodes = $traverser->traverse($nodes);
+        $adminRoot ??= dirname(__DIR__, 2);
+        $nodes = self::parse($source);
         $result = [];
         foreach ((new NodeFinder())->findInstanceOf($nodes, Node\Stmt\Class_::class) as $class) {
             if ($class->isAbstract() || $class->namespacedName === null) continue;
+            $className = $class->namespacedName->toString();
+            self::assertTraitsHaveNoRoutes($class, $className, $adminRoot, []);
             $prefix = '';
+            $grouped = false;
             foreach (self::attributes($class->attrGroups) as [$name, $attribute]) {
-                if ($name === self::ROUTE_NAMESPACE . 'RouteGroup') {
-                    $prefix = self::normalizePrefix((string) self::argument($attribute, 0, 'prefix', ''));
-                }
+                $short = self::routeAttribute($name, $className);
+                if ($short === null || $short === 'DisableDefaultRoute') continue;
+                if ($short !== 'RouteGroup') throw new \RuntimeException('类上不支持的路由属性 ' . $name . '：' . $className);
+                // 与 Webman 一致：只取第一个 RouteGroup。
+                if (!$grouped) $prefix = self::normalizePrefix((string) self::argument($attribute, 0, 'prefix', ''));
+                $grouped = true;
             }
             foreach ($class->getMethods() as $method) {
-                if (!$method->isPublic() || in_array(strtolower($method->name->toString()), ['__construct', '__destruct'], true)) continue;
+                $methodName = $method->name->toString();
                 $routes = [];
+                foreach ($extraRoutes[$className][$methodName] ?? [] as $route) {
+                    $routes[] = ['verbs' => $route['verbs'], 'path' => $route['path'], 'openApiPath' => self::openApiPath($route['path'])];
+                }
+                $public = $method->isPublic() && !in_array(strtolower($methodName), ['__construct', '__destruct'], true);
                 foreach (self::attributes($method->attrGroups) as [$name, $attribute]) {
-                    if (!str_starts_with($name, self::ROUTE_NAMESPACE)) continue;
-                    $short = substr($name, strlen(self::ROUTE_NAMESPACE));
+                    $short = self::routeAttribute($name, $className . '::' . $methodName);
+                    if ($short === null || !$public) continue;
                     if ($short === 'Route') {
                         $path = self::argument($attribute, 0, 'path', null);
                         $verbs = self::argument($attribute, 1, 'methods', ['GET']);
@@ -91,9 +100,9 @@ final class OpenApiCoverage
                         $path = self::argument($attribute, 0, 'path', null);
                         $verbs = [self::VERB_ATTRIBUTES[$short]];
                     } elseif ($short === 'Any') {
-                        throw new \RuntimeException('OpenAPI 覆盖检查不支持 #[Any]，请改为显式请求方法：' . $class->namespacedName . '::' . $method->name);
+                        throw new \RuntimeException('OpenAPI 覆盖检查不支持 #[Any]，请改为显式请求方法：' . $className . '::' . $methodName);
                     } else {
-                        continue;
+                        throw new \RuntimeException('方法上不支持的路由属性 ' . $name . '：' . $className . '::' . $methodName);
                     }
                     if ($path === null) continue; // 与 Webman 一致：路径为 null 只限制默认路由的方法，不注册路由。
                     $full = $prefix . trim((string) $path);
@@ -101,14 +110,141 @@ final class OpenApiCoverage
                 }
                 if ($routes === []) continue;
                 $result[] = [
-                    'class' => $class->namespacedName->toString(),
-                    'method' => $method->name->toString(),
+                    'class' => $className,
+                    'method' => $methodName,
                     'routes' => $routes,
                     'doc' => (string) $method->getDocComment()?->getText(),
                 ];
             }
         }
         return $result;
+    }
+
+    /**
+     * 静态解析 config/route.php 中指向控制器方法的 Route::get/post/put/delete/patch/head/options/add 调用（含 Route::group 前缀）。
+     * 闭包回调（如 /health）没有控制器方法可挂注释，计入 skipped；fallback、disableDefaultRoute 等不是路由声明。
+     *
+     * @return array{routes:array<string,array<string,list<array{verbs:list<string>,path:string}>>>,skipped:list<string>}
+     */
+    public static function configRoutes(string $source): array
+    {
+        $routes = [];
+        $skipped = [];
+        self::collectConfigRoutes(self::parse($source), '', $routes, $skipped);
+        return ['routes' => $routes, 'skipped' => $skipped];
+    }
+
+    /** @param array<Node> $statements */
+    private static function collectConfigRoutes(array $statements, string $prefix, array &$routes, array &$skipped): void
+    {
+        foreach ($statements as $statement) {
+            if (!$statement instanceof Node\Stmt\Expression || !$statement->expr instanceof Node\Expr\StaticCall) continue;
+            $call = $statement->expr;
+            if (!$call->class instanceof Node\Name || ltrim($call->class->toString(), '\\') !== 'Webman\\Route' || !$call->name instanceof Node\Identifier) continue;
+            $name = strtolower($call->name->toString());
+            $args = $call->getArgs();
+            if ($name === 'group') {
+                $groupPrefix = $prefix . (string) self::value($args[0]->value);
+                $closure = $args[1]->value ?? null;
+                if (!$closure instanceof Node\Expr\Closure && !$closure instanceof Node\Expr\ArrowFunction) throw new \RuntimeException('Route::group 回调必须为闭包');
+                self::collectConfigRoutes($closure instanceof Node\Expr\Closure ? $closure->stmts : [new Node\Stmt\Expression($closure->expr)], $groupPrefix, $routes, $skipped);
+                continue;
+            }
+            if ($name === 'any') throw new \RuntimeException('OpenAPI 覆盖检查不支持 Route::any，请改为显式请求方法');
+            if ($name === 'add') {
+                $verbs = self::value($args[0]->value);
+                $verbs = array_map('strtoupper', is_array($verbs) ? $verbs : [$verbs]);
+                $pathArg = $args[1]->value; $callback = $args[2]->value;
+            } elseif (in_array($name, ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'], true)) {
+                $verbs = [strtoupper($name)];
+                $pathArg = $args[0]->value; $callback = $args[1]->value;
+            } else {
+                continue;
+            }
+            $path = $prefix . (string) self::value($pathArg);
+            if ($callback instanceof Node\Expr\Array_ && count($callback->items) === 2
+                && $callback->items[0]?->value instanceof Node\Expr\ClassConstFetch && $callback->items[1]?->value instanceof Node\Scalar\String_) {
+                $class = ltrim($callback->items[0]->value->class->toString(), '\\');
+                $routes[$class][$callback->items[1]->value->value][] = ['verbs' => array_values($verbs), 'path' => $path];
+                continue;
+            }
+            if ($callback instanceof Node\Expr\Closure || $callback instanceof Node\Expr\ArrowFunction) {
+                $skipped[] = implode('|', $verbs) . ' ' . $path;
+                continue;
+            }
+            throw new \RuntimeException('无法静态解析的路由回调：' . implode('|', $verbs) . ' ' . $path);
+        }
+    }
+
+    /** @return array<Node> */
+    private static function parse(string $source): array
+    {
+        $nodes = (new ParserFactory())->createForHostVersion()->parse($source) ?? [];
+        $traverser = new NodeTraverser();
+        $traverser->addVisitor(new NameResolver());
+        return $traverser->traverse($nodes);
+    }
+
+    /** 路由属性的短名；非路由属性返回 null；与路由属性同名但不在 Webman 命名空间的属性视为无法识别。 */
+    private static function routeAttribute(string $name, string $where): ?string
+    {
+        $short = substr($name, (int) strrpos('\\' . $name, '\\'));
+        if (str_starts_with($name, self::ROUTE_NAMESPACE)) return substr($name, strlen(self::ROUTE_NAMESPACE));
+        if (in_array($short, [...array_keys(self::VERB_ATTRIBUTES), 'Route', 'RouteGroup', 'Any'], true)) {
+            throw new \RuntimeException('无法识别的路由属性 ' . $name . '（应为 ' . self::ROUTE_NAMESPACE . $short . '）：' . $where);
+        }
+        return null;
+    }
+
+    /**
+     * Webman 把 trait 方法当作控制器自身声明的方法注册路由；检查器不展开 trait 的可见性别名，因此要求 trait 不带路由属性。
+     *
+     * @param array<string,true> $seen
+     */
+    private static function assertTraitsHaveNoRoutes(Node\Stmt\ClassLike $class, string $owner, string $adminRoot, array $seen): void
+    {
+        foreach ($class->getTraitUses() as $use) {
+            foreach ($use->traits as $trait) {
+                $name = ltrim($trait->toString(), '\\');
+                if (isset($seen[$name])) continue;
+                $seen[$name] = true;
+                $file = self::traitFile($name, $adminRoot);
+                if ($file === null) {
+                    if (str_starts_with($name, 'app\\')) throw new \RuntimeException('无法定位 trait 源码 ' . $name . '：' . $owner);
+                    continue; // 第三方 trait 不属于本仓库路由。
+                }
+                foreach ((new NodeFinder())->findInstanceOf(self::parse((string) file_get_contents($file)), Node\Stmt\Trait_::class) as $node) {
+                    if ($node->namespacedName?->toString() !== $name) continue;
+                    foreach ($node->getMethods() as $method) {
+                        foreach (self::attributes($method->attrGroups) as [$attributeName]) {
+                            if (self::routeAttribute($attributeName, $name . '::' . $method->name) !== null) {
+                                throw new \RuntimeException('trait 方法带路由属性，请在控制器中声明路由：' . $name . '::' . $method->name . '（' . $owner . '）');
+                            }
+                        }
+                    }
+                    self::assertTraitsHaveNoRoutes($node, $owner, $adminRoot, $seen);
+                }
+            }
+        }
+    }
+
+    /** 插件命名空间指向插件源码（不读安装副本），其余 app\ 按 PSR-4 指向 app/，第三方交给 Composer。 */
+    private static function traitFile(string $trait, string $adminRoot): ?string
+    {
+        $adminRoot = rtrim($adminRoot, '/');
+        $candidates = [];
+        if (preg_match('/^app\\\\admin\\\\plugins\\\\([a-z][a-z0-9]*)\\\\(.+)$/', $trait, $match) === 1) {
+            $candidates[] = "{$adminRoot}/plugins/{$match[1]}/app/admin/plugins/{$match[1]}/" . str_replace('\\', '/', $match[2]) . '.php';
+        } elseif (preg_match('/^app\\\\([a-z][a-z0-9]*)\\\\(.+)$/', $trait, $match) === 1 && is_dir("{$adminRoot}/plugins/{$match[1]}")) {
+            $candidates[] = "{$adminRoot}/plugins/{$match[1]}/app/{$match[1]}/" . str_replace('\\', '/', $match[2]) . '.php';
+        }
+        if (str_starts_with($trait, 'app\\')) $candidates[] = $adminRoot . '/' . str_replace('\\', '/', $trait) . '.php';
+        foreach ($candidates as $candidate) if (is_file($candidate)) return $candidate;
+        foreach (\Composer\Autoload\ClassLoader::getRegisteredLoaders() as $loader) {
+            $file = $loader->findFile($trait);
+            if (is_string($file) && is_file($file)) return $file;
+        }
+        return null;
     }
 
     /**
@@ -140,11 +276,11 @@ final class OpenApiCoverage
      *
      * @return array{errors:list<string>,operations:list<array{operationId:?string,verb:string,path:?string,tags:list<string>,source:string}>}
      */
-    public static function check(string $source, string $label): array
+    public static function check(string $source, string $label, array $extraRoutes = [], ?string $adminRoot = null): array
     {
         $errors = [];
         $found = [];
-        foreach (self::routedMethods($source) as $routed) {
+        foreach (self::routedMethods($source, $extraRoutes, $adminRoot) as $routed) {
             $where = $label . ' ' . $routed['class'] . '::' . $routed['method'];
             $operations = self::operations($routed['doc']);
             $expected = [];

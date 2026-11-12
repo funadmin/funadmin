@@ -65,6 +65,41 @@ final class CrudGeneratedOpenApiTest extends TestCase
         self::assertSame([], OpenApiCoverage::duplicateOperationIds([...$repository, ...$operations]), '生成的 operationId 不得与仓库已有接口重复');
     }
 
+    public function test_hostile_entity_title_cannot_escape_the_generated_docblock(): void
+    {
+        $data = CrudDefinitionFixture::make('openapi-hostile')->toArray();
+        $data['title'] = "a */ phpinfo(); /* b\r\n@OA\\Get(path=\"/evil\", operationId=\"evil\") \"q\" *" . "/";
+        $definition = CrudDefinition::fromArray($data);
+        foreach ([ProductionTemplateContext::build($definition)['controllerContent'],
+            PluginTemplateContext::build($this->pluginDefinition($data, 'openapi-hostile'), 'oafixture', false)['controllerContent']] as $source) {
+            $file = tempnam(sys_get_temp_dir(), 'funadmin-openapi-lint-');
+            try {
+                file_put_contents($file, $source);
+                exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($file) . ' 2>&1', $output, $status);
+                self::assertSame(0, $status, implode("\n", $output));
+            } finally {
+                unlink($file);
+            }
+            $code = array_filter(\PhpToken::tokenize($source), static fn (\PhpToken $token): bool => $token->is(T_STRING) && $token->text === 'phpinfo');
+            self::assertSame([], $code, '标题不得变成注释或字符串之外的代码');
+            $result = $this->assertDocumented($source, 'hostile');
+            self::assertNotContains('/evil', array_column($result['operations'], 'path'));
+            self::assertNotContains('evil', array_column($result['operations'], 'operationId'));
+        }
+    }
+
+    private function pluginDefinition(array $data, string $entity): CrudDefinition
+    {
+        $data['module'] = 'oafixture';
+        $data['target'] = ['type' => 'plugin', 'plugin' => 'oafixture', 'scope' => 'both'];
+        $data['permissionPrefix'] = 'oafixture:' . $entity;
+        $data['apiPrefix'] = '/' . $entity;
+        $data['routePath'] = '/plugins/oafixture/' . $entity;
+        $data['tableIdentity'] = ['source' => 'created', 'kind' => 'physical'];
+        unset($data['generationTargets']);
+        return CrudDefinition::fromArray($data);
+    }
+
     /** @return array{errors:list<string>,operations:list<array<string,mixed>>} */
     private function assertDocumented(string $source, string $label): array
     {

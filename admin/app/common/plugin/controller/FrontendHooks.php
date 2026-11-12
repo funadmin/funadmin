@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\common\plugin\controller;
 
+use OpenApi\Annotations as OA;
+
 use app\admin\authentication\service\BrowserAuthService;
 use app\admin\authorization\service\AuthorizationService;
 use app\common\plugin\service\FrontendHookService;
@@ -20,6 +22,39 @@ final class FrontendHooks
 {
     use JsonResponse;
 
+    /**
+     * 按受众返回已启用插件的前端钩子描述。
+     *
+     * @OA\Get(
+     *     path="/plugins/hooks/frontend",
+     *     operationId="common_plugin_controller_FrontendHooks_index_get",
+     *     tags={"插件前端钩子"},
+     *     summary="获取已启用插件的前端钩子描述。",
+     *     description="路由在 config/route.php 中注册。audience=admin 时按后台会话 Cookie 的权限过滤，audience=member 时需要有效会员 Bearer 令牌；public 无需登录。响应体 code 与 HTTP 状态一致。",
+     *     security={},
+     *     @OA\Parameter(name="audience", in="query", required=false, description="钩子受众。", @OA\Schema(type="string", enum={"public", "member", "admin"}, default="public")),
+     *     @OA\Response(response=200, description="钩子描述列表。", @OA\JsonContent(ref="#/components/schemas/AdminEnvelope")),
+     *     @OA\Response(response=400, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     *
+     * @OA\Get(
+     *     path="/admin/plugins/hooks/frontend",
+     *     operationId="common_plugin_controller_FrontendHooks_index_admin_get",
+     *     tags={"插件前端钩子"},
+     *     summary="获取已启用插件的前端钩子描述。",
+     *     description="路由在 config/route.php 中注册。audience=admin 时按后台会话 Cookie 的权限过滤，audience=member 时需要有效会员 Bearer 令牌；public 无需登录。响应体 code 与 HTTP 状态一致。",
+     *     security={},
+     *     @OA\Parameter(name="audience", in="query", required=false, description="钩子受众。", @OA\Schema(type="string", enum={"public", "member", "admin"}, default="public")),
+     *     @OA\Response(response=200, description="钩子描述列表。", @OA\JsonContent(ref="#/components/schemas/AdminEnvelope")),
+     *     @OA\Response(response=400, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=401, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response=403, ref="#/components/responses/AdminError"),
+     *     @OA\Response(response="default", ref="#/components/responses/AdminError")
+     * )
+     */
     public function index(Request $request): Response
     {
         $audience = $request->get('audience', 'public');

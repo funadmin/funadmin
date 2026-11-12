@@ -1803,7 +1803,7 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
     private static function openApi(string $source, array $data, string $controllerClass, string $prefix, bool $console): string
     {
         $prefix = rtrim('/' . ltrim($prefix, '/'), '/');
-        $title = str_replace('"', '""', (string) $data['title']);
+        $title = self::docText((string) $data['title']);
         $idBase = str_replace('\\', '_', (string) preg_replace('/^app\\\\/', '', $controllerClass));
         $summaries = [
             'index' => "获取{$title}列表。", 'detail' => "获取{$title}详情。", 'create' => "创建{$title}。", 'update' => "更新{$title}。",
@@ -1873,6 +1873,17 @@ import { useSuppliedFieldOptions } from '@/views/form/runtime/fieldPresentation'
             $source
         );
         return (string) preg_replace('/^(namespace [^;]+;\n\n)/m', "$1use OpenApi\\Annotations as OA;\n\n", $source, 1);
+    }
+
+    /**
+     * 写入 PHPDoc 注释（含 @OA 双引号字符串）的自由文本：控制字符与换行折叠为空格，`*` + `/` 改为全角斜杠以免提前结束注释，
+     * `@` 改为全角以免被解析成注解，双引号按 swagger-php 规则写作两个双引号。
+     */
+    private static function docText(string $value): string
+    {
+        $value = (string) preg_replace('/[\x00-\x1F\x7F\x{2028}\x{2029}]+/u', ' ', $value);
+        $value = str_replace(['*/', '@', '"'], ['*／', '＠', '""'], $value);
+        return trim($value);
     }
 
     /** Webman `{name:regex}`（正则内可含花括号）写作 OpenAPI `{name}`。 */

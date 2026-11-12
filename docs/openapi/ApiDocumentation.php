@@ -74,6 +74,7 @@ use OpenApi\Annotations as OA;
  * @OA\Tag(name="后台浏览器认证")
  * @OA\Tag(name="会员 API 令牌", description="会员 API v2 令牌：登录签发、一次性轮换刷新、登出。")
  * @OA\Tag(name="会员 API 资料", description="会员 API v2 当前会员资料。")
+ * @OA\Tag(name="插件前端钩子", description="插件前端钩子描述，供前台、会员中心与后台加载插件扩展。")
  * @OA\Tag(name="安装向导", description="安装向导接口：不依赖数据库和后台认证，以安装 Cookie 与 X-CSRF-TOKEN 请求头配对校验。")
  * @OA\Tag(name="CMS 站点", description="CMS 插件后台：站点、语言、域名、站点配置与模型绑定。")
  * @OA\Tag(name="CMS 站点权限", description="CMS 插件后台：站点角色、成员及成员回收站。")

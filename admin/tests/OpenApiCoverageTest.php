@@ -11,26 +11,34 @@ use Tests\Support\OpenApiCoverage;
  * 防回退：每个带路由属性的核心与插件源码控制器方法都有动词、完整 path 与路由一致的 @OA 操作，operationId 全局唯一。
  * swagger-php 未作为依赖安装，这里做静态检查（规则见 docs/openapi/README.md）。
  * 插件只检查 plugins/<code>/ 源码；app/<code>/、app/admin/plugins/ 安装副本与 app/admin/business/ 生成模块不入库，不在范围内。
+ * config/route.php 中指向控制器方法的 Route 调用（含 group 前缀）同样核对；闭包路由（/health、/）没有控制器方法，不在检查范围。
  */
 final class OpenApiCoverageTest extends TestCase
 {
     private const DOCUMENTATION = __DIR__ . '/../../docs/openapi/ApiDocumentation.php';
 
-    /** @return array{errors:list<string>,operations:list<array<string,mixed>>,files:list<string>} */
+    /** @return array{errors:list<string>,operations:list<array<string,mixed>>,files:list<string>,config:array<string,mixed>} */
     private static function scan(): array
     {
         $root = dirname(__DIR__);
+        $config = OpenApiCoverage::configRoutes((string) file_get_contents($root . '/config/route.php'));
         $errors = [];
         $operations = [];
         $files = [];
+        $classes = [];
         foreach (OpenApiCoverage::controllerFiles($root) as $file) {
             $relative = substr($file, strlen($root) + 1);
             $files[] = $relative;
-            $result = OpenApiCoverage::check((string) file_get_contents($file), $relative);
+            $source = (string) file_get_contents($file);
+            foreach (OpenApiCoverage::routedMethods($source, $config['routes'], $root) as $routed) $classes[$routed['class']] = true;
+            $result = OpenApiCoverage::check($source, $relative, $config['routes'], $root);
             $errors = [...$errors, ...$result['errors']];
             $operations = [...$operations, ...$result['operations']];
         }
-        return ['errors' => $errors, 'operations' => $operations, 'files' => $files];
+        foreach (array_keys($config['routes']) as $class) {
+            if (!isset($classes[$class])) $errors[] = 'config/route.php 指向的控制器不在扫描范围内：' . $class;
+        }
+        return ['errors' => $errors, 'operations' => $operations, 'files' => $files, 'config' => $config];
     }
 
     public function test_scan_roots_cover_core_and_bundled_plugin_sources_only(): void
@@ -117,6 +125,56 @@ PHP;
         self::assertStringContainsString('路径参数 slug 需要', $errors);
         self::assertStringNotContainsString('路径参数 id', $errors);
         self::assertCount(1, OpenApiCoverage::duplicateOperationIds($result['operations']));
+    }
+
+    public function test_config_routes_are_parsed_and_only_closures_are_skipped(): void
+    {
+        $config = self::scan()['config'];
+        self::assertSame([['verbs' => ['GET'], 'path' => '/plugins/hooks/frontend'], ['verbs' => ['GET'], 'path' => '/admin/plugins/hooks/frontend']],
+            $config['routes']['app\\common\\plugin\\controller\\FrontendHooks']['index']);
+        self::assertSame([['verbs' => ['POST'], 'path' => '/api/v2/token/refresh']], $config['routes']['app\\api\\controller\\v2\\Token']['refresh']);
+        self::assertSame([['verbs' => ['GET'], 'path' => '/admin/auth/csrf']], $config['routes']['app\\admin\\authentication\\controller\\AdminAuth']['csrf']);
+        self::assertSame(['GET /health', 'GET /'], $config['skipped']);
+        $fixture = OpenApiCoverage::configRoutes(<<<'PHP'
+<?php
+use Webman\Route;
+Route::group('/v9', static function (): void {
+    Route::group('/inner', static function (): void {
+        Route::add(['GET', 'POST'], '/x', [\app\demo\controller\Sample::class, 'save']);
+    });
+});
+PHP);
+        self::assertSame(['app\\demo\\controller\\Sample' => ['save' => [['verbs' => ['GET', 'POST'], 'path' => '/v9/inner/x']]]], $fixture['routes']);
+    }
+
+    public function test_checker_rejects_trait_routes_and_unrecognised_route_attributes(): void
+    {
+        $trait = <<<'PHP'
+<?php
+namespace app\demo\controller;
+final class UsesTrait { use \app\common\traits\Crud; use \Tests\Support\OpenApiCoverageRoutedTraitFixture; }
+PHP;
+        try {
+            OpenApiCoverage::routedMethods($trait);
+            self::fail('trait 路由应被拒绝');
+        } catch (\RuntimeException $error) {
+            self::assertStringContainsString('trait 方法带路由属性', $error->getMessage());
+        }
+        $unknown = <<<'PHP'
+<?php
+namespace app\demo\controller;
+use support\annotation\route\Get;
+final class Unknown { #[\app\demo\Post('/x')] public function save() {} }
+PHP;
+        try {
+            OpenApiCoverage::routedMethods($unknown);
+            self::fail('无法识别的路由属性应被拒绝');
+        } catch (\RuntimeException $error) {
+            self::assertStringContainsString('无法识别的路由属性', $error->getMessage());
+        }
+        $unsupported = "<?php\nnamespace app\\demo;\nfinal class Odd { #[\\support\\annotation\\route\\Middleware] public function x() {} }";
+        $this->expectException(\RuntimeException::class);
+        OpenApiCoverage::routedMethods($unsupported);
     }
 
     public function test_open_api_path_strips_nested_route_constraints(): void

@@ -51,7 +51,7 @@
 
 ## 覆盖范围与防回退测试
 
-- 范围：核心 `admin/app/{admin,api,common,install,...}` 下带路由属性的控制器（不含 `app/admin/plugins/`、`app/admin/business/` 等不入库目录）、`admin/app/api/controller/v2` 下的会员 API（路由在 `config/route.php` 中注册），以及随仓库提供的插件源码 `admin/plugins/<code>/app/**/controller`（CMS、文档、问答、OSS 的后台与前台控制器）。插件安装副本（`app/<code>/`、`app/admin/plugins/<code>/`）与源码相同，不重复扫描。
+- 范围：核心 `admin/app/{admin,api,common,install,...}` 下带路由属性的控制器（不含 `app/admin/plugins/`、`app/admin/business/` 等不入库目录）；`config/route.php` 中指向控制器方法的 `Route::get/post/put/delete/patch/head/options/add` 调用（含 `Route::group` 前缀，如 `/api/v2` 会员 API、`/plugins/hooks/frontend`、默认入口 `/admin/auth/*`）；以及随仓库提供的插件源码 `admin/plugins/<code>/app/**/controller`（CMS、文档、问答、OSS 的后台与前台控制器）。闭包路由（`/health`、`/`）没有控制器方法，不在检查范围。插件安装副本（`app/<code>/`、`app/admin/plugins/<code>/`）与源码相同，不重复扫描。
 - 插件标签在 `ApiDocumentation.php` 中登记；插件前台与会员接口使用 `PluginEnvelope` 与 `PluginError`（不含 `time`，`code` 与 HTTP 状态一致；CMS 公开表单与文档读者反馈成功时 `code=0`）。服务端渲染页面、文件下载和 CSV 按真实响应类型描述。
-- 代码生成器（`ProductionTemplateContext`）生成后台、插件和会员控制器时同时生成注释：`operationId` 由控制器命名空间、类名、方法和动词组成，按实体唯一；标签为实体标题。
-- `admin/tests/OpenApiCoverageTest.php` 静态检查（不依赖 swagger-php）：每个路由方法都有动词和完整 path 一致的 `@OA` 操作、路径参数以 `in="path", required=true` 声明、操作带响应和已登记的标签、`operationId` 全局唯一。同一路由声明 GET 与 HEAD 时，HEAD 由 GET 操作覆盖。检查器位于 `admin/tests/Support/OpenApiCoverage.php`，`admin/tests/Console/CrudGeneratedOpenApiTest.php` 用它检查生成的控制器。
+- 代码生成器（`ProductionTemplateContext`）生成后台、插件和会员控制器时同时生成注释：`operationId` 由控制器命名空间、类名、方法和动词组成，按实体唯一；标签为实体标题；写入注释的标题会折叠换行、转义 `*/`、`@` 与双引号，不能提前结束注释或注入注解。
+- `admin/tests/OpenApiCoverageTest.php` 静态检查（不依赖 swagger-php，路由规则与 Webman 一致：只取第一个 `RouteGroup`，无法识别的路由属性、`#[Any]`/`Route::any` 以及带路由属性的 trait 方法直接报错）：每个路由方法都有动词和完整 path 一致的 `@OA` 操作、路径参数以 `in="path", required=true` 声明、操作带响应和已登记的标签、`operationId` 全局唯一。同一路由声明 GET 与 HEAD 时，HEAD 由 GET 操作覆盖。检查器位于 `admin/tests/Support/OpenApiCoverage.php`，`admin/tests/Console/CrudGeneratedOpenApiTest.php` 用它检查生成的控制器。
