@@ -25,7 +25,7 @@ spl_autoload_register(static function (string $class): void {
 /**
  * 问答插件 003（后台管理结构，1.2.0）在 MySQL 上的升级：从 002 带数据升级，问题行与原值保留并得到 pinned = 0；
  * 新表 qa_answer 为已有 CMS 回答（问题有问答行的）各补一行状态，CMS 数据不变；重放 003 数据与结构不变，
- * 且不会补回已被彻底删除的回答状态行（包括全部删除、表为空时）；SQL 001–003 与 Schema::install() 结构一致。
+ * 且不会补回已被彻底删除的回答状态行（包括全部删除、表为空时）；SQL 001–003 的问题与回答表与 Schema::install() 结构一致。
  * 需要一次性 MySQL 测试库（tests/Console/run-mysql.php）；库里没有核心表时先执行核心 001–005；
  * 没有 CMS 投稿表时建一张只含回填所需列的临时表，结束时删除。
  */
@@ -148,12 +148,12 @@ final class MySqlQaQuestionAdminUpgradeTest extends TestCase
         return array_map(static fn ($row): array => (array) $row, Db::table('cms_member_submission')->whereIn('id', self::SUBMISSIONS)->orderBy('id')->get()->all());
     }
 
-    /** 表结构的规范化描述：列（顺序、类型、可空、默认值）与索引（名称、唯一、列）。 */
+    /** 表结构的规范化描述：列（顺序、类型、可空、默认值）与索引（名称、唯一、列）。只比较 001–003 的表；004 的附件表见 MySqlQaAttachmentUpgradeTest。 */
     private function structure(): array
     {
         $prefix = Db::connection()->getTablePrefix();
         $result = [];
-        foreach (Schema::tables() as $table) {
+        foreach (['qa_question', 'qa_answer'] as $table) {
             $columns = Db::select('SELECT COLUMN_NAME n, COLUMN_TYPE t, IS_NULLABLE nl, COLUMN_DEFAULT d, EXTRA e FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? ORDER BY ORDINAL_POSITION', [$prefix . $table]);
             $indexes = Db::select('SELECT INDEX_NAME n, NON_UNIQUE u, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) c FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? GROUP BY INDEX_NAME, NON_UNIQUE ORDER BY INDEX_NAME', [$prefix . $table]);
             $result[$table] = ['columns' => array_map(static fn ($c): array => (array) $c, $columns), 'indexes' => array_map(static fn ($i): array => (array) $i, $indexes)];

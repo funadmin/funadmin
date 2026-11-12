@@ -29,7 +29,7 @@ final class AdminQuestionService
         $total=(clone $query)->count();
         $rows=$query->orderByDesc('q.pinned')->orderByDesc('s.id')->offset(($page-1)*self::PAGE_SIZE)->limit(self::PAGE_SIZE)->get()->all();
         $counts=$this->answerCounts(array_map(static fn($row)=>(string)Input::attributes($row)['id'],$rows));
-        $items=[];foreach($rows as $row){$item=$this->question($row);$items[]=array_diff_key($item,['body_html'=>true,'attachments'=>true])+['answers_count'=>$counts[$item['id']]??0];}
+        $items=[];foreach($rows as $row){$item=$this->question($row,[]);$items[]=array_diff_key($item,['body_html'=>true,'attachments'=>true])+['answers_count'=>$counts[$item['id']]??0];}
         return ['items'=>$items,'total'=>$total,'page'=>$page,'limit'=>self::PAGE_SIZE];
     }
 
@@ -40,8 +40,9 @@ final class AdminQuestionService
         $answers=$this->answers($site,$locale)->where('s.parent_id',$id);
         $total=(clone $answers)->count();
         $rows=$answers->orderBy('s.id')->limit(self::ANSWER_LIMIT)->get()->all();
-        $question=$this->question($row);
-        return $question+['answers'=>array_map(fn($answer)=>$this->answer($answer,$question['accepted_answer_id']),$rows),'answers_total'=>$total];
+        $files=(new AttachmentService())->forSubmissions($site,[$id,...array_map(static fn($answer)=>(string)Input::attributes($answer)['id'],$rows)]);
+        $question=$this->question($row,$files);
+        return $question+['answers'=>array_map(fn($answer)=>$this->answer($answer,$question['accepted_answer_id'],$files),$rows),'answers_total'=>$total];
     }
 
     /**
@@ -58,14 +59,14 @@ final class AdminQuestionService
         return $this->changeState($site,$locale,$id,$version,['pinned'=>$pinned]);
     }
 
-    /** 软删除问题：只写 qa_question.deleted_at；CMS 投稿与回答状态行保持原样。 */
+    /** 软删除问题：只写 qa_question.deleted_at，问题自己的附件以同一时间软删除；CMS 投稿与回答状态行（及回答附件）保持原样。 */
     public function delete(string $site,string $locale,string $id): array
     {
         $site=Input::id($site);$locale=Input::locale($locale);$id=Input::id($id);
         return Db::transaction(function()use($site,$locale,$id):array {
             (new SiteService())->lock($site);
             $row=QaQuestion::query()->where('id',$id)->where('site_id',$site)->where('locale',$locale)->lockForUpdate()->first()??throw new InvalidArgumentException('问题不存在',404);
-            $row->delete();
+            $row->delete();AttachmentService::trash($site,[$id],$this->deletedAt(QaQuestion::class,$id));
             return ['count'=>1];
         });
     }
@@ -85,14 +86,14 @@ final class AdminQuestionService
         });
     }
 
-    /** 软删除回答（问答侧状态行），进入回答回收站；已采纳时取消采纳并重新开放问题。 */
+    /** 软删除回答（问答侧状态行），回答的附件以同一时间软删除，进入回答回收站；已采纳时取消采纳并重新开放问题。 */
     public function deleteAnswer(string $site,string $locale,string $id): array
     {
         $site=Input::id($site);$locale=Input::locale($locale);$id=Input::id($id);
         return Db::transaction(function()use($site,$locale,$id):array {
             (new SiteService())->lock($site);
             [$answer,$question]=$this->lockedAnswer($site,$locale,$id);
-            $answer->delete();$this->unaccept($question,$id);
+            $answer->delete();AttachmentService::trash($site,[$id],$this->deletedAt(QaAnswer::class,$id));$this->unaccept($question,$id);
             return ['count'=>1];
         });
     }
@@ -130,7 +131,7 @@ final class AdminQuestionService
         return MemberSubmission::query()->from('cms_member_submission as s')
             ->join('qa_question as q',function($j):void {$j->on('q.id','=','s.id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale')->whereNull('q.deleted_at');})
             ->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','question')
-            ->select(['s.id','s.title','s.body_html','s.member_id','s.status','s.lock_version','s.review_reason','s.data','s.created_at','m.username','m.nickname','q.accepted_answer_id','q.closed','q.pinned','q.lock_version as question_version']);
+            ->select(['s.id','s.title','s.body_html','s.member_id','s.status','s.lock_version','s.review_reason','s.created_at','m.username','m.nickname','q.accepted_answer_id','q.closed','q.pinned','q.lock_version as question_version']);
     }
 
     /** 未删除的回答（问答状态行未删除，CMS 投稿未删除），含隐藏的与任何审核状态的。 */
@@ -139,7 +140,7 @@ final class AdminQuestionService
         return MemberSubmission::query()->from('cms_member_submission as s')
             ->join('qa_answer as a',function($j):void {$j->on('a.id','=','s.id')->on('a.site_id','=','s.site_id')->on('a.locale','=','s.locale')->whereNull('a.deleted_at');})
             ->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','answer')
-            ->select(['s.id','s.parent_id','s.body_html','s.member_id','s.status','s.lock_version','s.review_reason','s.data','s.created_at','m.username','m.nickname','a.hidden']);
+            ->select(['s.id','s.parent_id','s.body_html','s.member_id','s.status','s.lock_version','s.review_reason','s.created_at','m.username','m.nickname','a.hidden']);
     }
 
     /**
@@ -157,25 +158,22 @@ final class AdminQuestionService
         return $counts;
     }
 
+    /** 刚软删除的问答状态行的删除时间（数据库中的原样值），附件用同一时间删除，恢复时按它匹配。 @param class-string<QaQuestion|QaAnswer> $model */
+    private function deletedAt(string $model,string $id): string { return (string)$model::onlyTrashed()->where('id',$id)->value('deleted_at'); }
+
     private function member(array $row): array { return ['id'=>(string)$row['member_id'],'username'=>(string)($row['username']??''),'nickname'=>(string)($row['nickname']??'')]; }
 
-    /** 投稿 data 中的附件（会员附件由后续版本写入；没有时为空数组）。 */
-    private function attachments(array $row): array
-    {
-        $data=is_string($row['data']??null)?json_decode($row['data'],true):($row['data']??[]);
-        $files=is_array($data)&&is_array($data['attachments']??null)?$data['attachments']:[];
-        return array_values(array_filter($files,'is_array'));
-    }
-
-    private function question(object $row): array
+    /** @param array<string,list<array>> $files 未删除的会员附件，按问题或回答 id 分组（AttachmentService::forSubmissions） */
+    private function question(object $row,array $files): array
     {
         $row=Input::attributes($row);
-        return ['id'=>(string)$row['id'],'title'=>(string)$row['title'],'body_html'=>(string)$row['body_html'],'status'=>(string)$row['status'],'lock_version'=>(int)$row['lock_version'],'review_reason'=>(string)($row['review_reason']??''),'created_at'=>$row['created_at'],'member'=>$this->member($row),'attachments'=>$this->attachments($row),'accepted_answer_id'=>$row['accepted_answer_id']===null?null:(string)$row['accepted_answer_id'],'closed'=>(bool)$row['closed'],'pinned'=>(bool)$row['pinned'],'question_version'=>(int)$row['question_version']];
+        return ['id'=>(string)$row['id'],'title'=>(string)$row['title'],'body_html'=>(string)$row['body_html'],'status'=>(string)$row['status'],'lock_version'=>(int)$row['lock_version'],'review_reason'=>(string)($row['review_reason']??''),'created_at'=>$row['created_at'],'member'=>$this->member($row),'attachments'=>$files[(string)$row['id']]??[],'accepted_answer_id'=>$row['accepted_answer_id']===null?null:(string)$row['accepted_answer_id'],'closed'=>(bool)$row['closed'],'pinned'=>(bool)$row['pinned'],'question_version'=>(int)$row['question_version']];
     }
 
-    private function answer(object $row,?string $accepted): array
+    /** @param array<string,list<array>> $files */
+    private function answer(object $row,?string $accepted,array $files): array
     {
         $row=Input::attributes($row);
-        return ['id'=>(string)$row['id'],'body_html'=>(string)$row['body_html'],'status'=>(string)$row['status'],'lock_version'=>(int)$row['lock_version'],'review_reason'=>(string)($row['review_reason']??''),'created_at'=>$row['created_at'],'member'=>$this->member($row),'attachments'=>$this->attachments($row),'hidden'=>(bool)$row['hidden'],'accepted'=>$accepted===(string)$row['id']];
+        return ['id'=>(string)$row['id'],'body_html'=>(string)$row['body_html'],'status'=>(string)$row['status'],'lock_version'=>(int)$row['lock_version'],'review_reason'=>(string)($row['review_reason']??''),'created_at'=>$row['created_at'],'member'=>$this->member($row),'attachments'=>$files[(string)$row['id']]??[],'hidden'=>(bool)$row['hidden'],'accepted'=>$accepted===(string)$row['id']];
     }
 }

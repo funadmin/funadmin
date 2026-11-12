@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace app\qa\service;
 use app\cms\model\MemberSubmission;
 use app\cms\service\{Input,RecycleBin,SiteService};
-use app\qa\model\{QaAnswer,QaQuestion};
+use app\qa\model\{QaAnswer,QaAttachment,QaQuestion};
 use InvalidArgumentException;
 use support\Db;
 /**
@@ -14,6 +14,8 @@ use support\Db;
  * - 恢复问题：对应的 CMS 投稿已删除或不存在（或已不是问题投稿）时返回 409，问题留在回收站。
  * - 回答回收站只列出问题未删除的回答；恢复回答：问题已删除或不存在、或 CMS 回答投稿已删除或不存在时返回 409。
  * - 彻底删除问题：删除问题行和它的全部回答状态行（含已删除的）；彻底删除回答：只删除该回答状态行。
+ * - 会员附件（1.3.0）：恢复问题或回答时一起恢复与它同一时间删除的附件；彻底删除时删除对应附件记录（问题：问题及其全部回答的附件），
+ *   事务提交后再删除磁盘文件。这是唯一删除附件文件的地方。
  * - ids 规则与 CMS 回收站一致（1–100 个、去重，任何一个不在回收站整批 404）；409 时整批回滚。
  */
 final class QaRecycleBin
@@ -45,7 +47,7 @@ final class QaRecycleBin
                 $id=(string)$row->getRawOriginal('id');
                 $live=MemberSubmission::query()->where('id',$id)->where('site_id',$site)->where('locale',$row->locale)->where('kind','question')->sharedLock()->exists();
                 if(!$live)throw new InvalidArgumentException('问题对应的 CMS 投稿已删除或不存在，无法恢复',409);
-                $row->restore();
+                $at=RecycleBin::deletedAt($row);$row->restore();AttachmentService::restore($site,$id,$at);
             }
             return ['count'=>count($rows),'skipped'=>0];
         });
@@ -54,13 +56,18 @@ final class QaRecycleBin
     public function destroyQuestions(string $site,mixed $ids): array
     {
         $site=Input::id($site);$ids=RecycleBin::ids($ids);
-        return Db::transaction(function()use($site,$ids):array {
+        [$count,$paths]=Db::transaction(function()use($site,$ids):array {
             (new SiteService())->lock($site);
             RecycleBin::locked(QaQuestion::class,$site,$ids,'问题不在回收站');
+            $files=QaAttachment::withTrashed()->where('site_id',$site)->whereIn('question_id',$ids);
+            $paths=array_map('strval',(clone $files)->pluck('path')->all());
+            $files->forceDelete();
             QaAnswer::withTrashed()->where('site_id',$site)->whereIn('question_id',$ids)->forceDelete();
             $count=QaQuestion::onlyTrashed()->where('site_id',$site)->whereIn('id',$ids)->forceDelete();
-            return ['count'=>(int)$count];
+            return [(int)$count,$paths];
         });
+        (new AttachmentService())->unlink($site,$paths);
+        return ['count'=>$count];
     }
 
     public function trashedAnswers(string $site,string $locale,mixed $page,mixed $pageSize): array
@@ -92,7 +99,7 @@ final class QaRecycleBin
                 if(!QaQuestion::query()->where('id',$question)->where('site_id',$site)->sharedLock()->exists())throw new InvalidArgumentException('回答所属的问题已删除，请先恢复问题',409);
                 $live=MemberSubmission::query()->where('id',$id)->where('site_id',$site)->where('locale',$row->locale)->where('kind','answer')->where('parent_id',$question)->sharedLock()->exists();
                 if(!$live)throw new InvalidArgumentException('回答对应的 CMS 投稿已删除或不存在，无法恢复',409);
-                $row->restore();
+                $at=RecycleBin::deletedAt($row);$row->restore();AttachmentService::restore($site,$id,$at);
             }
             return ['count'=>count($rows),'skipped'=>0];
         });
@@ -101,12 +108,17 @@ final class QaRecycleBin
     public function destroyAnswers(string $site,mixed $ids): array
     {
         $site=Input::id($site);$ids=RecycleBin::ids($ids);
-        return Db::transaction(function()use($site,$ids):array {
+        [$count,$paths]=Db::transaction(function()use($site,$ids):array {
             (new SiteService())->lock($site);
             RecycleBin::locked(QaAnswer::class,$site,$ids,'回答不在回收站');
+            $files=QaAttachment::withTrashed()->where('site_id',$site)->whereIn('submission_id',$ids);
+            $paths=array_map('strval',(clone $files)->pluck('path')->all());
+            $files->forceDelete();
             $count=QaAnswer::onlyTrashed()->where('site_id',$site)->whereIn('id',$ids)->forceDelete();
-            return ['count'=>(int)$count];
+            return [(int)$count,$paths];
         });
+        (new AttachmentService())->unlink($site,$paths);
+        return ['count'=>$count];
     }
 
     /**

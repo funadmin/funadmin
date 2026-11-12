@@ -1,8 +1,8 @@
-/** 问答后台类型（1.2.0）：问题管理、详情与回答、回收站。 */
+/** 问答后台类型（1.3.0）：问题管理、详情与回答（含会员附件）、回收站。 */
 export type Id = string;
 export interface QaScope { site_id: Id; locale: string }
 export interface QaMember { id: Id; username: string; nickname: string }
-export interface QaAttachment { name?: string; url?: string; size?: number; [key: string]: unknown }
+export interface QaAttachment { id: Id; name: string; mime: string; size: number; created_at: string }
 export interface QaQuestionRow { id: Id; title: string; status: string; lock_version: number; review_reason: string; created_at: string; member: QaMember; accepted_answer_id: Id | null; closed: boolean; pinned: boolean; question_version: number; answers_count: number }
 export interface QaQuestionList { items: QaQuestionRow[]; total: number; page: number; limit: number }
 export interface QaAnswer { id: Id; body_html: string; status: string; lock_version: number; review_reason: string; created_at: string; member: QaMember; attachments: QaAttachment[]; hidden: boolean; accepted: boolean }

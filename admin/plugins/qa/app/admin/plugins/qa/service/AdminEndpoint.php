@@ -21,6 +21,12 @@ trait AdminEndpoint
     protected function flag(string $key): bool { $value=$this->input()[$key]??null;if(!is_bool($value))throw new \InvalidArgumentException($key.' 必须为布尔值',422);return $value; }
     protected function version(): int { $raw=Input::text($this->input()['question_version']??'',10);if(!preg_match('/^(?:0|[1-9][0-9]{0,9})$/D',$raw)||(int)$raw>2147483647)throw new \InvalidArgumentException('问题版本无效',422);return (int)$raw; }
     protected function page(): int { $raw=Input::text($this->input()['page']??'1',10);if(!preg_match('/^[1-9][0-9]{0,8}$/D',$raw))throw new \InvalidArgumentException('页码无效',422);return (int)$raw; }
+    /** 文件响应：$callback 返回 AttachmentService 的文件描述；失败时与其他接口相同的 JSON 错误。 */
+    protected function download(callable $callback): Response
+    {
+        $file=null;$error=$this->action(function()use($callback,&$file){$file=$callback();return null;});
+        return $file===null?$error:\app\qa\service\AttachmentService::response($file);
+    }
     protected function action(callable $callback): Response
     {
         try{return $this->ok(data:$callback());}

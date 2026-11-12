@@ -211,8 +211,8 @@ final class PluginSoftDeleteGuardTest extends TestCase
                 self::assertContains(LaravelSoftDelete::class, class_uses_recursive($class), $class . '（' . $table . '）必须使用 LaravelSoftDelete');
             }
         }
-        // 文档 7 + QA 2 + OSS 2 + CMS 26 个具体模型。
-        self::assertCount(37, $checked);
+        // 文档 7 + QA 3 + OSS 2 + CMS 26 个具体模型。
+        self::assertCount(38, $checked);
     }
 
     // ---- 生成器：有唯一字段时带令牌，没有时不带 ----

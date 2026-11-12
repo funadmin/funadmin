@@ -724,6 +724,11 @@
         "login": true,
         "permission": "qa:questions:index"
     },
+    "GET /admin/plugins/qa/questions/attachment => app\\admin\\plugins\\qa\\controller\\Questions::attachment": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:attachment"
+    },
     "GET /admin/plugins/qa/questions/detail => app\\admin\\plugins\\qa\\controller\\Questions::detail": {
         "guard": "plugin",
         "login": true,
@@ -1164,6 +1169,11 @@
         "login": false,
         "permission": null
     },
+    "GET /qa/api/attachments/{id} => app\\qa\\controller\\Questions::attachment": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
     "GET /qa/api/context => app\\qa\\controller\\Questions::context": {
         "guard": "self",
         "login": false,
@@ -1179,6 +1189,21 @@
         "login": false,
         "permission": null
     },
+    "GET /qa/questions => app\\qa\\controller\\Pages::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /qa/questions/ => app\\qa\\controller\\Pages::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "GET /qa/questions/{id:[1-9][0-9]{0,19}} => app\\qa\\controller\\Pages::detail": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
     "HEAD /cms => app\\cms\\controller\\Index::index": {
         "guard": "self",
         "login": false,
@@ -1190,6 +1215,21 @@
         "permission": null
     },
     "HEAD /cms/{path:(?!(?:member|forms)(?:/|$)).+} => app\\cms\\controller\\Index::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "HEAD /qa/questions => app\\qa\\controller\\Pages::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "HEAD /qa/questions/ => app\\qa\\controller\\Pages::index": {
+        "guard": "self",
+        "login": false,
+        "permission": null
+    },
+    "HEAD /qa/questions/{id:[1-9][0-9]{0,19}} => app\\qa\\controller\\Pages::detail": {
         "guard": "self",
         "login": false,
         "permission": null

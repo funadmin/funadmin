@@ -3,11 +3,11 @@ import { computed, ref, watch } from 'vue';
 import { useCmsI18n } from '@/composables/useCmsI18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { qaApi } from '../api';
-import type { Id, QaAnswer, QaQuestionDetail, QaScope } from '../types';
+import type { Id, QaAnswer, QaAttachment, QaQuestionDetail, QaScope } from '../types';
 import { qaAllowed } from './permissions';
 
 /**
- * 后台问题详情：标题、内容、提问会员、审核状态、附件与回答列表；可关闭/重新开放、置顶、删除问题，隐藏/显示与删除回答。
+ * 后台问题详情：标题、内容、提问会员、审核状态、附件（有下载权限时可下载）与回答列表；可关闭/重新开放、置顶、删除问题，隐藏/显示与删除回答。
  * 每个按钮按自己的权限显示；只采用最后一次请求的响应；问题版本冲突（409）时刷新为最新内容。
  */
 const props = defineProps<{ scope: QaScope; id?: Id; site: (operation: string) => boolean }>();
@@ -21,6 +21,8 @@ const busy = ref(false);
 const allow = (action: Parameters<typeof qaAllowed>[0]) => qaAllowed(action, props.site);
 const statusName = (value: string) => t(`pluginQa.status.${value}`);
 const capped = computed(() => !!detail.value && detail.value.answers_total > detail.value.answers.length);
+const fileUrl = (file: QaAttachment) => qaApi.attachmentUrl(props.scope, file.id);
+const size = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 const message = (e: unknown) => {
   const m = (e as { msg?: unknown } | null)?.msg;
@@ -132,7 +134,9 @@ async function removeQuestion() {
         <pre class="qa-body">{{ detail.body_html }}</pre>
         <template v-if="detail.attachments.length">
           <h4>{{ t('pluginQa.detail.attachments') }}</h4>
-          <ul class="qa-files"><li v-for="(file, index) in detail.attachments" :key="index">{{ file.name || file.url }}</li></ul>
+          <ul class="qa-files" data-testid="qa-question-files">
+            <li v-for="file in detail.attachments" :key="file.id"><a v-if="allow('attachment')" :href="fileUrl(file)" target="_blank" rel="noopener">{{ file.name }}</a><span v-else>{{ file.name }}</span> <span class="qa-muted">{{ size(file.size) }}</span></li>
+          </ul>
         </template>
         <h4>{{ t('pluginQa.detail.answers', { n: detail.answers_total }) }}</h4>
         <p v-if="capped" class="qa-muted">{{ t('pluginQa.detail.capped', { n: detail.answers.length }) }}</p>
@@ -149,6 +153,9 @@ async function removeQuestion() {
             </span>
           </div>
           <pre class="qa-body">{{ answer.body_html }}</pre>
+          <ul v-if="answer.attachments.length" class="qa-files" data-testid="qa-answer-files" :aria-label="t('pluginQa.detail.attachments')">
+            <li v-for="file in answer.attachments" :key="file.id"><a v-if="allow('attachment')" :href="fileUrl(file)" target="_blank" rel="noopener">{{ file.name }}</a><span v-else>{{ file.name }}</span> <span class="qa-muted">{{ size(file.size) }}</span></li>
+          </ul>
         </article>
       </template>
     </div>

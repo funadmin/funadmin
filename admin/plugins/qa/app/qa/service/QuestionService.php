@@ -10,10 +10,12 @@ use app\cms\model\MemberSubmission;
 use app\qa\model\{QaAnswer,QaQuestion};
 final class QuestionService
 {
-    public function ask(string $site,string $locale,string $member,array $input): array
+    /** @param list<array{tmp?:mixed,name?:mixed,size?:mixed}> $uploads 会员附件（1.3.0），写入前整体校验；重放不再保存附件。 */
+    public function ask(string $site,string $locale,string $member,array $input,array $uploads=[]): array
     {
         $site=Input::id($site);$locale=Input::locale($locale);$member=Input::id($member);
-        return Db::transaction(function()use($site,$locale,$member,$input):array {
+        $attachments=new AttachmentService();$files=$attachments->inspect($uploads);$stored=[];
+        return $this->storing($attachments,$site,$stored,function()use($site,$locale,$member,$input,$attachments,$files,&$stored):array {
             (new SiteService())->lock($site);
             // 重放（同一会员、同一 request_key）只返回已有记录，不再补问答行：问题被彻底删除后重放不能让它复活。
             $replay=MemberSubmission::query()->where('site_id',$site)->where('member_id',$member)->where('request_key',Input::text($input['request_key']??'',64))->exists();
@@ -21,14 +23,17 @@ final class QuestionService
             // 含已软删除的行：主键复用投稿 id，同一投稿不能再插入一行。
             if(!$replay&&!QaQuestion::withTrashed()->where('id',$submission['id'])->exists()) {
                 $now=Input::now();QaQuestion::query()->insert(['id'=>$submission['id'],'site_id'=>$site,'locale'=>$locale,'accepted_answer_id'=>null,'closed'=>false,'lock_version'=>0,'created_at'=>$now,'updated_at'=>$now]);
+                $attachments->attach($site,$submission['id'],$submission['id'],$member,$files,$stored);
             }
             return $this->withState($submission,$this->state($site,$locale,$submission['id']));
         });
     }
-    public function answer(string $site,string $locale,string $member,string $question,array $input): array
+    /** @param list<array{tmp?:mixed,name?:mixed,size?:mixed}> $uploads 会员附件（1.3.0），写入前整体校验；重放不再保存附件。 */
+    public function answer(string $site,string $locale,string $member,string $question,array $input,array $uploads=[]): array
     {
         $site=Input::id($site);$locale=Input::locale($locale);$member=Input::id($member);$question=Input::id($question);
-        return Db::transaction(function()use($site,$locale,$member,$question,$input):array {
+        $attachments=new AttachmentService();$files=$attachments->inspect($uploads);$stored=[];
+        return $this->storing($attachments,$site,$stored,function()use($site,$locale,$member,$question,$input,$attachments,$files,&$stored):array {
             (new SiteService())->lock($site);$this->context($site,$locale);
             $service=new ContributionService();$payload=$this->payload($input);
             $key=Input::text($payload['request_key']??'',64);
@@ -42,6 +47,7 @@ final class QuestionService
             $submission=$service->submit($site,$locale,$member,'answer',$payload,$question);
             // 新回答同时建问答侧状态行（隐藏、删除都记在这里）；前台只显示有未删除、未隐藏状态行的回答。
             $now=Input::now();QaAnswer::query()->insert(['id'=>$submission['id'],'question_id'=>$question,'site_id'=>$site,'locale'=>$locale,'hidden'=>false,'created_at'=>$now,'updated_at'=>$now]);
+            $attachments->attach($site,$question,$submission['id'],$member,$files,$stored);
             return $submission;
         });
     }
@@ -59,7 +65,10 @@ final class QuestionService
         $row=$this->publicQuestions($site,$locale)->where('s.id',$id)->first()??throw new InvalidArgumentException('问题不存在',404);
         $answers=MemberSubmission::query()->from('cms_member_submission as s')->join('qa_answer as a',function($j):void {$this->liveAnswer($j);$j->where('a.hidden',false);})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','answer')->where('s.parent_id',$id)->where('s.status','published');
         $total=$answers->count();$rows=$answers->select($this->publicColumns())->orderBy('s.id')->limit(100)->get();
-        return $this->publicQuestion($row)+['answers'=>array_map($this->publicSubmission(...),$rows->all()),'answers_total'=>$total];
+        $question=$this->publicQuestion($row);$items=array_map($this->publicSubmission(...),$rows->all());
+        $files=(new AttachmentService())->forSubmissions($site,[$question['id'],...array_column($items,'id')]);
+        foreach($items as &$item)$item['attachments']=$files[$item['id']]??[];unset($item);
+        return $question+['attachments'=>$files[$question['id']]??[],'answers'=>$items,'answers_total'=>$total];
     }
     public function accept(string $site,string $locale,string $member,string $question,string $answer,int $questionVersion): array
     {
@@ -95,6 +104,15 @@ final class QuestionService
             }
             return $record['kind']==='question'?$this->withState($result,$this->state($site,$record['locale'],$question)):$result;
         });
+    }
+    /**
+     * 在事务中执行写入；事务失败（回滚）时删除本次已落盘的附件文件（$stored 由写入闭包按引用追加），数据库与磁盘保持一致。
+     * @param list<string> $stored
+     */
+    private function storing(AttachmentService $attachments,string $site,array &$stored,\Closure $write): array
+    {
+        try{return Db::transaction($write);}
+        catch(\Throwable $e){$attachments->unlink($site,$stored);throw $e;}
     }
     private function payload(array $input): array { return array_intersect_key($input,array_flip(['request_key','title','body_html'])); }
     private function context(string $site,string $locale): void { $sites=new SiteService();$sites->get($site,true);$sites->language($site,$locale); }
