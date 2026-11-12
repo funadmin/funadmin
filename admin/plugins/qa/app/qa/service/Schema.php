@@ -4,6 +4,8 @@ namespace app\qa\service;
 use Illuminate\Database\Schema\{Blueprint,Builder};
 use Illuminate\Database\MySqlConnection;
 use support\Db;
+use app\cms\model\MemberSubmission;
+use app\qa\model\QaAnswer;
 final class Schema
 {
     public static function tables(): array { return ['qa_question','qa_answer']; }
@@ -32,7 +34,9 @@ final class Schema
     public static function questionAdmin(?Builder $s=null): void
     {
         $s??=Db::schema();
-        if(!$s->hasColumn('qa_question','pinned'))$s->table('qa_question',static function(Blueprint $t): void { $t->boolean('pinned')->default(false);$t->index(['site_id','locale','pinned','id'],'idx_qa_question_pinned'); });
+        // 与 003 一样分别检查列与索引，任何一项缺失都只补那一项。
+        if(!$s->hasColumn('qa_question','pinned'))$s->table('qa_question',static function(Blueprint $t): void { $t->boolean('pinned')->default(false); });
+        if(!$s->hasIndex('qa_question','idx_qa_question_pinned'))$s->table('qa_question',static function(Blueprint $t): void { $t->index(['site_id','locale','pinned','id'],'idx_qa_question_pinned'); });
         $created=!$s->hasTable('qa_answer');
         if(!$created)return;
         $s->create('qa_answer',static function(Blueprint $t): void {
@@ -40,10 +44,10 @@ final class Schema
             $t->index(['question_id','id'],'idx_qa_answer_question');$t->index('deleted_at','idx_qa_answer_deleted_at');
         });
         if(!$s->hasTable('cms_member_submission'))return;
-        $connection=$s->getConnection();
-        $connection->table('qa_answer')->insertUsing(['id','question_id','site_id','locale','hidden','created_at','updated_at'],
-            $connection->table('cms_member_submission as s')->join('qa_question as q',static function($j): void {$j->on('q.id','=','s.parent_id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})
-                ->where('s.kind','answer')->select(['s.id','s.parent_id','s.site_id','s.locale'])->selectRaw('0')->addSelect(['s.created_at','s.updated_at']));
+        // 与 003 相同：包括 CMS 已删除的回答投稿（状态行只表示问答侧状态，读取时再按 CMS 是否删除过滤）。
+        QaAnswer::query()->insertUsing(['id','question_id','site_id','locale','hidden','created_at','updated_at'],
+            MemberSubmission::withTrashed()->from('cms_member_submission as s')->join('qa_question as q',static function($j): void {$j->on('q.id','=','s.parent_id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})
+                ->where('s.kind','answer')->select(['s.id','s.parent_id','s.site_id','s.locale'])->selectRaw('0')->addSelect(['s.created_at','s.updated_at'])->toBase());
     }
     private static function create(Builder $s): void
     {

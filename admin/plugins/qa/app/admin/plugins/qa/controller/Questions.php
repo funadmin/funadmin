@@ -4,12 +4,15 @@ namespace app\admin\plugins\qa\controller;
 use app\cms\service\Input;
 use app\qa\service\AdminQuestionService;
 use app\qa\service\QaRecycleBin;
+use app\admin\plugins\qa\service\AdminEndpoint;
+use app\common\controller\AdminController;
 use support\Response;
 use support\annotation\route\{Get,Post,RouteGroup};
 /** 后台问题管理：列表、详情、关闭/重新开放、置顶、删除，以及问题回收站（列表、恢复、彻底删除）。 */
 #[RouteGroup('/admin/plugins/qa/questions')]
-final class Questions extends Base
+final class Questions extends AdminController
 {
+    use AdminEndpoint;
     #[Get('')]
     public function index(): Response { return $this->action(fn()=>(new AdminQuestionService())->listing($this->site('cms:submission:list'),$this->locale(),Input::text($this->input()['status']??'',20),Input::text($this->input()['q']??'',100),$this->page())); }
     #[Get('/detail')]

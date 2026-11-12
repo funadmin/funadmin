@@ -24,6 +24,18 @@ final class PluginRouteMigrationTest extends TestCase
         }
     }
 
+    /** 插件中心、打包与开发插件服务都经 Manifest::fromDirectory 读取清单：随仓库发布的插件必须全部通过校验。 */
+    public function test_bundled_plugin_manifests_pass_validation(): void
+    {
+        $checked = [];
+        foreach (glob(dirname(__DIR__) . '/plugins/*/plugin.json') ?: [] as $file) {
+            $manifest = \app\common\plugin\sdk\Manifest::fromDirectory(dirname($file));
+            $checked[] = basename(dirname($file));
+            self::assertNotNull($manifest);
+        }
+        foreach (['cms', 'document', 'oss', 'qa'] as $code) self::assertContains($code, $checked);
+    }
+
     public function test_plugin_packages_do_not_publish_host_override_directories(): void
     {
         foreach (glob(dirname(__DIR__) . '/plugins/*') ?: [] as $directory) {

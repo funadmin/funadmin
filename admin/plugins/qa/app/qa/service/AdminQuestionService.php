@@ -151,8 +151,8 @@ final class AdminQuestionService
     {
         if($ids===[])return [];
         $counts=[];
-        $rows=Db::table('qa_answer as a')->join('cms_member_submission as s',static function($j): void {$j->on('s.id','=','a.id')->on('s.site_id','=','a.site_id')->on('s.locale','=','a.locale')->where('s.kind','answer')->whereNull('s.deleted_at');})
-            ->whereIn('a.question_id',$ids)->whereNull('a.deleted_at')->select('a.question_id')->selectRaw('count(*) as aggregate')->groupBy('a.question_id')->get();
+        $rows=QaAnswer::query()->from('qa_answer as a')->join('cms_member_submission as s',static function($j): void {$j->on('s.id','=','a.id')->on('s.site_id','=','a.site_id')->on('s.locale','=','a.locale')->where('s.kind','answer')->whereNull('s.deleted_at');})
+            ->whereIn('a.question_id',$ids)->select('a.question_id')->selectRaw('count(*) as aggregate')->groupBy('a.question_id')->toBase()->get();
         foreach($rows as $row)$counts[(string)$row->question_id]=(int)$row->aggregate;
         return $counts;
     }

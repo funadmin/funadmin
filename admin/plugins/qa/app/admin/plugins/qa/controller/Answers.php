@@ -3,12 +3,15 @@ declare(strict_types=1);
 namespace app\admin\plugins\qa\controller;
 use app\qa\service\AdminQuestionService;
 use app\qa\service\QaRecycleBin;
+use app\admin\plugins\qa\service\AdminEndpoint;
+use app\common\controller\AdminController;
 use support\Response;
 use support\annotation\route\{Get,Post,RouteGroup};
 /** 后台回答管理：隐藏/显示、删除，以及回答回收站（列表、恢复、彻底删除）。 */
 #[RouteGroup('/admin/plugins/qa/answers')]
-final class Answers extends Base
+final class Answers extends AdminController
 {
+    use AdminEndpoint;
     #[Post('/visibility')]
     public function visibility(): Response { return $this->action(fn()=>(new AdminQuestionService())->answerVisibility($this->site('cms:submission:review'),$this->locale(),$this->id(),$this->flag('hidden'))); }
     #[Post('/delete')]

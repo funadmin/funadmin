@@ -1,16 +1,17 @@
 <?php
 declare(strict_types=1);
-namespace app\admin\plugins\qa\controller;
-use app\common\controller\AdminController;
+namespace app\admin\plugins\qa\service;
 use app\cms\service\Input;
 use app\cms\service\SiteAccess;
 use app\cms\service\SiteAuthorization;
 use support\Response;
 /**
- * 问答后台接口（/admin/plugins/qa/questions、/admin/plugins/qa/answers）的公共部分。每个接口有自己的宿主权限码（由控制器与方法名推导，登记在 plugin.json）；
+ * 问答后台接口（/admin/plugins/qa/questions、/admin/plugins/qa/answers）的公共部分，由控制器 use。
+ * 放在 service/ 而不是 controller/：插件清单要求 controller/ 下每个文件恰好声明一个 /admin/plugins/qa 路由组。
+ * 每个接口有自己的宿主权限码（由控制器与方法名推导，登记在 plugin.json）；
  * 站点内复用 CMS 的投稿站点权限：读取需要 cms:submission:list，写操作（含删除、恢复、彻底删除）需要 cms:submission:review。
  */
-abstract class Base extends AdminController
+trait AdminEndpoint
 {
     protected function input(): array { return array_replace($this->request->get(),$this->request->post()); }
     protected function actor(): string { return Input::id(Input::text($this->request->context['admin']['id']??'')); }
