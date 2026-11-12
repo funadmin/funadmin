@@ -3,12 +3,12 @@
   "code": "qa",
   "name": "问答社区",
   "description": "会员提问、回答、审核与作者采纳，复用 CMS 投稿和站点权限",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
     "plugins": {
-      "cms": ">=1.3.0"
+      "cms": ">=1.6.0"
     }
   },
   "entry": {
@@ -38,10 +38,64 @@
       {
         "code": "qa:moderation:review",
         "name": "审核问答投稿"
+      },
+      {
+        "code": "qa:questions:index",
+        "name": "查看问题列表"
+      },
+      {
+        "code": "qa:questions:detail",
+        "name": "查看问题详情"
+      },
+      {
+        "code": "qa:questions:status",
+        "name": "关闭/重新开放问题"
+      },
+      {
+        "code": "qa:questions:pin",
+        "name": "置顶/取消置顶问题"
+      },
+      {
+        "code": "qa:questions:delete",
+        "name": "删除问题"
+      },
+      {
+        "code": "qa:questions:recycle",
+        "name": "查看问题回收站"
+      },
+      {
+        "code": "qa:questions:restore",
+        "name": "恢复问题"
+      },
+      {
+        "code": "qa:questions:destroy",
+        "name": "彻底删除问题"
+      },
+      {
+        "code": "qa:answers:visibility",
+        "name": "隐藏/显示回答"
+      },
+      {
+        "code": "qa:answers:delete",
+        "name": "删除回答"
+      },
+      {
+        "code": "qa:answers:recycle",
+        "name": "查看回答回收站"
+      },
+      {
+        "code": "qa:answers:restore",
+        "name": "恢复回答"
+      },
+      {
+        "code": "qa:answers:destroy",
+        "name": "彻底删除回答"
       }
     ],
     "permissionGroups": {
-      "moderation": "问答审核"
+      "moderation": "问答审核",
+      "questions": "问题管理",
+      "answers": "回答管理"
     },
     "menu": [
       {

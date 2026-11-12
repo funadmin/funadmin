@@ -23,7 +23,8 @@ spl_autoload_register(static function (string $class): void {
 
 /**
  * 问答插件 002（软删除结构）在 MySQL 上的升级：从 001 带数据升级，行与原值保留，主键（复用投稿 id）不变；
- * 重放 002 无变化；SQL 001–002 与 Schema::install() 结构一致。需要一次性 MySQL 测试库（tests/Console/run-mysql.php）；
+ * 重放 002 无变化。Schema::install() 自 1.2.0 起包含 003，结构一致性改在 MySqlQaQuestionAdminUpgradeTest（SQL 001–003）中检查。
+ * 需要一次性 MySQL 测试库（tests/Console/run-mysql.php）；
  * 库里没有核心表时先执行核心 001–005。
  */
 final class MySqlQaSoftDeleteUpgradeTest extends TestCase
@@ -34,9 +35,6 @@ final class MySqlQaSoftDeleteUpgradeTest extends TestCase
         self::assertMatchesRegularExpression('/^webman_console_test_[a-f0-9]{12}$/D', Db::connection()->getDatabaseName());
         $root = dirname(__DIR__, 2) . '/plugins/qa/database/migrations';
         $service = new MigrationService();
-        $this->drop();
-        Schema::install();
-        $installed = $this->structure();
         $this->drop();
         if (!Db::schema()->hasTable('system_migration')) {
             foreach (['001_baseline', '002_code_generator', '003_system_secret', '004_plugin_admin_web_directory', '005_soft_delete'] as $version) {
@@ -77,7 +75,6 @@ final class MySqlQaSoftDeleteUpgradeTest extends TestCase
         self::assertSame(['002_soft_delete'], $service->runVersion($root, '002_soft_delete', 'plugin:qa'));
         self::assertSame($data, $this->dump(), '重放 002 数据不变');
         self::assertSame($structure, $this->structure(), '重放 002 结构不变');
-        self::assertSame($installed, $structure, 'SQL 001–002 与 Schema::install() 结构一致');
 
         $this->drop();
         Db::table('system_migration')->where('scope', 'plugin:qa')->delete();

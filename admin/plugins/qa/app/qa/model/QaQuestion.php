@@ -11,4 +11,6 @@ final class QaQuestion extends BaseModel
     protected $table = 'qa_question';
     protected $guarded = [];
     public $incrementing = false;
+    /** 软删除写 deleted_at 时取 UTC，与 Input::now() 写入的其他问答时间一致。 */
+    public function freshTimestamp(): \Illuminate\Support\Carbon { return \Illuminate\Support\Carbon::now('UTC'); }
 }

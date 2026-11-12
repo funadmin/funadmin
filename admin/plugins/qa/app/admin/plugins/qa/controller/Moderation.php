@@ -20,7 +20,11 @@ final class Moderation extends AdminController
             $site=$this->site('cms:submission:list');$input=$this->input();$locale=Input::locale($input['locale']??'zh-cn');$status=Input::text($input['status']??'pending',20);
             if(!in_array($status,['pending','published','rejected','withdrawn','hidden'],true))throw new \InvalidArgumentException('投稿状态无效',422);
             $raw=Input::text($input['page']??'1',10);if(!preg_match('/^[1-9][0-9]{0,8}$/D',$raw))throw new \InvalidArgumentException('页码无效',422);$page=(int)$raw;
-            $query=MemberSubmission::query()->where('site_id',$site)->where('locale',$locale)->whereIn('kind',['question','answer'])->where('status',$status);
+            // 只列出问答侧未删除的问题与回答（问题已删除时其回答也不列出）；已删除的在问答回收站处理。
+            $query=MemberSubmission::query()->where('site_id',$site)->where('locale',$locale)->where('status',$status)->where(function($w):void {
+                $w->where(fn($q)=>$q->where('kind','question')->whereExists(fn($e)=>$e->from('qa_question as q')->whereColumn('q.id','cms_member_submission.id')->whereNull('q.deleted_at')))
+                  ->orWhere(fn($q)=>$q->where('kind','answer')->whereExists(fn($e)=>$e->from('qa_answer as a')->join('qa_question as q','q.id','=','a.question_id')->whereColumn('a.id','cms_member_submission.id')->whereNull('a.deleted_at')->whereNull('q.deleted_at')));
+            });
             $total=$query->count();$ids=$query->orderByDesc('id')->offset(($page-1)*20)->limit(20)->pluck('id');$service=new ContributionService();$items=[];
             foreach($ids as $id)$items[]=$service->get($site,(string)$id);
             return ['items'=>$items,'total'=>$total,'page'=>$page,'limit'=>20];

@@ -709,10 +709,30 @@
         "login": false,
         "permission": null
     },
+    "GET /admin/plugins/qa/answers/recycle => app\\admin\\plugins\\qa\\controller\\Answers::recycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:answers:recycle"
+    },
     "GET /admin/plugins/qa/moderation => app\\admin\\plugins\\qa\\controller\\Moderation::index": {
         "guard": "plugin",
         "login": true,
         "permission": "qa:moderation:index"
+    },
+    "GET /admin/plugins/qa/questions => app\\admin\\plugins\\qa\\controller\\Questions::index": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:index"
+    },
+    "GET /admin/plugins/qa/questions/detail => app\\admin\\plugins\\qa\\controller\\Questions::detail": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:detail"
+    },
+    "GET /admin/plugins/qa/questions/recycle => app\\admin\\plugins\\qa\\controller\\Questions::recycle": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:recycle"
     },
     "GET /admin/profile => app\\admin\\authentication\\controller\\AdminProfile::index": {
         "guard": "self",
@@ -1699,10 +1719,55 @@
         "login": true,
         "permission": "example:test:restore"
     },
+    "POST /admin/plugins/qa/answers/delete => app\\admin\\plugins\\qa\\controller\\Answers::delete": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:answers:delete"
+    },
+    "POST /admin/plugins/qa/answers/destroy => app\\admin\\plugins\\qa\\controller\\Answers::destroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:answers:destroy"
+    },
+    "POST /admin/plugins/qa/answers/restore => app\\admin\\plugins\\qa\\controller\\Answers::restore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:answers:restore"
+    },
+    "POST /admin/plugins/qa/answers/visibility => app\\admin\\plugins\\qa\\controller\\Answers::visibility": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:answers:visibility"
+    },
     "POST /admin/plugins/qa/moderation/review => app\\admin\\plugins\\qa\\controller\\Moderation::review": {
         "guard": "plugin",
         "login": true,
         "permission": "qa:moderation:review"
+    },
+    "POST /admin/plugins/qa/questions/delete => app\\admin\\plugins\\qa\\controller\\Questions::delete": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:delete"
+    },
+    "POST /admin/plugins/qa/questions/destroy => app\\admin\\plugins\\qa\\controller\\Questions::destroy": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:destroy"
+    },
+    "POST /admin/plugins/qa/questions/pin => app\\admin\\plugins\\qa\\controller\\Questions::pin": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:pin"
+    },
+    "POST /admin/plugins/qa/questions/restore => app\\admin\\plugins\\qa\\controller\\Questions::restore": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:restore"
+    },
+    "POST /admin/plugins/qa/questions/status => app\\admin\\plugins\\qa\\controller\\Questions::status": {
+        "guard": "plugin",
+        "login": true,
+        "permission": "qa:questions:status"
     },
     "POST /admin/profile/password => app\\admin\\authentication\\controller\\AdminProfile::password": {
         "guard": "self",

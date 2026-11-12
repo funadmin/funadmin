@@ -59,6 +59,8 @@ final class PluginSoftDeleteGuardTest extends TestCase
         'document/app/document/service/DocumentService.php::destroy',
         'document/app/document/service/DocumentCategoryService.php::destroy',
         'document/app/document/service/CategoryLinks.php::purge',
+        'qa/app/qa/service/QaRecycleBin.php::destroyQuestions',
+        'qa/app/qa/service/QaRecycleBin.php::destroyAnswers',
     ];
 
     protected function setUp(): void
@@ -209,8 +211,8 @@ final class PluginSoftDeleteGuardTest extends TestCase
                 self::assertContains(LaravelSoftDelete::class, class_uses_recursive($class), $class . '（' . $table . '）必须使用 LaravelSoftDelete');
             }
         }
-        // 文档 7 + QA 1 + OSS 2 + CMS 26 个具体模型。
-        self::assertCount(36, $checked);
+        // 文档 7 + QA 2 + OSS 2 + CMS 26 个具体模型。
+        self::assertCount(37, $checked);
     }
 
     // ---- 生成器：有唯一字段时带令牌，没有时不带 ----
