@@ -23,7 +23,7 @@ spl_autoload_register(static function (string $class): void {
 
 /**
  * OSS 插件 002（软删除结构）在 MySQL 上的升级：从 001 带数据升级，配置行与原值保留，字符串主键不变，
- * oss_setting（豁免）不变且 current_profile_id 仍解析到原配置；重放 002 无变化；SQL 001–002 与 Schema::install() 结构一致。
+ * oss_setting（豁免）不变且 current_profile_id 仍解析到原配置；重放 002 无变化；SQL 001–002 与 Schema::install() 结构一致（不含 003 的 path_style）。
  * 需要一次性 MySQL 测试库（tests/Console/run-mysql.php）；库里没有核心表时先执行核心 001–005。
  */
 final class MySqlOssSoftDeleteUpgradeTest extends TestCase
@@ -38,7 +38,9 @@ final class MySqlOssSoftDeleteUpgradeTest extends TestCase
         $service = new MigrationService();
         $this->drop();
         Schema::install();
+        // Schema::install() 已包含 003 的 path_style（见 MySqlOssS3UpgradeTest）；这里只比较 001–002 的部分。
         $installed = $this->structure();
+        $installed['oss_profile']['columns'] = array_values(array_filter($installed['oss_profile']['columns'], static fn (array $c): bool => $c['n'] !== 'path_style'));
         $this->drop();
         if (!Db::schema()->hasTable('system_migration')) {
             foreach (['001_baseline', '002_code_generator', '003_system_secret', '004_plugin_admin_web_directory', '005_soft_delete'] as $version) {

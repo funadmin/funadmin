@@ -61,6 +61,7 @@ final class PluginSoftDeleteGuardTest extends TestCase
         'document/app/document/service/CategoryLinks.php::purge',
         'qa/app/qa/service/QaRecycleBin.php::destroyQuestions',
         'qa/app/qa/service/QaRecycleBin.php::destroyAnswers',
+        'oss/app/admin/plugins/oss/service/ProfileService.php::destroy',
     ];
 
     protected function setUp(): void

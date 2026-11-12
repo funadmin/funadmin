@@ -2,9 +2,9 @@
   "schema_version": 2,
   "code": "oss",
   "name": "OSS 云存储",
-  "description": "阿里云 OSS、腾讯云 COS、七牛云 Kodo，全局接管统一公开附件上传",
+  "description": "阿里云 OSS、腾讯云 COS、七牛云 Kodo、S3 兼容存储（AWS S3、MinIO、Cloudflare R2 等），全局接管统一公开附件上传",
   "author": "FunAdmin",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "requires": {
     "php": ">=8.5",
     "funadmin": ">=1.0.0",
@@ -74,6 +74,22 @@
       {
         "code": "oss:storage:test",
         "name": "测试云存储连接"
+      },
+      {
+        "code": "oss:storage:delete",
+        "name": "删除云存储配置"
+      },
+      {
+        "code": "oss:storage:recycle",
+        "name": "查看云存储配置回收站"
+      },
+      {
+        "code": "oss:storage:restore",
+        "name": "恢复云存储配置"
+      },
+      {
+        "code": "oss:storage:destroy",
+        "name": "彻底删除云存储配置"
       }
     ],
     "menu": [

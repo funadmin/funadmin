@@ -17,18 +17,60 @@ use Webman\Http\UploadFile;
  * aliyun: OssClient-compatible uploadFile/deleteObject; tencent: Client-compatible
  * putObject/deleteObject. qiniu: ['auth' => Auth-compatible, 'upload' =>
  * UploadManager-compatible, 'bucket' => BucketManager-compatible delete].
+ * s3: S3Client-compatible putObject/getObject/deleteObject.
  * The factory runs lazily, once per instance; available() never calls it.
+ * Optional limits: ['timeout' => seconds, 'connect_timeout' => seconds] for every SDK request
+ * (the connection test uses short ones so the whole probe stays within its budget).
  */
 final class CloudDriver implements StorageDriverInterface
 {
     private array $profile;
     private mixed $clientFactory;
     private object|array|null $client = null;
+    private int $timeout;
+    private int $connectTimeout;
 
-    public function __construct(array $profile, ?callable $clientFactory = null)
+    public const PROVIDERS = ['aliyun', 'tencent', 'qiniu', 's3'];
+
+    public function __construct(array $profile, ?callable $clientFactory = null, array $limits = [])
     {
         $this->profile = $profile;
         $this->clientFactory = $clientFactory;
+        $this->timeout = max(1, min(120, (int) ($limits['timeout'] ?? 120)));
+        $this->connectTimeout = max(1, min(10, (int) ($limits['connect_timeout'] ?? 10)));
+    }
+
+    /** S3 bucket naming rules (lowercase, digits, dots, hyphens; 3-63 chars; not an IP address). */
+    public static function validS3Bucket(string $bucket): bool
+    {
+        return preg_match('/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/D', $bucket) === 1 && !str_contains($bucket, '..')
+            && filter_var($bucket, FILTER_VALIDATE_IP) === false;
+    }
+
+    /**
+     * S3-compatible endpoint: empty means the AWS default for the region. Otherwise HTTPS only (same as the
+     * aliyun endpoint rule), no credentials/query/fragment/path, and never a loopback, link-local (cloud
+     * metadata), unspecified or reserved IP literal, nor an obfuscated numeric host or well-known metadata host.
+     * Private-network IPs and hostnames stay allowed for self-hosted MinIO. Hostnames are not resolved here;
+     * SDK redirects are disabled so a response cannot bounce the request elsewhere.
+     */
+    public static function validS3Endpoint(string $endpoint): bool
+    {
+        if ($endpoint === '') return true;
+        if (strlen($endpoint) > 255 || preg_match('/[\x00-\x20\x7f\\\\]/', $endpoint)) return false;
+        $parts = parse_url($endpoint);
+        if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || empty($parts['host'])
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])
+            || !in_array($parts['path'] ?? '', ['', '/'], true) || str_ends_with($endpoint, '?') || str_ends_with($endpoint, '#')) return false;
+        $host = strtolower(trim($parts['host'], '[]'));
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE) !== false
+                && !str_starts_with($host, '::ffff:') && $host !== '::';
+        }
+        if (preg_match('/^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*\.?$/D', $host)) return false;
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/D', $host)) return false;
+        return $host !== 'localhost' && !str_ends_with($host, '.localhost')
+            && !in_array($host, ['metadata', 'metadata.google.internal', 'metadata.goog', 'instance-data', 'instance-data.ec2.internal'], true);
     }
 
     public function name(): string
@@ -52,21 +94,23 @@ final class CloudDriver implements StorageDriverInterface
         foreach (['id', 'provider', 'bucket', 'domain', 'access_key', 'secret_key'] as $field) {
             if (!is_string($p[$field] ?? null) || trim($p[$field]) === '') return false;
         }
-        if (!preg_match('/^[a-f0-9]{16}$/D', $p['id']) || !in_array($p['provider'], ['aliyun', 'tencent', 'qiniu'], true)) return false;
-        if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,254}$/D', $p['bucket'])) return false;
+        if (!preg_match('/^[a-f0-9]{16}$/D', $p['id']) || !in_array($p['provider'], self::PROVIDERS, true)) return false;
+        if ($p['provider'] === 's3' ? !self::validS3Bucket($p['bucket']) : !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,254}$/D', $p['bucket'])) return false;
         if (!$this->validUrl($p['domain'], ['http', 'https']) || !$this->validDirectory((string) ($p['prefix'] ?? ''))) return false;
         if ($p['provider'] === 'aliyun') {
             if (!$this->validUrl((string) ($p['endpoint'] ?? ''), ['https'])) return false;
             $endpoint = parse_url($p['endpoint']);
             if (!str_ends_with(strtolower($endpoint['host']), '.aliyuncs.com') || !in_array($endpoint['path'] ?? '', ['', '/'], true)) return false;
         }
-        if ($p['provider'] === 'tencent' && !preg_match('/^[a-z0-9-]+$/D', (string) ($p['region'] ?? ''))) return false;
+        if (in_array($p['provider'], ['tencent', 's3'], true) && !preg_match('/^[a-z0-9-]+$/D', (string) ($p['region'] ?? ''))) return false;
+        if ($p['provider'] === 's3' && !self::validS3Endpoint((string) ($p['endpoint'] ?? ''))) return false;
         if ($this->clientFactory !== null) return true;
         return match ($p['provider']) {
             'aliyun' => class_exists(\OSS\OssClient::class),
             'tencent' => class_exists(\Qcloud\Cos\Client::class),
             'qiniu' => class_exists(\Qiniu\Auth::class) && class_exists(\Qiniu\Config::class)
                 && class_exists(\Qiniu\Storage\UploadManager::class) && class_exists(\Qiniu\Http\RequestOptions::class),
+            's3' => class_exists(\Aws\S3\S3Client::class),
         };
     }
 
@@ -92,10 +136,11 @@ final class CloudDriver implements StorageDriverInterface
                     $client->uploadFile($this->profile['bucket'], $key, $file->getPathname(), ['headers' => $headers]);
                     break;
                 case 'tencent':
+                case 's3':
                     $stream = fopen($file->getPathname(), 'rb');
                     if ($stream === false) throw new RuntimeException('Cannot read upload');
-                    $arguments = ['Bucket' => $this->profile['bucket'], 'Key' => $key, 'Body' => $stream, 'ContentType' => $mime,
-                        '@http' => ['connect_timeout' => 10, 'timeout' => 120]];
+                    $arguments = ['Bucket' => $this->profile['bucket'], 'Key' => $key, 'Body' => $stream, 'ContentType' => $mime];
+                    if ($this->profile['provider'] === 'tencent') $arguments['@http'] = $this->httpLimits();
                     if (isset($headers['Content-Disposition'])) $arguments['ContentDisposition'] = $headers['Content-Disposition'];
                     $client->putObject($arguments);
                     break;
@@ -122,12 +167,7 @@ final class CloudDriver implements StorageDriverInterface
     public function delete(string $storageKey): bool
     {
         $this->requireAvailable();
-        $prefix = trim((string) ($this->profile['prefix'] ?? ''), '/');
-        if ($storageKey === '' || str_starts_with($storageKey, '/') || str_contains($storageKey, '..')
-            || !preg_match('#^[a-zA-Z0-9_/-]+\.[a-z0-9]{1,10}$#D', $storageKey)
-            || ($prefix !== '' && !str_starts_with($storageKey, $prefix . '/'))) {
-            throw new RuntimeException('非法的云存储对象标识');
-        }
+        $this->assertKey($storageKey);
         try {
             $client = $this->clients();
             switch ($this->profile['provider']) {
@@ -135,8 +175,10 @@ final class CloudDriver implements StorageDriverInterface
                     $client->deleteObject($this->profile['bucket'], $storageKey);
                     break;
                 case 'tencent':
-                    $client->deleteObject(['Bucket' => $this->profile['bucket'], 'Key' => $storageKey,
-                        '@http' => ['connect_timeout' => 10, 'timeout' => 120]]);
+                    $client->deleteObject(['Bucket' => $this->profile['bucket'], 'Key' => $storageKey, '@http' => $this->httpLimits()]);
+                    break;
+                case 's3':
+                    $client->deleteObject(['Bucket' => $this->profile['bucket'], 'Key' => $storageKey]);
                     break;
                 case 'qiniu':
                     $result = $client['bucket']->delete($this->profile['bucket'], $storageKey);
@@ -155,6 +197,75 @@ final class CloudDriver implements StorageDriverInterface
         }
     }
 
+    /**
+     * Read back an object this driver wrote and compare it with the expected bytes (connection test).
+     * Reads at most strlen($expected) + 1 bytes. Qiniu has no signed object read through its management API,
+     * so it compares the stat size and Qiniu etag instead of fetching the public domain.
+     */
+    public function verify(string $storageKey, string $expected): bool
+    {
+        $this->requireAvailable();
+        $this->assertKey($storageKey);
+        $limit = strlen($expected) + 1;
+        try {
+            $client = $this->clients();
+            $bucket = $this->profile['bucket'];
+            switch ($this->profile['provider']) {
+                case 'aliyun':
+                    $body = (string) $client->getObject($bucket, $storageKey);
+                    break;
+                case 'tencent':
+                    $body = $this->readBody($client->getObject(['Bucket' => $bucket, 'Key' => $storageKey, '@http' => $this->httpLimits()])['Body'] ?? '', $limit);
+                    break;
+                case 's3':
+                    $body = $this->readBody($client->getObject(['Bucket' => $bucket, 'Key' => $storageKey])['Body'] ?? '', $limit);
+                    break;
+                case 'qiniu':
+                    $result = $client['bucket']->stat($bucket, $storageKey);
+                    if (!is_array($result) || count($result) < 2 || $result[1] !== null || !is_array($result[0])) throw new RuntimeException('Cloud stat returned an error');
+                    $etag = strtr(base64_encode("\x16" . sha1($expected, true)), '+/', '-_');
+                    return (int) ($result[0]['fsize'] ?? -1) === strlen($expected) && hash_equals($etag, (string) ($result[0]['hash'] ?? ''));
+                default:
+                    throw new RuntimeException('Unsupported cloud provider');
+            }
+            return hash_equals($expected, $body);
+        } catch (Throwable) {
+            $this->logFailure('oss.read.failed', $storageKey);
+            throw new RuntimeException('云存储读取失败，请检查配置或稍后重试');
+        }
+    }
+
+    private function readBody(mixed $body, int $limit): string
+    {
+        if (is_string($body)) return substr($body, 0, $limit);
+        if ($body instanceof \Psr\Http\Message\StreamInterface) {
+            $data = '';
+            while (strlen($data) < $limit && !$body->eof()) {
+                $chunk = $body->read($limit - strlen($data));
+                if ($chunk === '') break;
+                $data .= $chunk;
+            }
+            return $data;
+        }
+        throw new RuntimeException('Unexpected cloud response body');
+    }
+
+    private function assertKey(string $storageKey): void
+    {
+        $prefix = trim((string) ($this->profile['prefix'] ?? ''), '/');
+        if ($storageKey === '' || str_starts_with($storageKey, '/') || str_contains($storageKey, '..')
+            || !preg_match('#^[a-zA-Z0-9_/-]+\.[a-z0-9]{1,10}$#D', $storageKey)
+            || ($prefix !== '' && !str_starts_with($storageKey, $prefix . '/'))) {
+            throw new RuntimeException('非法的云存储对象标识');
+        }
+    }
+
+    /** @return array{connect_timeout: int, timeout: int} */
+    private function httpLimits(): array
+    {
+        return ['connect_timeout' => $this->connectTimeout, 'timeout' => $this->timeout];
+    }
+
     private function requireAvailable(): void
     {
         if (!$this->available()) throw new RuntimeException('云存储配置无效或 SDK 不可用');
@@ -170,13 +281,13 @@ final class CloudDriver implements StorageDriverInterface
         switch ($p['provider']) {
             case 'aliyun':
                 $client = new \OSS\OssClient($p['access_key'], $p['secret_key'], $p['endpoint']);
-                $client->setTimeout(120);
-                $client->setConnectTimeout(10);
+                $client->setTimeout($this->timeout);
+                $client->setConnectTimeout($this->connectTimeout);
                 $client->setMaxTries(0);
                 return $this->client = $client;
             case 'tencent':
                 return $this->client = new \Qcloud\Cos\Client([
-                    'region' => $p['region'], 'scheme' => 'https', 'timeout' => 120, 'connect_timeout' => 10,
+                    'region' => $p['region'], 'scheme' => 'https', 'timeout' => $this->timeout, 'connect_timeout' => $this->connectTimeout,
                     'retry' => 0, 'allow_redirects' => false,
                     'credentials' => ['secretId' => $p['access_key'], 'secretKey' => $p['secret_key']],
                 ]);
@@ -188,18 +299,38 @@ final class CloudDriver implements StorageDriverInterface
                 $config = new \Qiniu\Config($method === null ? null : \Qiniu\Region::$method());
                 $config->useHTTPS = true;
                 $config->backupUcHostsRetryTimes = 0;
-                $options = new \Qiniu\Http\RequestOptions(10, null, 120);
+                $options = new \Qiniu\Http\RequestOptions($this->connectTimeout, null, $this->timeout);
                 return $this->client = ['auth' => $auth, 'upload' => new \Qiniu\Storage\UploadManager($config, $options),
                     'bucket' => new CloudQiniuBucket($auth, $config, $options)];
+            case 's3':
+                return $this->client = new \Aws\S3\S3Client(self::s3Config($p, $this->timeout, $this->connectTimeout));
         }
         throw new RuntimeException('Unsupported cloud provider');
+    }
+
+    /** S3Client configuration for a decrypted profile (public for SDK-level tests with a mock handler). */
+    public static function s3Config(array $p, int $timeout = 120, int $connectTimeout = 10): array
+    {
+        $config = [
+            'version' => '2006-03-01', 'region' => (string) $p['region'],
+            // Static credentials only: never fall back to env, shared files or the instance metadata service.
+            'credentials' => ['key' => (string) $p['access_key'], 'secret' => (string) $p['secret_key']],
+            'use_aws_shared_config_files' => false,
+            'use_path_style_endpoint' => !empty($p['path_style']),
+            'retries' => 0,
+            'http' => ['connect_timeout' => $connectTimeout, 'timeout' => $timeout, 'allow_redirects' => false],
+            // Many S3-compatible services (MinIO, R2 and others) reject the newer default flexible checksums.
+            'request_checksum_calculation' => 'when_required', 'response_checksum_validation' => 'when_required',
+        ];
+        if (($p['endpoint'] ?? '') !== '') $config['endpoint'] = (string) $p['endpoint'];
+        return $config;
     }
 
     private function missingObject(Throwable $error): bool
     {
         $provider = $this->profile['provider'];
         // A generic 404 may mean a missing bucket/endpoint: only NoSuchKey is safe.
-        $method = $provider === 'aliyun' ? 'getErrorCode' : 'getCosErrorCode';
+        $method = match ($provider) { 'aliyun' => 'getErrorCode', 's3' => 'getAwsErrorCode', default => 'getCosErrorCode' };
         return $provider !== 'qiniu' && method_exists($error, $method) && $error->$method() === 'NoSuchKey';
     }
 

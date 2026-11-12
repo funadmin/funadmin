@@ -6,6 +6,7 @@
   "require": {
     "php": ">=8.5",
     "aliyuncs/oss-sdk-php": "^2.7.3",
+    "aws/aws-sdk-php": "^3.403",
     "qcloud/cos-sdk-v5": "^2.6.17",
     "qiniu/php-sdk": "^7.14.0"
   },
@@ -19,11 +20,19 @@
     "sort-packages": true
   },
   "scripts": {
+    "pre-autoload-dump": [
+      "Aws\\Script\\Composer\\Composer::removeUnusedServices"
+    ],
     "post-install-cmd": [
       "@php tools/patch-vendor.php"
     ],
     "post-update-cmd": [
       "@php tools/patch-vendor.php"
+    ]
+  },
+  "extra": {
+    "aws/aws-sdk-php": [
+      "S3"
     ]
   }
 }

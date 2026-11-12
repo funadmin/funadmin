@@ -7,5 +7,5 @@ import path from 'node:path';
 import os from 'node:os';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const outDir=path.join(os.tmpdir(),`funadmin-oss-build-${process.pid}`);
-await build({root,configFile:false,plugins:[vue(),Components({dts:false,resolvers:[ElementPlusResolver()]})],build:{outDir,emptyOutDir:true,lib:{entry:path.resolve(root,'../admin/plugins/oss/web/src/admin/plugins/oss/pages/Index.vue'),name:'OssStorage',formats:['es'],fileName:'oss-admin'},rollupOptions:{external:id=>(id==='vue'||id==='vue-router')||/^element-plus(?:\/|$)/.test(id)||id.startsWith('@/')}},logLevel:'warn'});
+await build({root,configFile:false,plugins:[vue(),Components({dts:false,resolvers:[ElementPlusResolver()]})],build:{outDir,emptyOutDir:true,lib:{entry:path.resolve(root,'../admin/plugins/oss/web/src/admin/plugins/oss/pages/Index.vue'),name:'OssStorage',formats:['es'],fileName:'oss-admin'},rollupOptions:{external:id=>(id==='vue'||id==='vue-router'||id==='vue-i18n')||/^element-plus(?:\/|$)/.test(id)||id.startsWith('@/')}},logLevel:'warn'});
 process.stdout.write(`OSS source production compilation passed: ${outDir}\n`);
