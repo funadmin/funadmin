@@ -15,145 +15,117 @@
           </div>
         </div>
       </div>
-      <div class="dashboard-hero__stats">
-        <div class="dashboard-hero__stat">
-          <div class="dashboard-hero__stat-num">12</div>
-          <div class="dashboard-hero__stat-label">{{ t('dashboard.todo', '待办') }}</div>
+      <div class="dashboard-hero__meta">
+        <span v-if="overview" class="dashboard-hero__updated">
+          {{ t('dashboard.updatedAt', { time: overview.generatedAt }, '数据更新于 {time}') }}
+        </span>
+        <el-button size="small" :loading="loading" data-test="dashboard-refresh" @click="loadOverview">
+          <i class="i-ep-refresh mr-1" />{{ t('dashboard.refresh', '刷新') }}
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 加载失败：保留页面结构，内联提示并允许重试 -->
+    <el-alert
+      v-if="error"
+      class="mt-4"
+      type="error"
+      show-icon
+      :closable="false"
+      :title="t('dashboard.loadFailed', '系统概览加载失败')"
+      data-test="dashboard-error"
+    >
+      <template #default>
+        <div class="dashboard-error">
+          <span>{{ error }}</span>
+          <el-button size="small" type="primary" plain @click="loadOverview">{{ t('dashboard.retry', '重试') }}</el-button>
         </div>
-        <el-divider direction="vertical" class="!h-9" />
-        <div class="dashboard-hero__stat">
-          <div class="dashboard-hero__stat-num">3</div>
-          <div class="dashboard-hero__stat-label">{{ t('dashboard.messages', '消息') }}</div>
+      </template>
+    </el-alert>
+
+    <!-- 数据卡片 -->
+    <div v-if="loading && !overview" class="dashboard-cards mt-4" data-test="dashboard-skeleton">
+      <div v-for="n in 4" :key="n" class="dashboard-card">
+        <el-skeleton animated :rows="2" />
+      </div>
+    </div>
+    <div v-else-if="cards.length" class="dashboard-cards mt-4">
+      <div
+        v-for="card in cards"
+        :key="card.key"
+        class="dashboard-card"
+        :style="{ '--card-color': card.color }"
+        :data-test="`dashboard-card-${card.key}`"
+      >
+        <div class="dashboard-card__head">
+          <span class="dashboard-card__label">{{ card.title }}</span>
+          <div class="dashboard-card__icon">
+            <i :class="card.icon" />
+          </div>
         </div>
-        <el-divider direction="vertical" class="!h-9" />
-        <div class="dashboard-hero__stat">
-          <div class="dashboard-hero__stat-num">95%</div>
-          <div class="dashboard-hero__stat-label">{{ t('dashboard.completion', '完成率') }}</div>
+        <div class="dashboard-card__value">{{ card.value }}</div>
+        <div class="dashboard-card__foot">
+          <span class="dashboard-card__cmp">{{ card.sub }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 数据卡片 -->
-    <el-row :gutter="16" class="mt-4">
-      <el-col v-for="card in cards" :key="card.title" :xs="12" :sm="12" :md="6">
-        <div class="dashboard-card" :style="{ '--card-color': card.color }">
-          <div class="dashboard-card__head">
-            <span class="dashboard-card__label">{{ card.title }}</span>
-            <div class="dashboard-card__icon">
-              <i :class="card.icon" />
-            </div>
-          </div>
-          <div class="dashboard-card__value">{{ card.value }}</div>
-          <div class="dashboard-card__foot">
-            <span :class="['dashboard-card__delta', card.delta >= 0 ? 'is-up' : 'is-down']">
-              <i :class="card.delta >= 0 ? 'i-ep-top' : 'i-ep-bottom'" />
-              {{ Math.abs(card.delta) }}%
-            </span>
-            <span class="dashboard-card__cmp">{{ t('dashboard.vsLastWeek', '较上周') }}</span>
-          </div>
-          <Echarts :option="card.option" :height="56" class="dashboard-card__spark" />
-        </div>
-      </el-col>
-    </el-row>
-
     <PluginSlot v-if="hookActive" name="dashboard.cards" :context="{ user: userStore.userInfo }" />
 
-    <!-- 趋势 / 来源 -->
-    <el-row :gutter="16" class="mt-4">
-      <el-col :xs="24" :lg="16">
-        <el-card shadow="never" class="dashboard-chart">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <span class="font-medium">{{ t('dashboard.visitTrend', '访问趋势') }}</span>
-              <el-radio-group v-model="trendRange" size="small">
-                <el-radio-button value="week">{{ t('dashboard.week', '周') }}</el-radio-button>
-                <el-radio-button value="month">{{ t('dashboard.month', '月') }}</el-radio-button>
-                <el-radio-button value="year">{{ t('dashboard.year', '年') }}</el-radio-button>
-              </el-radio-group>
-            </div>
-          </template>
-          <Echarts :option="trendOption" :height="320" />
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :lg="8">
-        <el-card shadow="never" class="dashboard-chart">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <span class="font-medium">{{ t('dashboard.visitSource', '访问来源') }}</span>
-              <el-tag size="small" type="primary" effect="plain">{{ t('dashboard.realtime', '实时') }}</el-tag>
-            </div>
-          </template>
-          <Echarts :option="sourceOption" :height="320" />
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="16" class="mt-4">
-      <el-col :xs="24" :lg="12">
-        <el-card shadow="never" class="dashboard-chart">
-          <template #header><span class="font-medium">{{ t('dashboard.hotProducts', '热门商品排行') }}</span></template>
-          <Echarts :option="rankOption" :height="280" />
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :lg="12">
-        <el-card shadow="never" class="dashboard-chart">
-          <template #header><span class="font-medium">{{ t('dashboard.teamRadar', '团队能力雷达') }}</span></template>
-          <Echarts :option="radarOption" :height="280" />
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 动态 + 团队 -->
-    <el-row :gutter="16" class="mt-4">
+    <!-- 操作日志趋势 / 最近日志 -->
+    <el-row v-if="loading && !overview" :gutter="16" class="mt-4">
       <el-col :xs="24" :lg="14">
-        <el-card shadow="never" class="dashboard-chart dashboard-chart--fill">
+        <el-card shadow="never" class="dashboard-chart"><el-skeleton animated :rows="8" /></el-card>
+      </el-col>
+      <el-col :xs="24" :lg="10">
+        <el-card shadow="never" class="dashboard-chart"><el-skeleton animated :rows="8" /></el-card>
+      </el-col>
+    </el-row>
+    <el-row v-else-if="overview?.logs" :gutter="16" class="mt-4">
+      <el-col :xs="24" :lg="14">
+        <el-card shadow="never" class="dashboard-chart" data-test="dashboard-trend">
           <template #header>
-            <div class="flex items-center justify-between">
-              <span class="font-medium">{{ t('dashboard.latestNews', '最新动态') }}</span>
-              <el-button text type="primary" size="small">{{ t('dashboard.viewAll', '查看全部') }}</el-button>
-            </div>
+            <span class="font-medium">{{ t('dashboard.logTrend', '近 7 天操作日志') }}</span>
           </template>
-          <el-timeline>
-            <el-timeline-item
-              v-for="t in timeline"
-              :key="t.id"
-              :timestamp="t.time"
-              :type="t.type"
-              :hollow="t.hollow"
-            >
-              <span>
-                <template v-for="(segment, index) in richSegments(t.content)" :key="index">
-                  <b v-if="segment.tag === 'b'">{{ segment.text }}</b>
-                  <i v-else-if="segment.tag === 'i'">{{ segment.text }}</i>
-                  <template v-else>{{ segment.text }}</template>
-                </template>
-              </span>
-            </el-timeline-item>
-          </el-timeline>
+          <Echarts :option="trendOption" :height="300" />
         </el-card>
       </el-col>
       <el-col :xs="24" :lg="10">
-        <el-card shadow="never" class="dashboard-chart mb-4">
-          <template #header><span class="font-medium">{{ t('dashboard.teamMembers', '团队成员') }}</span></template>
-          <div class="dashboard-team">
-            <div v-for="m in members" :key="m.id" class="dashboard-team__item">
-              <el-avatar :size="36" :style="{ background: m.color }">{{ m.name.charAt(0) }}</el-avatar>
-              <div class="dashboard-team__info">
-                <div class="dashboard-team__name">{{ m.name }}</div>
-                <div class="dashboard-team__role">{{ m.role }}</div>
-              </div>
-              <el-tag :type="m.online ? 'success' : 'info'" size="small" effect="light">
-                {{ m.online ? t('dashboard.online', '在线') : t('dashboard.offline', '离线') }}
+        <el-card shadow="never" class="dashboard-chart dashboard-chart--fill" data-test="dashboard-latest">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{{ t('dashboard.latestLogs', '最近操作') }}</span>
+              <el-button v-if="logListPath" text type="primary" size="small" @click="$router.push(logListPath)">
+                {{ t('dashboard.viewAll', '查看全部') }}
+              </el-button>
+            </div>
+          </template>
+          <el-empty v-if="!overview.logs.latest.length" :image-size="72" :description="t('dashboard.noLogs', '暂无操作日志')" />
+          <div v-else class="dashboard-logs">
+            <div v-for="log in overview.logs.latest" :key="log.id" class="dashboard-log">
+              <el-tag size="small" :type="log.status === 1 ? 'success' : 'danger'" effect="light" class="dashboard-log__method">
+                {{ log.method || '-' }}
               </el-tag>
+              <div class="dashboard-log__info">
+                <div class="dashboard-log__name" :title="log.url">{{ log.name || log.url || log.action }}</div>
+                <div class="dashboard-log__meta">{{ log.username || '-' }} · {{ log.ip || '-' }}</div>
+              </div>
+              <span class="dashboard-log__time">{{ log.createdAt }}</span>
             </div>
           </div>
         </el-card>
-        <el-card shadow="never" class="dashboard-chart">
+      </el-col>
+    </el-row>
+
+    <!-- 快捷入口：来自当前账号可见的菜单 -->
+    <el-row v-if="shortcuts.length" :gutter="16" class="mt-4">
+      <el-col :span="24">
+        <el-card shadow="never" class="dashboard-chart" data-test="dashboard-shortcuts">
           <template #header><span class="font-medium">{{ t('dashboard.shortcuts', '快捷入口') }}</span></template>
           <div class="dashboard-shortcuts">
             <div
               v-for="q in shortcuts"
-              :key="q.title"
+              :key="q.path"
               class="dashboard-shortcut"
               @click="$router.push(q.path)"
             >
@@ -172,6 +144,13 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-empty
+      v-if="overview && !cards.length && !overview.logs && !shortcuts.length"
+      class="mt-4"
+      :description="t('dashboard.noBlocks', '当前账号暂无可查看的系统概览数据')"
+      data-test="dashboard-empty"
+    />
   </div>
 </template>
 
@@ -181,15 +160,22 @@ import { hooks, PluginSlot, HookCancelledError } from '@/shared/plugins/hooks';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import { useUserStore } from '@/store/modules/user';
+import { usePermissionStore } from '@/store/modules/permission';
 import Echarts from '@/components/Echarts/index.vue';
 import { useChartTheme } from '@/composables/useChartTheme';
-import { adminRoutePath } from '@/utils/route';
+import { useMenuTitle } from '@/composables/useMenuTitle';
+import { adminRoutePath, resolveMenuPath } from '@/utils/route';
+import { checkPermission } from '@/utils/permission';
+import { formatErrorMessage } from '@/utils/errorMessage';
+import { dashboardApi, type DashboardOverview } from '@/api/dashboard';
 
 defineOptions({ name: 'Dashboard' });
 
 const userStore = useUserStore();
+const permissionStore = usePermissionStore();
 const { t } = useI18n();
 const { tokens } = useChartTheme();
+const { menuTitle } = useMenuTitle();
 
 const today = dayjs().format('YYYY-MM-DD');
 const weekday = computed(() => [t('dashboard.sun', '周日'), t('dashboard.mon', '周一'), t('dashboard.tue', '周二'), t('dashboard.wed', '周三'), t('dashboard.thu', '周四'), t('dashboard.fri', '周五'), t('dashboard.sat', '周六')][dayjs().day()]);
@@ -203,98 +189,70 @@ const greet = computed(() => {
   return t('dashboard.greetEvening', '晚上好，');
 });
 
-/* ---------- 卡片 sparkline ---------- */
-function makeSpark(color: string, data: number[]) {
-  // 把 hex 颜色转换为带透明度的 rgba（避免 color-mix 兼容问题）
-  const fade = (a: number) => {
-    const m = color.replace('#', '');
-    const f = (i: number) =>
-      m.length === 3
-        ? parseInt(m[i] + m[i], 16)
-        : parseInt(m.slice(i * 2, i * 2 + 2), 16);
-    return `rgba(${f(0)}, ${f(1)}, ${f(2)}, ${a})`;
-  };
-  return {
-    grid: { left: 0, right: 0, top: 4, bottom: 0 },
-    xAxis: { type: 'category', show: false, data: data.map((_, i) => i) },
-    yAxis: { type: 'value', show: false },
-    series: [
-      {
-        type: 'line',
-        data,
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { color, width: 2 },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: fade(0.32) },
-              { offset: 1, color: fade(0) }
-            ]
-          }
-        }
-      }
-    ]
-  };
+/* ---------- 系统概览数据 ---------- */
+const overview = ref<DashboardOverview | null>(null);
+const loading = ref(false);
+const error = ref('');
+let loadSeq = 0;
+
+async function loadOverview() {
+  const seq = ++loadSeq;
+  loading.value = true;
+  error.value = '';
+  try {
+    const data = await dashboardApi.overview();
+    if (seq === loadSeq) overview.value = data;
+  } catch (reason) {
+    if (seq === loadSeq) error.value = formatErrorMessage(reason, t('dashboard.loadFailedHint', '请稍后重试'));
+  } finally {
+    if (seq === loadSeq) loading.value = false;
+  }
 }
 
-const cards = ref([
-  {
-    title: t('dashboard.cardVisits', '今日访问'),
-    value: '12,648',
-    delta: 8.6,
-    color: '#3b82f6',
-    icon: 'i-ep-data-line',
-    option: makeSpark('#3b82f6', [120, 132, 101, 134, 90, 230, 210, 320, 280, 360])
-  },
-  {
-    title: t('dashboard.cardOrders', '订单数'),
-    value: '892',
-    delta: 12.3,
-    color: '#10b981',
-    icon: 'i-ep-shopping-cart',
-    option: makeSpark('#10b981', [60, 90, 70, 110, 95, 130, 120, 160, 150, 200])
-  },
-  {
-    title: t('dashboard.cardSales', '销售金额'),
-    value: '￥58,210',
-    delta: -3.2,
-    color: '#f59e0b',
-    icon: 'i-ep-wallet',
-    option: makeSpark('#f59e0b', [200, 180, 220, 190, 210, 170, 150, 180, 165, 175])
-  },
-  {
-    title: t('dashboard.cardNewUsers', '新增用户'),
-    value: '326',
-    delta: 5.4,
-    color: '#08979c',
-    icon: 'i-ep-user-filled',
-    option: makeSpark('#08979c', [40, 60, 50, 80, 70, 95, 88, 110, 105, 130])
+function formatBytes(size: number): string {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = Math.max(0, size);
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
   }
-]);
+  return `${unit === 0 ? value : value.toFixed(value >= 100 ? 0 : 1)} ${units[unit]}`;
+}
 
-/* ---------- 趋势 ---------- */
-const trendRange = ref<'week' | 'month' | 'year'>('week');
+const formatNumber = (value: number) => value.toLocaleString();
 
+/* ---------- 卡片：接口没有返回的块不显示 ---------- */
+interface DashboardCard { key: string; title: string; value: string; sub: string; icon: string; color: string }
+const cards = computed<DashboardCard[]>(() => {
+  const data = overview.value;
+  if (!data) return [];
+  const list: DashboardCard[] = [];
+  if (data.admins) {
+    list.push({ key: 'admins', title: t('dashboard.cardAdmins', '管理员'), value: formatNumber(data.admins.total), sub: t('dashboard.cardAdminsSub', '可管理的管理员'), icon: 'i-ep-avatar', color: '#3b82f6' });
+  }
+  if (data.members) {
+    list.push({ key: 'members', title: t('dashboard.cardMembers', '会员总数'), value: formatNumber(data.members.total), sub: t('dashboard.cardMembersToday', { count: data.members.today }, '今日新增 {count}'), icon: 'i-ep-user-filled', color: '#10b981' });
+  }
+  if (data.attachments) {
+    list.push({ key: 'attachments', title: t('dashboard.cardAttachments', '附件'), value: formatNumber(data.attachments.total), sub: t('dashboard.cardAttachmentsSize', { size: formatBytes(data.attachments.size) }, '占用 {size}'), icon: 'i-ep-picture-filled', color: '#f59e0b' });
+  }
+  if (data.logs) {
+    const week = data.logs.trend.reduce((sum, item) => sum + item.count, 0);
+    list.push({ key: 'logs', title: t('dashboard.cardLogsToday', '今日操作'), value: formatNumber(data.logs.today), sub: t('dashboard.cardLogsWeek', { count: week }, '近 7 天 {count}'), icon: 'i-ep-document', color: '#ef4444' });
+  }
+  if (data.plugins) {
+    list.push({ key: 'plugins', title: t('dashboard.cardPlugins', '已安装插件'), value: formatNumber(data.plugins.installed), sub: t('dashboard.cardPluginsEnabled', { count: data.plugins.enabled }, '已启用 {count}'), icon: 'i-ep-grid', color: '#08979c' });
+  }
+  return list;
+});
+
+/* ---------- 操作日志趋势 ---------- */
 const trendOption = computed(() => {
-  const week = [t('dashboard.mon', '周一'), t('dashboard.tue', '周二'), t('dashboard.wed', '周三'), t('dashboard.thu', '周四'), t('dashboard.fri', '周五'), t('dashboard.sat', '周六'), t('dashboard.sun', '周日')];
-  const month = Array.from({ length: 30 }, (_, i) => t('dashboard.dayLabel', { d: i + 1 }, '{d}日'));
-  const year = Array.from({ length: 12 }, (_, i) => t('dashboard.monthLabel', { m: i + 1 }, '{m}月'));
-
-  const x = trendRange.value === 'week' ? week : trendRange.value === 'month' ? month : year;
-  const len = x.length;
-  const visit = Array.from({ length: len }, () => Math.round(800 + Math.random() * 600));
-  const order = visit.map((v) => Math.round(v * (0.3 + Math.random() * 0.2)));
-
+  const trend = overview.value?.logs?.trend ?? [];
   return {
-    color: [tokens.value.primary, tokens.value.primaryAlpha(tokens.value.isDark ? 0.5 : 0.35)],
-    grid: { left: 12, right: 12, top: 40, bottom: 8, containLabel: true },
-    legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 16, textStyle: { color: tokens.value.text } },
+    color: [tokens.value.primary],
+    grid: { left: 12, right: 12, top: 24, bottom: 8, containLabel: true },
     tooltip: {
       trigger: 'axis',
       backgroundColor: tokens.value.cardBg,
@@ -303,24 +261,25 @@ const trendOption = computed(() => {
     },
     xAxis: {
       type: 'category',
-      data: x,
+      data: trend.map((item) => dayjs(item.date).format('MM-DD')),
       axisLine: { lineStyle: { color: tokens.value.border } },
       axisLabel: { color: tokens.value.textSecondary }
     },
     yAxis: {
       type: 'value',
+      minInterval: 1,
       axisLine: { show: false },
       splitLine: { lineStyle: { color: tokens.value.border, type: 'dashed' } },
       axisLabel: { color: tokens.value.textSecondary }
     },
     series: [
       {
-        name: t('dashboard.visits', '访问量'),
+        name: t('dashboard.logCount', '操作次数'),
         type: 'line',
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        data: visit,
+        data: trend.map((item) => item.count),
         areaStyle: {
           color: {
             type: 'linear',
@@ -334,192 +293,73 @@ const trendOption = computed(() => {
             ]
           }
         }
-      },
-      {
-        name: t('dashboard.orders', '订单量'),
-        type: 'bar',
-        barMaxWidth: 18,
-        itemStyle: { borderRadius: [4, 4, 0, 0] },
-        emphasis: { itemStyle: { color: tokens.value.primaryAlpha(0.6) } },
-        data: order
       }
     ]
   };
 });
 
-/* ---------- 来源饼图 ---------- */
-const sourceOption = computed(() => ({
-  color: tokens.value.palette.slice(0, 5),
-  tooltip: { trigger: 'item' },
-  legend: {
-    bottom: 0,
-    icon: 'circle',
-    itemWidth: 8,
-    itemHeight: 8,
-    itemGap: 14,
-    textStyle: { color: tokens.value.text }
-  },
-  series: [
-    {
-      name: t('dashboard.source', '来源'),
-      type: 'pie',
-      radius: ['50%', '70%'],
-      center: ['50%', '44%'],
-      avoidLabelOverlap: true,
-      label: { show: false },
-      labelLine: { show: false },
-      itemStyle: {
-        borderRadius: 6,
-        borderColor: tokens.value.cardBg,
-        borderWidth: 3
-      },
-      data: [
-        { value: 1048, name: t('dashboard.srcDirect', '直接访问') },
-        { value: 735, name: t('dashboard.srcSearch', '搜索引擎') },
-        { value: 580, name: t('dashboard.srcEmail', '邮件营销') },
-        { value: 484, name: t('dashboard.srcAffiliate', '联盟广告') },
-        { value: 300, name: t('dashboard.srcVideo', '视频广告') }
-      ]
+/* ---------- 快捷入口：按权限过滤当前账号的菜单 ---------- */
+type Shortcut = { title: string; icon: string; color: string; path: string };
+const SHORTCUT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#08979c', '#ef4444', '#06b6d4', '#8b5cf6', '#64748b'];
+/** 优先展示的常用页面（按顺序），其余可见页面依菜单顺序补足。 */
+const PREFERRED_SHORTCUTS = ['/system/user', '/system/role', '/users/member', '/system/attachment', '/system/log/operation', '/plugin', '/system/config', '/system/menu'];
+const MAX_SHORTCUTS = 8;
+
+interface MenuPage { title: string; icon: string; path: string; key: string }
+function visiblePages(menus: API.MenuItem[], parentPath: string, out: MenuPage[]): MenuPage[] {
+  const sorted = [...menus].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  for (const menu of sorted) {
+    if (menu.type === 'B' || menu.hidden) continue;
+    if (!checkPermission(userStore.permissions, menu.permission)) continue;
+    const fullPath = resolveMenuPath(parentPath, menu.path.startsWith('/') ? adminRoutePath(menu.path) : menu.path);
+    const isPage = menu.type === 'C' && Boolean(menu.component) && !['Layout', 'Blank'].includes(menu.component!);
+    if (isPage && !fullPath.includes(':')) {
+      const name = menu.routeName || `Menu_${menu.id}`;
+      out.push({ title: menuTitle({ name, meta: { title: menu.name } }), icon: menu.icon || 'i-ep-menu', path: fullPath, key: fullPath });
     }
-  ]
-}));
-
-/* ---------- 商品排行 ---------- */
-const rankOption = computed(() => ({
-  grid: { left: 12, right: 24, top: 12, bottom: 8, containLabel: true },
-  tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-  xAxis: {
-    type: 'value',
-    axisLine: { show: false },
-    splitLine: { lineStyle: { color: tokens.value.border, type: 'dashed' } },
-    axisLabel: { color: tokens.value.textSecondary }
-  },
-  yAxis: {
-    type: 'category',
-    data: [t('dashboard.rankP1', '苹果 iPhone 15'), t('dashboard.rankP2', '华为 Mate 60'), t('dashboard.rankP3', '小米 14 Ultra'), t('dashboard.rankP4', '一加 12'), t('dashboard.rankP5', 'OPPO Find X7')],
-    axisLine: { lineStyle: { color: tokens.value.border } },
-    axisLabel: { color: tokens.value.text }
-  },
-  series: [
-    {
-      type: 'bar',
-      barWidth: 14,
-      itemStyle: {
-        borderRadius: [0, 8, 8, 0],
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 1,
-          y2: 0,
-          colorStops: [
-            { offset: 0, color: '#60a5fa' },
-            { offset: 1, color: '#3b82f6' }
-          ]
-        }
-      },
-      data: [320, 280, 240, 200, 180]
-    }
-  ]
-}));
-
-/* ---------- 雷达 ---------- */
-const radarOption = computed(() => ({
-  tooltip: {},
-  radar: {
-    indicator: [
-      { name: t('dashboard.radarReq', '需求分析'), max: 100 },
-      { name: t('dashboard.radarDesign', '设计能力'), max: 100 },
-      { name: t('dashboard.radarCode', '编码质量'), max: 100 },
-      { name: t('dashboard.radarTest', '测试覆盖'), max: 100 },
-      { name: t('dashboard.radarDeliver', '上线交付'), max: 100 },
-      { name: t('dashboard.radarCollab', '协作沟通'), max: 100 }
-    ],
-    axisName: { color: tokens.value.text },
-    splitLine: { lineStyle: { color: tokens.value.border } },
-    splitArea: { areaStyle: { color: ['transparent'] } }
-  },
-  series: [
-    {
-      type: 'radar',
-      symbol: 'circle',
-      symbolSize: 6,
-      areaStyle: { opacity: 0.18 },
-      data: [
-        { value: [88, 82, 90, 78, 92, 85], name: t('dashboard.thisQuarter', '本季度'), lineStyle: { color: tokens.value.primary } },
-        { value: [72, 75, 80, 70, 78, 80], name: t('dashboard.lastQuarter', '上季度'), lineStyle: { color: tokens.value.warning } }
-      ]
-    }
-  ]
-}));
-
-/* ---------- 时间线 ---------- */
-type TimelineItemType = '' | 'primary' | 'success' | 'warning' | 'info' | 'danger';
-const timeline = computed<{ id: number; time: string; type: TimelineItemType; hollow: boolean; content: string }[]>(() => [
-  { id: 1, time: t('dashboard.tl1Time', '10 分钟前'), type: 'primary', hollow: false, content: t('dashboard.tl1Content', '<b>张伟</b> 创建了订单 <i>#202403210018</i>') },
-  { id: 2, time: t('dashboard.tl2Time', '1 小时前'), type: 'success', hollow: false, content: t('dashboard.tl2Content', '<b>李娜</b> 发布了商品 <i>「春日新品 T 恤」</i>') },
-  { id: 3, time: t('dashboard.tl3Time', '今天 09:42'), type: 'warning', hollow: true, content: t('dashboard.tl3Content', '系统更新：新增<b>团队管理</b>模块') },
-  { id: 4, time: t('dashboard.tl4Time', '昨天'), type: 'danger', hollow: false, content: t('dashboard.tl4Content', '<b>王强</b> 处理了一个高优先级工单') },
-  { id: 5, time: '03-19', type: 'info', hollow: true, content: t('dashboard.tl5Content', '月度数据报表已生成，请前往<b>报表中心</b>查看') }
-]);
-
-/* 译文可在后台编辑，只识别 <b>/<i>，其余内容一律按文本渲染。 */
-type RichSegment = { tag: '' | 'b' | 'i'; text: string };
-function richSegments(content: string): RichSegment[] {
-  const segments: RichSegment[] = [];
-  const pattern = /<(b|i)>([^<]*)<\/\1>/g;
-  let cursor = 0;
-  for (const match of content.matchAll(pattern)) {
-    if (match.index > cursor) segments.push({ tag: '', text: content.slice(cursor, match.index) });
-    segments.push({ tag: match[1] as 'b' | 'i', text: match[2] });
-    cursor = match.index + match[0].length;
+    if (menu.children?.length) visiblePages(menu.children, fullPath, out);
   }
-  if (cursor < content.length) segments.push({ tag: '', text: content.slice(cursor) });
-  return segments;
+  return out;
 }
 
-/* ---------- 团队 ---------- */
-const members = ref([
-  { id: 1, name: t('dashboard.member1Name', '张伟'), role: t('dashboard.member1Role', '产品经理'), online: true, color: '#3b82f6' },
-  { id: 2, name: t('dashboard.member2Name', '李娜'), role: t('dashboard.member2Role', '前端开发'), online: true, color: '#10b981' },
-  { id: 3, name: t('dashboard.member3Name', '王强'), role: t('dashboard.member3Role', '后端开发'), online: false, color: '#f59e0b' },
-  { id: 4, name: t('dashboard.member4Name', '赵敏'), role: t('dashboard.member4Role', 'UI 设计'), online: true, color: '#ef4444' },
-  { id: 5, name: t('dashboard.member5Name', '孙浩'), role: t('dashboard.member5Role', '测试工程师'), online: false, color: '#08979c' }
-]);
+const menuPages = computed(() => visiblePages(permissionStore.rawMenus, adminRoutePath('/'), []));
+const baseShortcuts = computed<Shortcut[]>(() => {
+  const pages = menuPages.value.filter((page) => page.path !== adminRoutePath('/dashboard'));
+  const preferred = PREFERRED_SHORTCUTS.map((path) => pages.find((page) => page.path === adminRoutePath(path))).filter((page): page is MenuPage => Boolean(page));
+  const ordered = [...preferred, ...pages.filter((page) => !preferred.includes(page))];
+  return ordered.slice(0, MAX_SHORTCUTS).map((page, index) => ({ title: page.title, icon: page.icon, path: page.path, color: SHORTCUT_COLORS[index % SHORTCUT_COLORS.length] }));
+});
+const logListPath = computed(() => menuPages.value.find((page) => page.path === adminRoutePath('/system/log/operation'))?.path ?? '');
 
-/* ---------- 快捷入口 ---------- */
-const shortcuts = ref([
-  { title: t('dashboard.shortcutUsers', '用户管理'), icon: 'i-ep-user', color: '#3b82f6', path: adminRoutePath('/system/user') },
-  { title: t('dashboard.shortcutRoles', '角色管理'), icon: 'i-ep-avatar', color: '#10b981', path: adminRoutePath('/system/role') },
-  { title: t('dashboard.shortcutMenus', '菜单管理'), icon: 'i-ep-menu', color: '#f59e0b', path: adminRoutePath('/system/menu') },
-  { title: t('dashboard.shortcutMonitor', '系统监控'), icon: 'i-ep-monitor', color: '#08979c', path: adminRoutePath('/monitor/server') },
-  { title: t('dashboard.shortcutLogs', '日志查看'), icon: 'i-ep-document', color: '#ef4444', path: adminRoutePath('/monitor/log') },
-  { title: t('dashboard.shortcutSettings', '系统设置'), icon: 'i-ep-setting', color: '#06b6d4', path: adminRoutePath('/system/config') }
-]);
-const baseShortcuts = shortcuts.value.slice();
+const shortcuts = ref<Shortcut[]>([]);
 const hookActive = ref(false);
 let hookScope: AbortController | undefined;
 async function applyDashboardHooks() {
+  const base = baseShortcuts.value.slice();
+  shortcuts.value = base;
   if (!hookActive.value) return;
   hookScope?.abort();
   const scope = new AbortController();
   hookScope = scope;
-  shortcuts.value = baseShortcuts.slice();
   const context = { user: userStore.userInfo, signal: scope.signal };
   void hooks.action('dashboard.loaded', undefined, context).catch(console.error);
   try {
-    const result = await hooks.filter('dashboard.quickActions', baseShortcuts.slice(), context);
+    const result = await hooks.filter('dashboard.quickActions', base.slice(), context);
     if (scope.signal.aborted || !Array.isArray(result)) return;
     shortcuts.value = result.filter(item => item && typeof item.path === 'string' && /^\/(?!\/)/.test(item.path) && !/[\\\x00-\x20]/.test(item.path) && ['title', 'icon', 'color'].every(key => typeof (item as Record<string, unknown>)[key] === 'string'));
   } catch (error) { if (!(error instanceof HookCancelledError)) console.error(error); }
 }
 function activateHooks() { if (hookActive.value) return; hookActive.value = true; void applyDashboardHooks(); }
 function deactivateHooks() { hookActive.value = false; hookScope?.abort(); }
-onMounted(activateHooks);
+onMounted(() => {
+  void loadOverview();
+  activateHooks();
+});
 onActivated(activateHooks);
 onDeactivated(deactivateHooks);
 onUnmounted(deactivateHooks);
 watch(hooks.revision, () => void applyDashboardHooks());
+watch(baseShortcuts, () => void applyDashboardHooks(), { immediate: true });
 
 </script>
 
@@ -571,27 +411,30 @@ watch(hooks.revision, () => void applyDashboardHooks());
       }
     }
 
-    &__stats {
+    &__meta {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 12px;
     }
 
-    &__stat {
-      text-align: center;
-
-      &-num {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      &-label {
-        margin-top: 2px;
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-      }
+    &__updated {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
     }
+  }
+
+  &-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+  }
+
+  &-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
   }
 
   &-card {
@@ -647,27 +490,8 @@ watch(hooks.revision, () => void applyDashboardHooks());
       font-size: 12px;
     }
 
-    &__delta {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
-      font-weight: 600;
-
-      &.is-up {
-        color: var(--el-color-success);
-      }
-
-      &.is-down {
-        color: var(--el-color-danger);
-      }
-    }
-
     &__cmp {
       color: var(--el-text-color-secondary);
-    }
-
-    &__spark {
-      margin-top: 6px;
     }
   }
 
@@ -696,22 +520,27 @@ watch(hooks.revision, () => void applyDashboardHooks());
     }
   }
 
-  &-team {
+  &-logs {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 4px;
+  }
 
-    &__item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      transition: background 0.2s;
+  &-log {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 6px;
+    border-radius: 8px;
 
-      &:hover {
-        background: var(--el-fill-color-lighter);
-      }
+    &:hover {
+      background: var(--el-fill-color-lighter);
+    }
+
+    &__method {
+      flex: 0 0 auto;
+      min-width: 56px;
+      justify-content: center;
     }
 
     &__info {
@@ -720,21 +549,29 @@ watch(hooks.revision, () => void applyDashboardHooks());
     }
 
     &__name {
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 13px;
       color: var(--el-text-color-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    &__role {
+    &__meta {
+      margin-top: 2px;
       font-size: 12px;
       color: var(--el-text-color-secondary);
-      margin-top: 2px;
+    }
+
+    &__time {
+      flex: 0 0 auto;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
     }
   }
 
   &-shortcuts {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     gap: 12px;
   }
 

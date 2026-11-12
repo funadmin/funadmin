@@ -60,7 +60,39 @@ function idsFrom(body: any, pathId?: string): number[] {
     .filter((id) => Number.isInteger(id) && id > 0);
 }
 
+/** 仪表盘概览：Mock 模式视为超级管理员，返回全部数据块；日志摘要来自上方的操作日志。 */
+function dashboardOverview() {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const day = (offset: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() - offset);
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+  const trend = [6, 5, 4, 3, 2, 1, 0].map((offset) => ({
+    date: day(offset),
+    count: operationLogs.filter((row) => row.createdAt.startsWith(day(offset))).length
+  }));
+  return {
+    generatedAt: `${day(0)} ${new Date().toTimeString().slice(0, 8)}`,
+    admins: { total: 1 },
+    members: { total: 0, today: 0 },
+    attachments: { total: 0, size: 0 },
+    logs: {
+      today: trend[trend.length - 1].count,
+      trend,
+      latest: [...operationLogs].sort((a, b) => b.id - a.id).slice(0, 10).map(({ id, username, name, action, method, url, ip, status, createdAt }) =>
+        ({ id, username, name, action, method, url, ip, status, createdAt }))
+    },
+    plugins: { installed: 0, enabled: 0 }
+  };
+}
+
 export const logMockHandlers: MockRoute[] = [
+  {
+    method: 'GET',
+    url: '/dashboard/overview',
+    handler: () => ok(dashboardOverview())
+  },
   {
     method: 'GET',
     url: '/system/log/operation',

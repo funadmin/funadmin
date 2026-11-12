@@ -40,7 +40,7 @@ final class AdminRouteInventoryTest extends TestCase
         $expected = [
             'authentication' => '4957e64e72fec12514115b1e98305a375248e329d038d8d84750f6f1bcb68212',
             'authorization' => '6bd086eefe72706ac3593f24c3fadf8df1b778f6ebf5ae454452ab9227794b28',
-            'system' => 'e177b1662e44c11cb72c0f877d481db5750553d70acfd5594161c26982bbf336',
+            'system' => '920eb74bba1d55473da7245a3a516b40154862bb404184ea461142dfa5ca4c2a',
             'development' => '8efc4c7575589671b73fdc736cada3608997c997ffe9d55dd8751743197baf79',
             'form' => '23ea0ec53e96f9615e88a37182003273cabdf30f9cf83f4f2ca05008f72fecf4',
             'plugin' => '138eaae3a6ae87aa02e624f67c565065d0f986633238c3d51c697752e43c6fe7',
@@ -62,6 +62,7 @@ final class AdminRouteInventoryTest extends TestCase
         }
         self::assertArrayNotHasKey('PUT /admin/identity/scopes/{id:\d+}', $unique, '身份中心已移除');
         self::assertArrayHasKey('GET /admin/system/role/{id:\d+}/authorization', $unique);
+        self::assertArrayHasKey('GET /admin/dashboard/overview', $unique);
         self::assertArrayHasKey('GET /admin/development/plugin/package/{code:[a-z][a-z0-9]*}/download', $unique);
     }
 }

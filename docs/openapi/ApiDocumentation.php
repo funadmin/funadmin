@@ -50,6 +50,7 @@ use OpenApi\Annotations as OA;
  * @OA\Tag(name="国际化示例记录")
  * @OA\Tag(name="会员等级")
  * @OA\Tag(name="会员")
+ * @OA\Tag(name="仪表盘")
  * @OA\Tag(name="操作日志")
  * @OA\Tag(name="系统配置")
  * @OA\Tag(name="IP 黑名单")

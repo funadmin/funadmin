@@ -12,7 +12,6 @@ use app\admin\middleware\CheckAdminApiRoleMiddleware;
 use app\admin\middleware\SystemLogMiddleware;
 use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AdminDepartment;
-use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\Department;
 use app\admin\authorization\service\RoleScopeService;
 use app\admin\authorization\service\CasbinService;
@@ -456,31 +455,7 @@ class SystemAdmin extends AdminController
 
     private function manageableQuery()
     {
-        $roleScope = new RoleScopeService();
-        if ($roleScope->isSuperAdmin()) {
-            // 超管本人可在列表中看到自己（只能改资料与密码，见 update/resetPassword）。
-            return $this->applyDataScope(Admin::query(), 'id', 'dept_id');
-        }
-        $query = $this->applyDataScope(Admin::where('id', '<>', $this->superAdminId()), 'id', 'dept_id');
-        $currentLevel = (new RoleGuardService())->currentLevel();
-        $branchRoleIds = $roleScope->manageableRoleIds();
-        $allowedRoleIds = array_map('intval', AuthGroup::whereIn('id', $branchRoleIds ?: [0])
-            ->where('status', 1)->where('level', '>', $currentLevel)->pluck('id')->all());
-        $forbiddenRoleIds = array_map('intval', AuthGroup::where('status', 1)
-            ->where(function ($where) use ($currentLevel, $branchRoleIds) {
-                $where->where('level', '<=', $currentLevel);
-                if ($branchRoleIds) {
-                    $where->orWhereNotIn('id', $branchRoleIds);
-                }
-            })->pluck('id')->all());
-        $casbin = CasbinService::instance();
-        $allowedAdminIds = $casbin->adminIdsByRoles($allowedRoleIds);
-        $forbiddenAdminIds = $casbin->adminIdsByRoles($forbiddenRoleIds);
-        $query->whereIn('id', $allowedAdminIds ?: [0]);
-        if ($forbiddenAdminIds) {
-            $query->whereNotIn('id', $forbiddenAdminIds);
-        }
-        return $query;
+        return (new RoleScopeService())->manageableAdminQuery();
     }
 
     private function superAdminId(): int

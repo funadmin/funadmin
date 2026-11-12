@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\admin\authorization\service;
 
+use app\admin\authentication\model\Admin;
 use app\admin\authorization\model\AuthGroup;
 use app\admin\authorization\model\AuthGroupInherit;
 use app\admin\authorization\model\Permission;
@@ -47,6 +48,39 @@ final class RoleScopeService
         $ownIds = $this->currentRoleIds();
         $descendantIds = $this->descendantRoleIdsFor($ownIds);
         return $this->normalizeIds($includeOwn ? array_merge($ownIds, $descendantIds) : $descendantIds);
+    }
+
+    /**
+     * 当前管理员可管理的管理员查询（管理员列表与仪表盘计数共用）：数据范围内、角色等级低于自己且在自己角色分支内；
+     * 非超管看不到系统超级管理员。软删除的管理员由模型作用域排除。
+     */
+    public function manageableAdminQuery()
+    {
+        $dataScope = new DataScopeService();
+        if ($this->isSuperAdmin()) {
+            // 超管本人可在列表中看到自己（只能改资料与密码，见 SystemAdmin::update/resetPassword）。
+            return $dataScope->apply(Admin::query(), 'id', 'dept_id');
+        }
+        $query = $dataScope->apply(Admin::where('id', '<>', (int) config('auth.super_admin_id', 1)), 'id', 'dept_id');
+        $currentLevel = (new RoleGuardService())->currentLevel();
+        $branchRoleIds = $this->manageableRoleIds();
+        $allowedRoleIds = array_map('intval', AuthGroup::whereIn('id', $branchRoleIds ?: [0])
+            ->where('status', 1)->where('level', '>', $currentLevel)->pluck('id')->all());
+        $forbiddenRoleIds = array_map('intval', AuthGroup::where('status', 1)
+            ->where(function ($where) use ($currentLevel, $branchRoleIds) {
+                $where->where('level', '<=', $currentLevel);
+                if ($branchRoleIds) {
+                    $where->orWhereNotIn('id', $branchRoleIds);
+                }
+            })->pluck('id')->all());
+        $casbin = CasbinService::instance();
+        $allowedAdminIds = $casbin->adminIdsByRoles($allowedRoleIds);
+        $forbiddenAdminIds = $casbin->adminIdsByRoles($forbiddenRoleIds);
+        $query->whereIn('id', $allowedAdminIds ?: [0]);
+        if ($forbiddenAdminIds) {
+            $query->whereNotIn('id', $forbiddenAdminIds);
+        }
+        return $query;
     }
 
     public function canManageRole(int $roleId): bool

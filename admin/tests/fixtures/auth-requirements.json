@@ -264,6 +264,11 @@
         "login": false,
         "permission": null
     },
+    "GET /admin/dashboard/overview => app\\admin\\system\\controller\\SystemDashboard::overview": {
+        "guard": "admin",
+        "login": true,
+        "permission": null
+    },
     "GET /admin/development/ai/approvals => app\\admin\\ai\\controller\\Ai::approvalIndex": {
         "guard": "admin",
         "login": true,
