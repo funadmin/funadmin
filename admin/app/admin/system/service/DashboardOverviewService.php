@@ -109,6 +109,8 @@ final class DashboardOverviewService
         for ($offset = self::TREND_DAYS - 1; $offset >= 0; $offset--) {
             $days[date('Y-m-d', strtotime("-$offset days", $today))] = 0;
         }
+        // 查询从 AdminLog 模型（含其作用域）开始；按天计数需要 DATE() 分组与 COUNT(*) 聚合，模型属性无法表达，
+        // 所以用 selectRaw/groupByRaw，并 toBase() 取回聚合行而不是水合成 AdminLog 实例。
         $counts = AdminLog::scopedQuery()
             ->where('created_at', '>=', array_key_first($days) . ' 00:00:00')
             ->selectRaw('DATE(created_at) AS log_date, COUNT(*) AS total')

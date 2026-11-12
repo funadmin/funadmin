@@ -45,6 +45,8 @@ final class Schema
         });
         if(!$s->hasTable('cms_member_submission'))return;
         // 与 003 相同：包括 CMS 已删除的回答投稿（状态行只表示问答侧状态，读取时再按 CMS 是否删除过滤）。
+        // 写入与来源查询都从模型开始（QaAnswer、MemberSubmission::withTrashed）；补行要在库内一次性 INSERT ... SELECT，
+        // hidden 列取常量 0 只能用 selectRaw 表达，insertUsing 需要底层查询构造器，所以来源查询 toBase()。
         QaAnswer::query()->insertUsing(['id','question_id','site_id','locale','hidden','created_at','updated_at'],
             MemberSubmission::withTrashed()->from('cms_member_submission as s')->join('qa_question as q',static function($j): void {$j->on('q.id','=','s.parent_id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})
                 ->where('s.kind','answer')->select(['s.id','s.parent_id','s.site_id','s.locale'])->selectRaw('0')->addSelect(['s.created_at','s.updated_at'])->toBase());

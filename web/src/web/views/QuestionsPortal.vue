@@ -12,7 +12,8 @@ const sites=ref<QuestionSite[]>([]),siteId=ref(''),locale=ref(''),ready=ref(fals
 const loggedIn=ref(memberSession.authenticated()),identity=ref(''),activeTab=ref('browse'),page=ref(1),total=ref(0),query=ref('');
 const rows=ref<Question[]>([]),mine=ref<Submission[]>([]),question=ref<Question>(),askOpen=ref(false),title=ref(''),body=ref('');
 // 会员附件（问答 1.3.0）：随提问或回答以 multipart 提交，服务端校验类型、大小与数量。
-const MAX_FILES=5,ACCEPT='.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.zip,.rar,.7z,.tar,.gz';
+// 与后端 AttachmentService 的 MAX_FILES、MAX_FILE_SIZE、MAX_TOTAL 一致。
+const MAX_FILES=5,MAX_FILE_SIZE=5*1024*1024,MAX_TOTAL=8*1024*1024,ACCEPT='.jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.zip,.rar,.7z,.tar,.gz';
 const files=ref<File[]>([]),fileInput=ref(0);
 const current=computed(()=>sites.value.find(site=>site.id===siteId.value));
 const languages=computed(()=>current.value?.locales||[]);
@@ -30,7 +31,10 @@ function submission(action:string,payload:Record<string,unknown>){
 function clearDraft(){title.value='';body.value='';files.value=[];fileInput.value++;lastSignature='';}
 function pickFiles(event:Event){
  const selected=Array.from((event.target as HTMLInputElement).files||[]);
- if(selected.length>MAX_FILES){error.value=t('community.labels.tooManyAttachments');files.value=[];fileInput.value++;return;}
+ const rejected=selected.length>MAX_FILES?t('community.labels.tooManyAttachments')
+  :selected.some(file=>file.size>MAX_FILE_SIZE)?t('community.labels.attachmentTooLarge')
+  :selected.reduce((sum,file)=>sum+file.size,0)>MAX_TOTAL?t('community.labels.attachmentsTooLarge'):'';
+ if(rejected){error.value=rejected;files.value=[];fileInput.value++;return;}
  error.value='';files.value=selected;
 }
 function fileSize(bytes:number){return bytes>=1048576?`${(bytes/1048576).toFixed(1)} MB`:`${Math.max(1,Math.round(bytes/1024))} KB`;}

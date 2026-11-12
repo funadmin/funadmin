@@ -27,7 +27,7 @@ final class AttachmentService
     public const MAX_FILE_SIZE = 5 * 1024 * 1024;
     public const MAX_TOTAL = 8 * 1024 * 1024;
     public const ACCEPT = ['image', 'document', 'archive'];
-    private const MESSAGES = ['invalid_file_type' => '附件类型不允许', 'file_too_large' => '单个附件不能超过 5MB', 'files_too_large' => '附件总大小不能超过 8MB', 'too_many_files' => '附件最多 5 个'];
+    private const MESSAGES = ['invalid_file_type' => '附件类型不允许', 'file_too_large' => '单个附件不能超过 5MB', 'files_too_large' => '附件总大小不能超过 8MB', 'too_many_files' => '附件最多 5 个', 'upload_failed' => '附件上传失败，请重新上传'];
 
     private readonly FormFileStorage $storage;
 
@@ -54,7 +54,8 @@ final class AttachmentService
             $error = (int)$file->getUploadErrorCode();
             if ($error === UPLOAD_ERR_NO_FILE || ($error === UPLOAD_ERR_OK && (string)$file->getUploadName() === '' && (int)$file->getSize() === 0)) continue;
             if (count($result) >= self::MAX_FILES) throw self::rejected('too_many_files');
-            if ($error !== UPLOAD_ERR_OK) throw self::rejected(in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 'file_too_large' : 'invalid_file_type');
+            // 大小超限提示限制；其他错误码（部分上传、无临时目录、写入失败、扩展中止等）是上传过程失败，与文件类型无关。
+            if ($error !== UPLOAD_ERR_OK) throw self::rejected(in_array($error, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 'file_too_large' : 'upload_failed');
             $result[] = ['tmp' => $file->getPathname(), 'name' => (string)$file->getUploadName(), 'size' => (int)$file->getSize()];
         }
         return $result;

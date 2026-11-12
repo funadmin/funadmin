@@ -19,7 +19,7 @@
 - 思考强度按协议传参：Chat 用 `reasoning_effort`，Responses 用 `reasoning.effort`，Messages 用 `thinking.budget_tokens`（low 1024 … ultra 65536，必须小于输出预算）。只放行模型能力里为主模型与全部备用模型声明过的档位。
 - 修复轮：只有 Guzzle 传输层异常才算超时；“模型不可用”判断放到“已开始输出”判断之后；前端提示改用新键名并显示在控件下方；README 补充计费、错误 Base URL 与档位声明的说明。
 - `a6f5e80ff`：MySQL 下比较消息元数据前先排序 JSON 键（测试问题，不是产品缺陷）。
-- 测试：`admin/tests/AiFallbackReasoningTest.php`（33 个）、`tests/Console/AiConsumerExecutionTest.php` 新增端到端用例、`aiComponents.spec.ts` 新增用例。
+- 测试：`admin/tests/AiFallbackReasoningTest.php`（35 个）、`tests/Console/AiConsumerExecutionTest.php` 新增端到端用例、`aiComponents.spec.ts` 新增用例。
 
 ### Task 3 问答删除、回收站、问题详情与回答管理（`3ff9833a7`、`2cd0945b1`、`c3cd93901`）
 
@@ -98,21 +98,21 @@
 
 - 超时切换时上游可能已处理首次请求并计费（README 已说明）；TLS 错误也会切换，切换到的可能是同一上游主机。
 - `stream_fallback` 已声明为支持，但目前生产代码里没有调用方依赖它。
-- 带签名的 thinking 块会原样发给备用模型，备用模型可能不接受。
+- 带签名的 thinking 块会原样发给备用模型，备用模型可能不接受并返回 400，且 400 不会再切换（终审修复后 `admin/README.md` 注意事项已说明）。
 - 基线里旧提示文案的 `fun_language_line` 行已不再被引用，留在库里无害；en-US 提示的渲染没有单独测试。
 
 **问答**
 
 - 站点层面没有单独的恢复、彻底删除权限，写操作统一用 CMS 的 `cms:submission:review`（要区分需要改 CMS）；按接口区分只体现在问答自己的权限码上。
 - 003 若在建表之后、补行之前中断，重新执行不会补行，需要人工补齐（README 已说明）。SQLite 等价实现缺少“CMS 已删除回答的补行”用例（只有 MySQL 测试覆盖）；`Schema::questionAdmin` 的补行用模型默认连接而不是传入的连接。
-- 附件：除大小错误外的其他上传错误码都提示为“类型不允许”（`AttachmentService` 约第 494 行）；会员门户没有在前端检查单个文件大小；后台附件下载不检查父级问题是否已删除。
+- 附件：除大小错误外的其他上传错误码（部分上传、无临时目录、写入失败、扩展中止）原先都提示为“类型不允许”，终审修复后改为提示“附件上传失败，请重新上传”（`admin/plugins/qa/app/qa/service/AttachmentService.php:58`）；会员门户原先没有在前端检查文件大小，终审修复后选择文件时按单个 5MB、合计 8MB 检查（`web/src/web/views/QuestionsPortal.vue` 的 `pickFiles`）。后台附件下载不检查父级问题是否已删除（未修改）。
 - JSON-LD 只覆盖详情页前 100 条回答，已采纳回答排在其后时缺少 `acceptedAnswer`（README 已说明）；canonical 固定使用 https（README 已说明）。
 - 嵌套事务：外层事务在问答写入后回滚时，已落盘的附件文件不会清理（目前没有这种调用方）。
 - 提交 `73534856e` 的信息为英文、格式与约定不符，未改写历史。
 
 **OSS**
 
-- S3 Endpoint 只在字面量层面校验：阿里云元数据 `100.100.100.200`、AWS IPv6 元数据 `fd00:ec2::254`、`64:ff9b::/96` 转换地址以及解析到内网的主机名都能通过；内网地址本来就允许，持有保存或测试权限的管理员可以让服务器访问内网 HTTPS 地址（README 已说明）。更严格需要在请求时解析 DNS 并固定 IP。
+- S3 Endpoint 只在字面量层面校验：阿里云元数据 `100.100.100.200`、AWS IPv6 元数据 `fd00:ec2::254`、`64:ff9b::/96` 转换地址以及解析到内网的主机名都能通过；内网地址本来就允许，持有保存权限的管理员可以让服务器访问内网 HTTPS 地址（README 已说明）；终审修复后，测试未保存的配置（不带 id）除测试权限外也需要保存权限，只有测试权限不能再指定任意 Endpoint。更严格需要在请求时解析 DNS 并固定 IP。
 - 彻底删除与上传存在理论上的竞态：上传期间配置被切换、删除再彻底删除，会留下指向不存在配置的附件。
 - 后端 409/404 提示只有中文；连接测试的 `id` 传数组时会产生 warning。
 - OSS 在本工作区未安装，权限快照里没有 OSS 路由；新路由只经 `plugin:validate` 与控制器约定校验。

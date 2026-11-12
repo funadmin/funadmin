@@ -205,6 +205,28 @@ PHP;
             'class constant callback' => ["Route::get('/x', [\\app\\demo\\controller\\A::FOO, 'm']);", null],
             'first class callable' => ["Route::get('/x', \\app\\demo\\controller\\A::m(...));", null],
             'concatenated path' => ["Route::get('/x' . 'y', {$a});", null],
+            // 顶层白名单：只允许 use、分组 use、declare、空语句与可识别的 Route:: 语句。
+            'use function and group use' => ["use function strlen;\nuse app\\demo\\{B, C};\nRoute::get('/x', {$a});", $routes('GET', '/x')],
+            'declare and trailing comment' => ["declare(ticks=1);\nRoute::get('/x', {$a});\n// trailing", $routes('GET', '/x')],
+            'require' => ["require __DIR__ . '/more-routes.php';", null],
+            'include once' => ["include_once 'routes.php';", null],
+            'include inside group' => ["Route::group('/g', static function (): void { require 'g.php'; });", null],
+            'include in chain argument' => ["Route::get('/x', {$a})->middleware(require 'middleware.php');", null],
+            'dynamic method name' => ["Route::{'get'}('/x', {$a});", null],
+            'variable method name' => ["Route::\$verb('/x', {$a});", null],
+            'expression class' => ["(Route::class)::get('/x', {$a});", null],
+            'call_user_func' => ["call_user_func([Route::class, 'get'], '/x', {$a});", null],
+            'call_user_func_array' => ["\\call_user_func_array('Webman\\Route::get', ['/x', {$a}]);", null],
+            'call_user_func in chain argument' => ["Route::get('/x', {$a})->middleware(call_user_func('m'));", null],
+            'plugin route loader' => ["\\app\\common\\plugin\\sdk\\PluginRouteLoader::get('/x', {$a});", null],
+            'new route' => ["new Route();", null],
+            'new route in chain argument' => ["Route::get('/x', {$a})->middleware([new Route()]);", null],
+            'other static call' => ["\\app\\demo\\Routes::register();", null],
+            'function call' => ["registerRoutes();", null],
+            'echo' => ["echo 'x';", null],
+            'return' => ["return [];", null],
+            'function declaration' => ["function routes(): void {}", null],
+            'declare block' => ["declare(ticks=1) { Route::get('/x', {$a}); }", null],
         ];
     }
 

@@ -5,6 +5,7 @@ namespace app\admin\plugins\oss\controller;
 use OpenApi\Annotations as OA;
 
 use app\common\controller\AdminController;
+use app\admin\authorization\service\AdminAuthorizationService;
 use app\admin\plugins\oss\service\ProfileService;
 use support\annotation\route\{Get,Post,RouteGroup};
 use support\Response;
@@ -18,7 +19,7 @@ final class Storage extends AdminController
     private function service():ProfileService{return \support\Container::get(ProfileService::class);}
     private function action(callable $operation):Response{
         try{return $this->ok(data:$operation());}
-        catch(\InvalidArgumentException $error){return $this->fail(msg:$error->getMessage(),code:in_array($error->getCode(),[404,409],true)?$error->getCode():422);}
+        catch(\InvalidArgumentException $error){return $this->fail(msg:$error->getMessage(),code:in_array($error->getCode(),[403,404,409],true)?$error->getCode():422);}
         catch(\RuntimeException $error){return $this->fail(msg:match($error->getCode()){503=>'云存储服务未就绪，请检查加密主密钥和插件依赖',default=>'云存储操作失败，请检查配置、网络及脱敏日志'},code:422);}
         catch(\Throwable){return $this->fail(msg:'云存储操作失败，请检查插件安装及服务器日志',code:500);}
     }
@@ -115,7 +116,7 @@ final class Storage extends AdminController
      *     operationId="admin_plugins_oss_controller_Storage_test_post",
      *     tags={"云存储配置"},
      *     summary="连接测试：用表单当前值测试（无需先保存）；只传 id 时测试已保存的配置。",
-     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 密钥只写不读；服务未就绪（缺少加密主密钥或依赖）时返回 code=422。",
+     *     description="普通后台业务协议：成功 code=200；HTTP 200 也可能表示 code=400/422 的业务失败，请同时检查响应体 code。 密钥只写不读；服务未就绪（缺少加密主密钥或依赖）时返回 code=422。不带 id（测试未保存的配置）时还需要保存权限 oss:storage:save，否则 code=403；id 不是字符串时 code=422。",
      *     security={{"AdminSession"={}, "CsrfToken"={}}},
      *     @OA\RequestBody(
      *         required=true,
@@ -143,7 +144,14 @@ final class Storage extends AdminController
      * )
      */
     #[Post('/test')]
-    public function test():Response{return $this->action(fn()=>$this->service()->testConnection($this->request->post()));}
+    public function test():Response{
+        return $this->action(function():array{
+            $input=$this->request->post();
+            // 不带 id 的测试可以让服务器用任意 Endpoint 与凭据发起请求，和新增配置一样，除 oss:storage:test 外还需要保存权限。
+            if(ProfileService::inputId($input)===null&&!(new AdminAuthorizationService($this->request))->can('oss:storage:save'))throw new \InvalidArgumentException('测试未保存的配置需要云存储配置保存权限',403);
+            return $this->service()->testConnection($input);
+        });
+    }
     /**
      * 删除云存储配置（进入回收站）。
      *

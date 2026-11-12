@@ -17,7 +17,7 @@
 - 当前存储配置保存在插件数据库中，不覆盖宿主 upload_driver。停用插件恢复宿主原选择；云存储错误明确返回失败，不自动回退 local。
 - 每个配置的随机 ID 绑定一个不可变存储位置，附件 driver 使用 `oss_{16位ID}`。更换厂商、桶、地域、域名或目录时添加新配置。原配置可修改名称和凭据，并继续定位历史对象。
 - 附件删除按原配置和对象 key 处理；插件停用、原驱动缺失、key 缺失或云删除失败会保留记录，不能回退到 local 删除。批次部分失败时保留失败记录并刷新列表。
-- 密钥加密保存在 oss_profile；接口只返回“已设置”状态，留空表示保留旧值，不写入 config.php。配置页面按方法使用 oss:storage:index（查看）、oss:storage:save（保存）、oss:storage:activate（启用）、oss:storage:test（测试连接）、oss:storage:delete（删除）、oss:storage:recycle（查看回收站）、oss:storage:restore（恢复）、oss:storage:destroy（彻底删除）权限，权限码由控制器方法推导。
+- 密钥加密保存在 oss_profile；接口只返回“已设置”状态，留空表示保留旧值，不写入 config.php。配置页面按方法使用 oss:storage:index（查看）、oss:storage:save（保存）、oss:storage:activate（启用）、oss:storage:test（测试连接；测试未保存的配置即不带 id 时，还需要 oss:storage:save）、oss:storage:delete（删除）、oss:storage:recycle（查看回收站）、oss:storage:restore（恢复）、oss:storage:destroy（彻底删除）权限，权限码由控制器方法推导。
 - 删除配置是软删除，配置进入回收站，可以恢复。当前存储配置不能删除（409），需先把其他配置设为当前存储。已删除配置的历史附件仍按原配置读取和删除（驱动解析包含已删除的配置）；已删除的配置不出现在驱动列表，不能设为当前存储或测试。
 - 回收站的“彻底删除”是唯一的物理删除，需要二次确认且不可撤销：只要还有附件（包括回收站中的附件）使用 `oss_<id>` 驱动就返回 409。彻底删除只删除配置行和加密凭据，不删除云端对象。插件不会自动删除任何配置；软删除的配置一直保留，直到管理员在回收站彻底删除。
 - 卸载保留配置表与附件记录，不清空云对象。不提供远程 purge。重新安装可继续使用保留数据；升级通过标准版本迁移执行。
@@ -52,7 +52,7 @@ node scripts/build-oss.mjs
 
 ## 1.2.0 配置管理、S3 兼容驱动与连接测试
 
-升级：在插件中心更新 OSS（执行迁移 `003_s3_path_style.sql`）后重新启用。003 只给 `oss_profile` 加 `path_style TINYINT(1) NOT NULL DEFAULT 0`，已有配置得到 0；`oss_setting` 不变。003 按 information_schema 守卫，可以重复执行，按 MySQL 8.0 在线 DDL 执行。新增配置删除、回收站（恢复、彻底删除）、S3 兼容供应商和逐步返回结果的连接测试，见上文。
+升级：在插件中心更新 OSS（执行迁移 `003_s3_path_style.sql`）后重新启用。003 只给 `oss_profile` 加 `path_style TINYINT(1) NOT NULL DEFAULT 0`，已有配置得到 0；`oss_setting` 不变。003 按 information_schema 守卫，可以重复执行，按 MySQL 8.0 在线 DDL 执行。新增配置删除、回收站（恢复、彻底删除）、S3 兼容供应商和逐步返回结果的连接测试，见上文。权限变化：测试未保存的配置（不带 `id`，可填写任意 Endpoint 与凭据）除 `oss:storage:test` 外还需要 `oss:storage:save`，缺少时返回 403；只测试已保存的配置（带 `id`）仍只需要 `oss:storage:test`。原来只授予测试权限、需要测试新配置的角色，请同时授予保存权限。`id` 不是字符串（例如数组）时，保存与测试接口返回 422。
 
 ## 1.1.0 软删除表结构
 

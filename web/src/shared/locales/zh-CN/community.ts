@@ -24,6 +24,8 @@ export default {
     "attachments": "附件",
     "attachmentHint": "最多 5 个文件，单个不超过 5MB，合计不超过 8MB；支持图片、文档和压缩包。",
     "tooManyAttachments": "附件最多 5 个",
+    "attachmentTooLarge": "单个附件不能超过 5MB",
+    "attachmentsTooLarge": "附件总大小不能超过 8MB",
     "download": "下载",
     "signInToDownload": "登录会员账号后可下载附件",
     "answersArePublicAfterApproval": "回答通过审核后公开展示。",

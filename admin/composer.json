@@ -61,6 +61,7 @@
     "illuminate/view": "^13.39"
   },
   "require-dev": {
+    "nikic/php-parser": "^5.0",
     "phpunit/phpunit": "^13.0"
   },
   "config": {

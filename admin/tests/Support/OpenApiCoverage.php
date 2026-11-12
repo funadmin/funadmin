@@ -187,6 +187,9 @@ final class OpenApiCoverage
      * 允许调用链 ->name()/->middleware()。闭包回调（如 /health）没有控制器方法可挂注释，计入 skipped。
      * 其他任何 Route:: 调用、出现在顶层语句或 group 闭包语句之外（if、foreach、赋值、函数参数等）的路由注册，
      * 以及 group 闭包中的非路由语句，一律报错，避免静默漏检。
+     * 顶层是白名单：只允许 use（含 use function/const）、分组 use、无语句体的 declare、空语句（注释）和可识别的 Route:: 语句或调用链；
+     * require/include、动态 Route 调用、call_user_func、PluginRouteLoader::get、new Route 等其他任何语句都报错。
+     * 另外在整个文件中查找 include/require、new Route、call_user_func(_array) 以及类名或方法名是表达式的静态调用，出现即报错。
      *
      * @return array{routes:array<string,array<string,list<array{verbs:list<string>,path:string}>>>,skipped:list<string>}
      */
@@ -201,6 +204,12 @@ final class OpenApiCoverage
             $name = strtolower($call->name->toString());
             if (isset($accounted[spl_object_id($call)]) || in_array($name, self::CONFIG_NON_REGISTERING, true)) continue;
             throw new \RuntimeException('无法静态解析的 Route::' . $call->name->toString() . ' 调用（第 ' . $call->getStartLine() . ' 行）：路由注册必须是顶层语句或 Route::group 闭包中的语句');
+        }
+        foreach ((new NodeFinder())->find($nodes, static fn (Node $node): bool => $node instanceof Node\Expr\Include_
+            || ($node instanceof Node\Expr\New_ && $node->class instanceof Node\Name && strtolower(ltrim($node->class->toString(), '\\')) === 'webman\\route')
+            || ($node instanceof Node\Expr\FuncCall && $node->name instanceof Node\Name && in_array(strtolower(ltrim($node->name->toString(), '\\')), ['call_user_func', 'call_user_func_array'], true))
+            || ($node instanceof Node\Expr\StaticCall && (!$node->class instanceof Node\Name || !$node->name instanceof Node\Identifier))) as $node) {
+            throw new \RuntimeException('config/route.php 不支持无法静态解析的 ' . $node->getType() . '（第 ' . $node->getStartLine() . ' 行）');
         }
         foreach ((new NodeFinder())->find($nodes, static fn (Node $node): bool => $node instanceof Node\Expr\MethodCall
             && $node->var instanceof Node\Expr\Variable && $node->var->name === 'this') as $call) {
@@ -225,9 +234,12 @@ final class OpenApiCoverage
                 $call = $call->var;
             }
             if ($call === null || !self::isRouteStaticCall($call)) {
-                // 顶层允许 use、注释、其他非路由语句；其中混入的 Route:: 调用由 configRoutes() 的全量扫描报错。group 闭包内只能是路由语句。
-                if (!$topLevel && !$statement instanceof Node\Stmt\Nop) throw new \RuntimeException('Route::group 闭包中只能包含路由语句（第 ' . $statement->getStartLine() . ' 行）');
-                continue;
+                // 白名单：空语句（只有注释）到处允许；顶层另外允许 use、分组 use 与无语句体的 declare。其余一律报错，group 闭包内只能是路由语句。
+                if ($statement instanceof Node\Stmt\Nop) continue;
+                if ($topLevel && ($statement instanceof Node\Stmt\Use_ || $statement instanceof Node\Stmt\GroupUse
+                    || ($statement instanceof Node\Stmt\Declare_ && $statement->stmts === null))) continue;
+                throw new \RuntimeException(($topLevel ? 'config/route.php 顶层只允许 use、declare 与 Route:: 路由语句' : 'Route::group 闭包中只能包含路由语句')
+                    . '（第 ' . $statement->getStartLine() . ' 行，' . $statement->getType() . '）');
             }
             $name = strtolower($call->name->toString());
             if (in_array($name, self::CONFIG_NON_REGISTERING, true)) { $accounted[spl_object_id($call)] = true; continue; }

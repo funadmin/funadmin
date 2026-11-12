@@ -24,6 +24,8 @@ export default {
     "attachments": "Attachments",
     "attachmentHint": "Up to 5 files, 5 MB each and 8 MB in total; images, documents and archives.",
     "tooManyAttachments": "You can attach up to 5 files",
+    "attachmentTooLarge": "Each attachment must be 5 MB or smaller",
+    "attachmentsTooLarge": "Attachments must total 8 MB or less",
     "download": "Download",
     "signInToDownload": "Sign in as a member to download attachments",
     "answersArePublicAfterApproval": "Answers are public after approval.",

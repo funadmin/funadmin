@@ -152,6 +152,8 @@ final class AdminQuestionService
     {
         if($ids===[])return [];
         $counts=[];
+        // 查询从 QaAnswer 模型开始；每个问题的回答数需要 count(*) 按 question_id 分组，一次查询拿到全部计数，
+        // 结果是聚合行而不是 QaAnswer 实例，所以用 selectRaw 并 toBase() 读取。
         $rows=QaAnswer::query()->from('qa_answer as a')->join('cms_member_submission as s',static function($j): void {$j->on('s.id','=','a.id')->on('s.site_id','=','a.site_id')->on('s.locale','=','a.locale')->where('s.kind','answer')->whereNull('s.deleted_at');})
             ->whereIn('a.question_id',$ids)->select('a.question_id')->selectRaw('count(*) as aggregate')->groupBy('a.question_id')->toBase()->get();
         foreach($rows as $row)$counts[(string)$row->question_id]=(int)$row->aggregate;

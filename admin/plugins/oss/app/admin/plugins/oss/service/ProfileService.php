@@ -25,6 +25,15 @@ final class ProfileService
     private readonly ProfileSecret $secrets;
     public function __construct(?string $masterKey=null,private readonly mixed $driverFactory=null){$this->secrets=new ProfileSecret($masterKey??(string)config('ai.encryption_key',getenv('OAUTH_ENCRYPTION_KEY')?:''));}
     private function ready():void{if(!Schema::ready())throw new RuntimeException('请先完成 OSS 插件安装或数据库升级',503);}
+    /**
+     * 表单里的配置 id：缺省、null 或空字符串表示新增/未保存的配置（返回 null）；其他非字符串值（如数组）一律视为无效（422），不做字符串转换。
+     */
+    public static function inputId(array $input):?string{
+        $id=$input['id']??null;
+        if($id===null||$id==='')return null;
+        if(!is_string($id))throw new InvalidArgumentException('云存储配置标识无效');
+        return $id;
+    }
     private function id(string $id):string{if(!preg_match('/^[a-f0-9]{16}$/D',$id))throw new InvalidArgumentException('云存储配置标识无效');return $id;}
     private function row(string $id,bool $lock=false,bool $withTrashed=false):array{$this->ready();$query=($withTrashed?OssProfile::withTrashed():OssProfile::query())->where('id',$this->id($id));if($lock)$query->lockForUpdate();return ($query->first()??throw new InvalidArgumentException('云存储配置不存在',404))->getAttributes();}
     private function publicRow(array $row):array{unset($row['credentials']);$row['has_credentials']=true;$row['path_style']=(bool)($row['path_style']??false);return $row;}
@@ -72,7 +81,7 @@ final class ProfileService
     public function save(array $input):array{
         $this->ready();if(array_diff(array_keys($input),self::FIELDS))throw new InvalidArgumentException('包含未知云存储配置字段');
         return Db::transaction(function()use($input):array{
-            $old=empty($input['id'])?null:$this->row((string)$input['id'],true);$id=$old['id']??bin2hex(random_bytes(8));
+            $inputId=self::inputId($input);$old=$inputId===null?null:$this->row($inputId,true);$id=$old['id']??bin2hex(random_bytes(8));
             [$data,$access,$secret]=$this->normalize($input,$old);
             $cipher=$old['credentials']??null;
             if(!$old||$access!==''||$secret!=='')$cipher=$this->secrets->seal($id,$this->credentials($id,$old,$access,$secret));
@@ -148,12 +157,13 @@ final class ProfileService
     }
     /**
      * 连接测试：用表单值（可不保存）依次上传随机小对象、读回校验、删除，返回每一步的结果。
+     * 不带 id 时可以填写任意 Endpoint 与凭据，控制器另外要求保存权限 oss:storage:save（见 Storage::test）。
      * 每个 SDK 请求的超时为 PROBE_TIMEOUT 秒；上传成功后总会尝试删除测试对象，读取步骤在超出预算时跳过。
      * @return array{success: bool, steps: list<array{step: string, status: string, reason: ?string, message: string, ms: int}>, elapsed_ms: int}
      */
     public function testConnection(array $input):array{
         $this->ready();
-        $old=empty($input['id'])?null:$this->row((string)$input['id']);
+        $inputId=self::inputId($input);$old=$inputId===null?null:$this->row($inputId);
         [$data,$access,$secret]=$this->normalize($input,$old);
         $id=$old['id']??bin2hex(random_bytes(8));
         $profile=$data+$this->credentials($id,$old,$access,$secret)+['id'=>$id];
