@@ -192,6 +192,8 @@ class AiConsumerExecutionTest extends TestCase
         $metadata = $store->messages(1)[0]['metadata'];
         self::assertSame('backup-1', $metadata['model']);
         self::assertSame('backup-1', $metadata['requested_model']);
-        self::assertSame([['from_model' => 'primary', 'to_model' => 'backup-1', 'reason' => 'provider_unavailable', 'status' => 503]], $metadata['fallbacks']);
+        // MySQL JSON 列会按自身规则重排对象键，只比较切换记录的顺序与内容，不比较键顺序。
+        $fallbacks = array_map(static function (array $switch): array { ksort($switch); return $switch; }, $metadata['fallbacks']);
+        self::assertSame([['from_model' => 'primary', 'reason' => 'provider_unavailable', 'status' => 503, 'to_model' => 'backup-1']], $fallbacks);
     }
 }
