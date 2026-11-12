@@ -63,12 +63,21 @@ final class QuestionService
     {
         $site=Input::id($site);$locale=Input::locale($locale);$id=Input::id($id);$this->context($site,$locale);
         $row=$this->publicQuestions($site,$locale)->where('s.id',$id)->first()??throw new InvalidArgumentException('问题不存在',404);
-        $answers=MemberSubmission::query()->from('cms_member_submission as s')->join('qa_answer as a',function($j):void {$this->liveAnswer($j);$j->where('a.hidden',false);})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','answer')->where('s.parent_id',$id)->where('s.status','published');
+        $answers=$this->publicAnswers($site,$locale,$id);
         $total=$answers->count();$rows=$answers->select($this->publicColumns())->orderBy('s.id')->limit(100)->get();
         $question=$this->publicQuestion($row);$items=array_map($this->publicSubmission(...),$rows->all());
         $files=(new AttachmentService())->forSubmissions($site,[$question['id'],...array_column($items,'id')]);
         foreach($items as &$item)$item['attachments']=$files[$item['id']]??[];unset($item);
         return $question+['attachments'=>$files[$question['id']]??[],'answers'=>$items,'answers_total'=>$total];
+    }
+    /**
+     * 单条公开回答（审核通过、问答侧未隐藏、问答侧与 CMS 侧都未删除），口径与 detail 的回答列表相同；不是公开回答时返回 null。
+     * 供前台页面在已采纳回答排在前 100 条之后时单独取出（不含附件）。
+     */
+    public function publicAnswer(string $site,string $locale,string $question,string $answer): ?array
+    {
+        $row=$this->publicAnswers(Input::id($site),Input::locale($locale),Input::id($question))->where('s.id',Input::id($answer))->select($this->publicColumns())->first();
+        return $row===null?null:$this->publicSubmission($row);
     }
     public function accept(string $site,string $locale,string $member,string $question,string $answer,int $questionVersion): array
     {
@@ -131,6 +140,11 @@ final class QuestionService
     private function publicQuestions(string $site,string $locale): Builder
     {
         return MemberSubmission::query()->from('cms_member_submission as s')->join('qa_question as q',function($j):void {$j->on('q.id','=','s.id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale')->whereNull('q.deleted_at');})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','question')->where('s.status','published')->select([...$this->publicColumns(),'q.accepted_answer_id','q.closed','q.pinned','q.lock_version as question_version']);
+    }
+    /** 问题下的公开回答：审核通过、问答侧未隐藏、未删除（CMS 侧删除由模型软删除作用域排除）。 */
+    private function publicAnswers(string $site,string $locale,string $question): Builder
+    {
+        return MemberSubmission::query()->from('cms_member_submission as s')->join('qa_answer as a',function($j):void {$this->liveAnswer($j);$j->where('a.hidden',false);})->leftJoin('member as m','m.id','=','s.member_id')->where('s.site_id',$site)->where('s.locale',$locale)->where('s.kind','answer')->where('s.parent_id',$question)->where('s.status','published');
     }
     /** 回答投稿与问答侧状态行的联表条件：同一投稿 id、站点、语言，状态行未删除。 */
     private function liveAnswer(\Illuminate\Database\Query\JoinClause $j): void { $j->on('a.id','=','s.id')->on('a.site_id','=','s.site_id')->on('a.locale','=','s.locale')->whereNull('a.deleted_at'); }

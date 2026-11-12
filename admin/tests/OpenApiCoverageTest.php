@@ -219,6 +219,17 @@ PHP;
             'call_user_func_array' => ["\\call_user_func_array('Webman\\Route::get', ['/x', {$a}]);", null],
             'call_user_func in chain argument' => ["Route::get('/x', {$a})->middleware(call_user_func('m'));", null],
             'plugin route loader' => ["\\app\\common\\plugin\\sdk\\PluginRouteLoader::get('/x', {$a});", null],
+            // 藏在调用链参数、函数参数里的 Webman\Route / 子类调用，以及字符串、::class 形式的路由类引用。
+            'plugin route loader in chain argument' => ["Route::get('/x', {$a})->middleware(\\app\\common\\plugin\\sdk\\PluginRouteLoader::get('/y', {$a}));", null],
+            'aliased plugin route loader in chain argument' => ["use app\\common\\plugin\\sdk\\PluginRouteLoader as Loader;\nRoute::get('/x', {$a})->name(Loader::post('/y', {$a}));", null],
+            'route call in chain argument' => ["Route::get('/x', {$a})->middleware(Route::get('/y', {$a}));", null],
+            'route call in group chain argument' => ["Route::group('/g', static function (): void { Route::get('/x', {$a}); })->middleware([Route::post('/y', {$a})]);", null],
+            'plugin route loader in group' => ["Route::group('/g', static function (): void { \\app\\common\\plugin\\sdk\\PluginRouteLoader::get('/x', {$a}); });", null],
+            'string callable in array_map' => ["array_map('Webman\\\\Route::get', ['/x']);", null],
+            'string callable in chain argument' => ["Route::get('/x', {$a})->middleware(array_map('\\\\Webman\\\\Route::post', ['/y']));", null],
+            'string callable naming subclass' => ["Route::get('/x', {$a})->middleware(array_map('app\\\\common\\\\plugin\\\\sdk\\\\PluginRouteLoader::get', ['/y']));", null],
+            'array callable in chain argument' => ["Route::get('/x', {$a})->middleware(array_map([Route::class, 'get'], ['/y']));", null],
+            'class string concatenated' => ["Route::get('/x', {$a})->middleware(array_map(Route::class . '::get', ['/y']));", null],
             'new route' => ["new Route();", null],
             'new route in chain argument' => ["Route::get('/x', {$a})->middleware([new Route()]);", null],
             'other static call' => ["\\app\\demo\\Routes::register();", null],
@@ -228,6 +239,34 @@ PHP;
             'function declaration' => ["function routes(): void {}", null],
             'declare block' => ["declare(ticks=1) { Route::get('/x', {$a}); }", null],
         ];
+    }
+
+    /** @return array<string,array{0:string,1:string}> 藏在调用链参数里的注册调用 => 期望的报错片段（确认由整文件扫描拦下，而不是其他规则） */
+    public static function hiddenConfigRegistrations(): array
+    {
+        $a = '[\app\demo\controller\A::class, \'m\']';
+        return [
+            'loader in middleware' => ["Route::get('/x', {$a})->middleware(\\app\\common\\plugin\\sdk\\PluginRouteLoader::get('/y', {$a}));", '无法静态解析的 app\\common\\plugin\\sdk\\PluginRouteLoader::get 调用'],
+            'aliased loader in name' => ["use app\\common\\plugin\\sdk\\PluginRouteLoader as Loader;\nRoute::get('/x', {$a})->name(Loader::post('/y', {$a}));", '无法静态解析的 app\\common\\plugin\\sdk\\PluginRouteLoader::post 调用'],
+            'route in group middleware' => ["Route::group('/g', static function (): void { Route::get('/x', {$a}); })->middleware([Route::post('/y', {$a})]);", '无法静态解析的 Webman\\Route::post 调用'],
+            'string callable' => ["Route::get('/x', {$a})->middleware(array_map('Webman\\\\Route::get', ['/y']));", '不支持以字符串或 ::class 引用路由类'],
+            'subclass string callable' => ["Route::get('/x', {$a})->middleware(array_map('\\\\app\\\\common\\\\plugin\\\\sdk\\\\PluginRouteLoader::get', ['/y']));", '不支持以字符串或 ::class 引用路由类'],
+            'array callable' => ["Route::get('/x', {$a})->middleware(array_map([Route::class, 'get'], ['/y']));", '不支持以字符串或 ::class 引用路由类'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('hiddenConfigRegistrations')]
+    public function test_route_class_calls_hidden_in_chain_arguments_are_rejected(string $snippet, string $message): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage($message);
+        OpenApiCoverage::configRoutes("<?php\nuse Webman\\Route;\n{$snippet}\n");
+    }
+
+    public function test_plain_strings_and_non_registering_calls_are_still_allowed(): void
+    {
+        $source = "<?php\nuse Webman\\Route;\nRoute::get('/x', [\\app\\demo\\controller\\A::class, 'm'])->name('app\\\\demo::x');\nRoute::fallback(static function (\$r) { return Route::dispatch('GET', '/'); });\n";
+        self::assertSame(['app\\demo\\controller\\A' => ['m' => [['verbs' => ['GET'], 'path' => '/x']]]], OpenApiCoverage::configRoutes($source)['routes']);
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('configForms')]

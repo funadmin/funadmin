@@ -6,6 +6,7 @@ use OpenApi\Annotations as OA;
 
 use app\common\controller\AdminController;
 use app\admin\authorization\service\AdminAuthorizationService;
+use app\admin\plugins\oss\service\ProfileError;
 use app\admin\plugins\oss\service\ProfileService;
 use support\annotation\route\{Get,Post,RouteGroup};
 use support\Response;
@@ -19,7 +20,7 @@ final class Storage extends AdminController
     private function service():ProfileService{return \support\Container::get(ProfileService::class);}
     private function action(callable $operation):Response{
         try{return $this->ok(data:$operation());}
-        catch(\InvalidArgumentException $error){return $this->fail(msg:$error->getMessage(),code:in_array($error->getCode(),[403,404,409],true)?$error->getCode():422);}
+        catch(\InvalidArgumentException $error){return $this->fail(msg:$error->getMessage(),data:$error instanceof ProfileError?['code'=>$error->reason]:null,code:in_array($error->getCode(),[403,404,409],true)?$error->getCode():422);}
         catch(\RuntimeException $error){return $this->fail(msg:match($error->getCode()){503=>'云存储服务未就绪，请检查加密主密钥和插件依赖',default=>'云存储操作失败，请检查配置、网络及脱敏日志'},code:422);}
         catch(\Throwable){return $this->fail(msg:'云存储操作失败，请检查插件安装及服务器日志',code:500);}
     }

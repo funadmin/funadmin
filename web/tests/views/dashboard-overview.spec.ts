@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
-import { defineComponent, h, reactive } from 'vue';
+import { defineComponent, h, KeepAlive, nextTick, reactive, ref } from 'vue';
 import ElementPlus from 'element-plus';
 import { createPinia, setActivePinia } from 'pinia';
 import { i18n } from '@/locales';
 import Dashboard from '@/views/dashboard/index.vue';
 import { dashboardApi, type DashboardOverview } from '@/api/dashboard';
+import { hooks } from '@/shared/plugins/hooks';
 
 const stores = vi.hoisted(() => ({
   user: null as unknown as { permissions: string[]; nickname: string; avatar: string; userInfo: unknown },
@@ -122,6 +123,52 @@ describe('仪表盘系统概览', () => {
     const wrapper = await mountDashboard([], []);
     expect(cardKeys(wrapper)).toEqual([]);
     expect(wrapper.find('[data-test="dashboard-empty"]').exists()).toBe(true);
+  });
+
+  it('插件注册了概览卡片时不显示空状态', async () => {
+    vi.mocked(dashboardApi.overview).mockResolvedValue({ generatedAt: '2026-11-12 10:00:00' });
+    const components = vi.spyOn(hooks, 'components').mockImplementation(point => (point === 'dashboard.cards' ? [{}] : []) as ReturnType<typeof hooks.components>);
+    try {
+      const wrapper = await mountDashboard([], []);
+      expect(cardKeys(wrapper)).toEqual([]);
+      expect(wrapper.find('[data-test="dashboard-empty"]').exists()).toBe(false);
+      expect(components).toHaveBeenCalledWith('dashboard.cards');
+    } finally {
+      components.mockRestore();
+    }
+  });
+
+  it('数字按当前界面语言格式化', async () => {
+    vi.mocked(dashboardApi.overview).mockResolvedValue({ ...structuredClone(FULL), members: { total: 1234567, today: 12345 } });
+    i18n.global.locale.value = 'de-DE';
+    const wrapper = await mountDashboard();
+    expect(wrapper.find('[data-test="dashboard-card-members"]').text()).toContain('1.234.567');
+    expect(wrapper.find('[data-test="dashboard-card-members"]').text()).toContain('12.345');
+    expect(wrapper.find('[data-test="dashboard-card-attachments"]').text()).toContain('3,0 MB');
+    i18n.global.locale.value = 'en-US';
+    await nextTick();
+    expect(wrapper.find('[data-test="dashboard-card-members"]').text()).toContain('1,234,567');
+    expect(wrapper.find('[data-test="dashboard-card-attachments"]').text()).toContain('3.0 MB');
+  });
+
+  it('keep-alive 重新激活时刷新概览，首次挂载只请求一次', async () => {
+    stores.user = reactive({ permissions: ['*'], nickname: 'root', avatar: '', userInfo: { id: 1 } });
+    stores.permission = reactive({ rawMenus: MENUS });
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const showDashboard = ref(true);
+    const Other = defineComponent({ name: 'Other', setup: () => () => h('div', 'other') });
+    const Host = defineComponent({ setup: () => () => h(KeepAlive, null, [showDashboard.value ? h(Dashboard) : h(Other)]) });
+    const wrapper = mount(Host, { global: { plugins: [ElementPlus, pinia], stubs: { PluginSlot: true }, mocks: { $router: { push: vi.fn() } } } });
+    wrappers.push(wrapper);
+    await flushPromises();
+    expect(dashboardApi.overview).toHaveBeenCalledTimes(1);
+    showDashboard.value = false; await flushPromises();
+    expect(dashboardApi.overview).toHaveBeenCalledTimes(1);
+    vi.mocked(dashboardApi.overview).mockResolvedValue({ ...structuredClone(FULL), members: { total: 99, today: 1 } });
+    showDashboard.value = true; await flushPromises();
+    expect(dashboardApi.overview).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[data-test="dashboard-card-members"]').text()).toContain('99');
   });
 
   it('加载中显示骨架屏', async () => {

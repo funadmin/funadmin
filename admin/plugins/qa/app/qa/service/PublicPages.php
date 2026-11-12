@@ -91,7 +91,13 @@ final class PublicPages
         $state = QaQuestion::query()->where('id', $id)->where('site_id', $site['id'])->first();
         if (!$state) return $this->error(404);
         $locale = (string)$state->locale;
-        $question = (new QuestionService())->detail((string)$site['id'], $locale, $id);
+        $service = new QuestionService();
+        $question = $service->detail((string)$site['id'], $locale, $id);
+        // 详情只取前 100 条回答；已采纳的回答排在其后时单独取出（仍须是公开回答），只用于结构化数据的 acceptedAnswer。
+        $accepted = null;
+        if ($question['accepted_answer_id'] !== null && !in_array($question['accepted_answer_id'], array_column($question['answers'], 'id'), true)) {
+            $accepted = $service->publicAnswer((string)$site['id'], $locale, $question['id'], $question['accepted_answer_id']);
+        }
         $labels = self::labels($locale);
         $name = $this->siteName($site, $locale);
         $canonical = 'https://' . $site['primary_host'] . self::PATH . '/' . $question['id'];
@@ -103,15 +109,16 @@ final class PublicPages
             'question' => $question + ['body_safe' => HtmlSanitizer::clean($question['body_html'])], 'answers' => $answers,
             'state' => $question['accepted_answer_id'] !== null ? $labels['resolved'] : ($question['closed'] ? $labels['closed'] : $labels['open']),
             'listUrl' => 'https://' . $site['primary_host'] . self::PATH . self::query($locale === (string)$site['default_locale'] ? [] : ['locale' => $locale]),
-            'jsonLd' => json_encode(self::structured($question, $canonical), self::JSON), 'ogType' => 'article',
+            'jsonLd' => json_encode(self::structured($question, $canonical, $accepted), self::JSON), 'ogType' => 'article',
         ]);
     }
 
     /**
      * schema.org QAPage：mainEntity 为 Question（name、text、answerCount、dateCreated、author）；已采纳的回答放 acceptedAnswer，
      * 其余公开回答放 suggestedAnswer。answerCount 为公开回答总数（与详情 answers_total 相同）。
+     * $accepted：已采纳回答不在 $question['answers']（前 100 条）中时，由调用方单独取出的该公开回答。
      */
-    public static function structured(array $question, string $canonical): array
+    public static function structured(array $question, string $canonical, ?array $accepted = null): array
     {
         $person = static fn (string $name): array => ['@type' => 'Person', 'name' => $name];
         $answer = static fn (array $item): array => array_filter(['@type' => 'Answer', 'text' => self::excerpt($item['body_html'], 5000) ?: '-', 'dateCreated' => Seo::time($item['created_at'] ?? null), 'url' => $canonical . '#answer-' . $item['id'], 'author' => $person($item['author_name'])], static fn ($value): bool => $value !== null);
@@ -121,6 +128,7 @@ final class PublicPages
             if ($question['accepted_answer_id'] !== null && $item['id'] === $question['accepted_answer_id']) $entity['acceptedAnswer'] = $answer($item);
             else $suggested[] = $answer($item);
         }
+        if (!isset($entity['acceptedAnswer']) && $accepted !== null && $question['accepted_answer_id'] !== null && $accepted['id'] === $question['accepted_answer_id']) $entity['acceptedAnswer'] = $answer($accepted);
         if ($suggested !== []) $entity['suggestedAnswer'] = $suggested;
         return ['@context' => 'https://schema.org', '@type' => 'QAPage', 'mainEntity' => $entity];
     }

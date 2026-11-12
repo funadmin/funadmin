@@ -10,6 +10,7 @@ use app\admin\plugins\oss\model\OssProfile;
 use app\admin\plugins\oss\model\OssSetting;
 /**
  * 云存储配置管理。
+ * - 404/409 抛 ProfileError，响应 data.code 带稳定原因（OSS_PROFILE_*），前端按原因显示本地化文案。
  * - 删除是软删除；当前配置不能删除（409）。回收站可以恢复和彻底删除；仍有附件（含回收站中的附件）引用 oss_<id> 时彻底删除返回 409。
  * - 附件读取与删除按 driver 名解析配置时包含已删除的配置（resolve），已删除配置的历史附件仍可访问和删除；上传、启用、测试只用未删除的配置。
  * - 连接测试使用表单里尚未保存的值；编辑已有配置时密钥留空沿用已保存的密钥，此时存储位置必须与已保存的一致（与保存规则相同）。
@@ -35,7 +36,7 @@ final class ProfileService
         return $id;
     }
     private function id(string $id):string{if(!preg_match('/^[a-f0-9]{16}$/D',$id))throw new InvalidArgumentException('云存储配置标识无效');return $id;}
-    private function row(string $id,bool $lock=false,bool $withTrashed=false):array{$this->ready();$query=($withTrashed?OssProfile::withTrashed():OssProfile::query())->where('id',$this->id($id));if($lock)$query->lockForUpdate();return ($query->first()??throw new InvalidArgumentException('云存储配置不存在',404))->getAttributes();}
+    private function row(string $id,bool $lock=false,bool $withTrashed=false):array{$this->ready();$query=($withTrashed?OssProfile::withTrashed():OssProfile::query())->where('id',$this->id($id));if($lock)$query->lockForUpdate();return ($query->first()??throw ProfileError::notFound())->getAttributes();}
     private function publicRow(array $row):array{unset($row['credentials']);$row['has_credentials']=true;$row['path_style']=(bool)($row['path_style']??false);return $row;}
     public function listing():array{$this->ready();return array_map(fn(OssProfile $row)=>$this->publicRow($row->getAttributes()),OssProfile::query()->orderByDesc('created_at')->orderBy('id')->get()->all());}
     public function current():?string{$this->ready();$id=OssSetting::query()->where('id',1)->value('current_profile_id');return $id===null?null:$this->id((string)$id);}
@@ -99,6 +100,11 @@ final class ProfileService
         if(!preg_match('/^oss_([a-f0-9]{16})$/D',$name,$matches))return null;
         return $this->build($this->row($matches[1]));
     }
+    /** 新上传：当前配置的驱动，云端写入后再确认配置未被删除（GuardedUploadDriver）。 */
+    public function uploadDriver(string $id):StorageDriverInterface{
+        $id=$this->id($id);
+        return new GuardedUploadDriver($this->build($this->row($id)),$id);
+    }
     /** 历史附件的读取与删除：包含已软删除的配置，彻底删除前它们的附件仍然可用。 */
     public function resolve(string $name):?StorageDriverInterface{
         if(!preg_match('/^oss_([a-f0-9]{16})$/D',$name,$matches))return null;
@@ -115,7 +121,7 @@ final class ProfileService
         Db::transaction(function()use($id):void{
             OssSetting::query()->where('id',1)->lockForUpdate()->first();
             // 与删除互斥：持有设置行锁后再确认配置仍未删除。
-            if(!OssProfile::query()->where('id',$id)->sharedLock()->exists())throw new InvalidArgumentException('云存储配置不存在',404);
+            if(!OssProfile::query()->where('id',$id)->sharedLock()->exists())throw ProfileError::notFound();
             OssSetting::query()->updateOrInsert(['id'=>1],['current_profile_id'=>$id]);
         });
         return ['current'=>$id];
@@ -125,8 +131,8 @@ final class ProfileService
         $this->ready();$id=$this->id($id);
         return Db::transaction(function()use($id):array{
             $current=OssSetting::query()->where('id',1)->lockForUpdate()->value('current_profile_id');
-            $profile=OssProfile::query()->where('id',$id)->lockForUpdate()->first()??throw new InvalidArgumentException('云存储配置不存在',404);
-            if($current!==null&&(string)$current===$id)throw new InvalidArgumentException('不能删除当前存储配置，请先把其他配置设为当前存储',409);
+            $profile=OssProfile::query()->where('id',$id)->lockForUpdate()->first()??throw ProfileError::notFound();
+            if($current!==null&&(string)$current===$id)throw ProfileError::current();
             $profile->delete();
             return ['id'=>$id];
         });
@@ -138,7 +144,7 @@ final class ProfileService
     public function restore(string $id):array{
         $this->ready();$id=$this->id($id);
         return Db::transaction(function()use($id):array{
-            $profile=OssProfile::onlyTrashed()->where('id',$id)->lockForUpdate()->first()??throw new InvalidArgumentException('云存储配置不在回收站',404);
+            $profile=OssProfile::onlyTrashed()->where('id',$id)->lockForUpdate()->first()??throw ProfileError::notInRecycle();
             $profile->restore();
             return $this->publicRow($this->row($id));
         });
@@ -148,9 +154,9 @@ final class ProfileService
         $this->ready();$id=$this->id($id);
         return Db::transaction(function()use($id):array{
             $current=OssSetting::query()->where('id',1)->lockForUpdate()->value('current_profile_id');
-            $profile=OssProfile::onlyTrashed()->where('id',$id)->lockForUpdate()->first()??throw new InvalidArgumentException('云存储配置不在回收站',404);
-            if($current!==null&&(string)$current===$id)throw new InvalidArgumentException('不能删除当前存储配置',409);
-            if(Attach::withTrashed()->where('driver','oss_'.$id)->exists())throw new InvalidArgumentException('仍有附件（含回收站中的附件）使用此配置，不能彻底删除',409);
+            $profile=OssProfile::onlyTrashed()->where('id',$id)->lockForUpdate()->first()??throw ProfileError::notInRecycle();
+            if($current!==null&&(string)$current===$id)throw ProfileError::current('不能删除当前存储配置');
+            if(Attach::withTrashed()->where('driver','oss_'.$id)->exists())throw ProfileError::inUse();
             $profile->forceDelete();
             return ['id'=>$id];
         });

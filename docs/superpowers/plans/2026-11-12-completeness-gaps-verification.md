@@ -85,13 +85,14 @@
 
 ## 3. 已知限制与遗留项
 
-以下来自执行台账 `progress.md` 中评审后留下的次要问题，均评估为可延后，不阻塞本次交付。
+以下来自执行台账 `progress.md` 中评审后留下的次要问题，均评估为可延后，不阻塞本次交付。2026-11-13 的遗留修复（提交信息“fix: 遗留限制修复（附件权限、结构化数据、元数据地址、错误码、路由检查、仪表盘）”）处理了其中 7 项，下文标注“已修复（2026-11-13）”；详细记录见 `.superpowers/sdd/2026-11-13-followups/report.md`。
 
 **仪表盘**
 
 - 部门、数据范围等变化不改变授权版本，缓存最多 60 秒后才反映（角色、权限变化即时生效）。
 - “管理员数”是当前管理员可管理的人数（含数据范围与角色层级），不是全局总数；“已启用插件”只看 `lifecycle_state`，不另查 `status`。
-- 前端：没有任何数据块时的空状态没有考虑插件卡片；keep-alive 页面重新激活时不自动刷新；数字格式不跟随界面语言；快捷入口重新计算时也会触发 `dashboard.loaded`（与钩子说明不完全一致）。
+- 前端：快捷入口重新计算时也会触发 `dashboard.loaded`（与钩子说明不完全一致）。
+- 已修复（2026-11-13）：空状态考虑插件在 `dashboard.cards` 注册的卡片；keep-alive 重新激活时刷新概览（首次挂载不重复请求）；数字（含卡片副标题中的计数与附件大小）按当前界面语言格式化。
 - 后端测试没有经过鉴权中间件注入权限的路径（直接调服务）。
 
 **AI**
@@ -105,22 +106,22 @@
 
 - 站点层面没有单独的恢复、彻底删除权限，写操作统一用 CMS 的 `cms:submission:review`（要区分需要改 CMS）；按接口区分只体现在问答自己的权限码上。
 - 003 若在建表之后、补行之前中断，重新执行不会补行，需要人工补齐（README 已说明）。SQLite 等价实现缺少“CMS 已删除回答的补行”用例（只有 MySQL 测试覆盖）；`Schema::questionAdmin` 的补行用模型默认连接而不是传入的连接。
-- 附件：除大小错误外的其他上传错误码（部分上传、无临时目录、写入失败、扩展中止）原先都提示为“类型不允许”，终审修复后改为提示“附件上传失败，请重新上传”（`admin/plugins/qa/app/qa/service/AttachmentService.php:58`）；会员门户原先没有在前端检查文件大小，终审修复后选择文件时按单个 5MB、合计 8MB 检查（`web/src/web/views/QuestionsPortal.vue` 的 `pickFiles`）。后台附件下载不检查父级问题是否已删除（未修改）。
-- JSON-LD 只覆盖详情页前 100 条回答，已采纳回答排在其后时缺少 `acceptedAnswer`（README 已说明）；canonical 固定使用 https（README 已说明）。
+- 附件：除大小错误外的其他上传错误码（部分上传、无临时目录、写入失败、扩展中止）原先都提示为“类型不允许”，终审修复后改为提示“附件上传失败，请重新上传”（`admin/plugins/qa/app/qa/service/AttachmentService.php:58`）；会员门户原先没有在前端检查文件大小，终审修复后选择文件时按单个 5MB、合计 8MB 检查（`web/src/web/views/QuestionsPortal.vue` 的 `pickFiles`）。后台附件下载：已修复（2026-11-13），附件、所属问题或回答在问答侧或 CMS 侧任一已删除时，还需要问答回收站查看权限 `qa:questions:recycle`，否则 404；记录已彻底删除时一律 404。
+- JSON-LD 只覆盖详情页前 100 条回答；已修复（2026-11-13）：已采纳回答排在 100 条之后且仍公开（审核通过、未隐藏、问答侧与 CMS 侧都未删除）时单独取出作为 `acceptedAnswer`，但页面正文仍只列前 100 条。canonical 固定使用 https（README 已说明）。
 - 嵌套事务：外层事务在问答写入后回滚时，已落盘的附件文件不会清理（目前没有这种调用方）。
 - 提交 `73534856e` 的信息为英文、格式与约定不符，未改写历史。
 
 **OSS**
 
-- S3 Endpoint 只在字面量层面校验：阿里云元数据 `100.100.100.200`、AWS IPv6 元数据 `fd00:ec2::254`、`64:ff9b::/96` 转换地址以及解析到内网的主机名都能通过；内网地址本来就允许，持有保存权限的管理员可以让服务器访问内网 HTTPS 地址（README 已说明）；终审修复后，测试未保存的配置（不带 id）除测试权限外也需要保存权限，只有测试权限不能再指定任意 Endpoint。更严格需要在请求时解析 DNS 并固定 IP。
-- 彻底删除与上传存在理论上的竞态：上传期间配置被切换、删除再彻底删除，会留下指向不存在配置的附件。
-- 后端 409/404 提示只有中文。（连接测试和保存的 `id` 传非字符串时，终审修复后返回 422。）
+- S3 Endpoint 只在字面量层面校验。已修复（2026-11-13）：显式拒绝阿里云元数据 `100.100.100.200`、AWS IPv6 元数据 `fd00:ec2::254`，以及内嵌被拒绝 IPv4 的 `64:ff9b::/96` 地址（阿里云 Endpoint 限定 `*.aliyuncs.com`、腾讯云不填 Endpoint，没有共用的 IP 校验）。仍未覆盖：解析到内网或元数据地址的主机名；内网地址本来就允许，持有保存权限的管理员可以让服务器访问内网 HTTPS 地址（README 已说明）；终审修复后，测试未保存的配置（不带 id）除测试权限外也需要保存权限，只有测试权限不能再指定任意 Endpoint。更严格需要在请求时解析 DNS 并固定 IP。
+- 彻底删除与上传的竞态：已缩小（2026-11-13），上传驱动在云端写入成功、返回宿主之前再确认配置存在且未删除，已删除时删除刚上传的对象并让上传失败。剩余窗口：宿主在驱动返回后到写附件行（`UploadService` 中 getID3 与 `Attach::forceCreate`）之间不再回调插件，完全关闭需要宿主在同一事务中加锁，按约定没有改宿主。
+- 后端 409/404 提示：已修复（2026-11-13），配置接口的 404/409 在 `data.code` 返回稳定原因（`OSS_PROFILE_NOT_FOUND`、`OSS_PROFILE_NOT_IN_RECYCLE`、`OSS_PROFILE_CURRENT`、`OSS_PROFILE_IN_USE`，沿用宿主 `data.code` 的写法），页面按原因显示中英文提示，未知原因显示服务端提示；页面请求关闭宿主的原文弹窗。其他 422 校验提示仍只有中文。（连接测试和保存的 `id` 传非字符串时，终审修复后返回 422。）
 - OSS 在本工作区未安装，权限快照里没有 OSS 路由；新路由只经 `plugin:validate` 与控制器约定校验。
 - 用 `--no-scripts` 重建 vendor 不会裁剪 aws-sdk（约 69MB）。
 
 **接口文档**
 
-- `config/route.php` 顶层按白名单检查（终审修复）：`require`/`include`、动态 `Route` 调用、`call_user_func`、`new Route`、顶层 `PluginRouteLoader::get` 都会报错。剩余缺口：藏在调用链参数里的注册调用（如 `->middleware(PluginRouteLoader::get(...))`）不报错；闭包路由的函数体里如果出现上述写法会误报。
+- `config/route.php` 顶层按白名单检查（终审修复）：`require`/`include`、动态 `Route` 调用、`call_user_func`、`new Route`、顶层 `PluginRouteLoader::get` 都会报错。已修复（2026-11-13）：整文件扫描对 `Webman\Route` 及其子类（如 `PluginRouteLoader`）上未被识别为顶层或 group 闭包路由语句的静态调用一律报错（如 `->middleware(PluginRouteLoader::get(...))`），以字符串（`'Webman\\Route::get'`）或 `::class` 引用这些类也报错。剩余：闭包路由的函数体里如果出现上述写法会误报；只识别能自动加载的子类。
 - 格式正确的注入内容只靠生成器转义拦截，检查器不查重复键；控制器自身 trait 中作为 config 路由目标的方法会误报；`Route::add` 的命名参数 `method` 与属性缓存按类名缓存属于边角情况。
 - 生成控制器的标签用实体标题，不在 `ApiDocumentation.php` 登记；create、update 的请求体是 `DynamicObject`，不逐字段展开。
 - 插件安装副本没有同步 Task 6 的注释（只差注释，运行行为相同）。
@@ -141,6 +142,6 @@
 
 ## 5. 开发环境说明
 
-- 为了运行测试，Task 3、Task 4 用 `cp` 把问答插件源码同步到了安装副本（`admin/app/qa`、`admin/app/admin/plugins/qa`、`web/src/admin/plugins/qa`）；Task 6 的注释没有同步，所以安装副本目前与源码只差注释。插件中心为安装文件登记了哈希（`fun_plugin_resource`），因此以后通过插件中心更新或重新部署问答时，可能报“二次开发冲突”。OSS 在本工作区没有安装，Task 6 只改注释，没有同步安装副本。
+- 为了运行测试，Task 3、Task 4 用 `cp` 把问答插件源码同步到了安装副本（`admin/app/qa`、`admin/app/admin/plugins/qa`、`web/src/admin/plugins/qa`）；Task 6 的注释没有同步，所以安装副本目前与源码只差注释。插件中心为安装文件登记了哈希（`fun_plugin_resource`），因此以后通过插件中心更新或重新部署问答时，可能报“二次开发冲突”。OSS 在本工作区没有安装，Task 6 只改注释，没有同步安装副本。2026-11-13 的遗留修复又用 `cp` 同步了问答的 `AttachmentService.php`、`PublicPages.php`、`QuestionService.php` 与后台 `Questions.php`（`cmp` 一致，`Questions.php` 因此也带上了 Task 6 的注释），同样会让插件中心登记的哈希不一致；OSS 仍未安装，未同步。
 - 开发库没有升级：本计划没有对开发库执行任何迁移或写入（问答 003、004，OSS 003 都没有执行，新权限也没有登记）；本次全部验证都在 SQLite 测试库和 podman 临时 MySQL 中进行。
 - 恢复办法：先把安装副本恢复为插件中心登记的内容，再通过插件中心（`PluginService`：停用 → 更新/重新部署 → 启用）把问答升级到 1.3.0。这一步会写开发库，**需要用户同意后再执行**。

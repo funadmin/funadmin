@@ -38,7 +38,19 @@ const regionPlaceholder = computed(() => form.provider === 'qiniu' ? 'z0 / z1 / 
 function emptyForm(): StorageProfilePayload {
   return { name: '', provider: 'aliyun', bucket: '', region: '', endpoint: '', domain: '', prefix: '', path_style: false, access_key: '', secret_key: '' };
 }
-function message(reason: unknown) { return reason instanceof Error ? reason.message : t('pluginOss.page.failed'); }
+/** 后端 404/409 的稳定原因（响应 data.code）对应的本地化文案；未知原因用服务端提示，都没有时用通用失败文案。 */
+const ERROR_KEYS: Record<string, string> = {
+  OSS_PROFILE_NOT_FOUND: 'pluginOss.errors.notFound', OSS_PROFILE_NOT_IN_RECYCLE: 'pluginOss.errors.notInRecycle',
+  OSS_PROFILE_CURRENT: 'pluginOss.errors.current', OSS_PROFILE_IN_USE: 'pluginOss.errors.inUse'
+};
+function message(reason: unknown) {
+  if (reason instanceof Error) return reason.message || t('pluginOss.page.failed');
+  const body = reason && typeof reason === 'object' ? reason as { msg?: unknown; message?: unknown; data?: { code?: unknown } | null } : {};
+  const code = body.data && typeof body.data === 'object' ? body.data.code : undefined;
+  if (typeof code === 'string' && Object.hasOwn(ERROR_KEYS, code)) return t(ERROR_KEYS[code]);
+  for (const text of [body.msg, body.message]) if (typeof text === 'string' && text.trim()) return text;
+  return t('pluginOss.page.failed');
+}
 const confirm = (body: string, title: string, button: string) => ElMessageBox.confirm(body, title, { type: 'warning', confirmButtonText: button, cancelButtonText: t('pluginOss.recycle.cancel') }).then(() => true, () => false);
 async function load() {
   if (!hasPermission('oss:storage:index')) return;

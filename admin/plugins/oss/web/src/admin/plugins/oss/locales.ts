@@ -36,6 +36,10 @@ const zhCN = {
       title: '配置回收站', empty: '回收站为空', deletedAt: '删除时间', restore: '恢复', destroy: '彻底删除', restored: '已恢复',
       destroyTitle: '彻底删除存储配置', destroyBody: '彻底删除配置「{name}」？配置及其加密凭据将被永久删除，此操作不可撤销。仍有附件（含回收站中的附件）使用此配置时不能彻底删除。云端对象不会被删除。',
       destroyed: '已彻底删除', cancel: '取消'
+    },
+    errors: {
+      notFound: '存储配置不存在或已被删除，请刷新后重试', notInRecycle: '存储配置不在回收站中，请刷新后重试',
+      current: '不能删除当前存储配置，请先把其他配置设为当前存储', inUse: '仍有附件（含回收站中的附件）使用此配置，不能彻底删除'
     }
   }
 };
@@ -76,6 +80,10 @@ const enUS: typeof zhCN = {
       title: 'Profile recycle bin', empty: 'The recycle bin is empty', deletedAt: 'Deleted at', restore: 'Restore', destroy: 'Delete permanently', restored: 'Restored',
       destroyTitle: 'Permanently delete storage profile', destroyBody: 'Permanently delete the profile “{name}”? The profile and its encrypted credentials are removed for good. This cannot be undone. It cannot be deleted while any attachment, including those in the recycle bin, still uses it. Cloud objects are not deleted.',
       destroyed: 'Deleted permanently', cancel: 'Cancel'
+    },
+    errors: {
+      notFound: 'The storage profile does not exist or has been deleted. Refresh and try again.', notInRecycle: 'The storage profile is not in the recycle bin. Refresh and try again.',
+      current: 'The current storage profile cannot be deleted. Set another profile as current first.', inUse: 'Attachments (including those in the recycle bin) still use this profile, so it cannot be deleted permanently.'
     }
   }
 };

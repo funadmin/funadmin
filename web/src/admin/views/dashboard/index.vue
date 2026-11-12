@@ -146,7 +146,7 @@
     </el-row>
 
     <el-empty
-      v-if="overview && !cards.length && !overview.logs && !shortcuts.length"
+      v-if="overview && !cards.length && !overview.logs && !shortcuts.length && !hasPluginCards"
       class="mt-4"
       :description="t('dashboard.noBlocks', '当前账号暂无可查看的系统概览数据')"
       data-test="dashboard-empty"
@@ -173,7 +173,7 @@ defineOptions({ name: 'Dashboard' });
 
 const userStore = useUserStore();
 const permissionStore = usePermissionStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { tokens } = useChartTheme();
 const { menuTitle } = useMenuTitle();
 
@@ -209,6 +209,12 @@ async function loadOverview() {
   }
 }
 
+/** 数字按当前界面语言格式化（千分位、小数点）；界面语言不是有效的 BCP 47 标签时退回浏览器默认。 */
+function numberFormat(options?: Intl.NumberFormatOptions): Intl.NumberFormat {
+  try { return new Intl.NumberFormat(locale.value, options); } catch { return new Intl.NumberFormat(undefined, options); }
+}
+const formatNumber = (value: number) => numberFormat().format(value);
+
 function formatBytes(size: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = Math.max(0, size);
@@ -217,10 +223,9 @@ function formatBytes(size: number): string {
     value /= 1024;
     unit++;
   }
-  return `${unit === 0 ? value : value.toFixed(value >= 100 ? 0 : 1)} ${units[unit]}`;
+  const digits = unit === 0 || value >= 100 ? 0 : 1;
+  return `${numberFormat({ minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value)} ${units[unit]}`;
 }
-
-const formatNumber = (value: number) => value.toLocaleString();
 
 /* ---------- 卡片：接口没有返回的块不显示 ---------- */
 interface DashboardCard { key: string; title: string; value: string; sub: string; icon: string; color: string }
@@ -232,17 +237,17 @@ const cards = computed<DashboardCard[]>(() => {
     list.push({ key: 'admins', title: t('dashboard.cardAdmins', '管理员'), value: formatNumber(data.admins.total), sub: t('dashboard.cardAdminsSub', '可管理的管理员'), icon: 'i-ep-avatar', color: '#3b82f6' });
   }
   if (data.members) {
-    list.push({ key: 'members', title: t('dashboard.cardMembers', '会员总数'), value: formatNumber(data.members.total), sub: t('dashboard.cardMembersToday', { count: data.members.today }, '今日新增 {count}'), icon: 'i-ep-user-filled', color: '#10b981' });
+    list.push({ key: 'members', title: t('dashboard.cardMembers', '会员总数'), value: formatNumber(data.members.total), sub: t('dashboard.cardMembersToday', { count: formatNumber(data.members.today) }, '今日新增 {count}'), icon: 'i-ep-user-filled', color: '#10b981' });
   }
   if (data.attachments) {
     list.push({ key: 'attachments', title: t('dashboard.cardAttachments', '附件'), value: formatNumber(data.attachments.total), sub: t('dashboard.cardAttachmentsSize', { size: formatBytes(data.attachments.size) }, '占用 {size}'), icon: 'i-ep-picture-filled', color: '#f59e0b' });
   }
   if (data.logs) {
     const week = data.logs.trend.reduce((sum, item) => sum + item.count, 0);
-    list.push({ key: 'logs', title: t('dashboard.cardLogsToday', '今日操作'), value: formatNumber(data.logs.today), sub: t('dashboard.cardLogsWeek', { count: week }, '近 7 天 {count}'), icon: 'i-ep-document', color: '#ef4444' });
+    list.push({ key: 'logs', title: t('dashboard.cardLogsToday', '今日操作'), value: formatNumber(data.logs.today), sub: t('dashboard.cardLogsWeek', { count: formatNumber(week) }, '近 7 天 {count}'), icon: 'i-ep-document', color: '#ef4444' });
   }
   if (data.plugins) {
-    list.push({ key: 'plugins', title: t('dashboard.cardPlugins', '已安装插件'), value: formatNumber(data.plugins.installed), sub: t('dashboard.cardPluginsEnabled', { count: data.plugins.enabled }, '已启用 {count}'), icon: 'i-ep-grid', color: '#08979c' });
+    list.push({ key: 'plugins', title: t('dashboard.cardPlugins', '已安装插件'), value: formatNumber(data.plugins.installed), sub: t('dashboard.cardPluginsEnabled', { count: formatNumber(data.plugins.enabled) }, '已启用 {count}'), icon: 'i-ep-grid', color: '#08979c' });
   }
   return list;
 });
@@ -333,6 +338,11 @@ const logListPath = computed(() => menuPages.value.find((page) => page.path === 
 
 const shortcuts = ref<Shortcut[]>([]);
 const hookActive = ref(false);
+/** 插件在 dashboard.cards 注册了卡片时不显示空状态（插件卡片由 PluginSlot 渲染，不在 cards 中）。 */
+const hasPluginCards = computed(() => {
+  void hooks.revision.value;
+  return hookActive.value && hooks.components('dashboard.cards').length > 0;
+});
 let hookScope: AbortController | undefined;
 async function applyDashboardHooks() {
   const base = baseShortcuts.value.slice();
@@ -351,11 +361,18 @@ async function applyDashboardHooks() {
 }
 function activateHooks() { if (hookActive.value) return; hookActive.value = true; void applyDashboardHooks(); }
 function deactivateHooks() { hookActive.value = false; hookScope?.abort(); }
+// keep-alive 首次挂载时 onActivated 紧跟 onMounted 触发：跳过这一次，只在之后重新激活时刷新概览，避免首屏重复请求。
+let skipActivation = false;
 onMounted(() => {
+  skipActivation = true;
   void loadOverview();
   activateHooks();
 });
-onActivated(activateHooks);
+onActivated(() => {
+  activateHooks();
+  if (skipActivation) { skipActivation = false; return; }
+  void loadOverview();
+});
 onDeactivated(deactivateHooks);
 onUnmounted(deactivateHooks);
 watch(hooks.revision, () => void applyDashboardHooks());

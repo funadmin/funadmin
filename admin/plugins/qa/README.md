@@ -36,7 +36,7 @@
 
 - `GET /qa/questions`：问题列表（置顶在前，每页 20 条，`?page=N` 分页，超出范围 404；非默认语言用 `?locale=xx`，未启用的语言 404）。
 - `GET /qa/questions/{id}`：问题详情（问题、公开回答、附件名称）。
-- 服务端渲染（Blade：`app/qa/view/public/*.blade.php`），关闭 JS 可读。页面含 title、description、canonical、Open Graph；列表页带 `rel=prev/next`；详情页输出 schema.org `QAPage` 结构化数据：`mainEntity` 为 `Question`（`answerCount` 为公开回答数），已采纳的回答为 `acceptedAnswer`，其余公开回答为 `suggestedAnswer`。详情最多列出 100 条回答（与接口一致）；已采纳的回答排在 100 条之后时 JSON-LD 不含 `acceptedAnswer`，`answerCount` 仍为总数。
+- 服务端渲染（Blade：`app/qa/view/public/*.blade.php`），关闭 JS 可读。页面含 title、description、canonical、Open Graph；列表页带 `rel=prev/next`；详情页输出 schema.org `QAPage` 结构化数据：`mainEntity` 为 `Question`（`answerCount` 为公开回答数），已采纳的回答为 `acceptedAnswer`，其余公开回答为 `suggestedAnswer`。详情最多列出 100 条回答（与接口一致）；已采纳的回答排在 100 条之后时单独取出（仍须审核通过、未隐藏、未删除）作为 JSON-LD 的 `acceptedAnswer`（页面正文仍只列前 100 条），`answerCount` 为总数。
 - 站点按请求域名识别，与 CMS 前台相同：未知或停用的域名 404，别名域名 301 到主域名；canonical 用站点主域名（https），不用请求的 Host。
 - 只显示审核通过、问答侧与 CMS 侧都未删除的问题，以及审核通过、未隐藏、未删除的回答；问题不存在、未审核通过或已删除时 404。
 - 站点域名的 Nginx 需要在 `location /`（转发到 `/cms/`）之前把问答页面转发到后端同一路径，例如：
@@ -54,6 +54,6 @@ location ^~ /qa/questions {
 - 提问（`POST /qa/api/questions`）和回答（`POST /qa/api/questions/{id}/answers`）可用 multipart 表单在 `attachments[]` 中上传图片或文件，其余字段不变。
 - 复用 CMS 会员表单附件的存储：扩展名白名单（图片、文档、压缩包）与危险扩展名黑名单、MIME 嗅探、拒绝脚本内容，私有目录 `runtime/plugins-data/qa/attachments/{站点}/{年月}/`（目录 0700、文件 0600，不经过公开 URL）。
 - 限制：每次最多 5 个，单个不超过 5MB，合计不超过 8MB（低于 webman 默认的 10MB 请求上限）。任何一个不合格整次提交 422，不写入任何数据；同一 `request_key` 重放不会重复保存附件；写入失败回滚时删除已落盘的文件。
-- 下载：会员 `GET /qa/api/attachments/{id}?site_id=`（需要登录）。附件所属问题（及回答）在问答侧与 CMS 侧都未删除；已公开（问题审核通过，回答审核通过且未隐藏）时任何登录会员可下载，否则只有上传者本人；其他情况 404。后台 `GET /admin/plugins/qa/questions/attachment?site_id=&id=` 需要 `qa:questions:attachment` 与本站 `cms:submission:list`。响应一律 `attachment`、`nosniff`、沙箱 CSP、不缓存。
+- 下载：会员 `GET /qa/api/attachments/{id}?site_id=`（需要登录）。附件所属问题（及回答）在问答侧与 CMS 侧都未删除；已公开（问题审核通过，回答审核通过且未隐藏）时任何登录会员可下载，否则只有上传者本人；其他情况 404。后台 `GET /admin/plugins/qa/questions/attachment?site_id=&id=` 需要 `qa:questions:attachment` 与本站 `cms:submission:list`；附件所属问题或回答已删除（问答侧或 CMS 侧）时还需要 `qa:questions:recycle`，否则 404。响应一律 `attachment`、`nosniff`、沙箱 CSP、不缓存。
 - 后台问题详情显示问题与各回答的附件，可下载。前台 SEO 页面只列出附件名称与大小，不提供下载链接。
 - 软删除：删除问题或回答时，它的附件以同一删除时间软删除，恢复时一起恢复；删除问题不影响回答的附件（回答本身也不级联）。只有回收站彻底删除才删除附件记录和磁盘文件：彻底删除问题删除问题及其全部回答的附件，彻底删除回答删除该回答的附件。

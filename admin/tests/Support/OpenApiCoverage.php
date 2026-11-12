@@ -189,7 +189,9 @@ final class OpenApiCoverage
      * 以及 group 闭包中的非路由语句，一律报错，避免静默漏检。
      * 顶层是白名单：只允许 use（含 use function/const）、分组 use、无语句体的 declare、空语句（注释）和可识别的 Route:: 语句或调用链；
      * require/include、动态 Route 调用、call_user_func、PluginRouteLoader::get、new Route 等其他任何语句都报错。
-     * 另外在整个文件中查找 include/require、new Route、call_user_func(_array) 以及类名或方法名是表达式的静态调用，出现即报错。
+     * 另外在整个文件中查找 include/require、new Route、call_user_func(_array) 以及类名或方法名是表达式的静态调用，出现即报错；
+     * Webman\Route 及其子类（PluginRouteLoader 等）上没有被识别为顶层或 group 闭包路由语句的静态调用（例如藏在 ->middleware(...) 参数里），
+     * 以及以字符串（'Webman\\Route::get'）或 ::class 引用这些类的写法，也一律报错。
      *
      * @return array{routes:array<string,array<string,list<array{verbs:list<string>,path:string}>>>,skipped:list<string>}
      */
@@ -200,10 +202,20 @@ final class OpenApiCoverage
         $skipped = [];
         $accounted = [];
         self::collectConfigRoutes($nodes, '', $routes, $skipped, $accounted, true);
-        foreach ((new NodeFinder())->find($nodes, static fn (Node $node): bool => self::isRouteStaticCall($node)) as $call) {
+        // Webman\Route 及其子类（如 PluginRouteLoader）上的静态调用：只有顶层语句或 group 闭包语句里识别过的 Webman\Route 调用放行，
+        // 藏在调用链参数、函数参数等位置的一律报错；子类调用从不被识别，除不注册路由的方法外都报错。
+        foreach ((new NodeFinder())->find($nodes, static fn (Node $node): bool => $node instanceof Node\Expr\StaticCall
+            && $node->class instanceof Node\Name && $node->name instanceof Node\Identifier && self::isRouteClass($node->class->toString())) as $call) {
             $name = strtolower($call->name->toString());
             if (isset($accounted[spl_object_id($call)]) || in_array($name, self::CONFIG_NON_REGISTERING, true)) continue;
-            throw new \RuntimeException('无法静态解析的 Route::' . $call->name->toString() . ' 调用（第 ' . $call->getStartLine() . ' 行）：路由注册必须是顶层语句或 Route::group 闭包中的语句');
+            throw new \RuntimeException('无法静态解析的 ' . ltrim($call->class->toString(), '\\') . '::' . $call->name->toString() . ' 调用（第 ' . $call->getStartLine() . ' 行）：路由注册必须是顶层语句或 Route::group 闭包中的 Webman\\Route 语句');
+        }
+        // 以字符串或 ::class 引用 Webman\Route 及其子类（字符串可调用 'Webman\\Route::get'、数组可调用 [Route::class, 'get'] 等）：
+        // 只能在运行时确定是否注册路由，静态检查无法还原，出现即报错。
+        foreach ((new NodeFinder())->find($nodes, static fn (Node $node): bool => ($node instanceof Node\Scalar\String_ && self::namesRouteClass($node->value))
+            || ($node instanceof Node\Expr\ClassConstFetch && $node->class instanceof Node\Name && $node->name instanceof Node\Identifier
+                && strtolower($node->name->toString()) === 'class' && self::isRouteClass($node->class->toString()))) as $node) {
+            throw new \RuntimeException('config/route.php 不支持以字符串或 ::class 引用路由类（第 ' . $node->getStartLine() . ' 行），请改为顶层的 Route::get/post 等语句');
         }
         foreach ((new NodeFinder())->find($nodes, static fn (Node $node): bool => $node instanceof Node\Expr\Include_
             || ($node instanceof Node\Expr\New_ && $node->class instanceof Node\Name && strtolower(ltrim($node->class->toString(), '\\')) === 'webman\\route')
@@ -216,6 +228,24 @@ final class OpenApiCoverage
             throw new \RuntimeException('config/route.php 不支持 $this->' . ($call->name instanceof Node\Identifier ? $call->name->toString() : '?') . '() 注册路由（第 ' . $call->getStartLine() . ' 行）');
         }
         return ['routes' => $routes, 'skipped' => $skipped];
+    }
+
+    /** 类名是否为 Webman\Route 或其子类（如 app\common\plugin\sdk\PluginRouteLoader）；类不存在时按非路由类处理。 */
+    private static function isRouteClass(string $class): bool
+    {
+        $class = ltrim($class, '\\');
+        if (strtolower($class) === 'webman\\route') return true;
+        return preg_match('/^[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*$/D', $class) === 1
+            && class_exists($class) && is_subclass_of($class, \Webman\Route::class);
+    }
+
+    /** 字符串是否命名路由类，或是路由类上的静态方法可调用（'Class::method'）。 */
+    private static function namesRouteClass(string $value): bool
+    {
+        // 只看带命名空间分隔符或 :: 的字符串，避免对路径、方法名等普通字符串触发自动加载。
+        if (!str_contains($value, '\\') && !str_contains($value, '::')) return false;
+        $class = preg_match('/^\s*(\\\\?[A-Za-z_][A-Za-z0-9_\\\\]*)(?:::[A-Za-z_][A-Za-z0-9_]*)?\s*$/D', $value, $match) === 1 ? $match[1] : null;
+        return $class !== null && self::isRouteClass($class);
     }
 
     private static function isRouteStaticCall(Node $node): bool

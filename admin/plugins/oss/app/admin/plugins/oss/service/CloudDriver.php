@@ -49,8 +49,8 @@ final class CloudDriver implements StorageDriverInterface
 
     /**
      * S3-compatible endpoint: empty means the AWS default for the region. Otherwise HTTPS only (same as the
-     * aliyun endpoint rule), no credentials/query/fragment/path, and never a loopback, link-local (cloud
-     * metadata), unspecified or reserved IP literal, nor an obfuscated numeric host or well-known metadata host.
+     * aliyun endpoint rule), no credentials/query/fragment/path, and never a blocked IP literal (see
+     * blockedEndpointIp), nor an obfuscated numeric host or well-known metadata host.
      * Private-network IPs and hostnames stay allowed for self-hosted MinIO. Hostnames are not resolved here;
      * SDK redirects are disabled so a response cannot bounce the request elsewhere.
      */
@@ -63,14 +63,32 @@ final class CloudDriver implements StorageDriverInterface
             || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])
             || !in_array($parts['path'] ?? '', ['', '/'], true) || str_ends_with($endpoint, '?') || str_ends_with($endpoint, '#')) return false;
         $host = strtolower(trim($parts['host'], '[]'));
-        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
-            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE) !== false
-                && !str_starts_with($host, '::ffff:') && $host !== '::';
-        }
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) return !self::blockedEndpointIp($host);
         if (preg_match('/^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*\.?$/D', $host)) return false;
         if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/D', $host)) return false;
         return $host !== 'localhost' && !str_ends_with($host, '.localhost')
             && !in_array($host, ['metadata', 'metadata.google.internal', 'metadata.goog', 'instance-data', 'instance-data.ec2.internal'], true);
+    }
+
+    /**
+     * IP literals an S3 endpoint must never use: loopback, link-local (169.254.169.254 and friends), unspecified and
+     * other reserved ranges, IPv4-mapped IPv6, cloud metadata addresses that live outside those ranges
+     * (Alibaba Cloud ECS 100.100.100.200, AWS IMDS IPv6 fd00:ec2::254), and NAT64 64:ff9b::/96 addresses whose
+     * embedded IPv4 is itself blocked (a DNS64/NAT64 gateway would translate them back to that IPv4).
+     */
+    private static function blockedEndpointIp(string $ip): bool
+    {
+        $binary = @inet_pton($ip);
+        if ($binary === false) return true;
+        if (strlen($binary) === 4) {
+            return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE) === false || $binary === inet_pton('100.100.100.200');
+        }
+        if (str_starts_with($binary, str_repeat("\0", 10) . "\xff\xff") || $binary === str_repeat("\0", 16)) return true;
+        if ($binary === inet_pton('fd00:ec2::254')) return true;
+        if (substr($binary, 0, 12) === substr((string) inet_pton('64:ff9b::'), 0, 12)) {
+            return self::blockedEndpointIp((string) inet_ntop(substr($binary, 12)));
+        }
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE) === false;
     }
 
     public function name(): string
