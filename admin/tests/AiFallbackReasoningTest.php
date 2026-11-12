@@ -130,6 +130,31 @@ final class AiFallbackReasoningTest extends TestCase
         self::assertCount(1, $client->requests);
     }
 
+    public function test_runtime_error_mentioning_timeout_is_not_a_switchable_timeout(): void
+    {
+        $client = $this->client([new \RuntimeException('cache timeout')]);
+        try {
+            $this->gateway($client, $this->config())->chat([['role' => 'user', 'content' => 'hi']]);
+            self::fail('非网络超时文本不得切换');
+        } catch (AiProviderException $exception) {
+            self::assertSame('transport', $exception->category());
+        }
+        self::assertCount(1, $client->requests);
+    }
+
+    public function test_non_success_response_with_started_choices_never_switches_even_if_model_unavailable(): void
+    {
+        $body = json_encode(['error' => ['code' => 'model_not_found'], 'choices' => [['message' => ['content' => '已输出'], 'finish_reason' => 'stop']]], JSON_THROW_ON_ERROR);
+        $client = $this->client([new Response(404, [], $body)]);
+        try {
+            $this->gateway($client, $this->config())->chat([['role' => 'user', 'content' => 'hi']]);
+            self::fail('已有输出不得切换');
+        } catch (AiProviderException $exception) {
+            self::assertSame('response_started', $exception->category());
+        }
+        self::assertCount(1, $client->requests);
+    }
+
     #[DataProvider('businessErrors')]
     public function test_business_4xx_errors_never_switch(Response $failure, string $category): void
     {

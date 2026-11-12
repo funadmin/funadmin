@@ -69,6 +69,7 @@
         </section>
         <section class="profile-section">
           <h3>{{ t('aiDevelopment.profiles.fallbackTitle', '备用模型') }}</h3>
+          <p class="profile-hint" data-testid="fallback-hint">{{ t('aiDevelopment.profiles.fallbackHint') }}</p>
           <div class="fallback-grid">
             <el-form-item :label="t('aiDevelopment.profiles.fallbackEnable', '启用备用')"><el-switch v-model="form.fallback_enabled" data-testid="fallback-enabled" :aria-label="t('aiDevelopment.profiles.fallbackEnable', '启用备用')" /></el-form-item>
             <el-form-item :label="t('aiDevelopment.profiles.fallbackList', '有序备用模型')">
@@ -92,6 +93,7 @@
             </el-form-item>
           </div>
           <el-form-item class="profile-reasoning" :label="t('aiDevelopment.reasoning.profile')"><el-select data-testid="reasoning-effort" :model-value="form.reasoning_effort || ''" @update:model-value="form.reasoning_effort = ($event || null) as AiReasoningEffort | null"><el-option value="" :label="t('aiDevelopment.reasoning.defaultOption')" /><el-option v-for="effort in legalEfforts" :key="effort" :value="effort" :label="effort" /></el-select></el-form-item>
+          <p class="profile-hint" data-testid="reasoning-hint">{{ t('aiDevelopment.reasoning.effortHint') }}</p>
           <p v-if="form.reasoning_effort && !legalEfforts.includes(form.reasoning_effort)" role="alert">{{ t('aiDevelopment.profiles.savedEffortIncompatible', { effort: form.reasoning_effort }, { default: '已保存档位 {effort} 不兼容当前选择，请明确选择默认或合法档位。' }) }}</p>
         </section>
         <details class="profile-section profile-advanced" data-testid="profile-advanced">
@@ -308,6 +310,7 @@ function test() {
 .key-status { flex: none; padding: 0 8px; border-radius: 999px; background: var(--el-fill-color); color: var(--el-text-color-secondary); font-size: 12px; line-height: 22px; white-space: nowrap; }
 .model-control { display: flex; gap: 8px; width: 100%; min-width: 0; }
 .model-control .el-select { flex: 1; }
+.profile-hint { margin: 0 0 var(--profile-space); color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.5; }
 .fallback-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--profile-space); }
 .fallback-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; padding: 6px 8px 6px 12px; border-radius: 8px; background: var(--el-fill-color-light); }
 .fallback-row > span { flex: 1; min-width: 100px; font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; overflow-wrap: anywhere; }

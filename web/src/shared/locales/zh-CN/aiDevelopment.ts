@@ -4,7 +4,7 @@ export default {
     reasoning: {
       profile: '思考模式', conversation: '会话思考档位', levels: '思考档位',
       default: '默认', defaultOption: '默认（不发送 reasoning_effort）', inherit: '继承档案', override: '会话覆盖', noProfile: '未选择档案',
-      capabilityHint: '能力由管理员逐模型声明，不代表官方验证，不从模型名称或目录推断。可声明 low、medium、high、xhigh、max、ultra；当前仅 openai-chat 按 reasoning_effort 原样透传，不转换档位，也不保证上游支持。'
+      effortHint: '只能选择主模型和全部启用的备用模型都已声明的档位，声明须与上游实际接受的档位一致（不从模型名称推断）。Chat 传 reasoning_effort，Responses 传 reasoning.effort，Messages 映射为 thinking.budget_tokens 且须小于输出 Token 预算。'
     },
     modelSelection: {
       current: '当前会话模型', unset: '未设置', id: '模型 ID', save: '保存模型',
@@ -73,9 +73,9 @@ export default {
     profiles: {
       basicTitle: '基本信息', unsaved: '未保存', defaultTag: '默认', listEmpty: '还没有档案，点击上方按钮新建', keySaved: '已存密钥', keyMissing: '未设密钥',
       title: '配置档案', create: '创建档案', general: '档案设置', name: '档案名称（修改后保存即改名）', enabled: '启用', copy: '复制', default: '设为默认', copyHint: '复制不包含 API key，也不继承默认状态。删除默认档案不会自动选择其他档案。',
-      protocolHint: '支持 Chat Completions、Responses 与 Anthropic Messages 三种协议。Provider 仅为标识，不代表协议。', keyHint: '留空保留已保存密钥', hasKey: '已保存密钥（不回显）', noKey: '尚未保存密钥', clearKey: '保存时清空密钥',
+      keyHint: '留空保留已保存密钥', hasKey: '已保存密钥（不回显）', noKey: '尚未保存密钥', clearKey: '保存时清空密钥',
       models: '模型设置', fetchModels: '获取模型', modelsHint: '可直接使用当前表单查询模型；已保存档案会复用已保存密钥。模型可搜索、选择或手动输入，不推断能力。', favorites: '常用模型', limits: '上下文与运行限制', context_window: '上下文窗口（留空不指定）', max_input_tokens: '最大输入 token（留空不指定）', max_output_tokens: '最大输出 token（留空不指定）', max_iterations: '最大迭代次数', connect_timeout: '连接超时（秒）', request_timeout: '请求超时（秒）', max_retries: '最大重试次数', stream_usage: '流式 usage',
-      unsupported: '尚未支持的能力', disabled: '未启用', unsupportedHint: '备用模型仅在主模型出现网络错误、超时、5xx、429 或上游明确表示模型不可用时按顺序切换；400/401/403 等业务错误不切换，流式输出开始后不再切换。思考强度只放行模型能力中已声明的档位：Chat 传 reasoning_effort，Responses 传 reasoning.effort，Messages 按档位映射为 thinking.budget_tokens（须小于输出 Token 预算）。',
+      disabled: '未启用', fallbackHint: '备用模型仅在主模型（或上一个备用）出现网络错误、超时、5xx、429 或上游明确表示模型不可用时按顺序切换；400/401/403 等业务错误不切换，流式输出开始后不再切换。超时切换时首次请求也可能计费。',
       save: '保存档案', saved: '档案已保存', testHint: '测试仅调用临时连接接口，不测试已保存的密钥，也不验证 token / stream 等运行参数。请重新输入本次测试密钥；留空按无密钥测试，不使用全局密钥。密钥不写入浏览器存储。', inherit: '使用当前默认档案', selectionHint: '新会话继承创建时的默认档案；更改默认不会修改已有会话和已冻结任务。', invalid: '请检查模型、URL、预算和超时范围', emptyModels: '模型目录为空，仍可手动输入模型 ID',
       selectProfile: '配置档案', newProfile: '新建档案', defaultBadge: '（默认档案）', nameLabel: '档案名称', connectionTitle: '连接与模型', preset: '供应商预设', applyPreset: '应用到连接', protocol: 'API 协议', ollamaHint: 'Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。', providerId: '供应商标识', providerIdPlaceholder: '例如 openai-compatible', keyStatus: '密钥状态', defaultModel: '默认 Model', fetchModelsShort: '获取模型', fallbackTitle: '备用模型', fallbackEnable: '启用备用', fallbackList: '有序备用模型', fallbackAdd: '添加备用模型（最多 3 个）', moveUp: '上移', moveDown: '下移', removeFallback: '移除', tokenLimits: 'Token 限制', unspecified: '不指定', savedEffortIncompatible: '已保存档位 {effort} 不兼容当前选择，请明确选择默认或合法档位。', advancedTitle: '高级参数与模型能力', capabilitiesTitle: '模型能力（管理员声明）', capModel: '模型标识', capOutput: '输出参数', capContext: '模型上下文上限', capMaxOutput: '模型输出上限', unknown: '未知', imageFormats: '图片格式', removeCapability: '删除声明', addCapability: '添加模型能力声明',
       presetZhipu: '智谱 GLM', presetQwen: '通义千问（北京）', presetDoubao: '豆包（北京）', presetSiliconFlow: '硅基流动', presetGemini: 'Google Gemini（OpenAI 兼容）', presetOllama: 'Ollama（自备安全网关）', presetCustom: '自定义',

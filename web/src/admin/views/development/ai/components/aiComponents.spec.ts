@@ -339,6 +339,20 @@ describe('AI Development components', () => {
     expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ protocol, reasoning_effort: 'medium', fallback_enabled: true, fallback_models: ['b'] });
   });
 
+  it('备用与思考控件旁显示切换条件和档位声明说明，不再提示未实现', async () => {
+    const profile = { id: 3, name: '说明', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', model_capabilities: [] };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await chooseProfile(wrapper);
+    const fallback = wrapper.get('[data-testid="fallback-hint"]').text();
+    expect(fallback).toContain('429');
+    expect(fallback).toContain('流式输出开始后不再切换');
+    expect(fallback).toContain('400/401/403');
+    const reasoning = wrapper.get('[data-testid="reasoning-hint"]').text();
+    expect(reasoning).toContain('上游实际接受');
+    expect(reasoning).toContain('thinking.budget_tokens');
+    expect(wrapper.text()).not.toMatch(/尚未实现|仅 openai-chat/);
+  });
+
   it('Messages 思考预算不小于输出预算时阻止保存', async () => {
     const profile = { id: 3, name: 'Messages', provider: 'anthropic', protocol: 'anthropic-messages', base_url: 'https://example.com/v1', model: 'm', reasoning_effort: 'high', max_output_tokens: 8192, model_capabilities: [{ model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null }] };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });

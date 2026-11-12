@@ -252,11 +252,12 @@ final class OpenAiCompatibleGateway
             $errorBody = json_decode((string) $response->getBody(), true);
             if (!empty($errorBody['output']) || !empty($errorBody['content'])) throw new AiProviderException('response_started', '非成功响应已包含模型输出');
             $errorCode = $errorBody['error']['code'] ?? $errorBody['error']['type'] ?? null;
-            if (in_array($errorCode, self::MODEL_UNAVAILABLE_CODES, true) || ($status === 404 && $errorCode === 'not_found_error')) throw new AiProviderException('model_unavailable', 'Provider 明确表示模型不可用', $status);
             if (in_array($errorCode, ['content_policy_violation','content_filter','safety_refusal','context_length_exceeded','unsupported_parameter','invalid_parameter','invalid_api_key','insufficient_quota'], true)) throw new AiProviderException('invalid_request', 'Provider 明确拒绝请求，禁止降级');
             foreach ($errorBody['choices'] ?? [] as $choice) {
                 if ((isset($choice['message']['content']) && $choice['message']['content'] !== '') || !empty($choice['message']['tool_calls']) || isset($choice['message']['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('response_started', '非成功响应已包含模型输出');
             }
+            // 先排除已有输出，再识别模型不可用，避免重复输出。
+            if (in_array($errorCode, self::MODEL_UNAVAILABLE_CODES, true) || ($status === 404 && $errorCode === 'not_found_error')) throw new AiProviderException('model_unavailable', 'Provider 明确表示模型不可用', $status);
             if (($status === 429 || ($status >= 500 && $status <= 599)) && $attempt < $retries) {
                 ($this->sleeper)($this->retryDelay($response, $attempt));
                 continue;
@@ -527,9 +528,9 @@ final class OpenAiCompatibleGateway
 
     private function isTimeout(Throwable $exception): bool
     {
-        if ($exception instanceof \GuzzleHttp\Exception\RequestException || $exception instanceof \GuzzleHttp\Exception\ConnectException) {
-            if (($exception->getHandlerContext()['errno'] ?? null) === 28) return true;
-        }
+        // 超时会触发备用切换，只认 Guzzle 传输层异常；其他运行错误的消息文本即使含 timeout 也不算。
+        if (!$exception instanceof \GuzzleHttp\Exception\TransferException) return false;
+        if (($exception instanceof \GuzzleHttp\Exception\RequestException || $exception instanceof \GuzzleHttp\Exception\ConnectException) && ($exception->getHandlerContext()['errno'] ?? null) === 28) return true;
         return str_contains(strtolower($exception->getMessage()), 'timed out') || str_contains(strtolower($exception->getMessage()), 'timeout');
     }
 }
