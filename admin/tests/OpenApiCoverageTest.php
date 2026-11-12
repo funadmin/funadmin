@@ -177,6 +177,104 @@ PHP;
         OpenApiCoverage::routedMethods($unsupported);
     }
 
+    /** @return array<string,array{0:string,1:?array}> 路由写法 => [config 片段, 期望解析结果（null 表示必须报错）] */
+    public static function configForms(): array
+    {
+        $a = '[\app\demo\controller\A::class, \'m\']';
+        $routes = static fn (string $verb, string $path): array => ['app\\demo\\controller\\A' => ['m' => [['verbs' => [$verb], 'path' => $path]]]];
+        return [
+            'plain' => ["Route::get('/x', {$a});", $routes('GET', '/x')],
+            'chained name' => ["Route::get('/x', {$a})->name('x');", $routes('GET', '/x')],
+            'chained middleware' => ["Route::post('/x', {$a})->middleware([\\app\\M::class])->name('x');", $routes('POST', '/x')],
+            'group chained middleware' => ["Route::group('/g', static function (): void { Route::get('/x', {$a}); })->middleware([\\app\\M::class]);", $routes('GET', '/g/x')],
+            'group without prefix' => ["Route::group(static function (): void { Route::put('/x', {$a}); });", $routes('PUT', '/x')],
+            'nested group arrow' => ["Route::group('/a', static fn () => Route::group('/b', static function (): void { Route::delete('/x', {$a}); }));", $routes('DELETE', '/a/b/x')],
+            'named arguments' => ["Route::get(callback: {$a}, path: '/x');", $routes('GET', '/x')],
+            'add' => ["Route::add(['PATCH'], '/x', {$a});", $routes('PATCH', '/x')],
+            'fallback with dispatch' => ["Route::fallback(static function (\$r) { return Route::dispatch('GET', '/'); })->middleware([]);", []],
+            'in if' => ["if (true) { Route::get('/x', {$a}); }", null],
+            'in foreach' => ["foreach (['a'] as \$p) Route::get('/x', {$a});", null],
+            'assigned' => ["\$route = Route::get('/x', {$a});", null],
+            'argument of function' => ["register(Route::get('/x', {$a}));", null],
+            'unknown chain' => ["Route::get('/x', {$a})->setParams([]);", null],
+            'resource' => ["Route::resource('/r', \\app\\demo\\controller\\A::class);", null],
+            'any' => ["Route::any('/x', {$a});", null],
+            'this in group' => ["Route::group('/g', function () { \$this->get('/x', ['A', 'm']); });", null],
+            'non route statement in group' => ["Route::group('/g', static function (): void { \$x = 1; });", null],
+            'string callback' => ["Route::get('/x', 'app\\\\demo\\\\A@m');", null],
+            'class constant callback' => ["Route::get('/x', [\\app\\demo\\controller\\A::FOO, 'm']);", null],
+            'first class callable' => ["Route::get('/x', \\app\\demo\\controller\\A::m(...));", null],
+            'concatenated path' => ["Route::get('/x' . 'y', {$a});", null],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('configForms')]
+    public function test_config_route_forms_are_parsed_or_rejected(string $snippet, ?array $expected): void
+    {
+        $source = "<?php\nuse Webman\\Route;\n{$snippet}\n";
+        if ($expected === null) $this->expectException(\RuntimeException::class);
+        self::assertSame($expected, OpenApiCoverage::configRoutes($source)['routes']);
+    }
+
+    public function test_config_route_targets_must_exist_and_may_be_inherited(): void
+    {
+        $source = <<<'PHP'
+<?php
+namespace app\demo\controller;
+abstract class Base
+{
+    /** @OA\Get(path="/inherited", operationId="inherited", @OA\Response(response=200, description="ok")) */
+    public function shared() {}
+}
+final class A extends Base
+{
+    /** @OA\Get(path="/own", operationId="own", @OA\Response(response=200, description="ok")) */
+    public function own() {}
+}
+PHP;
+        $routes = ['app\\demo\\controller\\A' => ['shared' => [['verbs' => ['GET'], 'path' => '/inherited']], 'own' => [['verbs' => ['GET'], 'path' => '/own']]]];
+        $result = OpenApiCoverage::check($source, 'fixture', $routes);
+        self::assertSame([], $result['errors']);
+        self::assertSame(['own', 'inherited'], array_column($result['operations'], 'operationId'));
+        $this->expectExceptionMessage('config/route.php 指向不存在的方法');
+        OpenApiCoverage::check($source, 'fixture', ['app\\demo\\controller\\A' => ['noSuchMethod' => [['verbs' => ['GET'], 'path' => '/x']]]]);
+    }
+
+    public function test_method_disable_default_route_is_allowed_and_custom_route_attributes_are_rejected(): void
+    {
+        $allowed = "<?php\nnamespace app\\demo;\nfinal class A { #[\\support\\annotation\\route\\DisableDefaultRoute] public function x() {} }";
+        self::assertSame([], OpenApiCoverage::routedMethods($allowed));
+        $custom = "<?php\nnamespace app\\demo;\nfinal class A { #[\\Tests\\Support\\OpenApiCoverageCustomGetFixture('/x')] public function x() {} }";
+        try {
+            OpenApiCoverage::routedMethods($custom);
+            self::fail('继承路由属性的自定义属性应被拒绝');
+        } catch (\RuntimeException $error) {
+            self::assertStringContainsString('继承 Webman 路由属性的自定义属性', $error->getMessage());
+        }
+        $this->expectExceptionMessage('无法定位 trait 源码');
+        OpenApiCoverage::routedMethods("<?php\nnamespace app\\demo;\nfinal class A { use \\vendorless\\Missing; }");
+    }
+
+    public function test_annotation_strings_must_escape_quotes(): void
+    {
+        $bad = <<<'PHP'
+<?php
+namespace app\demo;
+use support\annotation\route\Get;
+final class A
+{
+    /** @OA\Get(path="/x", operationId="x", tags={"t"x"}, summary="a "q" b", @OA\Response(response=200, description="ok")) */
+    #[Get('/x')]
+    public function x() {}
+}
+PHP;
+        self::assertStringContainsString('注解字符串语法错误', implode("\n", OpenApiCoverage::check($bad, 'fixture')['errors']));
+        $good = str_replace(['{"t"x"}', '"a "q" b"'], ['{"t""x", "u"}', '"a ""q"" b"'], $bad);
+        $result = OpenApiCoverage::check($good, 'fixture');
+        self::assertSame([], $result['errors']);
+        self::assertSame(['t"x', 'u'], $result['operations'][0]['tags']);
+    }
+
     public function test_open_api_path_strips_nested_route_constraints(): void
     {
         self::assertSame('/admin/{entry}/auth', OpenApiCoverage::openApiPath('/admin/{entry:[a-z][a-z0-9-]{3,31}}/auth'));
