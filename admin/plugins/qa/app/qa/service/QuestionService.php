@@ -72,12 +72,14 @@ final class QuestionService
     }
     /**
      * 单条公开回答（审核通过、问答侧未隐藏、问答侧与 CMS 侧都未删除），口径与 detail 的回答列表相同；不是公开回答时返回 null。
-     * 供前台页面在已采纳回答排在前 100 条之后时单独取出（不含附件）。
+     * 供前台页面在已采纳回答排在前 100 条之后时单独取出（含附件，与 detail 的回答结构相同）。
      */
     public function publicAnswer(string $site,string $locale,string $question,string $answer): ?array
     {
         $row=$this->publicAnswers(Input::id($site),Input::locale($locale),Input::id($question))->where('s.id',Input::id($answer))->select($this->publicColumns())->first();
-        return $row===null?null:$this->publicSubmission($row);
+        if($row===null)return null;
+        $item=$this->publicSubmission($row);
+        return $item+['attachments'=>(new AttachmentService())->forSubmissions(Input::id($site),[$item['id']])[$item['id']]??[]];
     }
     public function accept(string $site,string $locale,string $member,string $question,string $answer,int $questionVersion): array
     {

@@ -93,7 +93,7 @@ final class PublicPages
         $locale = (string)$state->locale;
         $service = new QuestionService();
         $question = $service->detail((string)$site['id'], $locale, $id);
-        // 详情只取前 100 条回答；已采纳的回答排在其后时单独取出（仍须是公开回答），只用于结构化数据的 acceptedAnswer。
+        // 详情只取前 100 条回答；已采纳的回答排在其后时单独取出（仍须是公开回答），置顶显示在回答列表前（带锚点），并作为结构化数据的 acceptedAnswer。
         $accepted = null;
         if ($question['accepted_answer_id'] !== null && !in_array($question['accepted_answer_id'], array_column($question['answers'], 'id'), true)) {
             $accepted = $service->publicAnswer((string)$site['id'], $locale, $question['id'], $question['accepted_answer_id']);
@@ -101,12 +101,13 @@ final class PublicPages
         $labels = self::labels($locale);
         $name = $this->siteName($site, $locale);
         $canonical = 'https://' . $site['primary_host'] . self::PATH . '/' . $question['id'];
-        $answers = array_map(static fn (array $answer): array => $answer + ['body_safe' => HtmlSanitizer::clean($answer['body_html']), 'accepted' => $answer['id'] === $question['accepted_answer_id'], 'anchor' => 'answer-' . $answer['id']], $question['answers']);
+        $render = static fn (array $answer): array => $answer + ['body_safe' => HtmlSanitizer::clean($answer['body_html']), 'accepted' => $answer['id'] === $question['accepted_answer_id'], 'anchor' => 'answer-' . $answer['id']];
+        $answers = array_map($render, $question['answers']);
         $description = self::excerpt($question['body_html'], 160);
         return $this->page('public/detail', [
             'locale' => $locale, 'labels' => $labels, 'siteName' => $name, 'title' => $question['title'] . ' - ' . $name, 'heading' => $question['title'],
             'description' => $description !== '' ? $description : $question['title'], 'canonical' => $canonical, 'prev' => null, 'next' => null,
-            'question' => $question + ['body_safe' => HtmlSanitizer::clean($question['body_html'])], 'answers' => $answers,
+            'question' => $question + ['body_safe' => HtmlSanitizer::clean($question['body_html'])], 'answers' => $answers, 'pinnedAccepted' => $accepted === null ? null : $render($accepted),
             'state' => $question['accepted_answer_id'] !== null ? $labels['resolved'] : ($question['closed'] ? $labels['closed'] : $labels['open']),
             'listUrl' => 'https://' . $site['primary_host'] . self::PATH . self::query($locale === (string)$site['default_locale'] ? [] : ['locale' => $locale]),
             'jsonLd' => json_encode(self::structured($question, $canonical, $accepted), self::JSON), 'ogType' => 'article',
