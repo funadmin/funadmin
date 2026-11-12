@@ -73,8 +73,9 @@ final class CloudDriver implements StorageDriverInterface
     /**
      * IP literals an S3 endpoint must never use: loopback, link-local (169.254.169.254 and friends), unspecified and
      * other reserved ranges, IPv4-mapped IPv6, cloud metadata addresses that live outside those ranges
-     * (Alibaba Cloud ECS 100.100.100.200, AWS IMDS IPv6 fd00:ec2::254), and NAT64 64:ff9b::/96 addresses whose
-     * embedded IPv4 is itself blocked (a DNS64/NAT64 gateway would translate them back to that IPv4).
+     * (Alibaba Cloud ECS 100.100.100.200, AWS IMDS IPv6 fd00:ec2::254), and IPv6 addresses whose embedded IPv4 is
+     * itself blocked: IPv4-compatible ::/96, SIIT ::ffff:0:0:0/96, NAT64 64:ff9b::/96 and 64:ff9b:1::/48, 6to4 2002::/16
+     * (a translator or relay would deliver them to that IPv4).
      */
     private static function blockedEndpointIp(string $ip): bool
     {
@@ -83,11 +84,19 @@ final class CloudDriver implements StorageDriverInterface
         if (strlen($binary) === 4) {
             return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE) === false || $binary === inet_pton('100.100.100.200');
         }
-        if (str_starts_with($binary, str_repeat("\0", 10) . "\xff\xff") || $binary === str_repeat("\0", 16)) return true;
+        $zero = str_repeat("\0", 16);
+        if (str_starts_with($binary, substr($zero, 0, 10) . "\xff\xff") || $binary === $zero || $binary === substr($zero, 0, 15) . "\x01") return true;
         if ($binary === inet_pton('fd00:ec2::254')) return true;
-        if (substr($binary, 0, 12) === substr((string) inet_pton('64:ff9b::'), 0, 12)) {
-            return self::blockedEndpointIp((string) inet_ntop(substr($binary, 12)));
-        }
+        // IPv6 forms that carry an IPv4 address a translator or relay would reach: judge the embedded IPv4 the same way.
+        $embedded = match (true) {
+            str_starts_with($binary, substr($zero, 0, 12)) => substr($binary, 12, 4),                                   // ::/96 IPv4-compatible
+            str_starts_with($binary, substr($zero, 0, 8) . "\xff\xff\0\0") => substr($binary, 12, 4),                    // ::ffff:0:0:0/96 SIIT
+            str_starts_with($binary, substr((string) inet_pton('64:ff9b::'), 0, 12)) => substr($binary, 12, 4),         // 64:ff9b::/96 NAT64
+            str_starts_with($binary, substr((string) inet_pton('64:ff9b:1::'), 0, 6)) => substr($binary, 12, 4),        // 64:ff9b:1::/48 local NAT64 (RFC 8215)
+            str_starts_with($binary, "\x20\x02") => substr($binary, 2, 4),                                              // 2002::/16 6to4
+            default => null,
+        };
+        if ($embedded !== null) return self::blockedEndpointIp((string) inet_ntop($embedded));
         return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_RES_RANGE) === false;
     }
 

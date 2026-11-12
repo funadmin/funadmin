@@ -44,6 +44,9 @@ const ERROR_KEYS: Record<string, string> = {
   OSS_PROFILE_CURRENT: 'pluginOss.errors.current', OSS_PROFILE_IN_USE: 'pluginOss.errors.inUse'
 };
 function message(reason: unknown) {
+  // 没有响应的请求错误（超时、断网）：宿主拦截器把 AxiosError 原样拒绝，其 message 是英文原文，改用宿主的本地化文案。
+  const transport = reason && typeof reason === 'object' ? reason as { isAxiosError?: unknown; response?: unknown; code?: unknown } : null;
+  if (transport?.isAxiosError === true && !transport.response) return transport.code === 'ECONNABORTED' ? t('http.timeout') : t('http.networkError');
   if (reason instanceof Error) return reason.message || t('pluginOss.page.failed');
   const body = reason && typeof reason === 'object' ? reason as { msg?: unknown; message?: unknown; data?: { code?: unknown } | null } : {};
   const code = body.data && typeof body.data === 'object' ? body.data.code : undefined;

@@ -16,7 +16,7 @@ use Webman\Http\UploadFile;
  * 数量与总大小限制在这里（总大小低于 webman 默认的 10MB 请求上限）。
  *
  * 下载鉴权：会员必须登录；附件所属问题（及回答）在问答侧与 CMS 侧都未删除；审核通过且未隐藏时任何会员可下载，否则只有上传者本人可下载。
- * 后台下载由后台接口按宿主权限与 CMS 投稿站点权限鉴权；所属问题或回答已删除时还需要问答回收站查看权限。
+ * 后台下载由后台接口按宿主权限与 CMS 投稿站点权限鉴权；所属问题已删除时还需要问题回收站查看权限，只有回答已删除时还需要回答回收站查看权限。
  *
  * 软删除：附件与所属问题或回答以同一删除时间软删除、按该时间一起恢复；磁盘文件只在回收站彻底删除时清理（QaRecycleBin）。
  */
@@ -164,27 +164,31 @@ final class AttachmentService
     }
 
     /**
-     * 后台下载（接口权限与站点权限由后台接口完成）。附件、所属问题（及回答）在问答侧或 CMS 侧任一已软删除时，
-     * 只有 $canViewTrashed 返回 true（管理员持有问答回收站查看权限 qa:questions:recycle）才可下载，否则 404；
-     * 所属问题或回答的记录已不存在（彻底删除）时一律 404。$canViewTrashed 只在确有已删除的父级时调用。
-     * @param callable():bool $canViewTrashed
+     * 后台下载（接口权限与站点权限由后台接口完成）。所属问题在问答侧或 CMS 侧已软删除（含问题附件本身已删除）时，
+     * 需要问答问题回收站查看权限 qa:questions:recycle；只有所属回答已删除（问答侧或 CMS 侧，含回答附件本身已删除）时，
+     * 需要回答回收站查看权限 qa:answers:recycle。$can($code) 返回 false 时 404；所属问题或回答的记录已不存在（彻底删除）时一律 404。
+     * $can 只在确有已删除的父级时调用。
+     * @param callable(string):bool $can
      * @return array{absolute:string,name:string,mime:string}
      */
-    public function adminFile(string $site, string $id, callable $canViewTrashed): array
+    public function adminFile(string $site, string $id, callable $can): array
     {
         $site = Input::id($site);
         $file = QaAttachment::withTrashed()->where('site_id', $site)->where('id', Input::id($id))->first() ?? throw self::missing();
         $questionId = (string)$file->getRawOriginal('question_id');
         $submissionId = (string)$file->getRawOriginal('submission_id');
+        $isAnswer = $submissionId !== $questionId;
         $state = QaQuestion::withTrashed()->where('id', $questionId)->where('site_id', $site)->first() ?? throw self::missing();
         $question = MemberSubmission::withTrashed()->where('id', $questionId)->where('site_id', $site)->where('locale', $state->locale)->where('kind', 'question')->first() ?? throw self::missing();
-        $trashed = $file->trashed() || $state->trashed() || $question->trashed();
-        if ($submissionId !== $questionId) {
+        $questionTrashed = $state->trashed() || $question->trashed() || (!$isAnswer && $file->trashed());
+        $answerTrashed = false;
+        if ($isAnswer) {
             $answerState = QaAnswer::withTrashed()->where('id', $submissionId)->where('question_id', $questionId)->where('site_id', $site)->first() ?? throw self::missing();
             $answer = MemberSubmission::withTrashed()->where('id', $submissionId)->where('site_id', $site)->where('kind', 'answer')->where('parent_id', $questionId)->first() ?? throw self::missing();
-            $trashed = $trashed || $answerState->trashed() || $answer->trashed();
+            $answerTrashed = $answerState->trashed() || $answer->trashed() || $file->trashed();
         }
-        if ($trashed && !$canViewTrashed()) throw self::missing();
+        $required = $questionTrashed ? 'qa:questions:recycle' : ($answerTrashed ? 'qa:answers:recycle' : null);
+        if ($required !== null && !$can($required)) throw self::missing();
         return $this->resolve($site, $file);
     }
 

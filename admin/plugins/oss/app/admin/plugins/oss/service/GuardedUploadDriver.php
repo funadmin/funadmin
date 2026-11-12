@@ -22,9 +22,17 @@ final class GuardedUploadDriver implements StorageDriverInterface
     public function delete(string $storageKey):bool{return $this->driver->delete($storageKey);}
     public function store(UploadFile $file,string $directory,string $rule=''):StoredFile{
         $stored=$this->driver->store($file,$directory,$rule);
-        if(OssProfile::query()->where('id',$this->profileId)->exists())return $stored;
+        try{$exists=OssProfile::query()->where('id',$this->profileId)->exists();}
+        catch(\Throwable $error){
+            // 复查失败（如数据库异常）：对象已在云端但不确定能否登记，与 CloudDriver 相同只记录清理所需的标识（不含异常信息与凭据），再抛出。
+            $this->log('oss.upload.uncertain',$stored->key);
+            throw $error;
+        }
+        if($exists)return $stored;
         try{if(!$this->driver->delete($stored->key))throw new RuntimeException('cleanup failed');}
-        catch(\Throwable){try{\support\Log::warning('oss.upload.cleanup_failed',['driver'=>$this->driver->name(),'key'=>$stored->key]);}catch(\Throwable){}}
+        catch(\Throwable){$this->log('oss.upload.cleanup_failed',$stored->key);}
         throw new RuntimeException('云存储配置已在上传期间删除，请重新上传');
     }
+    /** 只记录驱动名与对象 key（清理所需的标识），日志失败不覆盖原有错误。 */
+    private function log(string $event,string $key):void{try{\support\Log::warning($event,['driver'=>$this->driver->name(),'key'=>$key]);}catch(\Throwable){}}
 }

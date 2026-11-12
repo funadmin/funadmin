@@ -64,7 +64,7 @@ final class Questions extends AdminController
     #[Get('/detail')]
     public function detail(): Response { return $this->action(fn()=>(new AdminQuestionService())->detail($this->site('cms:submission:list'),$this->locale(),$this->id())); }
     /**
-     * 下载问题或回答的会员附件（1.3.0）：鉴权同详情（cms:submission:list）；所属问题或回答已删除（问答侧或 CMS 侧）时还需要问答回收站查看权限 qa:questions:recycle，否则 404。
+     * 下载问题或回答的会员附件（1.3.0）：鉴权同详情（cms:submission:list）；所属问题已删除（问答侧或 CMS 侧）时还需要 qa:questions:recycle，只有所属回答已删除时还需要 qa:answers:recycle，否则 404。
      *
      * @OA\Get(
      *     path="/admin/plugins/qa/questions/attachment",
@@ -83,7 +83,7 @@ final class Questions extends AdminController
      * )
      */
     #[Get('/attachment')]
-    public function attachment(): Response { return $this->download(fn()=>(new AttachmentService())->adminFile($this->site('cms:submission:list'),$this->id(),fn():bool=>(new AdminAuthorizationService($this->request))->can('qa:questions:recycle'))); }
+    public function attachment(): Response { return $this->download(fn()=>(new AttachmentService())->adminFile($this->site('cms:submission:list'),$this->id(),fn(string $code):bool=>(new AdminAuthorizationService($this->request))->can($code))); }
     /**
      * 关闭或重新开放问题。
      *

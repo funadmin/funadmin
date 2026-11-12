@@ -54,6 +54,6 @@ location ^~ /qa/questions {
 - 提问（`POST /qa/api/questions`）和回答（`POST /qa/api/questions/{id}/answers`）可用 multipart 表单在 `attachments[]` 中上传图片或文件，其余字段不变。
 - 复用 CMS 会员表单附件的存储：扩展名白名单（图片、文档、压缩包）与危险扩展名黑名单、MIME 嗅探、拒绝脚本内容，私有目录 `runtime/plugins-data/qa/attachments/{站点}/{年月}/`（目录 0700、文件 0600，不经过公开 URL）。
 - 限制：每次最多 5 个，单个不超过 5MB，合计不超过 8MB（低于 webman 默认的 10MB 请求上限）。任何一个不合格整次提交 422，不写入任何数据；同一 `request_key` 重放不会重复保存附件；写入失败回滚时删除已落盘的文件。
-- 下载：会员 `GET /qa/api/attachments/{id}?site_id=`（需要登录）。附件所属问题（及回答）在问答侧与 CMS 侧都未删除；已公开（问题审核通过，回答审核通过且未隐藏）时任何登录会员可下载，否则只有上传者本人；其他情况 404。后台 `GET /admin/plugins/qa/questions/attachment?site_id=&id=` 需要 `qa:questions:attachment` 与本站 `cms:submission:list`；附件所属问题或回答已删除（问答侧或 CMS 侧）时还需要 `qa:questions:recycle`，否则 404。响应一律 `attachment`、`nosniff`、沙箱 CSP、不缓存。
+- 下载：会员 `GET /qa/api/attachments/{id}?site_id=`（需要登录）。附件所属问题（及回答）在问答侧与 CMS 侧都未删除；已公开（问题审核通过，回答审核通过且未隐藏）时任何登录会员可下载，否则只有上传者本人；其他情况 404。后台 `GET /admin/plugins/qa/questions/attachment?site_id=&id=` 需要 `qa:questions:attachment` 与本站 `cms:submission:list`；附件所属问题已删除（问答侧或 CMS 侧）时还需要 `qa:questions:recycle`，只有所属回答已删除时还需要 `qa:answers:recycle`，否则 404。响应一律 `attachment`、`nosniff`、沙箱 CSP、不缓存。
 - 后台问题详情显示问题与各回答的附件，可下载。前台 SEO 页面只列出附件名称与大小，不提供下载链接。
 - 软删除：删除问题或回答时，它的附件以同一删除时间软删除，恢复时一起恢复；删除问题不影响回答的附件（回答本身也不级联）。只有回收站彻底删除才删除附件记录和磁盘文件：彻底删除问题删除问题及其全部回答的附件，彻底删除回答删除该回答的附件。
