@@ -8,6 +8,10 @@
             <exclude>tests/generated</exclude>
         </testsuite>
     </testsuites>
+    <!-- 全量后端测试主进程峰值约 125MB，PHP 默认 128M 会在 Tests\Oss\CloudDriverTest 处内存耗尽。 -->
+    <php>
+        <ini name="memory_limit" value="512M"/>
+    </php>
     <!-- 第一方代码范围：第三方 SDK（含插件自带 vendor）内部触发的弃用不计入。 -->
     <source ignoreIndirectDeprecations="true">
         <include>

@@ -36,7 +36,7 @@
 
 - `GET /qa/questions`：问题列表（置顶在前，每页 20 条，`?page=N` 分页，超出范围 404；非默认语言用 `?locale=xx`，未启用的语言 404）。
 - `GET /qa/questions/{id}`：问题详情（问题、公开回答、附件名称）。
-- 服务端渲染（Blade：`app/qa/view/public/*.blade.php`），关闭 JS 可读。页面含 title、description、canonical、Open Graph；列表页带 `rel=prev/next`；详情页输出 schema.org `QAPage` 结构化数据：`mainEntity` 为 `Question`（`answerCount` 为公开回答数），已采纳的回答为 `acceptedAnswer`，其余公开回答为 `suggestedAnswer`。
+- 服务端渲染（Blade：`app/qa/view/public/*.blade.php`），关闭 JS 可读。页面含 title、description、canonical、Open Graph；列表页带 `rel=prev/next`；详情页输出 schema.org `QAPage` 结构化数据：`mainEntity` 为 `Question`（`answerCount` 为公开回答数），已采纳的回答为 `acceptedAnswer`，其余公开回答为 `suggestedAnswer`。详情最多列出 100 条回答（与接口一致）；已采纳的回答排在 100 条之后时 JSON-LD 不含 `acceptedAnswer`，`answerCount` 仍为总数。
 - 站点按请求域名识别，与 CMS 前台相同：未知或停用的域名 404，别名域名 301 到主域名；canonical 用站点主域名（https），不用请求的 Host。
 - 只显示审核通过、问答侧与 CMS 侧都未删除的问题，以及审核通过、未隐藏、未删除的回答；问题不存在、未审核通过或已删除时 404。
 - 站点域名的 Nginx 需要在 `location /`（转发到 `/cms/`）之前把问答页面转发到后端同一路径，例如：

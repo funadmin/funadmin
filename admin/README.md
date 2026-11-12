@@ -144,7 +144,7 @@ The webman is open-sourced software licensed under the MIT.
 
 **已发布业务表升级**：软删除规则之前发布的业务表（例如订单表）用 `php webman business:soft-delete-upgrade [--table=<表>] [--dry-run]` 升级。只处理 `business_module` 登记且已发布的表，核心表、插件基线表和未登记的表一律拒绝；没有 `deleted_at` 的表（生成时关闭软删除）只报告并跳过，不自动加软删除。每张表按现状只发一条 `ALTER`：补 `deleted_at` 索引；有唯一键时补 `deleted_token`（主键不是整数时另加自增 `row_no` 作为令牌来源），已删除行回填 `deleted_token`，唯一键按原名重建为「原列 + `deleted_token`」。可重复执行，全部到位时不做任何改动；先用 `--dry-run` 查看计划。`table_name` 按物理表名原样使用（采纳的无前缀表不补前缀），去掉前缀后与核心表或插件基线表重名的一律拒绝。插件目标的生成表不直接 `ALTER`：先检查插件迁移目录可写、插件没有进行中的操作、版本号未占用（`--dry-run` 同样检查），再写出可重复执行的插件迁移（`NNN_soft_delete_<表>.sql`，带新的结构快照）并经迁移运行器执行、登记到 `system_migration`；其他安装随插件迁移升级，重新生成代码也不会回到旧形状。主键不是整数的模型无需重新生成：软删除 trait 在主键为字符串、表上有 `row_no` 时自动以 `row_no` 作为令牌来源（单条与批量删除都是）；表单数据接口（`FormDataService` 的单条、批量删除、外键级联与子表移除行）按同一规则写 `deleted_token = row_no`，恢复时令牌归零。**加 `row_no`（AUTO_INCREMENT）会复制整表、期间阻塞写入，请在维护窗口执行升级**；其他子句（加列、加索引、重建唯一键）在 MySQL 8 上通常可在线执行，但同一条 ALTER 里有 `row_no` 时整条按复制表执行。
 
-**插件与生成表**：官方插件表遵守同样的规则（CMS 007 / 1.6.0、技术文档 004 / 1.5.0、问答与 OSS 002 / 1.1.0，已安装插件必须走插件更新执行迁移）。
+**插件与生成表**：官方插件表遵守同样的规则（软删除结构随 CMS 007 / 1.6.0、技术文档 004 / 1.5.0、问答与 OSS 002 / 1.1.0 引入；之后问答升到 1.3.0，003 新建回答状态表 `qa_answer`、004 新建会员附件表 `qa_attachment`，OSS 升到 1.2.0，003 给 `oss_profile` 加 `path_style`；新表同样带 `deleted_at`，没有非主键唯一键所以不加 `deleted_token`。已安装插件必须走插件中心更新执行迁移）。
 - 只追加的历史表与单行设置表豁免，不加软删除列：`cms_form_event`、`cms_site_auth_audit`、`cms_model_version`、`cms_content_revision`、`cms_template_tag_version`、`document_events`、`document_revisions`、`oss_setting`。
 - 其余表都有 `deleted_at` 及以它开头的索引，模型使用 `LaravelSoftDelete`；只有存在非主键唯一键的表才加 `deleted_token`，唯一键保持原名并以它结尾。
 - 原来没有主键的 CMS 4 张关系表与 `document_category_links` 新增自增 `id`（后者的原主键改为 `uk_document_category_links_pk`）。OSS 配置保留字符串主键、问答保留原主键，两者只加 `deleted_at`。
@@ -160,6 +160,32 @@ The webman is open-sourced software licensed under the MIT.
 - 存量行的 `id` 编号在基于语句的 binlog（SBR）下不确定，主从可能不一致，建议使用 ROW 格式。
 - 005/006 尚未在 MySQL 8.0 上实测，发布前须在 `admin/` 执行 `php tests/Console/run-core-mysql.php`（需要 docker）。
 
+
+## 仪表盘系统概览
+
+后台首页数据来自 `GET /admin/dashboard/overview`（`app/admin/system/controller/SystemDashboard.php` + `service/DashboardOverviewService.php`），只需登录、不单独授权。每个数据块先检查当前管理员是否有对应列表的查看权限，没有权限的块不返回（超级管理员返回全部）：
+
+| 数据块 | 所需权限 | 内容 |
+| --- | --- | --- |
+| `admins` | `authorization:admin:index` | 可管理的管理员数，与管理员列表的总数一致（含数据范围与角色层级） |
+| `members` | `system:member:index` | 会员总数、今日新增 |
+| `attachments` | `system:attachment:index` | 附件数与总字节数 |
+| `logs` | `system:operation-log:index` | 今日操作数、近 7 天每日数量、最近 10 条摘要（按操作日志的数据范围，不含请求体） |
+| `plugins` | `plugin:plugin:installed` | 已安装数、已启用数（`lifecycle_state = enabled`） |
+
+统计都通过模型查询，已软删除的记录不计入。结果按管理员缓存 60 秒，缓存键包含授权版本，角色或权限变更后立即重新计算；部门、数据范围等不影响授权版本的变化最多延迟 60 秒。前端快捷入口按当前菜单与权限生成，插件扩展点 `dashboard.cards`、`dashboard.loaded`、`dashboard.quickActions` 保留（见 `docs/plugins.md`）。
+
+## 接口文档覆盖检查
+
+`admin/tests/OpenApiCoverageTest.php` 静态检查接口文档注释是否与路由一致（不依赖 swagger-php），规则与范围见仓库 `docs/openapi/README.md` 的“覆盖范围与防回退测试”。要点：
+
+- 检查范围：核心入库控制器的路由属性、`config/route.php` 中指向控制器方法的 `Route::get/post/...` 调用（含 `Route::group` 前缀与 `->name()`/`->middleware()` 链式写法），以及插件源码 `plugins/<code>/app/**/controller`。每个路由都要有动词与完整 path 一致的 `@OA` 操作、路径参数声明、响应、已登记的标签和全局唯一的 `operationId`。
+- 代码生成器生成的后台、插件与会员控制器自带注释，由 `tests/Console/CrudGeneratedOpenApiTest.php` 用同一检查器验证；已生成到 `app/admin/business/` 的模块和插件安装副本（`app/<code>/`、`app/admin/plugins/<code>/`）不入库，不扫描。
+- 不检查：闭包路由（`/health`、`/`）；`config/route.php` 用 `require` 引入的其他路由文件、动态拼出的路由，以及运行时由插件路由加载器注册的路由（静态解析看不到，也不会报错）。新增这类路由时需要自行补注释。
+
+## 后端测试
+
+在 `admin/` 执行 `vendor/bin/phpunit`。全量测试主进程峰值约 125MB，`phpunit.xml` 的 `<php>` 段已把 `memory_limit` 设为 512M，无需再加 `-d memory_limit=…`。MySQL 相关测试需要 docker（或 podman 兼容命令）：`php tests/Console/run-mysql.php`（控制台与插件升级）和 `php tests/Console/run-core-mysql.php`（核心迁移）。
 
 ## 对接线上插件市场
 
