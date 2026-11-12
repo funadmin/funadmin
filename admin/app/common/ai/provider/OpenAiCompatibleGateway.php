@@ -108,26 +108,7 @@ final class OpenAiCompatibleGateway
     public function chat(array $messages, array $tools = [], ?callable $event = null): array
     {
         $this->event = $event;
-        AiModelCapabilities::validateSelection($this->config);
-        $models = array_merge([$this->model], ($this->config['fallback_enabled'] ?? false) ? $this->config['fallback_models'] : []);
-        // 在任何请求前检查全部候选，不能通过跳过不兼容模型悄悄降级。
-        $payloads = [];
-        foreach ($models as $model) $payloads[] = $this->payload($messages, $tools, false, $model);
-        if ($this->exhausted) throw new AiProviderException('fallback_exhausted', '候选模型已耗尽');
-        while (true) {
-            try {
-                $response = $this->request($payloads[$this->candidate], retries: $this->candidate === 0 ? $this->maxRetries : 0);
-                break;
-            } catch (AiProviderException $exception) {
-                if (!in_array($exception->category(), ['rate_limited','provider_unavailable','transient_transport'], true)) throw $exception;
-                if (!isset($models[$this->candidate + 1])) {
-                    $this->exhausted = true;
-                    throw $exception;
-                }
-                $from = $models[$this->candidate++];
-                $event && $event('provider.fallback', ['from_model'=>$from,'to_model'=>$models[$this->candidate],'category'=>$exception->category(),'candidate'=>$this->candidate]);
-            }
-        }
+        [$response, $models, $switches] = $this->sendWithFallback($messages, $tools, false, $event);
         try {
             $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
@@ -148,6 +129,7 @@ final class OpenAiCompatibleGateway
         return [
             'model' => $actual,
             'requestedModel' => $models[$this->candidate],
+            'fallbacks' => $switches,
             'protocolContext' => isset($message['protocol_context']) ? $message['protocol_context'] + ['origin'=>$this->contextOrigin()] : null,
             'id' => (string) ($body['id'] ?? ''),
             'content' => $message['content'] ?? null,
@@ -157,9 +139,11 @@ final class OpenAiCompatibleGateway
         ];
     }
 
-    public function stream(array $messages, array $tools = [], ?callable $privateContext = null): iterable
+    /** 只在拿到成功响应前切换备用；一旦开始读取流式输出，任何错误都直接抛出，避免重复输出。 */
+    public function stream(array $messages, array $tools = [], ?callable $privateContext = null, ?callable $event = null): iterable
     {
-        $response = $this->request($this->payload($messages, $tools, true), true);
+        $this->event = $event;
+        [$response] = $this->sendWithFallback($messages, $tools, true, $event);
         $buffer = '';
         $calls = [];
         $state = [];
@@ -180,6 +164,43 @@ final class OpenAiCompatibleGateway
         }
         if ($privateContext !== null && isset($state['protocol_context'])) $privateContext($state['protocol_context'] + ['origin'=>$this->contextOrigin()]);
         yield ['type' => 'done'];
+    }
+
+    /** 可切换备用的失败：网络、超时、5xx、429 及上游明确的模型不可用；其余 4xx 业务错误不切换。 */
+    private const FALLBACK_CATEGORIES = ['rate_limited', 'provider_unavailable', 'transient_transport', 'network', 'timeout', 'model_unavailable'];
+    /** 上游明确表示模型不存在或不可用的错误码（OpenAI 兼容 code / Anthropic type）。 */
+    private const MODEL_UNAVAILABLE_CODES = ['model_not_found', 'model_not_available', 'model_unavailable', 'model_not_supported'];
+
+    /**
+     * 按主模型、备用模型顺序发送；每次切换都通过 provider.fallback 事件记录来源、目标与原因。
+     * 请求次数、超时额度由 request() 对每次尝试统一计入，切换不能绕过额度。
+     * @return array{0: ResponseInterface, 1: list<string>, 2: list<array{from_model: string, to_model: string, reason: string, status: int|null}>}
+     */
+    private function sendWithFallback(array $messages, array $tools, bool $stream, ?callable $event): array
+    {
+        AiModelCapabilities::validateSelection($this->config);
+        $models = array_merge([$this->model], ($this->config['fallback_enabled'] ?? false) ? $this->config['fallback_models'] : []);
+        // 在任何请求前检查全部候选，不能通过跳过不兼容模型悄悄降级。
+        $payloads = [];
+        foreach ($models as $model) $payloads[] = $this->payload($messages, $tools, $stream, $model);
+        if ($this->exhausted) throw new AiProviderException('fallback_exhausted', '候选模型已耗尽');
+        $switches = [];
+        while (true) {
+            try {
+                $response = $this->request($payloads[$this->candidate], $stream, retries: $this->candidate === 0 ? $this->maxRetries : 0);
+                return [$response, $models, $switches];
+            } catch (AiProviderException $exception) {
+                if (!in_array($exception->category(), self::FALLBACK_CATEGORIES, true)) throw $exception;
+                if (!isset($models[$this->candidate + 1])) {
+                    $this->exhausted = true;
+                    throw $exception;
+                }
+                $from = $models[$this->candidate++];
+                $switch = ['from_model'=>$from, 'to_model'=>$models[$this->candidate], 'reason'=>$exception->category(), 'status'=>$exception->getCode() ?: null];
+                $switches[] = $switch;
+                $event && $event('provider.fallback', $switch + ['category'=>$exception->category(), 'candidate'=>$this->candidate]);
+            }
+        }
     }
 
     private function request(array $json, bool $stream = false, string $path = '/chat/completions', string $method = 'POST', ?int $retries = null): ResponseInterface
@@ -211,10 +232,17 @@ final class OpenAiCompatibleGateway
                 ]);
             } catch (Throwable $exception) {
                 // 仅明确连接层故障可重试；无 errno、TLS/证书错误及一般运行错误均拒绝猜测。
-                // errno 28 可能发生在发送请求或接收部分响应后，必须停止，不能重试或备用。
+                // errno 28 可能发生在发送请求或接收部分响应后，不能对同一模型重试；未向调用方输出任何内容，可切换备用。
                 $transient = $exception instanceof \GuzzleHttp\Exception\ConnectException && in_array($exception->getHandlerContext()['errno'] ?? null, [6,7], true);
                 if ($transient && $attempt < $retries) { ($this->sleeper)(min(2000, 100 * (2 ** $attempt))); continue; }
-                throw new AiProviderException($transient ? 'transient_transport' : ($this->isTimeout($exception) ? 'timeout' : 'transport'), 'Provider 网络请求失败');
+                // 一般网络故障（连接被拒、TLS 握手失败等）归为 network，可切换备用；非网络层运行错误归为 transport，不切换。
+                $category = match (true) {
+                    $transient => 'transient_transport',
+                    $this->isTimeout($exception) => 'timeout',
+                    $exception instanceof \GuzzleHttp\Exception\TransferException => 'network',
+                    default => 'transport',
+                };
+                throw new AiProviderException($category, 'Provider 网络请求失败');
             }
             $status = $response->getStatusCode();
             if ($status >= 200 && $status < 300) {
@@ -224,6 +252,7 @@ final class OpenAiCompatibleGateway
             $errorBody = json_decode((string) $response->getBody(), true);
             if (!empty($errorBody['output']) || !empty($errorBody['content'])) throw new AiProviderException('response_started', '非成功响应已包含模型输出');
             $errorCode = $errorBody['error']['code'] ?? $errorBody['error']['type'] ?? null;
+            if (in_array($errorCode, self::MODEL_UNAVAILABLE_CODES, true) || ($status === 404 && $errorCode === 'not_found_error')) throw new AiProviderException('model_unavailable', 'Provider 明确表示模型不可用', $status);
             if (in_array($errorCode, ['content_policy_violation','content_filter','safety_refusal','context_length_exceeded','unsupported_parameter','invalid_parameter','invalid_api_key','insufficient_quota'], true)) throw new AiProviderException('invalid_request', 'Provider 明确拒绝请求，禁止降级');
             foreach ($errorBody['choices'] ?? [] as $choice) {
                 if ((isset($choice['message']['content']) && $choice['message']['content'] !== '') || !empty($choice['message']['tool_calls']) || isset($choice['message']['refusal']) || ($choice['finish_reason'] ?? '') === 'content_filter') throw new AiProviderException('response_started', '非成功响应已包含模型输出');
@@ -238,7 +267,6 @@ final class OpenAiCompatibleGateway
 
     private function payload(array $messages, array $tools, bool $stream, ?string $model = null): array
     {
-        if ($stream && ($this->config['fallback_enabled'] ?? false)) throw new InvalidArgumentException('流式请求暂不支持备用');
         AiModelCapabilities::validateSelection($this->config);
         $model ??= $this->model;
         $cap = AiModelCapabilities::forModel($this->config, $model);

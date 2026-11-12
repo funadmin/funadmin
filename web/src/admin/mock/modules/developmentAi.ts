@@ -16,7 +16,7 @@ const groups: AiConversationGroup[] = [];
 
 let profileId = 0;
 const profiles: AiProfile[] = [];
-const runtimeCapabilities = { reasoning_efforts: [...AI_REASONING_EFFORTS], default_omits_parameter: true, capability_source: 'administrator', unknown_policy: 'reject', fallback: true, stream_fallback: false, max_fallback_models: 3, max_requests: 12, max_reserved_seconds: 300 };
+const runtimeCapabilities = { reasoning_efforts: [...AI_REASONING_EFFORTS], default_omits_parameter: true, capability_source: 'administrator', unknown_policy: 'reject', fallback: true, stream_fallback: true, max_fallback_models: 3, max_requests: 12, max_reserved_seconds: 300 };
 function publicProfile(item: AiProfile) { return { ...item, capabilities: profileModelCapability(item, item.model), runtime_capabilities: runtimeCapabilities }; }
 function createProfile(body: Record<string, any>) {
   const { api_key, ...configuration } = body;

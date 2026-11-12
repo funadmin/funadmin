@@ -39,7 +39,9 @@ final class AiAgentOrchestrator
             $messages[] = $assistant;
             // 私有持久化端口与公开事件完全分离，最终消息携带本次完整工具往返。
             $privateMessage && $privateMessage($assistant, array_slice($messages, $historyStart));
-            $event && $event('assistant.message', ['content' => $response['content'] ?? null, 'tool_calls' => $calls, 'round' => $round, 'model'=>$actualModel]);
+            // 本轮实际使用的模型、请求模型及备用切换记录随消息一起持久化。
+            $routing = array_filter(['requested_model'=>$response['requestedModel'] ?? null, 'fallbacks'=>$response['fallbacks'] ?? []], static fn ($value): bool => $value !== null && $value !== []);
+            $event && $event('assistant.message', ['content' => $response['content'] ?? null, 'tool_calls' => $calls, 'round' => $round, 'model'=>$actualModel] + $routing);
             if ($calls === []) {
                 return ['status' => 'succeeded', 'content' => $response['content'] ?? null, 'usage' => ['totalTokens' => $usage], 'rounds' => $round, 'model'=>$actualModel];
             }

@@ -21,6 +21,8 @@ export interface AiConversationGroup {
 
 export const AI_REASONING_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'] as const;
 export type AiReasoningEffort = typeof AI_REASONING_EFFORTS[number];
+/** 与后端 AiProtocol::MESSAGES_THINKING_BUDGET_TOKENS 一致：Messages 协议把档位映射为 thinking.budget_tokens，必须小于输出 Token 预算。 */
+export const AI_MESSAGES_THINKING_BUDGET_TOKENS: Record<AiReasoningEffort, number> = { low: 1024, medium: 4096, high: 8192, xhigh: 16384, max: 32768, ultra: 65536 };
 export interface AiModelDeclaration {
   image_input?: boolean;
   image_tokens?: number;
@@ -97,6 +99,10 @@ export function profileCapabilityError(profile: AiProfileInput): string {
   if (declarations.some(c => (c.image_input !== undefined && typeof c.image_input !== 'boolean') || (c.image_tokens !== undefined && c.image_tokens !== 32768) || (c.max_images !== undefined && (!Number.isInteger(c.max_images) || c.max_images < 1 || c.max_images > 4)) || (c.image_mime_types !== undefined && (!Array.isArray(c.image_mime_types) || !c.image_mime_types.length || new Set(c.image_mime_types).size !== c.image_mime_types.length || c.image_mime_types.some(m => !['image/png', 'image/jpeg', 'image/webp'].includes(m)))))) return tv('aiDevelopment.validation.imageInvalid', {}, '图片能力声明无效，图片预算固定为 32768');
   const fallback = profile.fallback_models || [];
   if (fallback.length > 3 || new Set(fallback).size !== fallback.length || fallback.includes(profile.model) || fallback.some(m => !validModel(m)) || (profile.fallback_enabled && !fallback.length)) return tv('aiDevelopment.validation.fallbackInvalid', {}, '备用模型必须有序、去重、排除主模型，开启时须有 1 至 3 个候选');
+  if (profile.protocol === 'anthropic-messages' && profile.reasoning_effort != null) {
+    const budget = AI_MESSAGES_THINKING_BUDGET_TOKENS[profile.reasoning_effort];
+    if (profile.max_output_tokens == null || budget >= profile.max_output_tokens) return tv('aiDevelopment.validation.thinkingBudgetExceeds', { effort: profile.reasoning_effort, budget }, 'Messages 思考档位 {effort} 的思考预算 {budget} 必须小于输出 Token 预算，请调大输出预算或降低档位');
+  }
   for (const model of [profile.model, ...(profile.fallback_enabled ? fallback : [])]) {
     const cap = profileModelCapability(profile, model);
     if (profile.reasoning_effort != null && !cap.reasoning_efforts.includes(profile.reasoning_effort)) return tv('aiDevelopment.validation.reasoningNotDeclared', { model }, '{model} 未声明支持所选推理档位，请选择默认或合法档位');

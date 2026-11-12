@@ -152,7 +152,7 @@ final class AiAgentJob
                         $this->store->appendMessage((int) $task['conversation_id'], [
                             'role' => 'assistant',
                             'content' => [['type' => 'text', 'text' => $payload['content'] ?? '']],
-                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? [], 'model'=>$payload['model'] ?? null] + $privateMetadata,
+                            'metadata' => ['task_id' => $taskId, 'round' => $payload['round'] ?? 0, 'tool_calls' => $payload['tool_calls'] ?? [], 'model'=>$payload['model'] ?? null] + array_intersect_key($payload, array_flip(['requested_model', 'fallbacks'])) + $privateMetadata,
                         ]);
                     }
                     return $this->store->appendEvent($taskId, $type, $payload);

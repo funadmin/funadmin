@@ -125,7 +125,7 @@ describe('AI 真实 HTTP 响应边界', () => {
     const configured = await request('PATCH', `/${id}`, { model_capabilities: [declaration], reasoning_effort: 'high' });
     expect(configured.code).toBe(200);
     expect(configured.data.capabilities).toMatchObject({ ...declaration, source: 'administrator', unknown_policy: 'reject' });
-    expect(configured.data.runtime_capabilities).toMatchObject({ fallback: true, stream_fallback: false, max_fallback_models: 3 });
+    expect(configured.data.runtime_capabilities).toMatchObject({ fallback: true, stream_fallback: true, max_fallback_models: 3 });
     const catalog = await request('POST', `/${id}/models`);
     expect(catalog.data.find((m: any) => m.id === 'm').capabilities.source).toBe('administrator');
     expect(catalog.data.find((m: any) => m.id === 'mock-model').capabilities.source).toBe('unknown');

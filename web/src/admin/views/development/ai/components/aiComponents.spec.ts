@@ -329,6 +329,34 @@ describe('AI Development components', () => {
     expect(wrapper.emitted('save')?.at(-1)?.[0]).toMatchObject({ reasoning_effort: null });
   });
 
+  it.each(['openai-responses', 'anthropic-messages'])('%s 协议按声明放行思考档位，保存时保留备用与档位', async (protocol) => {
+    const profile = { id: 3, name: '协议', provider: 'openai-compatible', protocol, base_url: 'https://example.com/v1', model: 'm', reasoning_effort: 'medium', fallback_enabled: true, fallback_models: ['b'], max_output_tokens: 8000, model_capabilities: ['m', 'b'].map(model => ({ model, reasoning_efforts: ['low', 'medium'], output_token_parameter: 'max_tokens', context_window: 100000, max_output_tokens: 16000 })) };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await chooseProfile(wrapper);
+    expect(control(wrapper, '[data-testid="reasoning-effort"]').findAllComponents({ name: 'ElOption' }).map(o => o.props('value'))).toEqual(['', 'low', 'medium']);
+    expect(wrapper.text()).not.toContain('暂不支持');
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({ protocol, reasoning_effort: 'medium', fallback_enabled: true, fallback_models: ['b'] });
+  });
+
+  it('Messages 思考预算不小于输出预算时阻止保存', async () => {
+    const profile = { id: 3, name: 'Messages', provider: 'anthropic', protocol: 'anthropic-messages', base_url: 'https://example.com/v1', model: 'm', reasoning_effort: 'high', max_output_tokens: 8192, model_capabilities: [{ model: 'm', reasoning_efforts: ['high'], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null }] };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await chooseProfile(wrapper);
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('save')).toBeUndefined();
+    expect(wrapper.find('[role="alert"]').text()).toContain('8192');
+  });
+
+  it('未声明的档位在 Responses 协议下同样不可选且阻止保存', async () => {
+    const profile = { id: 3, name: 'Responses', provider: 'openai-compatible', protocol: 'openai-responses', base_url: 'https://example.com/v1', model: 'm', reasoning_effort: 'high', model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: null, max_output_tokens: null }] };
+    const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });
+    await chooseProfile(wrapper);
+    expect(control(wrapper, '[data-testid="reasoning-effort"]').findAllComponents({ name: 'ElOption' }).map(o => o.props('value'))).toEqual(['', 'low']);
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
   it('管理员编辑能力、选择合法档位并调整备用顺序，不修改原档案', async () => {
     const profile = { id: 3, name: '生产', provider: 'openai-compatible', protocol: 'openai-chat', base_url: 'https://example.com/v1', model: 'm', fallback_models: ['b', 'c'], model_capabilities: [{ model: 'm', reasoning_efforts: ['low'], output_token_parameter: 'max_tokens', context_window: 1000, max_output_tokens: 200 }] };
     const wrapper = mountWithStubs(ProviderSettingsDrawer, { modelValue: true, profiles: [profile] });

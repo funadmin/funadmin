@@ -10,6 +10,23 @@ final class AiProtocol
 {
     public const VALUES = ['openai-chat', 'openai-responses', 'anthropic-messages'];
 
+    /**
+     * Messages 协议思考强度到 thinking.budget_tokens 的固定映射（Chat 传 reasoning_effort，Responses 传 reasoning.effort）。
+     * 最低档不低于上游要求的 1024；预算必须严格小于档案输出 Token 预算 max_tokens，否则在保存和请求前拒绝。
+     * 修改此表需同步 admin/README.md「AI 备用模型与思考强度」。
+     */
+    public const MESSAGES_THINKING_BUDGET_TOKENS = ['low'=>1024, 'medium'=>4096, 'high'=>8192, 'xhigh'=>16384, 'max'=>32768, 'ultra'=>65536];
+
+    /** 校验 Messages 思考预算与输出预算的关系，返回预算；未选择档位返回 null。 */
+    public static function messagesThinkingBudget(?string $effort, ?int $maxOutputTokens): ?int
+    {
+        if ($effort === null || $effort === 'default') return null;
+        $budget = self::MESSAGES_THINKING_BUDGET_TOKENS[$effort] ?? null;
+        if ($budget === null) throw new InvalidArgumentException('reasoning_effort 无效', 400);
+        if ($maxOutputTokens === null || $budget >= $maxOutputTokens) throw new InvalidArgumentException("Messages 思考档位 {$effort} 的思考预算 {$budget} 必须小于输出 Token 预算，请调大输出预算或降低档位", 400);
+        return $budget;
+    }
+
     public function __construct(public readonly string $name)
     {
         if (!in_array($name, self::VALUES, true)) throw new InvalidArgumentException('不支持的 AI protocol');
@@ -47,14 +64,16 @@ final class AiProtocol
         $anthropic = $this->name === 'anthropic-messages';
         $output = $payload['max_tokens'] ?? $payload['max_completion_tokens'] ?? null;
         if ($anthropic && $output === null) throw new InvalidArgumentException('Anthropic Messages 必须明确设置输出 Token 预算');
-        if ($anthropic && isset($payload['reasoning_effort'])) throw new InvalidArgumentException('Anthropic Messages 暂不支持显式推理档位，请选择默认');
         $result = ['model'=>$payload['model'], 'stream'=>$payload['stream']];
         if (!$anthropic) {
             $result['store'] = false;
             $result['include'] = ['reasoning.encrypted_content'];
         }
         if ($output !== null) $result[$anthropic ? 'max_tokens' : 'max_output_tokens'] = $output;
-        if (isset($payload['reasoning_effort'])) $result['reasoning'] = ['effort'=>$payload['reasoning_effort']];
+        if (isset($payload['reasoning_effort'])) {
+            if ($anthropic) $result['thinking'] = ['type'=>'enabled', 'budget_tokens'=>self::messagesThinkingBudget($payload['reasoning_effort'], $output)];
+            else $result['reasoning'] = ['effort'=>$payload['reasoning_effort']];
+        }
         $items = [];
         foreach ($payload['messages'] as $message) {
             $role = $message['role'];

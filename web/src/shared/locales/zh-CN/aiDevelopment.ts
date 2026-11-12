@@ -73,13 +73,13 @@ export default {
     profiles: {
       basicTitle: '基本信息', unsaved: '未保存', defaultTag: '默认', listEmpty: '还没有档案，点击上方按钮新建', keySaved: '已存密钥', keyMissing: '未设密钥',
       title: '配置档案', create: '创建档案', general: '档案设置', name: '档案名称（修改后保存即改名）', enabled: '启用', copy: '复制', default: '设为默认', copyHint: '复制不包含 API key，也不继承默认状态。删除默认档案不会自动选择其他档案。',
-      protocolHint: '当前仅支持 openai-chat（OpenAI Chat Completions 兼容协议）。Provider 为标识，不代表支持其他协议。', keyHint: '留空保留已保存密钥', hasKey: '已保存密钥（不回显）', noKey: '尚未保存密钥', clearKey: '保存时清空密钥',
+      protocolHint: '支持 Chat Completions、Responses 与 Anthropic Messages 三种协议。Provider 仅为标识，不代表协议。', keyHint: '留空保留已保存密钥', hasKey: '已保存密钥（不回显）', noKey: '尚未保存密钥', clearKey: '保存时清空密钥',
       models: '模型设置', fetchModels: '获取模型', modelsHint: '可直接使用当前表单查询模型；已保存档案会复用已保存密钥。模型可搜索、选择或手动输入，不推断能力。', favorites: '常用模型', limits: '上下文与运行限制', context_window: '上下文窗口（留空不指定）', max_input_tokens: '最大输入 token（留空不指定）', max_output_tokens: '最大输出 token（留空不指定）', max_iterations: '最大迭代次数', connect_timeout: '连接超时（秒）', request_timeout: '请求超时（秒）', max_retries: '最大重试次数', stream_usage: '流式 usage',
-      unsupported: '尚未支持的能力', disabled: '未启用', unsupportedHint: 'Fallback 尚未实现，Reasoning 能力尚未验证，后端拒绝非默认执行。保存时固定关闭 Fallback 并清空 Reasoning，不能作为可执行配置。',
+      unsupported: '尚未支持的能力', disabled: '未启用', unsupportedHint: '备用模型仅在主模型出现网络错误、超时、5xx、429 或上游明确表示模型不可用时按顺序切换；400/401/403 等业务错误不切换，流式输出开始后不再切换。思考强度只放行模型能力中已声明的档位：Chat 传 reasoning_effort，Responses 传 reasoning.effort，Messages 按档位映射为 thinking.budget_tokens（须小于输出 Token 预算）。',
       save: '保存档案', saved: '档案已保存', testHint: '测试仅调用临时连接接口，不测试已保存的密钥，也不验证 token / stream 等运行参数。请重新输入本次测试密钥；留空按无密钥测试，不使用全局密钥。密钥不写入浏览器存储。', inherit: '使用当前默认档案', selectionHint: '新会话继承创建时的默认档案；更改默认不会修改已有会话和已冻结任务。', invalid: '请检查模型、URL、预算和超时范围', emptyModels: '模型目录为空，仍可手动输入模型 ID',
       selectProfile: '配置档案', newProfile: '新建档案', defaultBadge: '（默认档案）', nameLabel: '档案名称', connectionTitle: '连接与模型', preset: '供应商预设', applyPreset: '应用到连接', protocol: 'API 协议', ollamaHint: 'Ollama 官方本地地址为 http://localhost:11434/v1；本系统禁止本机、私网及 HTTP，请填写经授权的公网 HTTPS 网关地址。', providerId: '供应商标识', providerIdPlaceholder: '例如 openai-compatible', keyStatus: '密钥状态', defaultModel: '默认 Model', fetchModelsShort: '获取模型', fallbackTitle: '备用模型', fallbackEnable: '启用备用', fallbackList: '有序备用模型', fallbackAdd: '添加备用模型（最多 3 个）', moveUp: '上移', moveDown: '下移', removeFallback: '移除', tokenLimits: 'Token 限制', unspecified: '不指定', savedEffortIncompatible: '已保存档位 {effort} 不兼容当前选择，请明确选择默认或合法档位。', advancedTitle: '高级参数与模型能力', capabilitiesTitle: '模型能力（管理员声明）', capModel: '模型标识', capOutput: '输出参数', capContext: '模型上下文上限', capMaxOutput: '模型输出上限', unknown: '未知', imageFormats: '图片格式', removeCapability: '删除声明', addCapability: '添加模型能力声明',
       presetZhipu: '智谱 GLM', presetQwen: '通义千问（北京）', presetDoubao: '豆包（北京）', presetSiliconFlow: '硅基流动', presetGemini: 'Google Gemini（OpenAI 兼容）', presetOllama: 'Ollama（自备安全网关）', presetCustom: '自定义',
-      presetConfirm: '再次点击应用将替换当前档案连接目标，并清空临时密钥；保存时必须提供新密钥或明确清空旧密钥。', targetChangedNeedKey: '连接目标已变更，请提供新密钥或明确清空旧密钥。', reasoningProtocolUnsupported: 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。', messagesOutputRequired: 'Messages 必须设置输出 Token 预算。', protocolReasoningUnsupported: '当前协议不支持显式推理模式。', defaultShort: '（默认）'
+      presetConfirm: '再次点击应用将替换当前档案连接目标，并清空临时密钥；保存时必须提供新密钥或明确清空旧密钥。', targetChangedNeedKey: '连接目标已变更，请提供新密钥或明确清空旧密钥。', messagesOutputRequired: 'Messages 必须设置输出 Token 预算。', defaultShort: '（默认）'
     },
     providerSettings: {
       title: 'Provider 设置', securityNotice: 'API key 仅随本次连接测试发送，不回显、不写入浏览器存储。', apiKeyPlaceholder: '只发送，不回显',
@@ -112,5 +112,6 @@ export default {
       invalidField: 'AI 接口 {field} 无效或超出安全整数范围',
       invalidList: 'AI 接口未返回有效列表',
       reasoningNotDeclared: '{model} 未声明支持所选推理档位，请选择默认或合法档位',
+      thinkingBudgetExceeds: 'Messages 思考档位 {effort} 的思考预算 {budget} 必须小于输出 Token 预算，请调大输出预算或降低档位',
     },
   };

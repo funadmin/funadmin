@@ -84,7 +84,7 @@ final class AiConfigurationProfileService
     {
         return array_merge($row->configuration, [
             'capabilities'=>self::capabilities($row->configuration, (string) ($row->configuration['model'] ?? '')),
-            'runtime_capabilities'=>['reasoning_efforts'=>\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS, 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>false, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300, 'private_image_input'=>true, 'max_http_body_bytes'=>\app\common\ai\provider\AiModelCapabilities::MAX_HTTP_BODY_BYTES],
+            'runtime_capabilities'=>['reasoning_efforts'=>\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS, 'default_omits_parameter'=>true, 'capability_source'=>'administrator', 'unknown_policy'=>'reject', 'fallback'=>true, 'stream_fallback'=>true, 'max_fallback_models'=>3, 'max_requests'=>12, 'max_reserved_seconds'=>300, 'private_image_input'=>true, 'max_http_body_bytes'=>\app\common\ai\provider\AiModelCapabilities::MAX_HTTP_BODY_BYTES],
             'id'=>(int) $row->id, 'name'=>$row->name, 'is_default'=>(bool) $row->is_default, 'has_api_key'=>(string) $row->getAttribute('secret_ciphertext') !== '', 'created_at'=>$row->created_at, 'updated_at'=>$row->updated_at,
         ]);
     }
@@ -179,11 +179,12 @@ final class AiConfigurationProfileService
         if ($data['fallback_enabled'] && !$data['fallback_models']) throw new InvalidArgumentException('启用备用时必须配置模型', 400);
         if (in_array($data['model'], $data['fallback_models'], true)) throw new InvalidArgumentException('备用模型不得包含主模型', 400);
         if ($data['reasoning_effort'] === 'default') $data['reasoning_effort'] = null;
-        if ($data['protocol'] !== 'openai-chat' && $data['reasoning_effort'] !== null) throw new InvalidArgumentException('当前协议暂不支持显式推理模式', 400);
         if ($data['protocol'] === 'anthropic-messages' && $data['max_output_tokens'] === null) throw new InvalidArgumentException('Messages 必须明确设置输出 Token 预算', 400);
         $data['model_capabilities'] = \app\common\ai\provider\AiModelCapabilities::normalize($data['model_capabilities']);
         \app\common\ai\provider\AiModelCapabilities::validateSelection($data);
         if (!in_array($data['reasoning_effort'], [null, ...\app\common\ai\provider\AiModelCapabilities::REASONING_EFFORTS], true)) throw new InvalidArgumentException('reasoning_effort 无效', 400);
+        // 三种协议都按管理员声明放行档位；Messages 额外要求思考预算小于输出预算。
+        if ($data['protocol'] === 'anthropic-messages') \app\common\ai\provider\AiProtocol::messagesThinkingBudget($data['reasoning_effort'], $data['max_output_tokens']);
         if ($data['context_window'] !== null && ($data['max_input_tokens'] ?? 0) + ($data['max_output_tokens'] ?? 0) > $data['context_window']) throw new InvalidArgumentException('输入与输出预算超过上下文窗口', 400);
         if ($data['connect_timeout'] > $data['request_timeout']) throw new InvalidArgumentException('连接超时不得超过请求超时', 400);
         if (array_key_exists('api_key', $data) && (!is_string($data['api_key']) || strlen($data['api_key']) > 8192 || preg_match('/[\x00-\x20\x7f]/', $data['api_key']))) throw new InvalidArgumentException('api_key 无效', 400);

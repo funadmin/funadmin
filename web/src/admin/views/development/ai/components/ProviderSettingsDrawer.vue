@@ -194,7 +194,8 @@ const numericFields = [
 ] as const;
 const modelOptions = computed(() => [...new Set([...props.models.map((item) => item.id), ...(form.favorite_models || []), ...(form.model_capabilities || []).map(c => c.model), ...(form.model ? [form.model] : [])])].filter(Boolean));
 const efforts = AI_REASONING_EFFORTS;
-const legalEfforts = computed(() => form.protocol !== 'openai-chat' ? [] : efforts.filter(e => [form.model, ...(form.fallback_enabled ? form.fallback_models || [] : [])].every(m => profileModelCapability(form, m).reasoning_efforts.includes(e))));
+// 三种协议都按管理员逐模型声明放行档位，主模型与启用的备用模型须全部声明。
+const legalEfforts = computed(() => efforts.filter(e => [form.model, ...(form.fallback_enabled ? form.fallback_models || [] : [])].every(m => profileModelCapability(form, m).reasoning_efforts.includes(e))));
 const fallbackOptions = computed(() => modelOptions.value.filter(m => m !== form.model && !form.fallback_models?.includes(m)));
 function addFallback(value: string) {
   const model = value?.trim();
@@ -230,7 +231,6 @@ watch(() => props.modelValue, (visible) => {
 function submit() {
   if (!hasPermission('development:ai:configure') || !hasPermission(selectedId.value === null ? 'ai:profiles:create' : 'ai:profiles:update')) return;
   if (targetChanged.value && hasKey.value && !apiKey.value && !clearKey.value) { validationError.value = t('aiDevelopment.profiles.targetChangedNeedKey', '连接目标已变更，请提供新密钥或明确清空旧密钥。'); return; }
-  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.reasoningProtocolUnsupported', 'Responses / Messages 暂不支持显式推理模式，请选择默认并使用非思考模型。'); return; }
   if (form.protocol === 'anthropic-messages' && !form.max_output_tokens) { validationError.value = t('aiDevelopment.profiles.messagesOutputRequired', 'Messages 必须设置输出 Token 预算。'); return; }
   const payload = { ...form, favorite_models: [...(form.favorite_models || [])], fallback_models: [...(form.fallback_models || [])], model_capabilities: (form.model_capabilities || []).map(c => ({ ...c, reasoning_efforts: [...c.reasoning_efforts], context_window: String(c.context_window) === '' ? null : c.context_window, max_output_tokens: String(c.max_output_tokens) === '' ? null : c.max_output_tokens })) };
   for (const field of numericFields) if (field.nullable && (payload[field.key] === undefined || String(payload[field.key]) === '')) Object.assign(payload, { [field.key]: null });
@@ -251,7 +251,6 @@ function discoveryPayload(): Partial<AiProfileInput> & { profile_id?: number | n
   return { ...form, profile_id: selectedId.value ?? undefined, ...(clearKey.value || apiKey.value ? { api_key: clearKey.value ? '' : apiKey.value } : {}) };
 }
 function test() {
-  if (form.protocol !== 'openai-chat' && form.reasoning_effort) { validationError.value = t('aiDevelopment.profiles.protocolReasoningUnsupported', '当前协议不支持显式推理模式。'); return; }
   emit('test', { protocol: form.protocol, name: form.provider, max_output_tokens: form.max_output_tokens, base_url: form.base_url, model: form.model, connect_timeout: form.connect_timeout, request_timeout: form.request_timeout, max_retries: form.max_retries, api_key: clearKey.value ? '' : apiKey.value });
   apiKey.value = '';
 }

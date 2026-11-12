@@ -168,4 +168,30 @@ class AiConsumerExecutionTest extends TestCase
         $job->consume(['taskId' => 1, 'operationToken' => 'operation-one']);
         self::assertSame(1, $provider->calls);
     }
+
+    public function test_fallback_switch_and_final_model_are_recorded_in_events_and_message_metadata(): void
+    {
+        $cap = static fn (string $model): array => ['model' => $model, 'context_window' => 200000, 'max_output_tokens' => 1000];
+        $handler = new \GuzzleHttp\Handler\MockHandler([
+            new \GuzzleHttp\Psr7\Response(503, [], '{"error":{"message":"busy"}}'),
+            new \GuzzleHttp\Psr7\Response(200, [], json_encode(['model' => 'backup-1', 'choices' => [['message' => ['content' => '备用回复'], 'finish_reason' => 'stop']], 'usage' => ['total_tokens' => 4]], JSON_THROW_ON_ERROR)),
+        ]);
+        $gateway = new \app\common\ai\provider\OpenAiCompatibleGateway(new \GuzzleHttp\Client(['handler' => \GuzzleHttp\HandlerStack::create($handler)]), [
+            'protocol' => 'openai-chat', 'base_url' => 'https://8.8.8.8/v1', 'api_key' => 'key', 'model' => 'primary', 'max_retries' => 0,
+            'fallback_enabled' => true, 'fallback_models' => ['backup-1'], 'max_output_tokens' => 100, 'model_capabilities' => [$cap('primary'), $cap('backup-1')],
+        ]);
+        $this->job($gateway)->consume(['taskId' => 1, 'operationToken' => 'operation-one']);
+        self::assertSame('succeeded', AiTask::findOrFail(1)->status);
+        $store = new DatabaseAiConversationStore();
+        $events = $store->events(1, 0, 100);
+        $fallback = array_values(array_filter($events, static fn (array $event): bool => $event['type'] === 'provider.fallback'));
+        self::assertCount(1, $fallback);
+        self::assertSame(['primary', 'backup-1', 'provider_unavailable', 503], [$fallback[0]['payload']['from_model'], $fallback[0]['payload']['to_model'], $fallback[0]['payload']['reason'], $fallback[0]['payload']['status']]);
+        $completed = array_values(array_filter($events, static fn (array $event): bool => $event['type'] === 'provider.completed'));
+        self::assertSame('backup-1', $completed[0]['payload']['model']);
+        $metadata = $store->messages(1)[0]['metadata'];
+        self::assertSame('backup-1', $metadata['model']);
+        self::assertSame('backup-1', $metadata['requested_model']);
+        self::assertSame([['from_model' => 'primary', 'to_model' => 'backup-1', 'reason' => 'provider_unavailable', 'status' => 503]], $metadata['fallbacks']);
+    }
 }

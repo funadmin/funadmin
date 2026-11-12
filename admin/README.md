@@ -169,6 +169,28 @@ The webman is open-sourced software licensed under the MIT.
 
 通用会员注册、资料与改密服务位于 `app/common/service/member/`。公开会员只走会员 API v2：`POST /api/v2/token` 登录、`POST /api/v2/token/refresh` 刷新、`POST /api/v2/logout` 登出、`POST /api/v2/member` 注册、`GET|PUT /api/v2/member/profile` 资料、`PUT /api/v2/member/password` 改密（吊销该会员全部会话）。会话存于 `member_api_session`，CMS/QA 通过 `MemberApiSessionService::authenticate()` 识别同一会员。令牌有效期由 `MEMBER_ACCESS_TOKEN_TTL`、`MEMBER_REFRESH_TOKEN_TTL` 设置。
 
+## AI 备用模型与思考强度
+
+AI 配置档案（`ai_configuration_profile`）可开启备用模型（`fallback_enabled` + 有序 `fallback_models`，1 至 3 个，去重且不含主模型），并选择思考强度（`reasoning_effort`）。实现在 `app/common/ai/provider/OpenAiCompatibleGateway.php` 与 `AiProtocol.php`。
+
+**切换规则**：按主模型、备用模型顺序尝试，只有以下失败才切换到下一个：网络错误、超时、5xx、429、上游明确表示模型不存在或不可用（错误码 `model_not_found`/`model_not_available`/`model_unavailable`/`model_not_supported`，或 404 + `not_found_error`）。400 参数错误、401/403 鉴权失败等其他 4xx 不切换。流式请求只在拿到成功响应前切换；一旦开始读取流式输出，出错直接报错，不再切换。每次切换都会写入任务事件 `provider.fallback`（`from_model`、`to_model`、`reason`、`status`），助手消息元数据记录 `model`（实际使用）、`requested_model` 和本轮的 `fallbacks`。每次尝试都计入请求次数和超时额度（单任务最多 12 次请求、累计 300 秒），审批与预算控制不变。
+
+**思考强度**：只放行管理员在模型能力里为主模型和所有启用的备用模型都声明过的档位，未声明一律拒绝。按协议传给上游：
+
+| 协议 | 请求字段 |
+| --- | --- |
+| `openai-chat` | `reasoning_effort: <档位>` |
+| `openai-responses` | `reasoning: {effort: <档位>}` |
+| `anthropic-messages` | `thinking: {type: "enabled", budget_tokens: N}` |
+
+Messages 的档位与 `budget_tokens` 映射（常量 `AiProtocol::MESSAGES_THINKING_BUDGET_TOKENS`，前端 `AI_MESSAGES_THINKING_BUDGET_TOKENS` 与之一致）：
+
+| 档位 | low | medium | high | xhigh | max | ultra |
+| --- | --- | --- | --- | --- | --- | --- |
+| budget_tokens | 1024 | 4096 | 8192 | 16384 | 32768 | 65536 |
+
+思考预算必须严格小于档案的输出 Token 预算（`max_output_tokens`，Messages 必填），否则保存和请求时都会拒绝。
+
 ## 本地开发
 
 在项目根目录（`admin/` 与 `web/` 的上一级）执行一条命令即可同时启动前后端：
