@@ -26,15 +26,24 @@ final class Schema
     }
     /**
      * 003（1.2.0）：问题置顶 pinned 与索引；回答状态表 qa_answer（主键复用 CMS 回答投稿 id，不自增；hidden 为后台隐藏；
-     * 软删除只用 deleted_at，没有唯一索引所以不加 deleted_token）。
+     * 软删除只用 deleted_at，没有唯一索引所以不加 deleted_token）。与 003 相同：qa_answer 在本次执行前不存在时才为已有的
+     * CMS 回答（问题有问答行的）补状态行；表已存在（含被彻底删除到空表）时重复执行不补，不会让已彻底删除的回答回来。可以重复执行。
      */
-    private static function questionAdmin(Builder $s): void
+    public static function questionAdmin(?Builder $s=null): void
     {
-        $s->table('qa_question',static function(Blueprint $t): void { $t->boolean('pinned')->default(false);$t->index(['site_id','locale','pinned','id'],'idx_qa_question_pinned'); });
+        $s??=Db::schema();
+        if(!$s->hasColumn('qa_question','pinned'))$s->table('qa_question',static function(Blueprint $t): void { $t->boolean('pinned')->default(false);$t->index(['site_id','locale','pinned','id'],'idx_qa_question_pinned'); });
+        $created=!$s->hasTable('qa_answer');
+        if(!$created)return;
         $s->create('qa_answer',static function(Blueprint $t): void {
             $t->unsignedBigInteger('id')->primary();$t->unsignedBigInteger('question_id');$t->unsignedBigInteger('site_id');$t->string('locale',20);$t->boolean('hidden')->default(false);$t->timestamps();$t->dateTime('deleted_at')->nullable();
             $t->index(['question_id','id'],'idx_qa_answer_question');$t->index('deleted_at','idx_qa_answer_deleted_at');
         });
+        if(!$s->hasTable('cms_member_submission'))return;
+        $connection=$s->getConnection();
+        $connection->table('qa_answer')->insertUsing(['id','question_id','site_id','locale','hidden','created_at','updated_at'],
+            $connection->table('cms_member_submission as s')->join('qa_question as q',static function($j): void {$j->on('q.id','=','s.parent_id')->on('q.site_id','=','s.site_id')->on('q.locale','=','s.locale');})
+                ->where('s.kind','answer')->select(['s.id','s.parent_id','s.site_id','s.locale'])->selectRaw('0')->addSelect(['s.created_at','s.updated_at']));
     }
     private static function create(Builder $s): void
     {

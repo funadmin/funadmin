@@ -27,7 +27,8 @@
   "adminWeb": {
     "source": "web/src/admin/plugins/qa",
     "components": {
-      "Moderation": "pages/Moderation.vue"
+      "Moderation": "pages/Moderation.vue",
+      "Questions": "pages/Questions.vue"
     },
     "minFrontendVersion": "1.0.0",
     "permissions": [
@@ -106,6 +107,11 @@
             "name": "问答审核",
             "path": "/plugins/qa/moderation",
             "permission": "qa:moderation:index"
+          },
+          {
+            "name": "问题管理",
+            "path": "/plugins/qa/questions",
+            "permission": "qa:questions:index"
           }
         ]
       }
@@ -118,6 +124,15 @@
         "meta": {
           "title": "问答审核",
           "permission": "qa:moderation:index"
+        }
+      },
+      {
+        "path": "/plugins/qa/questions",
+        "name": "Plugin_qa_Questions",
+        "component": "Questions",
+        "meta": {
+          "title": "问题管理",
+          "permission": "qa:questions:index"
         }
       }
     ]

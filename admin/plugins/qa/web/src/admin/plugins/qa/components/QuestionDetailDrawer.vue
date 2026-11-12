@@ -55,11 +55,12 @@ async function run(action: () => Promise<QaQuestionDetail | unknown>, replaces: 
   const request = ++requestId;
   try {
     const result = await action();
+    // 写入已成功：无论详情是否已切换，都通知列表刷新；只有仍是当前请求时才更新详情。
+    emit('changed');
     if (request !== requestId) return;
     if (replaces) detail.value = result as QaQuestionDetail;
     else await load();
     ElMessage.success(t('pluginQa.detail.saved'));
-    emit('changed');
   } catch (e) {
     if (request !== requestId) return;
     if (code(e) === 409) { ElMessage.warning(t('pluginQa.detail.conflict')); await load(); }

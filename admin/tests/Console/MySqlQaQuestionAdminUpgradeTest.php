@@ -25,7 +25,7 @@ spl_autoload_register(static function (string $class): void {
 /**
  * 问答插件 003（后台管理结构，1.2.0）在 MySQL 上的升级：从 002 带数据升级，问题行与原值保留并得到 pinned = 0；
  * 新表 qa_answer 为已有 CMS 回答（问题有问答行的）各补一行状态，CMS 数据不变；重放 003 数据与结构不变，
- * 且不会补回已被彻底删除的回答状态行；SQL 001–003 与 Schema::install() 结构一致。
+ * 且不会补回已被彻底删除的回答状态行（包括全部删除、表为空时）；SQL 001–003 与 Schema::install() 结构一致。
  * 需要一次性 MySQL 测试库（tests/Console/run-mysql.php）；库里没有核心表时先执行核心 001–005；
  * 没有 CMS 投稿表时建一张只含回填所需列的临时表，结束时删除。
  */
@@ -105,6 +105,24 @@ final class MySqlQaQuestionAdminUpgradeTest extends TestCase
             self::assertSame($data, [$this->dump('qa_question'), $this->dump('qa_answer')], '重放 003 数据不变，不补回已彻底删除的回答');
             self::assertSame($structure, $this->structure(), '重放 003 结构不变');
             self::assertSame($installed, $structure, 'SQL 001–003 与 Schema::install() 结构一致');
+
+            // 全部回答状态行都被彻底删除（表为空）后重放 003：表在执行前已存在，不补行。
+            QaAnswer::query()->get()->each(static fn (QaAnswer $row) => $row->delete());
+            QaAnswer::onlyTrashed()->forceDelete();
+            self::assertSame(0, Db::table('qa_answer')->count());
+            Db::table('system_migration')->where('scope', 'plugin:qa')->where('version', '003_question_admin')->delete();
+            self::assertSame(['003_question_admin'], $service->runVersion($root, '003_question_admin', 'plugin:qa'));
+            self::assertSame(0, Db::table('qa_answer')->count(), '空表重放 003 不会补回已彻底删除的回答');
+
+            // Blueprint 孪生实现同样只在新建表时补行（MySQL 上）。
+            Db::schema()->drop('qa_answer');
+            Schema::questionAdmin();
+            self::assertSame([9002, 9003, 9006], Db::table('qa_answer')->orderBy('id')->pluck('id')->map(static fn ($v): int => (int) $v)->all());
+            Db::table('qa_answer')->whereIn('id', [9002, 9003, 9006])->update(['deleted_at' => '2026-03-01 00:00:00']);
+            QaAnswer::onlyTrashed()->forceDelete();
+            Schema::questionAdmin();
+            self::assertSame(0, Db::table('qa_answer')->count());
+            self::assertSame($structure, $this->structure(), '孪生实现重建的结构与 003 一致');
         } finally {
             $this->drop();
             Db::table('system_migration')->where('scope', 'plugin:qa')->delete();

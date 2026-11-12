@@ -44,10 +44,13 @@ final class AdminQuestionService
         return $question+['answers'=>array_map(fn($answer)=>$this->answer($answer,$question['accepted_answer_id']),$rows),'answers_total'=>$total];
     }
 
-    /** 关闭或重新开放问题（问答状态，不改 CMS 审核状态），按问题版本做乐观锁。 */
+    /**
+     * 关闭或重新开放问题（问答状态，不改 CMS 审核状态），按问题版本做乐观锁。
+     * 重新开放同时取消采纳（accepted_answer_id 置空），问题作者可以重新采纳；关闭保留现有采纳。
+     */
     public function status(string $site,string $locale,string $id,int $version,bool $closed): array
     {
-        return $this->changeState($site,$locale,$id,$version,['closed'=>$closed]);
+        return $this->changeState($site,$locale,$id,$version,$closed?['closed'=>true]:['closed'=>false,'accepted_answer_id'=>null]);
     }
 
     public function pin(string $site,string $locale,string $id,int $version,bool $pinned): array
@@ -139,12 +142,18 @@ final class AdminQuestionService
             ->select(['s.id','s.parent_id','s.body_html','s.member_id','s.status','s.lock_version','s.review_reason','s.data','s.created_at','m.username','m.nickname','a.hidden']);
     }
 
-    /** @param list<string> $ids @return array<string,int> 每个问题未删除的回答数（一次分组查询） */
-    private function answerCounts(array $ids): array
+    /**
+     * 每个问题的回答数（一次分组查询），口径与详情的 answers_total 相同：问答状态行未删除、CMS 回答投稿未删除（含隐藏的与任何审核状态的）。
+     * @param list<string> $ids
+     * @return array<string,int>
+     */
+    public static function answerCounts(array $ids): array
     {
         if($ids===[])return [];
         $counts=[];
-        foreach(QaAnswer::query()->toBase()->whereIn('question_id',$ids)->whereNull('deleted_at')->selectRaw('question_id, count(*) as aggregate')->groupBy('question_id')->get() as $row)$counts[(string)$row->question_id]=(int)$row->aggregate;
+        $rows=Db::table('qa_answer as a')->join('cms_member_submission as s',static function($j): void {$j->on('s.id','=','a.id')->on('s.site_id','=','a.site_id')->on('s.locale','=','a.locale')->where('s.kind','answer')->whereNull('s.deleted_at');})
+            ->whereIn('a.question_id',$ids)->whereNull('a.deleted_at')->select('a.question_id')->selectRaw('count(*) as aggregate')->groupBy('a.question_id')->get();
+        foreach($rows as $row)$counts[(string)$row->question_id]=(int)$row->aggregate;
         return $counts;
     }
 

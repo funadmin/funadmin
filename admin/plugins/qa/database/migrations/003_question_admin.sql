@@ -3,8 +3,9 @@
 -- 2. New table qa_answer: the QA-side state of an answer (hidden by an administrator, soft deleted). Its primary key
 --    `id` reuses the CMS member submission id of the answer (not auto-increment). It has `deleted_at` DATETIME NULL with
 --    an index led by it and no unique key besides the primary key, so it gets no `deleted_token`.
--- 3. Existing answers get a state row, once: only while qa_answer is still empty and the CMS submission table exists,
---    so re-running 003 never brings back answer rows that an administrator permanently deleted.
+-- 3. Existing answers get a state row, once: only when qa_answer did not exist before this run (checked before the
+--    CREATE and kept in @qa_answer_created) and the CMS submission table exists. Re-running 003 never backfills, so
+--    answer rows an administrator permanently deleted (even all of them) never come back.
 -- CMS data is only read, never changed. Every statement is guarded by information_schema and can be re-run.
 
 -- fun_qa_question
@@ -18,6 +19,7 @@ EXECUTE qa_admin_stmt;
 DEALLOCATE PREPARE qa_admin_stmt;
 
 -- fun_qa_answer
+SET @qa_answer_created = (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_qa_answer')=0;
 CREATE TABLE IF NOT EXISTS `fun_qa_answer` (
   `id` BIGINT UNSIGNED NOT NULL,
   `question_id` BIGINT UNSIGNED NOT NULL,
@@ -35,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `fun_qa_answer` (
 -- backfill answer state rows for existing CMS answers whose question has a QA row
 SET @qa_admin_fill = IF(
   (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_cms_member_submission')=1
-    AND (SELECT COUNT(*) FROM `fun_qa_answer`)=0,
+    AND @qa_answer_created = 1,
   'INSERT INTO `fun_qa_answer` (`id`, `question_id`, `site_id`, `locale`, `hidden`, `created_at`, `updated_at`) SELECT s.`id`, s.`parent_id`, s.`site_id`, s.`locale`, 0, s.`created_at`, s.`updated_at` FROM `fun_cms_member_submission` s INNER JOIN `fun_qa_question` q ON q.`id` = s.`parent_id` AND q.`site_id` = s.`site_id` AND q.`locale` = s.`locale` WHERE s.`kind` = ''answer''',
   'DO 0'
 );

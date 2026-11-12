@@ -26,8 +26,7 @@ final class QaRecycleBin
         $rows=$query->orderByDesc('deleted_at')->orderByDesc('id')->offset(($page-1)*$size)->limit($size)->get()->all();
         $ids=array_map(static fn($row)=>(string)$row->getRawOriginal('id'),$rows);
         $submissions=$this->submissions($site,$ids);
-        $counts=[];
-        if($ids!==[])foreach(QaAnswer::query()->toBase()->whereIn('question_id',$ids)->whereNull('deleted_at')->selectRaw('question_id, count(*) as aggregate')->groupBy('question_id')->get() as $row)$counts[(string)$row->question_id]=(int)$row->aggregate;
+        $counts=AdminQuestionService::answerCounts($ids);
         $list=[];
         foreach($rows as $row){
             $id=(string)$row->getRawOriginal('id');$submission=$submissions[$id]??null;$live=$submission!==null&&$submission['kind']==='question'&&$submission['deleted_at']===null;
